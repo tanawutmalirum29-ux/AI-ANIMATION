@@ -446,7 +446,7 @@ function renderChat(container){
  e('h4',{},'AI-3 · ผู้กำกับบทบรรยายและซับไตเติล'),
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
-  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{narrativeModel=ev.target.value;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
+  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{const next=ev.target.value;if(localEngine&&next!==loadedModel){if(!root.confirm('ต้องโหลดหน้าเว็บใหม่ก่อนเปลี่ยนโมเดล AI-3 เพื่อป้องกัน WebGPU เสียหาย ต้องการดำเนินการหรือไม่?')){render();return}try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}root.location.reload();return}narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
    ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
