@@ -1549,6 +1549,7 @@ function resolveActor(a,scn){if(!isObj(a)||!scn)return a;const set=locSet(S,scn.
 if(A){if(o.x===undefined)o.x=nm(A.x,50)+nm(a.dx,0);if(o.y===undefined)o.y=nm(A.y,90)+nm(a.dy,0);if(o.facing===undefined&&A.facing)o.facing=A.facing;if(o.pose===undefined&&A.pose)o.pose=A.pose;if(o.scale===undefined&&A.scale)o.scale=A.scale}
 if(B){if(o.toX===undefined)o.toX=nm(B.x,50)+nm(a.dx,0);if(o.toY===undefined)o.toY=nm(B.y,90)+nm(a.dy,0);if(o.facing===undefined)o.facing='auto'}
 return o}
+function standaloneCustomAssets(scn,layer){const aspect=String(S.project.aspect||'16:9').split(':').map(Number),W=f2(90*(aspect[0]&&aspect[1]?aspect[0]/aspect[1]:16/9)*clampN(nm(scn.camera&&scn.camera.world,1),1,3.5));const shapes=window.StoryAssetCore?.sceneMarkup(scn,layer,W)||'';return shapes?'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' 90" preserveAspectRatio="xMidYMid meet">'+shapes+'</svg>':''}
 function setSVG(scn,layer){const set=locSet(S,scn.location),sp=(Array.isArray(scn.props)?scn.props:[]).map((p,i)=>typeof window.STUDIO_INTERACTION_PROP_STATE==='function'?window.STUDIO_INTERACTION_PROP_STATE(scn,p,i):p).filter(Boolean),all=[...(set&&Array.isArray(set.props)?set.props:[]),...sp].filter(p=>isObj(p)&&PROPS[p.kind]&&!!p.front===(layer==='front'));
 const custom=Array.isArray(scn.customAssets)&&scn.customAssets.some(x=>x&&!!x.front===(layer==='front'));
 if(layer==='back'&&!set&&!all.length&&!custom)return'';if(layer==='front'&&!all.length&&!custom)return'';
@@ -2986,7 +2987,7 @@ function draw(){
  const art=$('#art'),k=(!s.image&&s.art&&ART[s.art]&&s.art!=='room')?s.art:'',rig=$('#rig'),acts=Array.isArray(s.actors)?s.actors:[];
  if(art.dataset.k!==k){art.dataset.k=k;art.innerHTML=k?ART[k]():''}
  art.style.setProperty('--t',loc.toFixed(2)+'s');
- const sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0||(s.customAssets||[]).length>0),sb=setOn?setSVG(s,'back'):'',sf=sk?setSVG(s,'front'):'',se=$('#set'),sg=$('#setf');
+ const sk=(!s.image&&!k),assetOn=(s.customAssets||[]).length>0,setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0||assetOn),sb=setOn?setSVG(s,'back'):(assetOn?standaloneCustomAssets(s,'back'):''),sf=sk?setSVG(s,'front'):(assetOn?standaloneCustomAssets(s,'front'):''),se=$('#set'),sg=$('#setf');
  if(se._h!==sb){se._h=sb;se.innerHTML=sb}if(sg._h!==sf){sg._h=sf;sg.innerHTML=sf}
  const lt=$('#lt'),LGi=lightLayer(s,loc,i);lt.style.background=LGi.c;lt.style.opacity=LGi.o;
  const L=isObj(s.lighting)?s.lighting:{},fx=$('#lightFx'),bright=clampN(nm(L.exposure,1),.6,1.5),glow=clampN(nm(L.glow,0),0,1),flicker=clampN(nm(L.flicker,0),0,1);
@@ -4131,7 +4132,9 @@ window.StoryStudioBridge={
  exportJSON:()=>dl((S?.project?.title||'story-studio').replace(/[\\/:*?"<>|]/g,'_').slice(0,40)+'.json',JSON.stringify(S,null,1),'application/json'),
  importJSON:()=>$('#file').click(),openWorkspace:()=>switchStudioTool('ai'),
  continueEpisode:()=>commit(()=>nextEpisodeContinuing()),
- addAsset:(asset)=>commit(()=>{if(!window.StoryAssetCore)throw Error("Asset module missing");const a=window.StoryAssetCore.asset(asset),scene=sc();scene.customAssets=Array.isArray(scene.customAssets)?scene.customAssets:[];if(scene.customAssets.length>=40)throw Error("ฉากมีรูปได้ไม่เกิน 40 รายการ");scene.customAssets.push({asset:a,x:50,y:83,scale:1,front:false})}),
+ addAsset:(asset)=>commit(()=>{if(!window.StoryAssetCore)throw Error("Asset module missing");const a=window.StoryAssetCore.asset(asset),scene=sc();scene.customAssets=Array.isArray(scene.customAssets)?scene.customAssets:[];if(scene.customAssets.length>=40)throw Error("ฉากมีรูปได้ไม่เกิน 40 รายการ");scene.customAssets.push({asset:a,x:50,y:83,scale:1,front:true})}),
+ updateAsset:(index,patch)=>commit(()=>{const list=sc().customAssets||[],a=list[index];if(!a)throw Error("ไม่พบรูปที่เลือก");for(const k of ["x","y","scale"]){if(patch[k]!==undefined)a[k]=clampN(Number(patch[k])||0,k==="scale"?.12:0,k==="scale"?3:100)}if(patch.front!==undefined)a.front=patch.front===true;if(patch.flip!==undefined)a.flip=patch.flip===true}),
+ removeAsset:(index)=>commit(()=>{if(Array.isArray(sc().customAssets))sc().customAssets.splice(index,1)}),
  refresh:()=>render()
 };
 
