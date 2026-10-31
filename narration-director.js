@@ -44,21 +44,21 @@ function silenceTrim(buffer){
  const leading=first/sr,trailing=(buffer.length-last)/sr;
  const start=leading>.16?Math.max(0,leading-.075):0;
  const end=trailing>.24?Math.max(0,trailing-.1):0;
- return {start:+clamp(start,0,maxDur*.35).toFixed(3),end:+clamp(end,0,maxDur*.35).toFixed(3)};
+ return {start:+clamp(start,0,maxDur*.8).toFixed(3),end:+clamp(end,0,Math.max(0,maxDur-start-.12)).toFixed(3)};
 }
 function isAuto(clip){return !!clip&&clip.kind==='voice'&&(clip.autoDub===true||/^auto-e\d+-s\d+-/.test(String(clip.name||'')))}
-function duration(c){const rate=clamp(num(c.rate,1),.2,4);return Math.max(0,(num(c.duration)-num(c.trimStart)-num(c.trimEnd))/rate)}
+function duration(c,rateFn){const rate=clamp(num(rateFn?rateFn(c):c.rate,1),.2,4);return Math.max(0,(num(c.duration)-num(c.trimStart)-num(c.trimEnd))/rate)}
 function layout(scene,options={}){
  if(!scene||!Array.isArray(scene.audioClips))return {clips:0,extended:0,seconds:0};
  const gap=clamp(num(options.gap,.16),.06,.8),padding=.18;
  const original=num(scene.duration,4),cues=Array.isArray(scene.subtitleCues)?scene.subtitleCues:[];
- const all=scene.audioClips.filter(c=>isAuto(c)&&c.data&&duration(c)>0)
+ const all=scene.audioClips.filter(c=>isAuto(c)&&c.data&&duration(c,options.rateOf)>0)
  .sort((a,b)=>num(a.at)-num(b.at));
  const manual=scene.audioClips.filter(c=>c.kind==='voice'&&!isAuto(c)&&c.data&&duration(c)>0)
  .map(c=>({start:num(c.at),end:num(c.at)+duration(c)})).sort((a,b)=>a.start-b.start);
  let cursor=.08,lastEnd=0;
  for(const c of all){
-  const len=duration(c);let pos=cursor;
+  const len=duration(c,options.rateOf);let pos=cursor;
   // Protect existing manual takes rather than overlapping a generated voice with them.
   for(const r of manual)if(pos<r.end+gap&&pos+len>r.start-gap)pos=r.end+gap;
   c.at=+pos.toFixed(3);const linked=new Set((c.cueIds&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
