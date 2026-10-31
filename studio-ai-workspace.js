@@ -428,10 +428,10 @@ function narrativeScenes(){
  const list=audioScope==='all'?state.episodes: [ep];
  return list.flatMap(episode=>(audioScope==='scene'?[episode.scenes[bridge.sceneIndex?.()||0]]:episode.scenes)
  .filter(Boolean).map(scene=>({id:scene.id,episode:episode.id,duration:scene.duration,
-  voiceover:String(scene.voiceover||'').slice(0,1000),
+  voiceover:String(scene.voiceover||''),
   subtitle:Array.isArray(scene.subtitle)?scene.subtitle:[],
   subtitleCues:Array.isArray(scene.subtitleCues)?scene.subtitleCues:[],
-  notes:String(scene.notes||'').slice(0,250)}))).slice(0,12);
+  notes:String(scene.notes||'').slice(0,250)})));
 }
 function narrativeChunks(source,limit=24){
  const value=String(source||'').replace(/\s+/g,' ').trim();
@@ -478,9 +478,13 @@ function standardNarrative(sc){
  }
  return {id:sc.id,voiceover:sc.voiceover,subtitle,subtitleCues};
 }
-async function runNarrative(){
- if(busy)return;
- busy=true;modelAbortController=new AbortController();render();
+async function runNarrative(config={}){
+ const coordinated=!!config.coordinated;
+ if(busy&&!coordinated)return;
+ const previousModel=narrativeModel;
+ if(config.forceStandard)narrativeModel='standard';
+ if(!coordinated){busy=true;modelAbortController=new AbortController()}
+ render();
  try{
   const scenes=narrativeScenes();
   if(!scenes.length)throw Error('ไม่มีฉากให้ปรับ');
@@ -500,7 +504,7 @@ async function runNarrative(){
      stage:'AI-3 วิเคราะห์ฉาก '+(offset+1)+'–'+(offset+batch.length)+' จาก '+scenes.length});
     const response=await abortableModelWork(engine.chat.completions.create({messages:[
      {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only supplied scene IDs.'},
-     {role:'user',content:JSON.stringify(batch).slice(0,6000)}
+     {role:'user',content:JSON.stringify(batch.map(x=>({...x,voiceover:x.voiceover.slice(0,1600)})))}
     ],temperature:.2,max_tokens:batchSize===1?520:1050}));
     const raw=String(response.choices?.[0]?.message?.content||'').trim()
      .replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
@@ -520,7 +524,7 @@ async function runNarrative(){
    changes=allChanges;
   }
   const byId=new Map(scenes.map(x=>[x.id,x])),ops=[],summary=[];
-  for(const item of changes.slice(0,12)){
+  for(const item of changes){
    const old=byId.get(item.id);
    if(!old||!Array.isArray(item.subtitle)||item.subtitle.length>3)continue;
    const subtitle=item.subtitle.map(x=>String(x||'').trim());
@@ -557,9 +561,17 @@ async function runNarrative(){
    (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
     ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'')+
    (advisories.length?'\n\nข้อเสนอจากโมเดล (ยังไม่แก้โปรเจกต์ เพราะผลลัพธ์ไม่ผ่าน JSON):\n'+advisories.slice(0,5).join('\n'):'');
+  if(typeof bridge.persist==='function')recordHandoff('AI-3','script_ready',narrativeReport,{pendingDub:ops.some(o=>o.patch.voiceover!==byId.get(o.id)?.voiceover)});
   status(narrativeReport);
- }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
- finally{busy=false;modelAbortController=null;render()}
+  return {edits:ops.length,report:narrativeReport};
+ }catch(err){
+  invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true);
+  if(coordinated)throw err;
+ }finally{
+  if(config.forceStandard)narrativeModel=previousModel;
+  if(!coordinated){busy=false;modelAbortController=null}
+  render();
+ }
 }
 const e=(tag,props={},...children)=>{
  const element=document.createElement(tag);
