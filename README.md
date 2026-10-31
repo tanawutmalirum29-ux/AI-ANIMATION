@@ -9,7 +9,7 @@
 1. เปิด [AWS Amplify Console](https://console.aws.amazon.com/amplify/home) แล้วเลือก **Create new app → GitHub**
 2. เชื่อม GitHub (ถ้ายังไม่ได้เชื่อม) และเลือก Repository `tanawutmalirum29-ux/AI-ANIMATION`
 3. เลือกสาขา `main`; Amplify จะอ่านไฟล์ `amplify.yml` จาก Repository
-4. ตรวจว่าคำสั่ง Build คือการคัดลอก `index.html`, `animated-map.js`, `animated-map.css` ไปยัง `dist/` และ Artifact directory คือ `dist`
+4. ตรวจว่าคำสั่ง Build คือการคัดลอก `index.html`, `animated-map.js`, `animated-map.css`, `cinematic-fx.js`, `cinematic-fx.css` ไปยัง `dist/` และ Artifact directory คือ `dist`
 5. กด **Save and deploy** แล้วเปิดโดเมน HTTPS ของ Amplify เพื่อตรวจสอบการพากย์เสียงและไมโครโฟน
 
 เมื่อเชื่อม Continuous Deployment แล้ว GitHub commit ใหม่ในสาขาที่ตั้งค่าไว้จะกระตุ้นให้ Amplify สร้างและเผยแพร่เวอร์ชันใหม่ (หาก Auto-build เปิดอยู่)
@@ -27,6 +27,21 @@
 5. เลื่อนแถบเวลาของฉากหรือกด **ดูครึ่งทาง** เพื่อตรวจเส้นทาง แล้วกด **ส่งออก** เพื่อบันทึกแผนที่เป็นส่วนหนึ่งของวิดีโอ
 
 ข้อมูลแผนที่จะอยู่ใน `scene.animatedMap` ภายใน JSON โปรเจกต์ บันทึก/กู้คืนได้ตามระบบเดิม ไม่กระทบฉากเก่าที่ไม่มีแผนที่ ระบบ QA ตรวจการสร้าง แก้จุด บันทึก และ Canvas export ใน Chromium อัตโนมัติบน GitHub Actions
+
+## Cinematic Effects Engine (v19)
+
+เครื่องมือ **เอฟเฟกต์ภาพ** เพิ่มงานภาพยนตร์แบบตั้งเวลาต่อฉาก โดยต่อยอดจาก Lighting/Atmosphere เดิมที่มีอยู่:
+
+- Preset **แสงจันทร์ / รุ่งเช้า / ไฟฉายกลางคืน / พายุฝน / ริมน้ำ / ปรับเอง**
+- หมอก 3 ระดับความลึกและการลอยแบบ Parallax, ฝุ่นละออง, แสงจันทร์ แสงอาทิตย์ ลำแสงไฟฉาย คบเพลิง, ระลอกน้ำและแสงสะท้อน, โทนสี, เงาเคลื่อนไหว
+- แยก Parallax ให้ชั้นภาพเวกเตอร์ `art`, `set` (หลังฉาก) และ `setf` (หน้าฉาก) ตามทิศการเคลื่อนกล้อง การใช้ภาพพื้นหลังแบนไฟล์เดียว **ไม่สามารถแยกวัตถุในภาพได้**
+- มีเวลาเริ่ม/จบ Fade In/Out, คีย์เฟรมควบคุมความแรงเอฟเฟกต์ 7 ค่า และ Interpolation แบบ Smooth / Linear
+- ใช้ Canvas2D painter เดียวกันใน Preview และ Export และบันทึกค่าลงใน `scene.cinematicFx` พร้อม Undo/Redo, JSON save/import
+- เปิดเว็บ → เลือกฉาก → แถบเครื่องมือ **เอฟเฟกต์ภาพ** → เลือก Preset → ตั้งคีย์เฟรมที่ตำแหน่ง Playhead → Preview / Export
+
+หมายเหตุ: Reflection เป็นแสงสะท้อนเชิงภาพ (procedural) โดยผู้ใช้ตั้งระดับผิวน้ำ ไม่ใช่ระบบ ray-tracing หรือการจำลองผิวน้ำจริง และประสิทธิภาพส่งออกขึ้นอยู่กับอุปกรณ์/เบราว์เซอร์
+
+QA: `tests/cinematic-fx-smoke.cjs` ทดสอบ Chromium จริงร่วมกับ `tests/animated-map-smoke.cjs` ผ่าน GitHub Actions
 
 ## ส่งคลิปวิดีโอให้ตรวจบน GitHub
 
