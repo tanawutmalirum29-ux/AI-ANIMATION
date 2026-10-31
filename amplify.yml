@@ -3,8 +3,9 @@ frontend:
   phases:
     build:
       commands:
-        - mkdir -p dist
-        - cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js site-auth.js runtime-config.js studio-ai-core.js studio-ai-workspace.js studio-ai-workspace.css dist/
+        - mkdir -p dist/assets
+        - cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js site-auth.js runtime-config.js studio-ai-core.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-art-vault.js studio-art-vault.css dist/
+        - cp assets/library.json dist/assets/library.json
         - node -e "require('fs').writeFileSync('dist/runtime-config.js','window.STORY_STUDIO_CONFIG='+JSON.stringify({apiUrl:process.env.STORY_STUDIO_API_URL||''})+';')"
   artifacts:
     baseDirectory: dist

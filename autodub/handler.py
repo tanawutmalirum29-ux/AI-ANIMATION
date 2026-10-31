@@ -18,6 +18,7 @@ import time
 from collections import defaultdict
 
 import edge_tts
+import github_assets
 
 KEY = os.environ.get("DUB_KEY", "")
 PASSWORD_HASH = os.environ.get("SITE_PASSWORD_HASH", "")
@@ -31,6 +32,7 @@ RATE_RE = re.compile(r"^[+-]\d{1,2}%$")
 PITCH_RE = re.compile(r"^[+-]\d{1,2}Hz$")
 # Warm-container login throttle, best effort only (use AWS WAF for strict cross-instance limits).
 _ATTEMPTS = defaultdict(list)
+_ASSET_SUBMISSIONS = defaultdict(list)
 
 
 def _resp(code, obj):
@@ -146,6 +148,22 @@ def handler(event, context):
         if not KEY or not hmac.compare_digest(sent, KEY.encode("utf-8")):
             return _resp(401, {"error": "รหัสลับไม่ถูกต้อง"})
 
+    if action == "proposeAsset":
+        if not secured:
+            return _resp(401, {"error": "ต้องเปิดระบบรหัสผ่านเว็บไซต์ก่อน"})
+        if len(json.dumps(body, ensure_ascii=False)) > 16000:
+            return _resp(413, {"error": "แบบรูปใหญ่เกินไป"})
+        source = str((event.get("requestContext") or {}).get("http", {}).get("sourceIp") or "unknown")
+        now = time.time()
+        _ASSET_SUBMISSIONS[source] = [t for t in _ASSET_SUBMISSIONS[source] if now - t < 3600]
+        if len(_ASSET_SUBMISSIONS[source]) >= 6:
+            return _resp(429, {"error": "เสนอรูปได้ไม่เกิน 6 ครั้งต่อชั่วโมง"})
+        try:
+            proposal = github_assets.propose(body.get("asset"))
+        except github_assets.AssetError as exc:
+            return _resp(422, {"error": str(exc)})
+        _ASSET_SUBMISSIONS[source].append(now)
+        return _resp(200, proposal)
     if action != "synthesize":
         return _resp(400, {"error": "ไม่รู้จักคำสั่ง"})
     text = str(body.get("text", "")).strip()
