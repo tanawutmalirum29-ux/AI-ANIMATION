@@ -61,3 +61,43 @@ test('importer safely normalizes known camera/actor aliases, preserves unknown d
  assert.equal(scenes[2].actors[0].face,'happy');
  assert.doesNotThrow(()=>normalize({episodes:[null,{scenes:[]},{scenes:[{actors:{notAnArray:true},camera:null}]}]}));
 });
+
+test('WebLLM worker handshake falls back to direct runtime without reloading page',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const script=workspace.replace("import('https://esm.run/@mlc-ai/web-llm@0.2.80')","Promise.resolve(root.__fakeWebLLM)")
+  .replace(marker,'root.__test={loadLocalModel,state:()=>({loaded:loadedModel,backend:modelBackend,ready:modelLoad.ready,worker:!!modelWorker})};');
+ const id='Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+ let fallbackCount=0,terminated=0;
+ const engine=()=>({unload:async()=>{},chat:{completions:{create:async()=>({choices:[{message:{content:'พร้อม'}}]})}}});
+ class FailedWorker{
+  constructor(){this.listeners={};queueMicrotask(()=>this.listeners.message?.({data:{type:'story-worker-error',message:'Worker WebGPU unavailable'}}))}
+  addEventListener(name,fn){this.listeners[name]=fn}
+  removeEventListener(name){delete this.listeners[name]}
+  terminate(){terminated++}
+ }
+ const win={StoryAIWorkspaceCore:{},__fakeWebLLM:{
+  prebuiltAppConfig:{model_list:[{model_id:id}]},
+  CreateMLCEngine:async()=>{fallbackCount++;return engine()},
+  CreateWebWorkerMLCEngine:async()=>{throw Error('must not invoke worker after bootstrap fails')}
+ }};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',script)(
+  win,{readyState:'loading',addEventListener(){},baseURI:'https://test.example/'},
+  {getItem(){return null},setItem(){}},{now:()=>0},
+  {gpu:{requestAdapter:async()=>({})}},FailedWorker,class URL{}
+ );
+ await win.__test.loadLocalModel(id);
+ assert.equal(win.__test.state().backend,'main');
+ assert.equal(win.__test.state().ready,true);
+ assert.equal(win.__test.state().worker,false);
+ assert.equal(fallbackCount,1);
+ assert.equal(terminated,1);
+});
+
+test('iPad preview prioritizes direct audible media and offers diagnostics',()=>{
+ assert.match(html,/PREVIEW_DIRECT_VOICE/);
+ assert.match(html,/function checkPreviewAudio\(\)/);
+ assert.match(html,/onclick:checkPreviewAudio/);
+ assert.match(html,/if\(PREVIEW_DIRECT_VOICE\|\|c\.kind==='voice'\)/);
+ assert.match(html,/showPreviewAudioProblem/);
+ assert.match(html,/a\.play\(\)\.then/);
+});
