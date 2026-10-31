@@ -293,3 +293,11 @@ test('AI-3 processes a six-scene story one scene at a time with CPU mode',async(
  assert.equal(count,6);
  assert.match(win.__narrativeTest.report(),/ไม่มีการแก้ไขใหม่/);
 });
+
+
+test('narration preview has a local speech option when no actual voice clip exists',()=>{
+ assert.match(html,/function tryPreviewReadNarration\(\)/);
+ assert.match(html,/onclick:tryPreviewReadNarration/);
+ assert.match(html,/ไม่มีไฟล์เสียงพากย์จริง/);
+ assert.match(html,/ไม่ใช่ไฟล์เสียงจริง และไม่รวมในวิดีโอที่ส่งออก/);
+});
