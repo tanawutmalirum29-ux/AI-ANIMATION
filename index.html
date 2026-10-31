@@ -4010,6 +4010,8 @@ function autoDubJobs(scope,skipExisting){
   const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data);
   const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
   if(narrated){
+   // Never dub over a manually recorded voice unless the user explicitly disables skip-existing.
+   if(skipExisting&&existingClips.some(c=>!director?.isAuto(c)))return;
    if(!skipExisting||!existing.has(cues[0].id))
     jobs.push({ei,si,cueId:cues[0].id,cueIds:[cues[0].id],text:narrated,speaker:'',narrator:true});
    return;
