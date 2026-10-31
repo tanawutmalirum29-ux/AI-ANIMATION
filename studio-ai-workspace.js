@@ -92,6 +92,11 @@ async function webGpuReady(){
  if(!navigator.gpu)return false;
  try{return !!(await navigator.gpu.requestAdapter())}catch(_){return false}
 }
+function invalidateModelOnFailure(err){
+ if(!/disposed|deleted object|tokenizer\*|device lost|out of memory/i.test(String(err?.message||err)))return;
+ modelUnavailable=true;localEngine=null;loadedModel='';
+ updateModelLoad({active:false,ready:false,percent:null,error:'WebLLM Tokenizer/WebGPU ไม่พร้อมใช้งาน · โหลดหน้าเว็บใหม่ก่อนทดลองโมเดลอื่น'});
+}
 async function loadLocalModel(id){
  if(localEngine&&loadedModel===id&&!modelUnavailable)return localEngine;
  if(modelUnavailable)throw Error('โมเดลหรือ Tokenizer ไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง');
@@ -118,7 +123,7 @@ async function loadLocalModel(id){
   updateModelLoad({active:false,ready:true,percent:100,stage:'โมเดลพร้อมใช้งาน · ไม่ต้องโหลดซ้ำในหน้านี้',error:''});
   return engine;
  }catch(err){
-  if(/disposed|deleted object|tokenizer\*|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
+  invalidateModelOnFailure(err);
   updateModelLoad({active:false,ready:false,error:String(err.message||err)+(modelUnavailable?' · โมเดลไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่และลอง 0.5B':''),stage:'',percent:null});
   throw err;
  }
@@ -201,7 +206,7 @@ async function benchmarkModel(applyChanges=false){
    modelReport+='\n\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\n'+(reasons.join('\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
   }
   status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
- }catch(err){if(/disposed|deleted object|tokenizer\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
+ }catch(err){invalidateModelOnFailure(err);modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
  finally{busy=false;render()}
 }
 
