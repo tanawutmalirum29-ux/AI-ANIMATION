@@ -35,4 +35,24 @@ assert.ok(partsOfNarr.length>3);
 const original='คืนที่หนึ่งเธอเห็นแสงไฟลึกลับ。'.repeat(40);
 assert.equal(partsOfNarr.join('').replace(/\s/g,''),original.replace(/\s/g,''));
 assert.ok(partsOfNarr.every(x=>Array.from(x).length<=135));
+// Regression: imported 36-second visual scenes must not stay silent for 30 seconds
+// just because they contain a character, camera move or decorative animation.
+const tailCase={episodes:[{id:'tails',scenes:[
+ {id:'idle',duration:36,voiceover:'พากย์จบแล้ว',actors:[{char:'hero',pose:'read',at:'door'}],audioClips:[voice(5)]},
+ {id:'walk',duration:36,voiceover:'คนเดินต่อ',actors:[{char:'hero',pose:'walk',toX:80}],camera:{type:'pan-right'},audioClips:[voice(6)]},
+ {id:'hold',duration:36,notes:'[HOLD] preserve this dramatic silence',audioClips:[voice(6)]},
+ {id:'keyed',duration:36,actors:[{char:'hero',at:0,to:31}],audioClips:[voice(6)]},
+ {id:'fx-end',duration:36,audioClips:[voice(6),{kind:'sfx',data:'data:ok',duration:30,at:0,rate:1}]}
+]}]};
+const tailAudit=auditor.audit(tailCase,{scope:'all'});
+const idle=tailAudit.scenes.find(x=>x.sceneId==='idle'),walk=tailAudit.scenes.find(x=>x.sceneId==='walk');
+assert.equal(idle.kind,'shorten');
+assert.ok(idle.suggested<8,'static actor should not hold 36s');
+assert.equal(walk.kind,'shorten');
+assert.ok(walk.suggested<10&&walk.suggested>idle.suggested,'leave a slightly longer beat for a camera/moving actor');
+assert.equal(tailAudit.scenes.find(x=>x.sceneId==='hold').kind,'review','authored HOLD needs manual review');
+assert.equal(tailAudit.scenes.find(x=>x.sceneId==='keyed').kind,'review','explicit timed actor should not be sped up');
+assert.ok(!tailAudit.ops.some(x=>['hold','keyed','fx-end'].includes(x.id)),'protect intentional holds, timed actors and non-voice audio');
+assert.deepEqual(tailCase.episodes[0].scenes.map(s=>s.duration),[36,36,36,36,36],'analysis remains non-mutating');
+
 console.log('PASS: imported JSON live voice audit, safe shorten/extend, protect actions and music, no lost narrated text');

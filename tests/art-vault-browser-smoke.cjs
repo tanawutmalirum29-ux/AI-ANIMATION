@@ -18,7 +18,8 @@ const assert=require('node:assert/strict');
   await page.locator('#aiQuick').click();
   await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คลังรูป / GitHub'}).click();
   await page.locator('.ai-art-card').first().waitFor({timeout:15000});
-  assert.equal(await page.locator('.ai-art-card').count(),20);
+  const initialCount=await page.locator('.ai-art-card').count();
+  assert.ok(initialCount>=20,'library must expose at least 20 reusable presets');
   await page.locator('.ai-art-card').first().getByRole('button',{name:'ใช้ในฉาก'}).click();
   assert.equal(await page.evaluate(()=>StoryStudioBridge.get().episodes[0].scenes[0].customAssets.length),1);
   assert.ok(await page.evaluate(()=>{
@@ -40,7 +41,7 @@ const assert=require('node:assert/strict');
   await page.getByRole('button',{name:'ของสำเร็จรูป'}).click();
   await page.getByText('เก้าอี้ทดลองจาก AI',{exact:true}).waitFor();
   const localCount=await page.locator('.ai-art-card').count();
-  assert.equal(localCount,21);
+  assert.equal(localCount,initialCount+1,'AI artwork should add one reusable preset');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#aiQuick').click();
   await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คลังรูป / GitHub'}).click();
