@@ -14,7 +14,9 @@ const assert=require('assert');
   await page.route('**/runtime-config.js',async r=>r.fulfill({status:200,contentType:'application/javascript',
    body:'window.STORY_STUDIO_CONFIG={apiUrl:'+JSON.stringify(endpoint)+'};'}));
   await page.route(endpoint,async r=>{
-   const request=r.request(),json=request.postDataJSON(),headers=request.headers();
+   const request=r.request(),headers=request.headers();
+   if(request.method()==='OPTIONS')return r.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,content-type'}});
+   const json=request.postDataJSON();
    calls.push({action:json.action,headers});
    if(json.action==='login'){
     const ok=json.password===pass;
