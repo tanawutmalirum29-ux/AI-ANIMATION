@@ -447,7 +447,7 @@ async function runNarrative(){
      {role:'user',content:JSON.stringify(batch).slice(0,6000)}
     ],temperature:.2,max_tokens:batchSize===1?520:1050}));
     const raw=String(response.choices?.[0]?.message?.content||'').trim()
-     .replace(/^```(?:json)?\\s*/i,'').replace(/```$/,'').trim();
+     .replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
     let parsed;
     try{parsed=JSON.parse(raw)}
     catch(err){throw Error('AI-3 สร้าง JSON ไม่สมบูรณ์ ที่ฉาก '+(offset+1)+': '+String(err.message||err))}
