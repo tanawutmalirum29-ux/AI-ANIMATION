@@ -707,7 +707,7 @@ function applyEpisodeWide(E,src,what){
   else if(what==='fx'){const f=src.cinematicFx?JSON.parse(J(src.cinematicFx)):null;if(J(x.cinematicFx||null)!==J(f)){if(f)x.cinematicFx=f;else delete x.cinematicFx;ch=true}}
   if(ch)n++}
  return n}
-function fix(){S.project=merge(blank().project,isObj(S.project)?S.project:{});ensureSmartConfig(S);S.characters||=[];S.locations||=[];locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)});S.rules||=[];ensureVoiceProfiles(S);S.episodes.forEach(E=>{if(E.opening&&!['fadeblack','titlecard','recap'].includes(E.opening.mode))delete E.opening;if(E.continuity&&typeof E.continuity!=='object')delete E.continuity});S.episodes.forEach(E=>E.scenes.forEach(s=>{s.duration=Number(s.duration)||4;s.camera||={type:'static',from:1,to:1};s.transition||={type:'dissolve',duration:.55};if(!isObj(s.transition))s.transition={type:'dissolve',duration:.55};sanitizeTransition(s.transition);s.subtitle||=[];if(typeof s.imagePrompt!=='string')s.imagePrompt='';s.characters||=[];s.clueIds||=[];s.actors||=[];s.props||=[];s.audioClips||=[];s.subtitleCues=Array.isArray(s.subtitleCues)?s.subtitleCues:[];s.graphicCards=Array.isArray(s.graphicCards)?s.graphicCards:[];if(s.audio&&!s.audioClips.some(x=>x.legacy)){s.audioClips.push({id:'clip'+uid(),kind:'voice',name:'เสียงพากย์เดิม',data:s.audio,at:0,trimStart:0,trimEnd:0,volume:1,fadeIn:0,fadeOut:0,rate:1,legacy:true});s.audio=null};s.voiceDirection||={speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''}}));S.episodes.forEach(E=>{sanitizeAudioLinks(E);E.musicClips||=[];if(E.bgm&&!E.musicClips.some(x=>x.legacy)){E.musicClips.push({id:'clip'+uid(),kind:'music',name:'เพลงเดิม',data:E.bgm,at:0,trimStart:0,trimEnd:0,volume:E.bgmVol??.3,fadeIn:0,fadeOut:0,rate:1,legacy:true,loop:true});E.bgm=null}});for(const E of S.episodes)for(const scene of E.scenes)for(const c of scene.audioClips||[])if(c.kind==='voice'&&!c.voiceProfileId)assignVoiceClipFromAI(scene,c);if(selEp>=S.episodes.length)selEp=0;if(sel>=ep().scenes.length)sel=Math.max(0,ep().scenes.length-1)}
+function fix(){repairCommonJsonAliases(S);S.project=merge(blank().project,isObj(S.project)?S.project:{});ensureSmartConfig(S);S.characters||=[];S.locations||=[];locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)});S.rules||=[];ensureVoiceProfiles(S);S.episodes.forEach(E=>{if(E.opening&&!['fadeblack','titlecard','recap'].includes(E.opening.mode))delete E.opening;if(E.continuity&&typeof E.continuity!=='object')delete E.continuity});S.episodes.forEach(E=>E.scenes.forEach(s=>{s.duration=Number(s.duration)||4;s.camera||={type:'static',from:1,to:1};s.transition||={type:'dissolve',duration:.55};if(!isObj(s.transition))s.transition={type:'dissolve',duration:.55};sanitizeTransition(s.transition);s.subtitle||=[];if(typeof s.imagePrompt!=='string')s.imagePrompt='';s.characters||=[];s.clueIds||=[];s.actors||=[];s.props||=[];s.audioClips||=[];s.subtitleCues=Array.isArray(s.subtitleCues)?s.subtitleCues:[];s.graphicCards=Array.isArray(s.graphicCards)?s.graphicCards:[];if(s.audio&&!s.audioClips.some(x=>x.legacy)){s.audioClips.push({id:'clip'+uid(),kind:'voice',name:'เสียงพากย์เดิม',data:s.audio,at:0,trimStart:0,trimEnd:0,volume:1,fadeIn:0,fadeOut:0,rate:1,legacy:true});s.audio=null};s.voiceDirection||={speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''}}));S.episodes.forEach(E=>{sanitizeAudioLinks(E);E.musicClips||=[];if(E.bgm&&!E.musicClips.some(x=>x.legacy)){E.musicClips.push({id:'clip'+uid(),kind:'music',name:'เพลงเดิม',data:E.bgm,at:0,trimStart:0,trimEnd:0,volume:E.bgmVol??.3,fadeIn:0,fadeOut:0,rate:1,legacy:true,loop:true});E.bgm=null}});for(const E of S.episodes)for(const scene of E.scenes)for(const c of scene.audioClips||[])if(c.kind==='voice'&&!c.voiceProfileId)assignVoiceClipFromAI(scene,c);if(selEp>=S.episodes.length)selEp=0;if(sel>=ep().scenes.length)sel=Math.max(0,ep().scenes.length-1)}
 function commit(fn){const before=ep()?.scenes?.[sel],beforeId=before?.id,oldStarts=starts(),oldLocal=clampN(T-(oldStarts[sel]||0),0,before?.duration||0);past.push(JSON.stringify(S));if(past.length>100)past.shift();future=[];fn(S);fix();const current=ep()?.scenes?.[sel];if(current){const newStarts=starts();if(current.id!==beforeId){T=newStarts[sel]||0;playing=false}else{T=(newStarts[sel]||0)+clampN(oldLocal,0,Math.max(0,current.duration-.001))}}save();render()}
 function undo(){if(!past.length)return;future.push(JSON.stringify(S));S=JSON.parse(past.pop());fix();save();render()}
 function redo(){if(!future.length)return;past.push(JSON.stringify(S));S=JSON.parse(future.pop());fix();save();render()}
@@ -3719,6 +3719,40 @@ function fixCam(s,pc){if(!isObj(pc)||pc.type===undefined||pc.from!==undefined||p
 /* sceneId ใน clue คือแหล่งความจริง; clueIds ของฉากคำนวณตามนั้น */
 function reconcile(D){D.episodes.forEach(E=>{if(!Array.isArray(E.clues))E.clues=[];E.scenes.forEach(s=>(s.clueIds||[]).forEach(id=>{const c=E.clues.find(x=>x.id===id);if(c&&(!c.sceneId||!E.scenes.some(x=>x.id===c.sceneId)))c.sceneId=s.id}))})}
 function syncClues(D){D.episodes.forEach(E=>{const cl=Array.isArray(E.clues)?E.clues:[];E.scenes.forEach(s=>s.clueIds=cl.filter(c=>c.sceneId===s.id).map(c=>c.id))})}
+/* Normalize common harmless AI-generated enum aliases. Do not coerce unknown values.
+ * Keeps frame composition and expressions where possible; unsupported fields still
+ * fail the usual validator instead of being silently accepted. */
+function repairCommonJsonAliases(D){
+ const changes=[];
+ if(!Array.isArray(D?.episodes))return changes;
+ for(const [ei,E] of D.episodes.entries()){
+  if(!E||!Array.isArray(E.scenes))continue;
+  for(const [si,scene] of E.scenes.entries()){
+  if(!scene||typeof scene!=='object')continue;
+  const path='ตอน '+(ei+1)+' ฉาก '+(si+1);
+  if(scene.camera&&typeof scene.camera.type==='string'){
+   const cameraAliases={
+    wide:'static','wide-shot':'static','wide shot':'static',
+    tracking:'follow','tracking-shot':'follow','close-up':'zoom-in',closeup:'zoom-in'
+   };
+   const mapped=cameraAliases[scene.camera.type.toLowerCase()];
+   if(mapped){
+    changes.push(path+': camera '+scene.camera.type+' → '+mapped);
+    scene.camera.type=mapped;
+   }
+  }
+  for(const [ai,actor] of (Array.isArray(scene.actors)?scene.actors:[]).entries()){
+   if(!actor||typeof actor!=='object')continue;
+   if(actor.face==='concerned'){actor.face='think';changes.push(path+' ตัวละคร '+(ai+1)+': concerned → think')}
+   if(actor.facing==='front'||actor.facing==='forward'){
+    actor.facing='auto';if(!actor.view)actor.view='front';
+    changes.push(path+' ตัวละคร '+(ai+1)+': front → auto + front view');
+   }
+  }
+  }
+ }
+ return changes;
+}
 function normalize(d){const B=blank();d.project=merge(B.project,isObj(d.project)?d.project:{});ensureSmartConfig(d);
 ['characters','locations','rules'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[]});
 d.characters=d.characters.map(c=>({name:'',role:'',promptBlock:'',refImage:null,voice:'',...c}));
@@ -3946,9 +3980,11 @@ if(detected==='patch'&&mode!=='patch')return fail('ข้อมูลนี้�
 if(mode==='patch'&&detected!=='patch')return fail('ข้อมูลนี้ไม่ใช่คำสั่ง ops','ใช้โหมดอัตโนมัติ หรือให้ AI ส่ง {"ops":[...]}');
 if(mode==='merge'&&detected!=='merge'&&detected!=='replace')return fail('ข้อมูลนี้ไม่ใช่ชุดตัวละคร/สถานที่/กฎ','เลือกโหมดอัตโนมัติหรือตรวจ JSON ที่วาง');
 const done=(issues,C,log=[])=>{const draft=smartRepairProject(C);const yes=!!$('#smartImportApply')?.checked&&smartEnabled('import');const data=yes?draft.data:C;
+ const normalizedAliases=repairCommonJsonAliases(data);
  const checked=[...issues.filter(i=>i.level==='error'),...diagnose(data)];
  const unique=new Map();checked.forEach(i=>unique.set(i.path+'|'+i.msg,i));const report=[...unique.values()];
  const suggestions=draft.changes.map(c=>(yes?'✓ ปรับแล้ว: ':'◯ แนะนำ: ')+c);
+ suggestions.push(...normalizedAliases.map(c=>'✓ รองรับ JSON จาก AI: '+c));
  return {issues:report,log:[...log,...suggestions],note,mode,cand:report.some(i=>i.level==='error')?null:normalize(data)};};
 const addNew=(C,k)=>(Array.isArray(d[k])?d[k]:[]).forEach(x=>{if(isObj(x)&&!C[k].some(y=>y.id===x.id))C[k].push(x)});
 if(mode==='replace')return done([],d);

@@ -21,7 +21,7 @@ const LOCAL_MODELS=[
 const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
-let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false;
+let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false,modelWorker=null,modelAbortController=null;
 let modelLoad={active:false,ready:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
 function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
 function updateModelLoad(patch){
@@ -77,58 +77,96 @@ function confirmModelAction(message){
   cancel.focus();
  });
 }
-async function chooseModel(id){
+function releaseLocalModel(){
+ // Never reuse a disposed WASM Tokenizer or GPU object. The worker is disposable,
+ // the editing page (and its unsaved current state) must not be reloaded.
+ if(modelWorker){try{modelWorker.terminate()}catch(_){}modelWorker=null}
+ localEngine=null;loadedModel='';modelUnavailable=false;
+}
+function cancelLocalTask(){
+ if(!modelAbortController)return;
+ modelAbortController.abort();
+ releaseLocalModel();
+ updateModelLoad({active:false,ready:false,error:'ยกเลิกงาน AI แล้ว · โปรเจกต์ยังอยู่ในหน้าเดิม',percent:null});
+}
+function abortableModelWork(promise){
+ const signal=modelAbortController?.signal;
+ if(!signal)return Promise.resolve(promise);
+ if(signal.aborted)return Promise.reject(Error('ยกเลิกงาน AI แล้ว'));
+ return new Promise((resolve,reject)=>{
+  const abort=()=>{signal.removeEventListener('abort',abort);reject(Error('ยกเลิกงาน AI แล้ว'))};
+  signal.addEventListener('abort',abort,{once:true});
+  Promise.resolve(promise).then(value=>{signal.removeEventListener('abort',abort);resolve(value)},
+   err=>{signal.removeEventListener('abort',abort);reject(err)});
+ });
+}
+function chooseModel(id){
  if(busy)return;
- if(localEngine&&id!==loadedModel){
-  if(!(await confirmModelAction('เปลี่ยนโมเดลต้องโหลดหน้าเว็บใหม่เพื่อคืนหน่วยความจำ WebGPU ต้องการดำเนินการหรือไม่?'))) {render();return}
-  try{localStorage.setItem(MODEL_KEY,id)}catch(_){}
-  root.location.reload();return;
- }
- chosenModel=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
+ const next=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
+ if(localEngine&&loadedModel!==next)releaseLocalModel();
+ chosenModel=next;
  try{localStorage.setItem(MODEL_KEY,chosenModel)}catch(_){}
- modelReport='';render();
+ modelReport='';
+ updateModelLoad({active:false,ready:!!localEngine,error:'',percent:localEngine?100:null,
+  model:LOCAL_MODELS.find(m=>m.id===next)?.label||next,
+  stage:localEngine?'โมเดลอยู่ในหน่วยความจำ พร้อมใช้งาน':'เลือกโมเดลแล้ว · สามารถโหลดได้โดยไม่รีเฟรชเว็บ'});
+ render();
 }
 async function webGpuReady(){
  if(!navigator.gpu)return false;
  try{return !!(await navigator.gpu.requestAdapter())}catch(_){return false}
 }
 function invalidateModelOnFailure(err){
- if(!/disposed|deleted object|tokenizer\*|device lost|out of memory/i.test(String(err?.message||err)))return;
- modelUnavailable=true;localEngine=null;loadedModel='';
- updateModelLoad({active:false,ready:false,percent:null,error:'WebLLM Tokenizer/WebGPU ไม่พร้อมใช้งาน · โหลดหน้าเว็บใหม่ก่อนทดลองโมเดลอื่น'});
+ if(!/disposed|deleted object|tokenizer\*|device lost|out of memory|wasm/i.test(String(err?.message||err)))return;
+ releaseLocalModel();
+ updateModelLoad({active:false,ready:false,percent:null,
+  error:'Tokenizer/WebGPU ของโมเดลนี้ใช้งานไม่ได้ · เลือกโมเดลอื่นหรือกดทดสอบใหม่ได้โดยไม่ต้องรีโหลดเว็บไซต์'});
 }
 async function loadLocalModel(id){
  if(localEngine&&loadedModel===id&&!modelUnavailable)return localEngine;
- if(modelUnavailable)throw Error('โมเดลหรือ Tokenizer ไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง');
- if(localEngine&&loadedModel!==id)throw Error('หากต้องการเปลี่ยนโมเดล กรุณาโหลดหน้าเว็บใหม่ก่อน เพื่อคืนหน่วยความจำ GPU อย่างปลอดภัย');
+ if(!LOCAL_MODELS.some(m=>m.id===id&&m.id!=='standard'))throw Error('โมเดลไม่ถูกต้อง');
+ if(modelWorker)releaseLocalModel();
  const selected=LOCAL_MODELS.find(m=>m.id===id);
- updateModelLoad({active:true,ready:false,model:selected?.label||id,percent:null,stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
+ updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
+  stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
+ let worker=null;
  try{
-  if(!(await webGpuReady()))throw Error('อุปกรณ์/เบราว์เซอร์ไม่รองรับ WebGPU');
-  updateModelLoad({stage:'เตรียมไลบรารี WebLLM',percent:null});
-  const webllm=await import('https://esm.sh/@mlc-ai/web-llm@0.2.80');
-  if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))throw Error('WebLLM รุ่นนี้ไม่มีโมเดลที่เลือก');
-  // Never unload an active WebGPU engine and immediately reuse the device on iPad Safari.
-  updateModelLoad({stage:'ดาวน์โหลดและเตรียมน้ำหนักโมเดล',percent:0});
-  const engine=await webllm.CreateMLCEngine(id,{initProgressCallback:p=>{
-   const n=Number(p.progress);
-   const percent=Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null;
-   updateModelLoad({percent,stage:String(p.text||'กำลังเตรียมโมเดล').slice(0,260)});
-  }});
-  // A completed download does not mean the tokenizer can generate text.
-  updateModelLoad({active:true,ready:false,percent:100,stage:'ตรวจสอบ Tokenizer ด้วยการสร้างข้อความจริง'});
-  await engine.chat.completions.create({messages:[{role:'user',content:'ตอบคำว่า พร้อม'}],max_tokens:8,temperature:0});
-  localEngine=engine;loadedModel=id;
-  try{const device=engine?.getDevice?.();if(device?.lost)device.lost.then(()=>{modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,error:'WebGPU device lost · โหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง',percent:null})})}catch(_){}
-  updateModelLoad({active:false,ready:true,percent:100,stage:'โมเดลพร้อมใช้งาน · ไม่ต้องโหลดซ้ำในหน้านี้',error:''});
+  if(!(await webGpuReady()))throw Error('เบราว์เซอร์นี้ไม่รองรับ WebGPU');
+  updateModelLoad({stage:'เตรียม WebLLM และตัวประมวลผลแบบแยก Worker',percent:null});
+  const webllm=await abortableModelWork(import('https://esm.sh/@mlc-ai/web-llm@0.2.80'));
+  if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))
+   throw Error('WebLLM รุ่นนี้ไม่มีโมเดล '+selected.label);
+  worker=new Worker(new URL('./studio-ai-model-worker.js',document.baseURI),{type:'module'});
+  modelWorker=worker;
+  const workerFailure=new Promise((_,reject)=>{
+   worker.addEventListener('error',e=>{e.preventDefault();reject(Error('เริ่ม WebLLM Worker ไม่สำเร็จ · ตรวจการรองรับ module worker และการโหลด CDN'))},{once:true});
+   worker.addEventListener('messageerror',()=>reject(Error('WebLLM Worker ส่งข้อมูลกลับไม่ได้')),{once:true});
+  });
+  updateModelLoad({stage:'ดาวน์โหลด/โหลดโมเดลใน Worker',percent:0});
+  const engine=await abortableModelWork(Promise.race([
+   webllm.CreateWebWorkerMLCEngine(worker,id,{initProgressCallback:p=>{
+    if(modelWorker!==worker)return;
+    const n=Number(p.progress);
+    updateModelLoad({percent:Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null,
+     stage:String(p.text||'กำลังโหลดโมเดล').slice(0,260)});
+   }}),workerFailure
+  ]));
+  updateModelLoad({active:true,ready:false,percent:100,stage:'ตรวจสอบ Tokenizer โดยให้ AI สร้างข้อความจริง'});
+  await abortableModelWork(engine.chat.completions.create({
+   messages:[{role:'user',content:'ตอบคำเดียวว่า พร้อม'}],max_tokens:12,temperature:0
+  }));
+  if(modelWorker!==worker)throw Error('โมเดลถูกยกเลิกก่อนพร้อมใช้งาน');
+  localEngine=engine;loadedModel=id;modelUnavailable=false;
+  updateModelLoad({active:false,ready:true,percent:100,error:'',
+   stage:'ผ่านการทดสอบ Tokenizer · เปลี่ยนรุ่นได้ในหน้านี้ ไม่ต้องรีโหลดเว็บ'});
   return engine;
  }catch(err){
-  invalidateModelOnFailure(err);
-  updateModelLoad({active:false,ready:false,error:String(err.message||err)+(modelUnavailable?' · โมเดลไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่และลอง 0.5B':''),stage:'',percent:null});
+  if(modelWorker===worker)releaseLocalModel();
+  updateModelLoad({active:false,ready:false,percent:null,error:String(err?.message||err),
+   stage:'โหลดหรือทดสอบ AI ไม่สำเร็จ'});
   throw err;
  }
 }
-
 function analysisInput(){
  const state=bridge.get(),scope=audioScope,epIndex=bridge.episodeIndex();
  const episodes=scope==='all'?state.episodes:scope==='episode'?[state.episodes[epIndex]]:[state.episodes[epIndex]];
@@ -145,7 +183,7 @@ async function benchmarkModel(applyChanges=false){
  if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
  if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!(await confirmModelAction('เตรียมโมเดล '+model.label+' (หากยังไม่มีแคชอาจต้องดาวน์โหลดประมาณ '+model.mb+' MB) ดำเนินการบนเครื่องนี้?')))return;
- busy=true;render();
+ busy=true;modelAbortController=new AbortController();render();
  const start=performance.now();
  try{
   const engine=await loadLocalModel(chosenModel);
@@ -153,10 +191,10 @@ async function benchmarkModel(applyChanges=false){
   const sample=analysisInput();
   status('กำลังทดสอบการวิเคราะห์ฉากด้วย '+model.label);
   const inferenceStart=performance.now();
-  const response=await engine.chat.completions.create({messages:[
+  const response=await abortableModelWork(engine.chat.completions.create({messages:[
    {role:'system',content:'คุณเป็นผู้ช่วยตรวจจังหวะภาพยนตร์ภาษาไทย วิเคราะห์ JSON ที่มีอยู่ ห้ามแต่งหรือแก้บท ตอบสั้นๆเป็นภาษาไทย ระบุฉากที่อาจยาวเกินเสียงพากย์ และบอกว่าไม่สามารถยืนยันความยาวเสียงจริงได้หากไม่มีข้อมูลเสียง ห้ามเดาตัวเลขความยาวเสียง'},
    {role:'user',content:JSON.stringify(sample).slice(0,7000)}
-  ],temperature:0.1,max_tokens:220});
+  ],temperature:0.1,max_tokens:220}));
   const inferenceSec=Math.max(.001,(performance.now()-inferenceStart)/1000);
   const tokens=response.usage?.completion_tokens||0;
   const answer=String(response.choices?.[0]?.message?.content||'ไม่มีคำตอบ').slice(0,1500);
@@ -174,10 +212,10 @@ async function benchmarkModel(applyChanges=false){
      actors:(scene?.actors||[]).slice(0,6).map(a=>({at:a.at,to:a.to,motion:a.motion})),
      audioClips:(scene?.audioClips||[]).slice(0,8).map(c=>({kind:c.kind,at:c.at,duration:c.duration,loop:c.loop}))};
    });
-   const proposal=await engine.chat.completions.create({messages:[
+   const proposal=await abortableModelWork(engine.chat.completions.create({messages:[
     {role:'system',content:'You are an animation timing editor. Return ONLY valid JSON {"changes":[{"id":"existing scene id","duration":number,"reason":"Thai concise explanation"}]}. Do not change story text, actors, dialogue, audio, scene order, or create scenes. Keep all narration and timed animation/audio events. Duration in seconds. For scenes with voice clips, duration must be >= voiceEnd+0.35. If a scene has timed events, prefer keeping old duration. Limit to existing ids. Avoid arbitrary changes. You may make no changes.'},
     {role:'user',content:JSON.stringify({scenes,targetMinutes,scope}).slice(0,12000)}
-   ],temperature:0.1,max_tokens:700});
+   ],temperature:0.1,max_tokens:700}));
    const raw=String(proposal.choices?.[0]?.message?.content||'').trim().replace(/^\x60\x60\x60(?:json)?/i,'').replace(/\x60\x60\x60$/,'').trim();
    const parsed=JSON.parse(raw);
    if(!Array.isArray(parsed.changes))throw Error('AI ไม่ส่ง changes JSON ที่ถูกต้อง');
@@ -207,7 +245,7 @@ async function benchmarkModel(applyChanges=false){
   }
   status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
  }catch(err){invalidateModelOnFailure(err);modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
- finally{busy=false;render()}
+ finally{busy=false;modelAbortController=null;render()}
 }
 
 
@@ -235,7 +273,7 @@ function standardNarrative(sc){
 }
 async function runNarrative(){
  if(busy)return;
- busy=true;render();
+ busy=true;modelAbortController=new AbortController();render();
  try{
   const scenes=narrativeScenes();
   if(!scenes.length)throw Error('ไม่มีฉากให้ปรับ');
@@ -247,10 +285,10 @@ async function runNarrative(){
    const rules=narrativeMode==='preserve'?'Keep voiceover EXACTLY unchanged. Only improve subtitle segmentation.':
     narrativeMode==='polish'?'Polish voiceover language and subtitles without changing events, identities, or plot.':
     'You may creatively rewrite narration and add small lines for atmosphere, but do not invent plot events or change identities.';
-   const response=await engine.chat.completions.create({messages:[
+   const response=await abortableModelWork(engine.chat.completions.create({messages:[
     {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only scenes that need edits.'},
     {role:'user',content:JSON.stringify(scenes).slice(0,11000)}
-   ],temperature:.25,max_tokens:1300});
+   ],temperature:.25,max_tokens:1300}));
    const raw=String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
    const parsed=JSON.parse(raw);
    if(!Array.isArray(parsed.changes))throw Error('โมเดลไม่ได้ส่ง changes JSON');
@@ -285,8 +323,8 @@ async function runNarrative(){
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
    (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
   status(narrativeReport);
- }catch(err){if(/disposed|deleted object|tokenizer\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
- finally{busy=false;render()}
+ }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
+ finally{busy=false;modelAbortController=null;render()}
 }
 const e=(tag,props={},...children)=>{
  const element=document.createElement(tag);
@@ -483,14 +521,14 @@ function renderChat(container){
  e('h4',{},'AI-3 · ผู้กำกับบทบรรยายและซับไตเติล'),
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
-  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:async ev=>{const next=ev.target.value;if(localEngine&&next!==loadedModel){if(!(await confirmModelAction('ต้องโหลดหน้าเว็บใหม่ก่อนเปลี่ยนโมเดล AI-3 เพื่อคืนหน่วยความจำ GPU ต้องการดำเนินการหรือไม่?'))){render();return}try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}root.location.reload();return}narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
+  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{if(busy)return;const next=ev.target.value;if(localEngine&&next!==loadedModel)releaseLocalModel();narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}updateModelLoad({active:false,ready:!!localEngine,error:'',percent:localEngine?100:null,stage:localEngine?'พร้อมใช้งาน':'เปลี่ยนโมเดลแล้ว · ไม่ต้องรีโหลดเว็บไซต์'});render()}},
    ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
  button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
  ...(narrativeReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},narrativeReport)]:[]));
  cards.append(structure,voice,narrative);
- pane.append(modelLoadPanel(),cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
+ pane.append(modelLoadPanel(),...(busy&&modelAbortController?[button('ยกเลิกงาน AI / โหลดโมเดล',cancelLocalTask,{className:'ai-cancel'} )]:[]),cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
  container.append(pane);
 }
 
