@@ -1,53 +1,38 @@
-name: "ส่งวิดีโอให้ตรวจ / Video Review"
-description: "แนบคลิปเพื่อให้ตรวจภาพ เสียง การเคลื่อนไหว หรือบั๊กของ Story Studio"
-title: "[Video Review] "
+name: "ส่งวิดีโอให้ตรวจ (เลือกไฟล์)"
+description: "ส่งคลิปจาก iPad หรือโทรศัพท์ให้ตรวจง่าย ๆ"
+title: "ส่งวิดีโอให้ตรวจ"
 body:
   - type: markdown
     attributes:
       value: |
-        ## ส่งคลิปวิดีโอ
-        **คลิปที่แนบกับ Issue ใน Repository สาธารณะอาจเปิดดูได้โดยคนทั่วไป** อย่าแนบข้อมูลส่วนตัวหรือความลับ
-        กดที่ช่องด้านล่าง แล้วเลือกคลิป .mp4, .mov หรือ .webm หรือวางลิงก์วิดีโอได้
-        วิดีโอใน GitHub Issues ของ Repository แผนฟรีมีข้อจำกัดขนาด (โดยทั่วไป 10 MB ต่อคลิป; แผนที่รองรับสูงสุด 100 MB)
-        หากคลิปใหญ่กว่านั้น ให้ใช้ GitHub Releases หรือที่เก็บวิดีโอที่เปิดลิงก์ให้ตรวจได้ แล้ววางลิงก์ด้านล่าง
-  - type: input
-    id: project
+        ### ส่งคลิปจาก iPad
+        1. กด **เลือกไฟล์ / Browse files** ที่ช่องด้านล่าง
+        2. เลือกวิดีโอจาก **คลังรูปภาพ** หรือ **ไฟล์** ของเครื่อง (ตามตัวเลือกที่ Safari แสดง)
+        3. รอให้ไฟล์แนบเสร็จ แล้วกด **Submit new issue** ด้านล่าง
+        4. คัดลอกลิงก์ Issue ที่เปิดขึ้นมา ส่งลิงก์นั้นในแชตเพื่อให้ตรวจคลิปได้
+
+        รองรับ .mp4, .mov, .webm; ขนาดไฟล์อาจถูกจำกัดตามประเภทบัญชี GitHub (แผนฟรีทั่วไป 10 MB ต่อวิดีโอ)
+        **ระวัง:** Repository เป็นสาธารณะ คลิปที่แนบจะเปิดดูได้โดยคนทั่วไป อย่าแนบข้อมูลลับ
+        ถ้าไฟล์ใหญ่หรือแนบไม่สำเร็จ ให้วางลิงก์ที่เปิดดูได้ในช่องสำรอง
+  - type: upload
+    id: video-file
     attributes:
-      label: "โปรเจกต์ / ตอน / ฉาก"
-      placeholder: "เช่น ตอนที่ 1 ฉากที่ 4"
-    validations:
-      required: true
-  - type: dropdown
-    id: review-type
-    attributes:
-      label: "ต้องการให้ตรวจอะไร"
-      options:
-        - "ภาพและแอนิเมชัน"
-        - "เสียงพากย์และไมโครโฟน"
-        - "เพลงหรือเสียงบรรยากาศ"
-        - "วิดีโอส่งออก / Export"
-        - "ตรวจทั้งหมด"
-    validations:
-      required: true
-  - type: textarea
-    id: video
-    attributes:
-      label: "แนบวิดีโอ / วางลิงก์"
-      description: "คลิกหรือแตะในช่อง แล้วลากวางไฟล์วิดีโอ หรือวาง URL ของวิดีโอที่เปิดดูได้"
-      placeholder: "แนบคลิป .mp4 / .mov / .webm หรือวางลิงก์ตรงนี้"
-    validations:
-      required: true
-  - type: textarea
-    id: expected
-    attributes:
-      label: "จุดที่อยากให้ดู / ผลลัพธ์ที่คาดหวัง"
-      placeholder: "เช่น เสียงพากย์ไม่ตรงปาก / เพลงดังเกิน / แอนิเมชันกระตุกที่วินาที 00:12"
+      label: "1. เลือกไฟล์วิดีโอจากเครื่อง"
+      description: "แตะเพื่อเลือกไฟล์ MP4, MOV หรือ WEBM (ไม่ต้องเขียนโค้ด)"
     validations:
       required: false
+      accept: ".mp4,.mov,.webm"
   - type: input
-    id: timecode
+    id: video-link
     attributes:
-      label: "ช่วงเวลาที่พบปัญหา (ถ้ามี)"
-      placeholder: "00:12-00:20"
+      label: "2. ลิงก์วิดีโอ (สำรอง ถ้าแนบไฟล์ไม่ได้)"
+      placeholder: "https://..."
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: "3. อยากให้ตรวจอะไร (ไม่จำเป็นต้องกรอก)"
+      placeholder: "เช่น เสียงพากย์ไม่ได้ / วิดีโอกระตุก / อยากให้ดูทั้งคลิป"
     validations:
       required: false
