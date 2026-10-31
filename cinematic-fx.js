@@ -279,10 +279,11 @@ function renderEditor(){
   }))));
   frame.append(grid);
  }
- frame.append(row(button('+ คีย์เฟรมที่ Playhead ('+current.toFixed(2)+'s)',()=>{
-  commitValue(x=>{const values=active(scene,current)?.v||list.at(-1)||presets.moon;
-   const key={t:current};FIELDS.forEach(([id])=>key[id]=clamp(values[id]??0,0,1));
-   const duplicate=x.keyframes.find(k=>Math.abs(k.t-current)<.02);
+ frame.append(row(button('+ เพิ่มคีย์เฟรมที่เวลา Playhead ปัจจุบัน',()=>{
+  const atTime=clamp(T-starts()[sel],0,sc().duration);
+  commitValue(x=>{const values=active(scene,atTime)?.v||list.at(-1)||presets.moon;
+   const key={t:atTime};FIELDS.forEach(([id])=>key[id]=clamp(values[id]??0,0,1));
+   const duplicate=x.keyframes.find(k=>Math.abs(k.t-atTime)<.02);
    if(duplicate)Object.assign(duplicate,key);else x.keyframes.push(key);
    x.keyframes.sort((a,b)=>a.t-b.t);editor.dataset.selectedFrame=String(x.keyframes.findIndex(k=>k===duplicate||k===key));
   });
