@@ -23,7 +23,7 @@ const path=require('node:path');
     return scene.voiceover;
   });
   const story=('ค่ำคืนหนึ่งแสงดาวเต็มท้องฟ้า เด็กหญิงเดินผ่านห้องสมุดและพบจดหมายลึกลับ。'+
-   'เธอเก็บจดหมายแล้วเดินต่อไปยังประตูที่ไม่เคยมีอยู่ก่อน！\\n\\n').repeat(18);
+   'เธอเก็บจดหมายแล้วเดินต่อไปยังประตูที่ไม่เคยมีอยู่ก่อน！\n\n').repeat(18);
   await panel.locator('textarea[aria-label="วางบทสำหรับแบ่งตอน"]').fill(story);
   await panel.locator('input[aria-label="นาทีต่อตอน"]').fill('1');
   await panel.getByRole('button',{name:'จัดบทเป็นตอนอัตโนมัติ'}).click();
@@ -41,7 +41,7 @@ const path=require('node:path');
   });
   assert.ok(result.count>=2,'script must split into multiple episodes');
   assert.equal(result.previous,original,'original episode must remain unchanged');
-  assert.equal(result.flattened.replace(/\\s/g,''),story.replace(/\\s/g,''),'no script content may be lost');
+  assert.equal(result.flattened.replace(/\s/g,''),story.replace(/\s/g,''),'no script content may be lost');
   assert.ok(result.targets.every(x=>x===60));
   assert.equal(new Set(result.ids).size,result.ids.length);
   assert.ok(result.cues.every(c=>Array.from(c.text).length<=28));
