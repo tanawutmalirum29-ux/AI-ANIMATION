@@ -380,15 +380,19 @@ function narrativeScenes(){
 function narrativeChunks(source,limit=24){
  const value=String(source||'').replace(/\s+/g,' ').trim();
  if(!value)return [];
- const units=typeof Intl!=='undefined'&&Intl.Segmenter?
-  [...new Intl.Segmenter('th',{granularity:'word'}).segment(value)].map(x=>x.segment):[...value];
+ const segmented=typeof Intl!=='undefined'&&Intl.Segmenter;
+ const units=segmented?[...new Intl.Segmenter('th',{granularity:'word'}).segment(value)].map(x=>x.segment):[value];
+ const graphemes=str=>segmented?[...new Intl.Segmenter('th',{granularity:'grapheme'}).segment(str)].map(x=>x.segment):[...str];
  const chunks=[];let current='';
+ const length=str=>[...str].length;
  const push=()=>{if(current.trim())chunks.push(current.trim());current=''};
  for(const unit of units){
-  const pieces=[...unit];
-  for(const piece of pieces){
-   if([...current].length>=limit)push();
-   current+=piece;
+  if(length(current+unit)<=limit){current+=unit;continue}
+  push();
+  if(length(unit)<=limit){current=unit;continue}
+  for(const glyph of graphemes(unit)){
+   if(length(current+glyph)>limit)push();
+   current+=glyph;
   }
  }
  push();return chunks;
