@@ -77,7 +77,6 @@ function confirmModelAction(message){
   cancel.focus();
  });
 }
-async 
 function releaseLocalModel(){
  // Never reuse a disposed WASM Tokenizer or GPU object. The worker is disposable,
  // the editing page (and its unsaved current state) must not be reloaded.
