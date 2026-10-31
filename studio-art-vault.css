@@ -30,3 +30,9 @@
 .ai-art-placement-fields>label{display:flex;align-items:center;gap:6px;margin:0}
 .ai-art-placement-fields input[type=checkbox]{width:18px;min-height:18px;height:18px}
 .ai-art-placement-fields button{justify-self:start}
+
+/* Free GitHub session and local AI art vault */
+#aiWorkspacePanel .ai-github-connect{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0}
+#aiWorkspacePanel .ai-github-connect input{flex:1 1 220px;min-width:0;background:#1c2d45;color:#f0f2f4;border:1px solid #64788d;border-radius:9px;padding:10px 12px;font-size:14px;min-height:43px}
+#aiWorkspacePanel .ai-github-connect button{flex:0 0 auto}
+#aiWorkspacePanel .ai-github-connect input:focus-visible{outline:2px solid #ffdc88;outline-offset:2px}

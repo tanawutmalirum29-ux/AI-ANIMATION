@@ -18,7 +18,7 @@ const assert=require('node:assert/strict');
   await page.locator('#aiQuick').click();
   await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คลังรูป / GitHub'}).click();
   await page.locator('.ai-art-card').first().waitFor({timeout:15000});
-  assert.equal(await page.locator('.ai-art-card').count(),4);
+  assert.equal(await page.locator('.ai-art-card').count(),20);
   await page.locator('.ai-art-card').first().getByRole('button',{name:'ใช้ในฉาก'}).click();
   assert.equal(await page.evaluate(()=>StoryStudioBridge.get().episodes[0].scenes[0].customAssets.length),1);
   assert.ok(await page.evaluate(()=>{
@@ -31,6 +31,20 @@ const assert=require('node:assert/strict');
   }));
   await page.getByRole('button',{name:'เพิ่มในฉากทันที'}).click();
   assert.equal(await page.evaluate(()=>StoryStudioBridge.get().episodes[0].scenes[0].customAssets.length),2);
+  // AI may save generated art without a GitHub token; it must be immediately reusable.
+  const result=await page.evaluate(()=>StoryArtVault.saveFromAI({
+   name:'เก้าอี้ทดลองจาก AI',id:'vault-ai-test',category:'prop',description:'ทดสอบคลังของสำเร็จรูป',
+   shapes:[{type:'rect',x:20,y:30,w:60,h:40,fill:'#776655'}]
+  }));
+  assert.equal(result.saved,true);assert.equal(result.published,false);
+  await page.getByRole('button',{name:'ของสำเร็จรูป'}).click();
+  await page.getByText('เก้าอี้ทดลองจาก AI',{exact:true}).waitFor();
+  const localCount=await page.locator('.ai-art-card').count();
+  assert.equal(localCount,21);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#aiQuick').click();
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คลังรูป / GitHub'}).click();
+  await page.getByText('เก้าอี้ทดลองจาก AI',{exact:true}).waitFor();
   assert.deepEqual(errors,[]);
   console.log('PASS: preset gallery, safe vector preview, place in scene and custom artwork editor');
  }finally{await browser.close();server.close()}
