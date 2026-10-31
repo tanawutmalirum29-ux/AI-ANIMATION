@@ -2191,17 +2191,95 @@ function createFxNodes(ctx,source,destination){const bass=ctx.createBiquadFilter
 function applyFxNodes(n,c){const p=voiceProfileForClip(c),x=p?.fx||{};n.bass.gain.value=clampN(cleanNum(x.bass),-18,18);n.mid.gain.value=clampN(cleanNum(x.mid),-18,18);n.treble.gain.value=clampN(cleanNum(x.treble),-18,18);
  n.comp.threshold.value=-12-clampN(cleanNum(x.compress),0,1)*18;n.comp.ratio.value=1+clampN(cleanNum(x.compress),0,1)*10;n.comp.attack.value=.005;n.comp.release.value=.22;
  if(n.pan.pan)n.pan.pan.value=clampN(cleanNum(x.pan),-1,1);n.echo.gain.value=clampN(cleanNum(x.echo),0,.55);n.gain.gain.value=1;}
-function pauseAudioPlayers(){for(const [,a] of AUDIO_PLAYERS){a.pause()}$('#vo').pause();$('#bgm').pause()}
-function syncAudioAt(t,play){if(VOICE_RECORDER?.state==='recording'&&STUDIO_CURRENT_TOOL==='record'&&STUDIO_DUB_AUTOPLAY){pauseAudioPlayers();return}if(!play){pauseAudioPlayers();return}
- const active=new Set();for(const ev of audioEvents()){const {c,start,cycle=0,limit=Infinity}=ev;if(!c.data||!c.id||!c.duration)continue;
- const len=Math.min(safeClipDuration(c),limit-start),part=t-start;if(part<0||part>=len||!len)continue;
- const id=c.id+':'+cycle;active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';AUDIO_PLAYERS.set(id,a)}
- let n=AUDIO_PLAYER_GRAPHS.get(id);try{const ctx=previewContext();if(!n){n=createFxNodes(ctx,ctx.createMediaElementSource(a),ctx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}applyFxNodes(n,c);n.gain.gain.value=clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c);a.volume=1}catch(err){a.volume=clipGain(c,part,len)*eventXGain(ev,t)}
- const rate=effectiveClipRate(c),desired=cleanNum(c.trimStart)+part*rate;
- a.preservesPitch=false;if('mozPreservesPitch' in a)a.mozPreservesPitch=false;
- a.playbackRate=rate;if(Math.abs((a.currentTime||0)-desired)>.35){try{a.currentTime=desired}catch(e){}}
- if(a.paused)a.play().catch(()=>{});
+// v39: พากย์ในพรีวิวใช้ AudioBufferSource (Web Audio clock) แทนการ seek MP3 ทุก animation frame.
+// เก็บแคชเฉพาะเสียงพากย์ล่าสุด เพื่อไม่ให้ iPad ต้องถอดรหัสซ้ำและไม่กิน RAM ไม่จำกัด
+const VOICE_PREVIEW_BUFFERS=new Map(),VOICE_PREVIEW_PENDING=new Map(),VOICE_PREVIEW_BAD=new Set(),VOICE_PREVIEW_SOURCES=new Map();
+let VOICE_PREVIEW_CLOCK=null;
+function rememberVoicePreviewBuffer(data,buffer){
+ if(!data||!buffer)return;
+ VOICE_PREVIEW_BUFFERS.delete(data);VOICE_PREVIEW_BUFFERS.set(data,buffer);
+ while(VOICE_PREVIEW_BUFFERS.size>24)VOICE_PREVIEW_BUFFERS.delete(VOICE_PREVIEW_BUFFERS.keys().next().value);
+}
+function primeVoicePreview(c){
+ const data=c.data;
+ if(!data||VOICE_PREVIEW_BUFFERS.has(data)||VOICE_PREVIEW_PENDING.has(data)||VOICE_PREVIEW_BAD.has(data))return;
+ const pending=(async()=>{const ctx=previewContext(),res=await fetch(data);if(!res.ok)throw Error('audio fetch '+res.status);
+  const buffer=await ctx.decodeAudioData(await res.arrayBuffer());rememberVoicePreviewBuffer(data,buffer);
+ })();
+ VOICE_PREVIEW_PENDING.set(data,pending);
+ pending.catch(()=>{VOICE_PREVIEW_BAD.add(data)}).finally(()=>{
+  VOICE_PREVIEW_PENDING.delete(data);
+  // ถ้ายังกดเล่นอยู่ ให้เริ่มจากตำแหน่งปัจจุบัน ไม่เล่นเสียงย้อนหลังตอนถอดรหัสเสร็จ
+  if(playing)syncAudioAt(T,true);
+ });
+}
+function stopVoicePreview(){
+ for(const entry of VOICE_PREVIEW_SOURCES.values()){try{entry.source.stop()}catch(e){}try{entry.source.disconnect()}catch(e){}}
+ VOICE_PREVIEW_SOURCES.clear();VOICE_PREVIEW_CLOCK=null;
+}
+function pauseAudioPlayers(){
+ stopVoicePreview();
+ for(const [,a] of AUDIO_PLAYERS)a.pause();
+ $('#vo').pause();$('#bgm').pause();
+}
+function syncAudioAt(t,play){
+ if(VOICE_RECORDER?.state==='recording'&&STUDIO_CURRENT_TOOL==='record'&&STUDIO_DUB_AUTOPLAY){pauseAudioPlayers();return}
+ if(!play){pauseAudioPlayers();return}
+ const events=audioEvents(),active=new Set(),voiceActive=new Set();
+ // เวลาเสียงเป็นอิสระจากการวาด SVG/เอฟเฟกต์: หน้าจอหน่วงไม่ทำให้ตำแหน่ง MP3 กระโดด
+ let ctx=null;
+ if(events.some(ev=>ev.c.kind==='voice'&&ev.c.data&&t>=ev.start-.55&&t<ev.start+safeClipDuration(ev.c))){
+  try{ctx=previewContext()}catch(e){}
  }
+ if(ctx){
+  if(VOICE_PREVIEW_CLOCK&&Math.abs(t-(VOICE_PREVIEW_CLOCK.t+ctx.currentTime-VOICE_PREVIEW_CLOCK.audioTime))>.45)stopVoicePreview();
+  VOICE_PREVIEW_CLOCK={t,audioTime:ctx.currentTime};
+ }
+ for(const ev of events){
+  const {c,start,cycle=0,limit=Infinity}=ev;if(!c.data||!c.id||!c.duration)continue;
+  const len=Math.min(safeClipDuration(c),limit-start),part=t-start;if(!(len>0))continue;
+  const id=c.id+':'+cycle;
+  if(c.kind==='voice'&&ctx&&!VOICE_PREVIEW_BAD.has(c.data)&&part>=-.4&&part<len){
+   voiceActive.add(id);
+   let entry=VOICE_PREVIEW_SOURCES.get(id),rate=effectiveClipRate(c);
+   if(entry&&(entry.data!==c.data||entry.start!==start||Math.abs(entry.rate-rate)>.001)){
+    try{entry.source.stop()}catch(e){}VOICE_PREVIEW_SOURCES.delete(id);entry=null;
+   }
+   if(!entry){
+    const buffer=VOICE_PREVIEW_BUFFERS.get(c.data);
+    if(!buffer){primeVoicePreview(c);continue}
+    const offset=Math.min(Math.max(0,cleanNum(c.trimStart)+Math.max(0,part)*rate),buffer.duration);
+    const duration=Math.min((len-Math.max(0,part))*rate,buffer.duration-offset);
+    if(duration>.001){
+     const source=ctx.createBufferSource();source.buffer=buffer;source.playbackRate.value=rate;
+     const nodes=createFxNodes(ctx,source,ctx.destination);applyFxNodes(nodes,c);
+     const when=ctx.currentTime+.02+Math.max(0,-part);
+     entry={source,nodes,data:c.data,start,rate};
+     VOICE_PREVIEW_SOURCES.set(id,entry);
+     source.onended=()=>{if(VOICE_PREVIEW_SOURCES.get(id)===entry)VOICE_PREVIEW_SOURCES.delete(id);try{source.disconnect()}catch(e){}};
+     try{source.start(when,offset,duration)}catch(e){VOICE_PREVIEW_SOURCES.delete(id);VOICE_PREVIEW_BAD.add(c.data);try{source.disconnect()}catch(err){}continue}
+    }
+   }
+   if(entry){
+    applyFxNodes(entry.nodes,c);
+    const at=Math.max(0,part),vol=clipGain(c,at,len)*eventXGain(ev,Math.max(start,t))*voiceGainFactor(c)*clipAutoGainFactor(c);
+    entry.nodes.gain.gain.value=vol;
+   }
+   continue;
+  }
+  // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
+  if(part<0||part>=len)continue;
+  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';AUDIO_PLAYERS.set(id,a)}
+  let n=AUDIO_PLAYER_GRAPHS.get(id);
+  try{const cx=ctx||previewContext();if(!n){n=createFxNodes(cx,cx.createMediaElementSource(a),cx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}
+   applyFxNodes(n,c);n.gain.gain.value=clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c);a.volume=1
+  }catch(err){a.volume=clipGain(c,part,len)*eventXGain(ev,t)}
+  const rate=effectiveClipRate(c),desired=cleanNum(c.trimStart)+part*rate;
+  a.preservesPitch=false;if('mozPreservesPitch' in a)a.mozPreservesPitch=false;
+  a.playbackRate=rate;if(Math.abs((a.currentTime||0)-desired)>.35){try{a.currentTime=desired}catch(e){}}
+  if(a.paused)a.play().catch(()=>{});
+ }
+ for(const [id,entry] of VOICE_PREVIEW_SOURCES)if(!voiceActive.has(id)){try{entry.source.stop()}catch(e){}VOICE_PREVIEW_SOURCES.delete(id)}
  for(const [id,a] of AUDIO_PLAYERS)if(!active.has(id)){a.pause();if(AUDIO_PLAYERS.size>80){a.src='';AUDIO_PLAYERS.delete(id);AUDIO_PLAYER_GRAPHS.delete(id)}}
 }
 function audioWaveSVG(c){const vals=Array.isArray(c.wave)&&c.wave.length?c.wave:Array.from({length:72},(_,i)=>.25+.23*Math.sin(i*1.8)**2);
@@ -2243,7 +2321,7 @@ function audioTrackOverview(){const all=audioEvents(),tt=Math.max(1,total());con
  container.append(h('div',{className:'audio-trackline'},h('div',{className:'audio-trackname'},title),bar))});return container}
 async function addAudioFile(file,kind,meta={}){if(!file)return;const targetScene=AUDIO_DESK_SCENE;const data=await new Promise((resolve,reject)=>{const f=new FileReader();f.onload=()=>resolve(f.result);f.onerror=reject;f.readAsDataURL(file)});
  const ctx=new (window.AudioContext||window.webkitAudioContext)();let duration=0,wave=[],audioStats=null;
- try{const b=await ctx.decodeAudioData(await file.arrayBuffer());duration=b.duration;audioStats=volumeFromAudioAnalysis(b);const ch=b.getChannelData(0),step=Math.max(1,Math.ceil(ch.length/96));for(let i=0;i<96;i++){let peak=0;const from=i*step,to=Math.min(ch.length,from+step);for(let j=from;j<to;j+=Math.max(1,Math.floor(step/50)))peak=Math.max(peak,Math.abs(ch[j]));wave.push(+Math.max(.07,Math.min(1,peak)).toFixed(2))}}catch(err){duration=await new Promise(resolve=>{const a=new Audio(data);a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>resolve(0);setTimeout(()=>resolve(0),3500)})}finally{ctx.close().catch(()=>{})}
+ try{const b=await ctx.decodeAudioData(await file.arrayBuffer());if(kind==='voice')rememberVoicePreviewBuffer(data,b);duration=b.duration;audioStats=volumeFromAudioAnalysis(b);const ch=b.getChannelData(0),step=Math.max(1,Math.ceil(ch.length/96));for(let i=0;i<96;i++){let peak=0;const from=i*step,to=Math.min(ch.length,from+step);for(let j=from;j<to;j+=Math.max(1,Math.floor(step/50)))peak=Math.max(peak,Math.abs(ch[j]));wave.push(+Math.max(.07,Math.min(1,peak)).toFixed(2))}}catch(err){duration=await new Promise(resolve=>{const a=new Audio(data);a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>resolve(0);setTimeout(()=>resolve(0),3500)})}finally{ctx.close().catch(()=>{})}
  if(!(duration>0)){alert('อ่านความยาวไฟล์เสียงไม่ได้ หรือรูปแบบเสียงนี้ไม่รองรับ');return}
  const chosenScene=ep().scenes[targetScene],speakerId=String(meta.speakerId??chosenScene?.voiceDirection?.speaker??''),cue=(chosenScene?.subtitleCues||[]).find(q=>q.id===meta.cueId);
  const vprof=kind==='voice'?speakerVoiceProfileId(chosenScene,speakerId):'';
