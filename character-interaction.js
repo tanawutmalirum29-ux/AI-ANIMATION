@@ -153,7 +153,7 @@ function renderPanel(){
     field('มือ',choose([['right','ขวา'],['left','ซ้าย']],e.hand||'right',v=>commit(()=>e.hand=v)))));
   if(e.type==='place')block.append(group(field('จุดวาง X%',numeric(e.x??50,0,100,1,v=>commit(()=>e.x=v))),field('จุดวาง Y%',numeric(e.y??85,0,100,1,v=>commit(()=>e.y=v)))));
   if(e.type==='door')block.append(group(field('ระยะเวลาเปิด',numeric(e.duration??.65,.05,10,.1,v=>commit(()=>e.duration=v))),
-   field('สถานะ',choose([[1,'เปิด'],[0,'ปิด']],e.open??1,v=>commit(()=>e.open=Number(v)))));
+   field('สถานะ',choose([[1,'เปิด'],[0,'ปิด']],e.open??1,v=>commit(()=>e.open=Number(v))))));
   block.append(group(btn('▶ ดูจังหวะ',()=>{T=starts()[sel]+e.at;playing=false;draw()}),btn('ลบการกระทำ',()=>commit(()=>scn.interactions.splice(scn.interactions.indexOf(e),1)))));
   frame.append(block);
  });
