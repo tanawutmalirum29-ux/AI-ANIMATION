@@ -656,6 +656,7 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 <script src="./studio-github-art.js"></script>
 <script src="./studio-art-vault.js"></script>
 <script src="./narration-director.js"></script>
+<script src="./studio-sound-assistant.js"></script>
 <script>
 /* ===== state & history ===== */
 const LS='storyStudio.v6'; const PREVIOUS_LS='storyStudio.v5';
@@ -4000,8 +4001,15 @@ function autoDubJobs(scope,skipExisting){
  const jobs=[],eps=scope==='all'?S.episodes.map((E,i)=>i):[selEp],director=window.StoryNarrationDirector;
  for(const ei of eps)S.episodes[ei].scenes.forEach((scene,si)=>{
   if(scope==='scene'&&si!==sel)return;
-  const cues=effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
-  const existing=new Set((scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data).flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
+  const narrated=String(scene.voiceover||'').trim();
+  // Voiceover is the author's narration, not a request to write dialogue.
+  // Keep subtitle cues untouched; the sound clip uses a stable synthetic cue ID.
+  const cues=narrated?[{id:'narration-'+scene.id,text:narrated,start:0,end:scene.duration,speaker:''}]:
+   effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):
+   ((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
+  const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data);
+  const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
+  if(narrated&&skipExisting&&existingClips.some(c=>!director?.isAuto(c)))return;
   if(AUTODUB_SMART&&director){
    for(const group of director.plan(cues,{existing,skipExisting,speaker:scene.voiceDirection?.speaker||''}))
     jobs.push({ei,si,cueId:group.cueIds[0],cueIds:group.cueIds,text:group.text,speaker:group.speaker});
@@ -4016,19 +4024,22 @@ async function autoDubTest(){
 async function autoDubRun(){
  if(AUTODUB_RUNNING)return;
  const cfg=autoDubCfg();
- if(!cfg.url||(!cfg.session&&!cfg.key)){setVoiceStatus('ยังไม่พบการเชื่อมต่อ AI — หากยังไม่ได้ติดตั้งเว็บไซต์ให้ดูขั้นตอน AWS ใน README');return}
+ if(!cfg.url||(!cfg.session&&!cfg.key)){setVoiceStatus('ยังไม่พบการเชื่อมต่อ AI — หากยังไม่ได้ติดตั้งเว็บไซต์ให้ดูขั้นตอน AWS ใน README');return {ok:false,error:'ยังไม่ได้เชื่อมบริการพากย์ Edge TTS'}}
  const keepEp=selEp,keepSel=sel,keepScene=AUDIO_DESK_SCENE,keepPast=past.length,before=JSON.stringify(S);
  // สร้างช่วงเวลาซับให้ฉากที่ยังไม่มี (ต้องมี cue เพื่อรู้เวลาเริ่มพูด)
  const targets=AUTODUB_SCOPE==='all'?S.episodes.flatMap((E,ei)=>E.scenes.map((s,si)=>[ei,si])):S.episodes[selEp].scenes.map((s,si)=>[selEp,si]).filter(([,si])=>AUTODUB_SCOPE!=='scene'||si===sel);
  for(const [ei,si] of targets){const scene=S.episodes[ei].scenes[si];if(!effectiveSubtitleCues(scene).length&&(scene.subtitle||[]).some(x=>String(x||'').trim()))scene.subtitleCues=autoCaptionCues(scene)}
  const jobs=autoDubJobs(AUTODUB_SCOPE,AUTODUB_SKIP);
- if(!jobs.length){setVoiceStatus('ไม่มีบทที่ต้องพากย์ในขอบเขตที่เลือก (หรือทุกบรรทัดมีเสียงแล้ว)');return}
+ if(!jobs.length){setVoiceStatus('ไม่มีบทที่ต้องพากย์ในขอบเขตที่เลือก (หรือทุกบรรทัดมีเสียงแล้ว)');return {ok:true,made:0,failed:0}}
  AUTODUB_RUNNING=true;AUTODUB_CANCEL=false;
  let made=0,failed=0,lastErr='';const long=[];
  try{
   for(let n=0;n<jobs.length;n++){
    if(AUTODUB_CANCEL)break;
-   const {ei,si,cueId,cueIds}=jobs[n],scene=S.episodes[ei].scenes[si],cue=(scene.subtitleCues||[]).find(q=>q.id===cueId);
+   const {ei,si,cueId,cueIds}=jobs[n],scene=S.episodes[ei].scenes[si],
+    cue=(scene.subtitleCues||[]).find(q=>q.id===cueId)||
+      (cueId==='narration-'+scene.id&&String(scene.voiceover||'').trim()?
+       {id:cueId,text:scene.voiceover,start:0,end:scene.duration,speaker:''}:null);
    const text=String(jobs[n].text||cue?.text||'').replace(/\s*\n\s*/g,' ').trim();
    if(!cue||!text)continue;
    setVoiceStatus('กำลังสร้างเสียง '+(n+1)+'/'+jobs.length+' · ตอน '+(ei+1)+' ฉาก '+(si+1));
@@ -4040,7 +4051,7 @@ async function autoDubRun(){
    await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id,smartTrim:AUTODUB_SMART});
    past.length=keepPast; // ไม่สะสมสแนปชอตทีละคลิป (กันหน่วยความจำเต็ม) — รวมเป็น undo ครั้งเดียวตอนจบ
    const sc2=S.episodes[ei].scenes[si],clip=(sc2.audioClips||[]).at(-1);
-   if(clip&&clip.cueId===cue.id){clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
+   if(clip&&(clip.cueId===cue.id||cueId==='narration-'+sc2.id)){if(!clip.cueId)clip.cueId=cue.id;clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
   }
  }catch(e){lastErr=e.message;failed++}
  finally{
@@ -4051,6 +4062,7 @@ async function autoDubRun(){
   AUTODUB_RUNNING=false;
   try{render()}catch(e){}
   setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(planned?'\nผู้ช่วยจัดเฟรมเสียง '+planned+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ'+(extended?' · ขยายเวลาฉาก '+extended.toFixed(1)+' วิ':''):'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
+  return {ok:made>0||failed===0,made,failed,error:lastErr,cancelled:AUTODUB_CANCEL};
  }}
 async function autoDubReflowExisting(){
  if(AUTODUB_RUNNING)return;
@@ -4126,7 +4138,53 @@ function renderDubDesk(){const root=$('#dubPanel');if(!root||!S?.episodes?.lengt
 }
 
 /* ===== AI Workspace bridge: controlled project persistence + existing JSON workflows ===== */
+function autoSoundPlan(scope='episode'){
+ const assistant=window.StoryAudioAssistant;
+ if(!assistant)throw Error('ยังไม่ได้โหลดตัวจัดเสียงตามเหตุการณ์');
+ return assistant.plan(S,SOUND_PRESETS,scope,sel,selEp);
+}
+function autoSoundApply(scope='episode'){
+ if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตเสียงไม่ถูกต้อง');
+ const result=autoSoundPlan(scope),totalSounds=result.reduce((n,x)=>n+x.sounds.length,0);
+ if(totalSounds>120)throw Error('พบแผนเสียงจำนวนมากเกิน 120 คลิป กรุณาเลือกเฉพาะตอน');
+ let applied=0;
+ if(!totalSounds&&!result.some(x=>S.episodes[x.episodeIndex].scenes[x.sceneIndex].audioClips?.some(c=>c.aiAutoSound)))return {applied:0,scenes:result.length};
+ // Synthesize only from the pre-existing, curated sound catalog, never from AI raw URLs.
+ const prepared=result.map(item=>({
+  ...item,clips:item.sounds.map(s=>{
+   const preset=SOUND_PRESETS.find(p=>p.id===s.presetId);if(!preset)throw Error('เสียงไม่อยู่ในคลังที่อนุญาต');
+   const audio=soundData(preset);
+   return {id:'clip'+uid(),kind:s.kind==='music'?'music':'sfx',
+    name:'AI จัดเสียง · '+preset.name,data:audio.data,duration:audio.duration,wave:audio.wave,
+    at:clampN(s.at,0,S.episodes[item.episodeIndex].scenes[item.sceneIndex].duration),
+    trimStart:0,trimEnd:0,volume:clampN(s.volume,0,.5),fadeIn:s.loop?.22:.02,
+    fadeOut:s.loop?.25:.05,rate:1,mute:false,loop:!!s.loop,
+    presetId:preset.id,presetType:preset.group,aiAutoSound:true};
+  })
+ }));
+ commit(()=>{
+  for(const item of prepared){
+   const scene=S.episodes[item.episodeIndex].scenes[item.sceneIndex];
+   // Only replace clips originally created by this assistant. Preserve all manual clips.
+   scene.audioClips=(scene.audioClips||[]).filter(c=>!c.aiAutoSound);
+   const manual=new Set(scene.audioClips.filter(c=>c.presetId).map(c=>c.presetId));
+   const unique=item.clips.filter(c=>!manual.has(c.presetId));
+   scene.audioClips.push(...unique);applied+=unique.length;
+  }
+ });
+ return {applied,scenes:result.length};
+}
 window.StoryStudioBridge={
+ narrate:async(scope='episode')=>{
+  if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตพากย์ไม่ถูกต้อง');
+  if(AUTODUB_RUNNING)throw Error('ระบบพากย์กำลังทำงานอยู่');
+  const prev=AUTODUB_SCOPE;AUTODUB_SCOPE=scope;
+  try{return await autoDubRun()}finally{AUTODUB_SCOPE=prev}
+ },
+ audioPlan:(scope='episode')=>autoSoundPlan(scope),
+ applyAudioPlan:(scope='episode')=>autoSoundApply(scope),
+ soundCatalog:()=>SOUND_PRESETS.map(p=>({id:p.id,name:p.name,group:p.group})),
+
  get:()=>S,episodeIndex:()=>selEp,episode:()=>S?.episodes?.[selEp],
  scene:()=>sc(),
  persist:()=>save(),
