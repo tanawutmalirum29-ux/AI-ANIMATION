@@ -13,8 +13,9 @@ let targetMinutes=5,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
 const LOCAL_MODELS=[
  {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
- {id:'smollm2-135m-cpu',label:'CPU/WASM · SmolLM2 135M (ภาษาไทยจำกัด)',backend:'wasm',mb:185},
- {id:'qwen2.5-0.5b-cpu',label:'CPU/WASM · Qwen 2.5 0.5B (ไม่ใช้ WebGPU)',backend:'wasm',mb:790},
+ {id:'lamini-77m-cpu',label:'CPU รุ่นเข้ากันได้ · LaMini 77M (ทดสอบเท่านั้น)',backend:'wasm',mb:160},
+ {id:'smollm2-135m-cpu',label:'CPU ทดลอง · SmolLM2 135M (ภาษาไทยจำกัด)',backend:'wasm',mb:185},
+ {id:'qwen2.5-0.5b-cpu',label:'CPU ทดลอง · Qwen 2.5 0.5B (ใช้ RAM สูง)',backend:'wasm',mb:790},
  {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 0.5B',mb:280},
  {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 1.5B',mb:870},
  {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 3B',mb:1750},
@@ -106,40 +107,64 @@ function abortableModelWork(promise){
 }
 
 function createCpuModelClient(worker,callback){
- let requestNumber=0;
+ let requestNumber=0,booted=false,lastPhase='รอ Web Worker เปิดทำงาน';
  const pending=new Map();
+ const notify=stage=>callback?.({percent:null,stage});
  const onMessage=ev=>{
   const m=ev.data;
   if(m?.channel!=='story-cpu')return;
-  if(m.type==='progress'){callback?.(m);return}
+  if(m.type==='boot'){
+   booted=true;lastPhase='Web Worker เริ่มทำงานแล้ว';
+   notify(lastPhase);
+   return;
+  }
+  if(m.phase)lastPhase=String(m.phase).slice(0,240);
+  if(m.type==='progress'){
+   callback?.(m);return;
+  }
   const item=pending.get(m.requestId);
   if(!item)return;
   pending.delete(m.requestId);
-  if(m.type==='error')item.reject(Error(String(m.message||'CPU model failure')));
+  if(m.type==='error'||m.type==='fatal')
+   item.reject(Error('CPU/WASM · '+lastPhase+': '+String(m.message||'unknown error')));
   else if(m.type==='complete')item.resolve(m.result);
+ };
+ const failAll=err=>{
+  for(const item of pending.values())item.reject(err);
+  pending.clear();
  };
  const onError=ev=>{
   ev.preventDefault?.();
-  for(const p of pending.values())p.reject(Error('CPU Worker ทำงานล้มเหลว'));
-  pending.clear();
+  const location=[ev.filename?.split('/').pop(),ev.lineno?':'+ev.lineno:''].join('');
+  const detail=String(ev.message||'Worker ถูกปิดโดยเบราว์เซอร์หรือมีปัญหาการโหลด');
+  const diagnosis=/memory|allocation|out of memory/i.test(detail)?
+   ' (อาจมีหน่วยความจำไม่พอ)':(!booted?' (Worker ยังไม่เริ่ม; ตรวจโมดูล/เบราว์เซอร์)':'');
+  failAll(Error('CPU Worker ล้มเหลวระหว่าง '+lastPhase+' · '+detail+
+   (location?' @'+location:'')+diagnosis));
  };
+ const onMessageError=()=>failAll(Error('CPU Worker ส่งข้อมูลกลับไม่ได้ · ขั้นตอน '+lastPhase));
  worker.addEventListener('message',onMessage);
  worker.addEventListener('error',onError);
+ worker.addEventListener('messageerror',onMessageError);
  const send=(type,payload={})=>new Promise((resolve,reject)=>{
   const requestId='cpu'+(++requestNumber);
   pending.set(requestId,{resolve,reject});
   try{worker.postMessage({channel:'story-cpu',type,requestId,...payload})}
-  catch(err){pending.delete(requestId);reject(err)}
+  catch(err){pending.delete(requestId);reject(Error('ส่งงานให้ Worker ไม่สำเร็จ: '+String(err?.message||err)))}
  });
- return {init:id=>send('init',{model:id}),chat:{completions:{create:options=>send('generate',{
-  messages:options.messages,max_tokens:options.max_tokens,temperature:options.temperature
- })}},unload:async()=>{
-  for(const p of pending.values())p.reject(Error('CPU โมเดลถูกปิด'));
-  pending.clear();
-  worker.removeEventListener('message',onMessage);
-  worker.removeEventListener('error',onError);
-  worker.terminate();
- }};
+ return {
+  init:id=>send('init',{model:id}),
+  chat:{completions:{create:options=>send('generate',{
+   messages:options.messages,max_tokens:options.max_tokens,temperature:options.temperature
+  })}},
+  unload:async()=>{
+   failAll(Error('ผู้ใช้ปิดโมเดล CPU'));
+   worker.removeEventListener('message',onMessage);
+   worker.removeEventListener('error',onError);
+   worker.removeEventListener('messageerror',onMessageError);
+   worker.terminate();
+  }
+ };
 }
 async function loadCpuModel(id,selected){
  updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
@@ -162,14 +187,14 @@ async function loadCpuModel(id,selected){
   if(modelWorker!==worker)throw Error('ยกเลิกการโหลดโมเดลแล้ว');
   localEngine=engine;loadedModel=id;modelBackend='cpu';modelUnavailable=false;
   updateModelLoad({active:false,ready:true,percent:100,error:'',
-   stage:'CPU/WASM ผ่านการสร้างข้อความแล้ว · อาจประมวลผลช้ากว่า GPU มาก'});
+   stage:'CPU/WASM สร้างข้อความสำเร็จ · ใช้ได้บนอุปกรณ์นี้ (ความเร็วและคุณภาพขึ้นกับรุ่น)'});
   return engine;
  }catch(err){
   if(worker){try{worker.terminate()}catch(_){}}
   if(modelWorker===worker)modelWorker=null;
   localEngine=null;loadedModel='';modelBackend='';
   updateModelLoad({active:false,ready:false,percent:null,
-   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ไม่สามารถประมวลผลบนอุปกรณ์นี้'});
+   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ตรวจสอบระยะที่ล้มเหลวด้านบน · หากแอปปิดเองอาจเป็นข้อจำกัดหน่วยความจำของ iPad'});
   throw err;
  }
 }
@@ -294,7 +319,7 @@ async function benchmarkModel(applyChanges=false){
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
  if(model.backend!=='wasm'&&gpuCapability===false){modelReport='อุปกรณ์นี้ไม่มี WebGPU ใช้ Qwen แบบ GPU ไม่ได้ · เปลี่ยนตัวเลือกเป็น CPU/WASM หรือมาตรฐาน';render();return}
  if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!(await confirmModelAction(
-  'เตรียมโมเดล '+model.label+'\\n'+(model.backend==='wasm'?'CPU อาจช้ามากและใช้ RAM สูง ไม่มีการเรียก API':'ต้องรองรับ WebGPU')+
+  'เตรียมโมเดล '+model.label+'\\n'+(model.backend==='wasm'?'รัน CPU ในเครื่อง · iPad อาจใช้ RAM สูง และบางรุ่นรองรับภาษาไทยไม่ดี · ไม่มีค่า API':'ต้องรองรับ WebGPU')+
   '\\nหากยังไม่มีแคชต้องดาวน์โหลดประมาณ '+model.mb+' MB · ดำเนินการบนเครื่องนี้?')))return;
  busy=true;modelAbortController=new AbortController();render();
  const start=performance.now();
