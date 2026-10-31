@@ -53,11 +53,11 @@ function analysisInput(){
  }))).slice(0,18);
  return {scenes,baseline:evaluate().stats};
 }
-async function benchmarkModel(){
+async function benchmarkModel(applyChanges=false){
  if(busy)return;
  if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
- if(!root.confirm('โมเดล '+model.label+' ต้องดาวน์โหลดประมาณ '+model.mb+' MB และใช้หน่วยความจำเพิ่มเติม ทดสอบบนเครื่องนี้?'))return;
+ if(!root.confirm('โมเดล '+model.label+' ต้องดาวน์โหลดประมาณ '+model.mb+' MB และใช้หน่วยความจำเพิ่มเติม ดำเนินการบนเครื่องนี้?'))return;
  busy=true;render();
  const start=performance.now();
  try{
@@ -74,7 +74,51 @@ async function benchmarkModel(){
   const tokens=response.usage?.completion_tokens||0;
   const answer=String(response.choices?.[0]?.message?.content||'ไม่มีคำตอบ').slice(0,1500);
   modelReport='รุ่น: '+model.label+'\\nโหลดรวม: '+(loadedMs/1000).toFixed(1)+' วินาที\\nวิเคราะห์: '+inferenceSec.toFixed(1)+' วินาที'+(tokens?'\\nความเร็ว: '+(tokens/inferenceSec).toFixed(1)+' token/วินาที':'')+'\\nผลวิเคราะห์ (ยังไม่แก้ JSON):\\n'+answer;
-  status('ทดสอบสำเร็จ · '+model.label);
+  if(applyChanges){
+   status('กำลังให้ AI วิเคราะห์แผนแก้ไข JSON จริง…');
+   const state=bridge.get(),audit=evaluate(),scope=audioScope;
+   const selected=audit.scenes.filter(x=>x.kind!=='other').slice(0,20);
+   const scenes=selected.map(x=>{
+    const ep=state.episodes.find(ep=>ep.id===x.episodeId);
+    const scene=ep?.scenes?.find(sc=>sc.id===x.sceneId);
+    return {id:x.sceneId,old:x.old,baseline:x.suggested,voiceEnd:x.voicedSeconds,
+     hasTimedEvents:x.hasTimedEvents,kind:x.kind,
+     notes:String(scene?.notes||'').slice(0,350),
+     actors:(scene?.actors||[]).slice(0,6).map(a=>({at:a.at,to:a.to,motion:a.motion})),
+     audioClips:(scene?.audioClips||[]).slice(0,8).map(c=>({kind:c.kind,at:c.at,duration:c.duration,loop:c.loop}))};
+   });
+   const proposal=await engine.chat.completions.create({messages:[
+    {role:'system',content:'You are an animation timing editor. Return ONLY valid JSON {"changes":[{"id":"existing scene id","duration":number,"reason":"Thai concise explanation"}]}. Do not change story text, actors, dialogue, audio, scene order, or create scenes. Keep all narration and timed animation/audio events. Duration in seconds. For scenes with voice clips, duration must be >= voiceEnd+0.35. If a scene has timed events, prefer keeping old duration. Limit to existing ids. Avoid arbitrary changes. You may make no changes.'},
+    {role:'user',content:JSON.stringify({scenes,targetMinutes,scope}).slice(0,12000)}
+   ],temperature:0.1,max_tokens:700});
+   const raw=String(proposal.choices?.[0]?.message?.content||'').trim().replace(/^\x60\x60\x60(?:json)?/i,'').replace(/\x60\x60\x60$/,'').trim();
+   const parsed=JSON.parse(raw);
+   if(!Array.isArray(parsed.changes))throw Error('AI ไม่ส่ง changes JSON ที่ถูกต้อง');
+   const byId=new Map(scenes.map(x=>[x.id,x]));
+   const ops=[],reasons=[];
+   for(const change of parsed.changes.slice(0,20)){
+    const base=byId.get(change.id);
+    if(!base||!Number.isFinite(change.duration))continue;
+    const duration=Math.round(change.duration*100)/100;
+    if(duration<1||duration>600||Math.abs(duration-base.old)<.1)continue;
+    if(base.hasTimedEvents&&duration<base.old)continue;
+    if(base.voiceEnd>0&&duration<base.voiceEnd+.35)continue;
+    if(base.kind==='needs-dub'&&duration<base.old)continue;
+    ops.push({op:'updateScene',id:base.id,patch:{duration}});
+    reasons.push(base.id+': '+base.old+' → '+duration+' วินาที · '+String(change.reason||'').slice(0,100));
+   }
+   if(ops.length){
+    const editor=root.StudioAPI;
+    if(!editor?.apply)throw Error('StudioAPI ไม่พร้อม');
+    const dry=editor.apply(ops,{dryRun:true});
+    if(!dry.ok)throw Error('ตรวจแผนแก้ไขไม่ผ่าน');
+    await backupBeforeEdit();
+    const applied=editor.apply(ops);
+    if(!applied.applied)throw Error('ไม่สามารถแก้ JSON ตามแผน AI');
+   }
+   modelReport+='\\n\\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\\n'+(reasons.join('\\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
+  }
+  status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
  }catch(err){modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
  finally{busy=false;render()}
 }
@@ -239,7 +283,8 @@ function renderChat(container){
    e('label',{},'เครื่องมือวิเคราะห์',
     e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
      ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel},m.label)))),
-   button(busy?'กำลังทดสอบ…':'ทดสอบโมเดลบนอุปกรณ์',benchmarkModel,{disabled:busy}),
+   button(busy?'กำลังทดสอบ…':'ทดสอบโมเดลบนอุปกรณ์',()=>benchmarkModel(false),{disabled:busy}),
+   ...(chosenModel==='standard'?[]:[button('ให้ AI วิเคราะห์และปรับฉากจริง',()=>benchmarkModel(true),{disabled:busy,className:'ai-primary'})]),
    e('small',{},'มาตรฐานทำงานโดยไม่โหลดโมเดล · รุ่นอื่นต้องใช้ WebGPU และดาวน์โหลดไฟล์ · ไม่มีค่า API')),
   ...(modelReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},modelReport)]:[]),
   e('div',{className:'ai-script-settings'},e('label',{},'ตรวจขอบเขต',scope),
