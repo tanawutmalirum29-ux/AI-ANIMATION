@@ -9,8 +9,8 @@
   // Exactly TWO operators: script/episode-duration planning, then dubbing.
   // Sound effects, art, camera, writing and QA remain editor tools, not AI teams.
   const roles=Object.freeze([
-    {id:'structure',name:'AI-1 จัดบท แบ่งวรรคและตอน',instruction:'จัดรูปแบบบทที่ผู้ใช้ให้ แบ่งเป็นฉากและตอนตามระยะเวลาโดยไม่เขียนเพิ่มหรือเปลี่ยนเนื้อเรื่อง; ประมาณเวลาบรรยายและแบ่งซับให้อ่านง่าย'},
-    {id:'voice',name:'AI-2 พากย์เสียง',instruction:'อ่านบทพากย์หรือซับเดิมที่ผู้ใช้เขียนไว้ สร้างเสียงพากย์ตามตอนที่จัดไว้ โดยไม่เขียนบทใหม่'}
+    {id:'structure',name:'AI-1 ตรวจจังหวะและระยะเวลาฉาก',instruction:'อ่านโปรเจกต์ JSON ที่ AI ภายนอกเขียนไว้และไฟล์เสียงพากย์ที่มีจริง แก้เวลาฉากซึ่งค้างหรือเสียงถูกตัด จัดความยาวตอนจากฉากเดิมโดยไม่เขียนบทใหม่'},
+    {id:'voice',name:'AI-2 พากย์เสียง',instruction:'สร้างเสียงจากบทพากย์และซับที่ AI ภายนอกเขียนไว้แล้ว แบ่งคลิปยาวเป็นช่วงพากย์สั้น วางตามเสียงจริง โดยไม่เขียนบทใหม่'}
   ]);
   const LIMIT=180;
   const short=(x,n)=>String(x??'').trim().slice(0,n);
