@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 const {Script}=require('node:vm');
 const fs=require('node:fs'),http=require('node:http');
 const assert=require('node:assert/strict');
-const paths=['index.html','animated-map.js','animated-map.css','cinematic-fx.js','cinematic-fx.css','character-interaction.js','character-interaction.css'];
+const paths=['index.html','animated-map.js','animated-map.css','cinematic-fx.js','cinematic-fx.css','character-interaction.js','character-interaction.css','narration-director.js'];
 const html=fs.readFileSync('index.html','utf8');
 [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).forEach(x=>new Script(x));
 function wavBase64(sec=.8,rate=16000){const n=Math.floor(sec*rate),b=Buffer.alloc(44+n*2);
@@ -30,6 +30,7 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
   const r=await page.evaluate(async({wav})=>{
    const out={};
    autoDubSave('https://dub.test/','secret1');
+   AUTODUB_SMART=false; // legacy per-cue mode stays compatible
    commit(()=>{const s=sc();s.duration=8;s.subtitle=['สวัสดีครับ วันนี้อากาศดีมาก','เราไปกันเถอะนะ'];s.subtitleCues=[];s.audioClips=[]});
    out.panel=!!autoDubPanel().querySelector('input[type=password]');
    const pastBefore=past.length;
@@ -57,7 +58,28 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
   mode='fail';
   const f=await page.evaluate(async()=>{commit(()=>{sc().audioClips=[]});await autoDubRun();return{voices:sc().audioClips.filter(c=>c.kind==='voice').length,running:AUTODUB_RUNNING,status:document.body.innerText.includes('ล้มเหลว')||STUDIO_DUB_STATUS.includes('ล้มเหลว')}});
   assert.equal(f.voices,0);assert.equal(f.running,false);assert.ok(f.status,'failure reported');
+  // Smart mode: one TTS request for connected narration instead of one request per caption.
+  mode='ok';
+  const smart=await page.evaluate(async()=>{
+   AUTODUB_SMART=true;AUTODUB_SCOPE='scene';AUTODUB_SKIP=true;
+   commit(()=>{const s=sc();s.duration=.45;s.subtitle=['หนึ่ง สอง','สาม สี่'];s.subtitleCues=[
+    {id:'smartA',text:'เรื่องยังไม่จบ',start:0,end:.22,speaker:'',emotion:'neutral'},
+    {id:'smartB',text:'เราต้องไปต่อ',start:.22,end:.45,speaker:'',emotion:'neutral'}];s.audioClips=[]});
+   const jobs=autoDubJobs('scene',true),count=jobs.length;
+   await autoDubRun();
+   const s=sc(),voice=s.audioClips.find(c=>c.autoDub);
+   return {count,ids:voice?.cueIds||[],duration:s.duration,clipDuration:voice?.duration||0,
+    rate:voice?.rate,plannedAt:voice?.at,span:safeClipDuration(voice),
+    secondCue:s.subtitleCues[1]?.start,firstEnd:s.subtitleCues[0]?.end,
+    running:AUTODUB_RUNNING,requestedRate:jobs[0]?.text};
+  });
+  assert.equal(smart.count,1,'smart director merges one speaker into one TTS request');
+  assert.equal(smart.ids.length,2,'both caption lines belong to merged voice');
+  assert.ok(smart.duration>=smart.span,'scene duration must not cut the generated speech');
+  assert.ok(smart.secondCue>=smart.firstEnd-.01,'subtitle frames follow speech');
+  assert.equal(smart.running,false);
+  assert.equal(calls.at(-1).body.rate,'+6%','TTS pacing is supplied to Lambda');
   assert.deepEqual(errors,[],'no page errors');
-  console.log('PASS auto dub:',JSON.stringify({...r,requests:calls.length,undone,fail:f}));
+  console.log('PASS auto dub:',JSON.stringify({...r,requests:calls.length,undone,fail:f,smart}));
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
