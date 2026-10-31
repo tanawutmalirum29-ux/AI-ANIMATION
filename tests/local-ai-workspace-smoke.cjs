@@ -38,6 +38,24 @@ const path=require('node:path');
   await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คิวงาน'}).click();
   await page.getByText('ช่วยวางเรื่องยาวต่อเนื่อง 3 ตอน').last().waitFor();
   assert.equal(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.tasks.length),1);
+  // Hosted API must run without downloading WebLLM, with validated auto-patch and snapshot.
+  await page.evaluate(()=>{
+    window.StoryStudioAccess={enabled:true,isReady:()=>true,request:async payload=>{
+      window.__hostedPayload=payload;
+      const scene=window.StoryStudioBridge.get().episodes[0].scenes[0];
+      return {text:JSON.stringify({reply:'อัปเดตบทพากย์ออนไลน์แล้ว',
+       ops:[{op:'updateScene',id:scene.id,patch:{voiceover:'เสียงทดสอบระบบคลาวด์'}}]})};
+    }};
+    window.StoryAIWorkspace.render();
+  });
+  await page.locator('#aiWorkspacePanel [aria-label="เลือกการประมวลผล AI"]').selectOption('cloud');
+  await page.locator('#aiWorkspacePanel [aria-label="สั่งงาน AI"]').fill('แก้บทพากย์ฉากแรกผ่าน AI ออนไลน์');
+  await page.getByRole('button',{name:'ส่งให้ AI (Ctrl+Enter)'}).click();
+  await page.waitForFunction(()=>window.StoryStudioBridge.get().episodes[0].scenes[0].voiceover==='เสียงทดสอบระบบคลาวด์',{timeout:20000});
+  assert.equal(await page.evaluate(()=>window.__hostedPayload?.action),'aiGenerate');
+  assert.ok(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.tasks.some(t=>t.status==='applied')));
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'โปรเจกต์'}).click();
+  await page.locator('#aiProjectLibrary .ai-snapshot').first().waitFor();
   assert.deepEqual(failures,[]);
   console.log('PASS: iPad AI workspace, job history, story bible, project version save/open/reload');
  }finally{await browser.close()}
