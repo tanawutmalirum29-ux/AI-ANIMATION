@@ -2986,7 +2986,7 @@ function draw(){
  const art=$('#art'),k=(!s.image&&s.art&&ART[s.art]&&s.art!=='room')?s.art:'',rig=$('#rig'),acts=Array.isArray(s.actors)?s.actors:[];
  if(art.dataset.k!==k){art.dataset.k=k;art.innerHTML=k?ART[k]():''}
  art.style.setProperty('--t',loc.toFixed(2)+'s');
- const sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0),sb=setOn?setSVG(s,'back'):'',sf=sk?setSVG(s,'front'):'',se=$('#set'),sg=$('#setf');
+ const sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0||(s.customAssets||[]).length>0),sb=setOn?setSVG(s,'back'):'',sf=sk?setSVG(s,'front'):'',se=$('#set'),sg=$('#setf');
  if(se._h!==sb){se._h=sb;se.innerHTML=sb}if(sg._h!==sf){sg._h=sf;sg.innerHTML=sf}
  const lt=$('#lt'),LGi=lightLayer(s,loc,i);lt.style.background=LGi.c;lt.style.opacity=LGi.o;
  const L=isObj(s.lighting)?s.lighting:{},fx=$('#lightFx'),bright=clampN(nm(L.exposure,1),.6,1.5),glow=clampN(nm(L.glow,0),0,1),flicker=clampN(nm(L.flicker,0),0,1);
@@ -3150,7 +3150,7 @@ function lightAt(scene,loc,index){
  const p=lightVals(b.prev),m=(x,y)=>x+(y-x)*b.e;return{glow:m(p.glow,c.glow),vig:m(p.vig,c.vig),fX:m(p.fX,c.fX),fY:m(p.fY,c.fY)}
 }
 function sceneLightOf(s){
- const k=(!s.image&&s.art&&ART[s.art]&&s.art!=='room')?s.art:'',sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0);
+ const k=(!s.image&&s.art&&ART[s.art]&&s.art!=='room')?s.art:'',sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0||(s.customAssets||[]).length>0);
  return resolveLight(s.light||(setOn&&locSet(S,s.location)?locSet(S,s.location).light:''))
 }
 function lightLayer(scene,loc,index){
