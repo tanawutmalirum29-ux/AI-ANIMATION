@@ -1766,7 +1766,7 @@ function propPanel(s){
   fld('ขนาด',v.scale??1,x=>v.scale=clampN(x,.1,6),'number'),
   sel_('ลำดับการซ้อน',[['','หลังตัวละคร'],['yes','หน้าตัวละคร']],v.front?'yes':'',x=>v.front=x==='yes'),
   fld('สี (รหัส #hex, ไม่บังคับ)',v.color||'',x=>{if(x)v.color=x;else delete v.color}),
-  h('button',{className:'dng',onclick:()=>commit(()=>s.props.splice(i,1))},'ลบพร็อพนี้')));
+  h('button',{className:'dng',onclick:()=>commit(()=>{s.props.splice(i,1);s.interactions=(s.interactions||[]).filter(e=>e.propIndex!==i).map(e=>({...e,propIndex:e.propIndex>i?e.propIndex-1:e.propIndex}));s.interactionInitialHold=(s.interactionInitialHold||[]).filter(e=>e.propIndex!==i).map(e=>({...e,propIndex:e.propIndex>i?e.propIndex-1:e.propIndex}))})},'ลบพร็อพนี้')));
  return det('props','ของประกอบฉาก · '+(s.props||[]).length,
   h('div',{className:'gallery-note'},'วางสิ่งของ SVG ในฉาก กำหนดขนาด ตำแหน่ง และให้บังตัวละครแบบสมจริงได้ (พร็อพของผังสถานที่ยังคงอยู่)'),
   h('div',{className:'row'},addPicker,h('button',{onclick:()=>commit(()=>{s.props.push({kind:addPicker.value,x:50,y:86,scale:1,front:false})})},'＋ เพิ่มพร็อพ')),
