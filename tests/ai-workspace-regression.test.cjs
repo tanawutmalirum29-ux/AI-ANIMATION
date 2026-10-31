@@ -410,3 +410,11 @@ test('device preflight checks the worker without downloading a model',async()=>{
  assert.match(root.__probeTest.result(),/Worker เริ่มทำงานได้/);
  assert.match(root.__probeTest.result(),/ยังไม่ได้ยืนยันว่าโมเดล/);
 });
+
+
+test('Amplify deployment includes both model workers used by the UI',()=>{
+ const amplify=fs.readFileSync(path.join(root,'amplify.yml'),'utf8');
+ assert.match(amplify,/cp index\.html[^\n]*studio-ai-model-worker\.js[^\n]*studio-ai-cpu-worker\.js[^\n]*dist\//);
+ assert.match(workspace,/new Worker\(new URL\('\.\/studio-ai-cpu-worker\.js'/);
+ assert.match(workspace,/new Worker\(new URL\('\.\/studio-ai-model-worker\.js'/);
+});
