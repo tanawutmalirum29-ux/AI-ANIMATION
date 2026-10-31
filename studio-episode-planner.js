@@ -79,9 +79,10 @@
    buffer='';
   }
   for(const unit of units){
-   const joined=buffer?buffer+' '+unit:unit;
+   const sep=buffer&&(/[A-Za-z0-9]$/.test(buffer)&&/^[A-Za-z0-9]/.test(unit)||/[.!?。！？…]$/.test(buffer))?' ':'';
+   const joined=buffer?buffer+sep+unit:unit;
    if(buffer&&(Array.from(joined).length>max||estimate(joined,rate)>sceneMax))flush();
-   buffer=buffer?buffer+' '+unit:unit;
+   buffer=buffer?buffer+((/[A-Za-z0-9]$/.test(buffer)&&/^[A-Za-z0-9]/.test(unit)||/[.!?。！？…]$/.test(buffer))?' ':'')+unit:unit;
   }
   flush();
   if(scenes.length>450)throw Error('บทสร้างฉากมากเกิน 450 ฉาก โปรดแบ่งนำเข้า');
@@ -109,7 +110,7 @@
   if(episodes.length>80)throw Error('จำนวนตอนเกิน 80 โปรดแบ่งนำเข้า');
   const flattened=episodes.flatMap(e=>e.scenes.map(s=>s.voiceover)).join(' ');
   const expected=norm(raw);
-  if(flattened!==expected)throw Error('ระบบตรวจพบข้อความต้นฉบับไม่ตรงกัน กรุณาลองแบ่งบทใหม่');
+  if(flattened.replace(/\s+/g,'')!==expected.replace(/\s+/g,''))throw Error('ระบบตรวจพบข้อความต้นฉบับไม่ตรงกัน กรุณาลองแบ่งบทใหม่');
   const actualSeconds=episodes.reduce((a,e)=>a+e.estimatedSeconds,0);
   return {version:1,source:raw,targetSeconds,rate,episodes,totalScenes:scenes.length,totalSeconds:+actualSeconds.toFixed(2),
     warning:'เวลาที่แสดงเป็นค่าประมาณจากความยาวข้อความ ไม่ใช่เวลาของเสียงพากย์จริง'};
