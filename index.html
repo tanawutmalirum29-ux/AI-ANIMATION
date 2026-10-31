@@ -3984,12 +3984,17 @@ async function autoDubFetch(cfg,text,voice,options={}){
  const bin=atob(j.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
  return new Blob([u],{type:'audio/mpeg'})}
 function autoDubJobs(scope,skipExisting){
- const jobs=[],eps=scope==='all'?S.episodes.map((E,i)=>i):[selEp];
+ const jobs=[],eps=scope==='all'?S.episodes.map((E,i)=>i):[selEp],director=window.StoryNarrationDirector;
  for(const ei of eps)S.episodes[ei].scenes.forEach((scene,si)=>{
   if(scope==='scene'&&si!==sel)return;
   const cues=effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
-  for(const cue of cues){if(skipExisting&&(scene.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&c.cueId===cue.id))continue;jobs.push({ei,si,cueId:cue.id})}});
- return jobs}
+  const existing=new Set((scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data).flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
+  if(AUTODUB_SMART&&director){
+   for(const group of director.plan(cues,{existing,skipExisting,speaker:scene.voiceDirection?.speaker||''}))
+    jobs.push({ei,si,cueId:group.cueIds[0],cueIds:group.cueIds,text:group.text,speaker:group.speaker});
+  }else for(const cue of cues){if(skipExisting&&existing.has(cue.id))continue;jobs.push({ei,si,cueId:cue.id,cueIds:[cue.id]})}
+ });return jobs;
+}
 async function autoDubTest(){
  const cfg=autoDubCfg();if(!cfg.url){setVoiceStatus('ใส่ URL ของ Lambda ก่อน');return}
  setVoiceStatus('กำลังทดสอบเสียง ...');
@@ -4010,27 +4015,29 @@ async function autoDubRun(){
  try{
   for(let n=0;n<jobs.length;n++){
    if(AUTODUB_CANCEL)break;
-   const {ei,si,cueId}=jobs[n],scene=S.episodes[ei].scenes[si],cue=(scene.subtitleCues||[]).find(q=>q.id===cueId);
-   const text=String(cue?.text||'').replace(/\s*\n\s*/g,' ').trim();
+   const {ei,si,cueId,cueIds}=jobs[n],scene=S.episodes[ei].scenes[si],cue=(scene.subtitleCues||[]).find(q=>q.id===cueId);
+   const text=String(jobs[n].text||cue?.text||'').replace(/\s*\n\s*/g,' ').trim();
    if(!cue||!text)continue;
    setVoiceStatus('กำลังสร้างเสียง '+(n+1)+'/'+jobs.length+' · ตอน '+(ei+1)+' ฉาก '+(si+1));
-   const speaker=cue.speaker||scene.voiceDirection?.speaker||'';
+   const speaker=jobs[n].speaker||cue.speaker||scene.voiceDirection?.speaker||'';
    let blob=null;
-   for(let attempt=0;attempt<2&&!blob;attempt++){try{blob=await autoDubFetch(cfg,text,autoDubVoiceFor(scene,speaker))}catch(e){lastErr=e.message;await new Promise(r=>setTimeout(r,1200))}}
+   for(let attempt=0;attempt<2&&!blob;attempt++){try{blob=await autoDubFetch(cfg,text,autoDubVoiceFor(scene,speaker),AUTODUB_SMART?{rate:'+6%'}:{})}catch(e){lastErr=e.message;await new Promise(r=>setTimeout(r,1200))}}
    if(!blob){failed++;continue}
    selEp=ei;sel=si;AUDIO_DESK_SCENE=si;
-   await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id});
+   await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id,smartTrim:AUTODUB_SMART});
    past.length=keepPast; // ไม่สะสมสแนปชอตทีละคลิป (กันหน่วยความจำเต็ม) — รวมเป็น undo ครั้งเดียวตอนจบ
    const sc2=S.episodes[ei].scenes[si],clip=(sc2.audioClips||[]).at(-1);
-   if(clip&&clip.cueId===cue.id){made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05)long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
+   if(clip&&clip.cueId===cue.id){clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
   }
  }catch(e){lastErr=e.message;failed++}
  finally{
+  let planned=0,extended=0;
+  if(made&&AUTODUB_SMART&&window.StoryNarrationDirector){for(const [ei,si] of targets){const info=window.StoryNarrationDirector.layout(S.episodes[ei].scenes[si],{gap:AUTODUB_GAP});planned+=info.clips;extended+=info.extended}save()}
   selEp=Math.min(keepEp,S.episodes.length-1);sel=Math.min(keepSel,Math.max(0,ep().scenes.length-1));AUDIO_DESK_SCENE=keepScene;
   if(made){past.length=keepPast;past.push(before);if(past.length>100)past.shift();future=[]}
   AUTODUB_RUNNING=false;
   try{render()}catch(e){}
-  setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
+  setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(planned?'\nผู้ช่วยจัดเฟรมเสียง '+planned+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ'+(extended?' · ขยายเวลาฉาก '+extended.toFixed(1)+' วิ':''):'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
  }}
 function autoDubPanel(){
  const cfg=autoDubCfg();
