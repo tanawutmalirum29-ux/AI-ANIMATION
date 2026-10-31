@@ -22,6 +22,34 @@ const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
 let localEngine=null,loadedModel='',modelReport='';
+let modelLoad={active:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
+function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
+function updateModelLoad(patch){
+ modelLoad={...modelLoad,...patch,lastUpdate:performance.now()};
+ const box=rootElement?.querySelector('#aiModelLoadStatus');
+ if(box){
+  box.hidden=!modelLoad.active&&!modelLoad.error;
+  const bar=box.querySelector('progress'),label=box.querySelector('[data-model-label]'),
+   detail=box.querySelector('[data-model-detail]');
+  const value=modelLoad.percent;
+  if(bar){if(value===null)bar.removeAttribute('value');else bar.value=value}
+  if(label)label.textContent=modelLoad.error?'โหลดโมเดลไม่สำเร็จ':modelLoad.active?
+   'กำลังโหลด '+modelLoad.model+(value===null?'':' · '+value+'%'):'โหลดโมเดลเสร็จ';
+  if(detail)detail.textContent=modelLoad.error||modelLoad.stage+
+   (modelLoad.started?' · ผ่านไป '+formatElapsed((performance.now()-modelLoad.started)/1000):'');
+ }
+}
+function modelLoadPanel(){
+ const bar=e('progress',{max:100,'aria-label':'ความคืบหน้าการโหลดโมเดล'});
+ const panel=e('section',{id:'aiModelLoadStatus',role:'status','aria-live':'polite',
+  style:'padding:12px;border:1px solid var(--line, #6b7280);border-radius:12px;margin:12px 0;'},
+  e('strong',{'data-model-label':''},'กำลังเตรียม AI'),
+  bar,e('small',{'data-model-detail':'',style:'display:block;overflow-wrap:anywhere'},''));
+ panel.hidden=!modelLoad.active&&!modelLoad.error;
+ queueMicrotask(()=>updateModelLoad({}));
+ return panel;
+}
+
 function chooseModel(id){
  if(busy)return;
  chosenModel=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
@@ -33,15 +61,30 @@ async function webGpuReady(){
  try{return !!(await navigator.gpu.requestAdapter())}catch(_){return false}
 }
 async function loadLocalModel(id){
- if(!(await webGpuReady()))throw Error('อุปกรณ์/เบราว์เซอร์ไม่รองรับ WebGPU');
  if(localEngine&&loadedModel===id)return localEngine;
- const webllm=await import('https://esm.sh/@mlc-ai/web-llm@0.2.80');
- if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))throw Error('WebLLM รุ่นนี้ไม่มีโมเดลที่เลือก');
- if(localEngine){try{await localEngine.unload()}catch(_){}localEngine=null;loadedModel=''}
- status('กำลังดาวน์โหลด/โหลดโมเดล (ครั้งแรกอาจใช้ข้อมูลจำนวนมาก)…');
- const engine=await webllm.CreateMLCEngine(id,{initProgressCallback:p=>status('โหลด AI '+Math.round((p.progress||0)*100)+'% · '+(p.text||''))});
- localEngine=engine;loadedModel=id;return engine;
+ const selected=LOCAL_MODELS.find(m=>m.id===id);
+ updateModelLoad({active:true,model:selected?.label||id,percent:null,stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
+ try{
+  if(!(await webGpuReady()))throw Error('อุปกรณ์/เบราว์เซอร์ไม่รองรับ WebGPU');
+  updateModelLoad({stage:'เตรียมไลบรารี WebLLM',percent:null});
+  const webllm=await import('https://esm.sh/@mlc-ai/web-llm@0.2.80');
+  if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))throw Error('WebLLM รุ่นนี้ไม่มีโมเดลที่เลือก');
+  if(localEngine){try{await localEngine.unload()}catch(_){}localEngine=null;loadedModel=''}
+  updateModelLoad({stage:'ดาวน์โหลดและเตรียมน้ำหนักโมเดล',percent:0});
+  const engine=await webllm.CreateMLCEngine(id,{initProgressCallback:p=>{
+   const n=Number(p.progress);
+   const percent=Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null;
+   updateModelLoad({percent,stage:String(p.text||'กำลังเตรียมโมเดล').slice(0,260)});
+  }});
+  localEngine=engine;loadedModel=id;
+  updateModelLoad({active:false,percent:100,stage:'โมเดลพร้อมใช้งาน',error:''});
+  return engine;
+ }catch(err){
+  updateModelLoad({active:false,error:String(err.message||err),stage:'',percent:null});
+  throw err;
+ }
 }
+
 function analysisInput(){
  const state=bridge.get(),scope=audioScope,epIndex=bridge.episodeIndex();
  const episodes=scope==='all'?state.episodes:scope==='episode'?[state.episodes[epIndex]]:[state.episodes[epIndex]];
@@ -401,7 +444,7 @@ function renderChat(container){
  button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
  ...(narrativeReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},narrativeReport)]:[]));
  cards.append(structure,voice,narrative);
- pane.append(cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
+ pane.append(modelLoadPanel(),cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
  container.append(pane);
 }
 
