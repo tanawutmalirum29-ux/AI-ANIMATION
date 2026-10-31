@@ -4295,7 +4295,7 @@ function autoDubJobs(scope,skipExisting){
   const cues=narrated?[{id:'narration-'+scene.id,text:narrated,start:0,end:scene.duration,speaker:''}]:
    effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):
    ((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
-  const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data);
+  const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute&&!c.staleNarration);
   const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
   if(narrated){
    // One external JSON scene can contain minutes of narration. Chunk only TTS requests;
