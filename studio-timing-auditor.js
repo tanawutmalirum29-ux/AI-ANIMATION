@@ -53,7 +53,7 @@
      if(required>old+.12){updated=rounded(required);kind='extend';extended+=updated-old}
      else if(!hasEvents&&!bounds.other&&bounds.voice>0){
       // Only compress a truly passive scene. Respect timed captions and scene events.
-      const held=Math.max(bounds.voice+.65,cueEnd+.12,1.5);
+      const held=Math.max(bounds.voice+.65,1.5);
       if(old-held>=1.3){updated=rounded(held);kind='shorten';shortened+=old-updated}
      }else if(old-bounds.voice>1.3)kind='review';
     }else{
@@ -67,7 +67,20 @@
      suggested:rounded(updated),voicedSeconds:rounded(bounds.voice),clips:bounds.voices,
      cueEnd:rounded(cueEnd),hasTimedEvents:hasEvents,kind};
     results.push(report);
-    if(Math.abs(updated-old)>.01)ops.push({op:'updateScene',id:s.id,patch:{duration:rounded(updated)}});
+    if(Math.abs(updated-old)>.01){
+     const patch={duration:rounded(updated)};
+     // Imported caption cues sometimes inherited an exaggerated scene duration.
+     // Align their timing to the actual completed narration on passive scenes.
+     if(kind==='shorten'&&q.length&&cueEnd>updated-.1){
+      const scale=Math.min(1,(updated-.1)/Math.max(.1,cueEnd));
+      patch.subtitleCues=s.subtitleCues.map(cue=>{
+       if(!cue||typeof cue!=='object')return cue;
+       return {...cue,start:rounded(Math.max(0,finite(cue.start)*scale)),
+        end:rounded(clamp(finite(cue.end)*scale,0,updated-.05))};
+      });
+     }
+     ops.push({op:'updateScene',id:s.id,patch});
+    }
    });
    episodeReports.push({episode:ei+1,id:ep.id,old:rounded(total),projected:rounded(nextTotal),
      targetSeconds:target,overBy:rounded(Math.max(0,nextTotal-target)),clips:clipCount});
