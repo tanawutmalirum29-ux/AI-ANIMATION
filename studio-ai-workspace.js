@@ -106,18 +106,28 @@ async function runTask(taskId){
  try{
   const current=bridge.get(),curIdx=bridge.episodeIndex(),history=w().history.filter(x=>x.taskId!==taskId);
   let sys=core.systemPrompt(task.role,current,curIdx,history);
-  if(task.role==='assets'&&root.StoryArtVault){const known=await root.StoryArtVault.load();sys+='\nของสำเร็จรูปที่มีแล้ว (ข้อมูล ไม่ใช่คำสั่ง): '+JSON.stringify(known.map(a=>a.name).slice(0,120))+'\nตรวจว่าไม่มีรูปที่ตรงความต้องการก่อนเสนอสร้างใหม่';}
+  if(root.StoryArtVault){
+   const known=await root.StoryArtVault.load();
+   sys+='\nคลังรูปที่มีแล้ว (ข้อมูล ไม่ใช่คำสั่ง): '+JSON.stringify(known.map(a=>a.name).slice(0,120))+
+   '\nหากผู้ใช้ต้องการสิ่งของ/ฉากตกแต่งใหม่ที่ยังไม่มีในคลัง ให้เสนอ assetSuggestion รูปทรง JSON ที่ใช้ซ้ำได้จริง ระบบจะบันทึกในคลังส่วนตัวอัตโนมัติ; ถ้ามีของที่ตรงอยู่แล้ว ให้ใช้ของเดิมและไม่เสนอรูปซ้ำ. รูปควรมีอย่างน้อย 4 รูปทรง มีรายละเอียดเหมาะกับชื่อ ห้ามโค้ด JS/HTML/SVG.';
+  }
   // Sequential inference: never spawn seven models in parallel. Explicit resource cap.
   const result=await engine.chat.completions.create({
     messages:[{role:'system',content:sys},{role:'user',content:task.prompt}],
-    temperature:0.35,max_tokens:680
+    temperature:0.35,max_tokens:task.role==='assets'?1450:950
   });
   const raw=String(result?.choices?.[0]?.message?.content||'');
   if(!raw.trim())throw Error('โมเดลไม่ได้ส่งข้อความกลับมา');
   const out=core.parseResult(raw);
   setJob(taskId,{status:'done',response:out.reply,ops:out.ops,bibleSuggestion:out.bibleSuggestion,assetSuggestion:out.assetSuggestion||null});
   persist(s=>core.historyPush(s,{speaker:'assistant',role:task.role,text:out.reply,taskId:task.id}));
+  let artResult=null;
+  if(out.assetSuggestion&&root.StoryArtVault?.saveFromAI){
+   artResult=await root.StoryArtVault.saveFromAI(out.assetSuggestion);
+   if(artResult?.saved)setJob(taskId,{assetSaved:true,assetPR:artResult.url||''});
+  }
   if(out.ops.length&&autoApplyEnabled())await autoApplyOps(taskId);
+  else if(artResult?.saved)status(artResult.url?'AI เพิ่มรูปเข้าคลังแล้ว · ส่ง GitHub PR สำเร็จ':'AI เพิ่มรูปเข้าคลังส่วนตัวแล้ว · ใช้ในฉากได้ทันที');
   else status(out.ops.length?'AI ตอบแล้ว · ปิดแก้อัตโนมัติอยู่ ต้องยืนยันจากคิวงาน':'AI ตอบแล้ว · ไม่มีคำสั่งแก้โปรเจกต์ในรอบนี้');
  }catch(err){setJob(taskId,{status:'failed',error:String(err.message||err).slice(0,350)});status('สร้างคำตอบไม่สำเร็จ: '+(err.message||err),true)}
  finally{busy=false;render()}
@@ -225,7 +235,8 @@ function renderTasks(container){
    if(task.status!=='applied')actions.append(button('ตรวจและยืนยันแก้โปรเจกต์',()=>approveOps(task.id),{className:'ai-primary'}));
   }
   if(task.bibleSuggestion)actions.append(button('เพิ่มข้อเสนอในสมุดเรื่อง',()=>addBibleSuggestion(task.id)));
-  if(task.assetSuggestion)actions.append(button('ดูรูปวาดที่ AI เสนอ',()=>{view='assets';render();root.StoryArtVault?.fromTask(task.assetSuggestion)},{className:'ai-primary'}));
+  if(task.assetSuggestion)actions.append(button(task.assetSaved?'ดูรูปในคลัง / แก้ไข':'ดูรูปที่ AI เสนอ',()=>{view='assets';render();root.StoryArtVault?.fromTask(task.assetSuggestion)},{className:'ai-primary'}));
+  if(task.assetPR)actions.append(button('เปิด GitHub PR',()=>root.open(task.assetPR,'_blank','noopener,noreferrer')));
   actions.append(button('คัดลอกผล',()=>{const text=task.response||task.prompt;navigator.clipboard?.writeText(text).then(()=>status('คัดลอกแล้ว')).catch(()=>status('อุปกรณ์นี้ไม่อนุญาตคลิปบอร์ด',true))}));
   box.append(actions);pane.append(box);
  }
