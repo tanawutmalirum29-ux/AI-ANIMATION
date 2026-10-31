@@ -17,6 +17,12 @@ on:
       - tests/animated-map-smoke.cjs
       - tests/cinematic-fx-smoke.cjs
       - tests/character-interaction-smoke.cjs
+      - tests/mobile-scroll-smoke.cjs
+      - .github/workflows/animated-map-qa.yml
+  pull_request:
+    paths:
+      - index.html
+      - tests/mobile-scroll-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   workflow_dispatch:
 permissions:
@@ -40,6 +46,7 @@ jobs:
           node --check tests/animated-map-smoke.cjs
           node --check tests/cinematic-fx-smoke.cjs
           node --check tests/character-interaction-smoke.cjs
+          node --check tests/mobile-scroll-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist
           cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css dist/
@@ -55,3 +62,4 @@ jobs:
           node tests/animated-map-smoke.cjs
           node tests/cinematic-fx-smoke.cjs
           node tests/character-interaction-smoke.cjs
+          node tests/mobile-scroll-smoke.cjs
