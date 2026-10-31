@@ -1,0 +1,3903 @@
+{
+  "version": 1,
+  "project": {
+    "title": "ชานชาลาเวลา 02:17",
+    "aspect": "16:9",
+    "fps": 30,
+    "subMax": 28,
+    "styleSuffix": "Moody 2D illustrated cinematic animation, consistent character rigs, delicate parallax, rainy midnight teal and amber color script, atmospheric lighting, high readability, no watermarks, no extra text",
+    "uiBoxStyle": {
+      "bg": "#13283a",
+      "color": "#fff0d6",
+      "position": "bottom",
+      "font": "system-ui"
+    }
+  },
+  "voiceProfiles": [
+    {
+      "id": "vpnarrator",
+      "name": "ผู้บรรยายหลัก",
+      "type": "male",
+      "description": "ผู้ชายไทยเสียงนุ่มต่ำ เป็นธรรมชาติ เล่าเรื่องลึกลับแบบสงบ ไม่เล่นหลายเสียง ไม่มีบทสนทนาตัวละคร",
+      "ttsVoice": "",
+      "rate": 0.98,
+      "fx": {
+        "loudness": 0,
+        "pitch": -1,
+        "bass": 1,
+        "mid": 0,
+        "treble": 1,
+        "compress": 0.18,
+        "echo": 0,
+        "pan": 0
+      }
+    }
+  ],
+  "characters": [
+    {
+      "id": "prae",
+      "name": "แพร",
+      "role": "หญิงวัยยี่สิบเจ็ดปี ผู้กลับมาตามความจริงของพ่อ",
+      "voice": "Non-speaking role. Narrator tells all events.",
+      "rig": {
+        "style": "human",
+        "skin": "#e5af8a",
+        "hair": "#241f2b",
+        "hairStyle": "ponytail",
+        "shirt": "#c59a45",
+        "pants": "#29384f",
+        "shoes": "#252733",
+        "scale": 1
+      },
+      "promptBlock": "Prae, a 27-year-old Thai woman with a dark ponytail, amber rain jacket, charcoal trousers and worn boots, serious eyes, a small shoulder satchel. Keep costume and identity unchanged throughout."
+    },
+    {
+      "id": "father",
+      "name": "พ่อของแพร",
+      "role": "นายสถานีผู้คอยส่งขบวนสุดท้าย",
+      "voice": "Silent character. The narrator recounts his actions; no dialogue.",
+      "rig": {
+        "style": "human",
+        "skin": "#c99b78",
+        "hair": "#41444b",
+        "hairStyle": "sidepart",
+        "shirt": "#334e61",
+        "pants": "#273849",
+        "shoes": "#1f2732",
+        "scale": 1.05
+      },
+      "promptBlock": "Thai railway stationmaster in his mid-fifties, neatly parted silver-black hair, navy blue old station uniform, tan skin, gentle expression, brass buttons; unchanged design in every shot."
+    },
+    {
+      "id": "child",
+      "name": "แพรวัยเด็ก",
+      "role": "ภาพความทรงจำของแพรในวัยเก้าขวบ",
+      "voice": "Silent character.",
+      "rig": {
+        "style": "human",
+        "skin": "#efb58c",
+        "hair": "#272333",
+        "hairStyle": "bob",
+        "shirt": "#dcb94c",
+        "pants": "#5f493f",
+        "shoes": "#2f3340",
+        "scale": 0.69
+      },
+      "promptBlock": "Nine-year-old Thai girl with a dark short bob, faded mustard yellow coat and brown skirt, same eyes as adult Prae, slight build, consistent child design."
+    }
+  ],
+  "locations": [
+    {
+      "id": "station",
+      "name": "ชานชาลาสถานีร้าง",
+      "promptBlock": "Abandoned small Thai rural station, wet platform and railway tracks, moonlit navy palette, one historic wall clock, no modern signage",
+      "set": {
+        "bg": [
+          "#20354a",
+          "#080f22"
+        ],
+        "floor": "#34384a",
+        "floorY": 78,
+        "light": "night",
+        "anchors": {
+          "left": {
+            "x": 18,
+            "y": 90
+          },
+          "center": {
+            "x": 50,
+            "y": 90
+          },
+          "right": {
+            "x": 82,
+            "y": 90,
+            "facing": "left"
+          },
+          "bench": {
+            "x": 23,
+            "y": 89,
+            "pose": "sit"
+          },
+          "door": {
+            "x": 9,
+            "y": 90
+          },
+          "signal": {
+            "x": 80,
+            "y": 88
+          },
+          "rail": {
+            "x": 67,
+            "y": 88
+          }
+        },
+        "props": [
+          {
+            "kind": "track",
+            "x": 70,
+            "y": 85,
+            "scale": 2.1,
+            "front": false
+          },
+          {
+            "kind": "bench",
+            "x": 20,
+            "y": 88,
+            "scale": 1.2,
+            "front": true
+          },
+          {
+            "kind": "lamp",
+            "x": 88,
+            "y": 84,
+            "scale": 1,
+            "front": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "controlroom",
+      "name": "ห้องควบคุมสัญญาณ",
+      "promptBlock": "Small rusted signal control room with red lever, dusty wooden desk, warm broken lamps, rain against old window",
+      "set": {
+        "bg": [
+          "#28384a",
+          "#111c2b"
+        ],
+        "floor": "#434047",
+        "floorY": 79,
+        "light": "dim",
+        "anchors": {
+          "door": {
+            "x": 12,
+            "y": 90
+          },
+          "lever": {
+            "x": 64,
+            "y": 87
+          },
+          "window": {
+            "x": 82,
+            "y": 90
+          },
+          "desk": {
+            "x": 36,
+            "y": 90
+          }
+        },
+        "props": [
+          {
+            "kind": "window",
+            "x": 79,
+            "y": 50,
+            "scale": 1.2,
+            "front": false
+          },
+          {
+            "kind": "desk",
+            "x": 34,
+            "y": 88,
+            "scale": 1.1,
+            "front": true
+          },
+          {
+            "kind": "lamp",
+            "x": 24,
+            "y": 85,
+            "scale": 0.7,
+            "front": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "memory",
+      "name": "รางรถไฟในความทรงจำ",
+      "promptBlock": "Soft sepia memory of railway tracks on the fateful night, mist, no violence",
+      "set": {
+        "bg": [
+          "#6b899b",
+          "#ccd8d3"
+        ],
+        "floor": "#87969b",
+        "floorY": 78,
+        "light": "cold",
+        "anchors": {
+          "left": {
+            "x": 18,
+            "y": 90
+          },
+          "center": {
+            "x": 50,
+            "y": 90
+          },
+          "right": {
+            "x": 82,
+            "y": 90
+          },
+          "rail": {
+            "x": 64,
+            "y": 90
+          }
+        },
+        "props": [
+          {
+            "kind": "track",
+            "x": 65,
+            "y": 84,
+            "scale": 2,
+            "front": false
+          }
+        ]
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "narratorrule",
+      "text": "ผู้บรรยายชายเพียงคนเดียวอ่าน voiceover ทุกฉาก ไม่มีบทพูดแยกของตัวละคร ตัวละครแสดงผ่านท่าทางเท่านั้น"
+    },
+    {
+      "id": "continuityrule",
+      "text": "สลับฉากใช้ชุดและตำแหน่งตัวละครสม่ำเสมอ นาฬิกาหยุดที่ 02:17 จนกว่ารถไฟจะออกแล้วจึงเป็น 02:18"
+    }
+  ],
+  "episodes": [
+    {
+      "id": "ep1",
+      "title": "ชานชาลาเวลา 02:17 — เรื่องจบในตอน",
+      "targetSeconds": 225,
+      "hiddenMistake": "",
+      "clues": [
+        {
+          "id": "clockclue",
+          "label": "นาฬิกาที่ไม่เดิน",
+          "sceneId": "s02"
+        },
+        {
+          "id": "childclue",
+          "label": "เด็กหญิงเหมือนแพร",
+          "sceneId": "s09"
+        },
+        {
+          "id": "leverclue",
+          "label": "คันโยกสัญญาณ",
+          "sceneId": "s13"
+        }
+      ],
+      "scenes": [
+        {
+          "id": "s01",
+          "duration": 9,
+          "characters": [],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue01",
+              "text": "สถานีที่ไม่มีใครกลับมา",
+              "start": 3.8,
+              "end": 8.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ฝนเทลงบนสถานีร้าง ชานชาลาเงียบจนได้ยินเสียงน้ำหยดจากหลังคา",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "pan-right",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "fadeblack",
+            "duration": 0.6
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "station-clock-0217",
+                "name": "นาฬิกาสถานี 02:17",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง17 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.81709865569442,
+                    "y2": 43.769479145686944,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 76.40998521981275,
+                    "y2": 55.613615652079496,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 53,
+              "y": 56,
+              "scale": 1.5,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Wide establishing shot; wet ground and distant dripping roof."
+        },
+        {
+          "id": "s02",
+          "duration": 12,
+          "characters": [],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue02",
+              "text": "02:17 น.",
+              "start": 6.8,
+              "end": 11.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "นาฬิกาเรือนใหญ่หยุดอยู่ที่ตีสองสิบเจ็ดนาที มันไม่เคยเดินอีกเลยนับจากคืนที่รถไฟหายไป",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-in",
+            "from": 1,
+            "to": 1.12,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [
+            "clockclue"
+          ],
+          "actors": [],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "station-clock-0217",
+                "name": "นาฬิกาสถานี 02:17",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง17 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.81709865569442,
+                    "y2": 43.769479145686944,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 76.40998521981275,
+                    "y2": 55.613615652079496,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 50,
+              "y": 62,
+              "scale": 2,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Camera pushes toward frozen clock face; no large text overlay."
+        },
+        {
+          "id": "s03",
+          "duration": 13,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue03",
+              "text": "จดหมายที่ไม่มีผู้ส่ง",
+              "start": 7.8,
+              "end": 12.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "แพรกลับมาที่นี่หลังจากสิบแปดปี ในมือเธอมีจดหมายไม่มีชื่อผู้ส่ง และตั๋วรถไฟที่ใช้ไม่ได้แล้ว",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "follow",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 16,
+              "y": 90,
+              "pose": "walk",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "sad",
+              "toX": 40,
+              "endPose": "stand"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "last-train-ticket",
+                "name": "ตั๋วรถไฟเที่ยวสุดท้าย",
+                "category": "prop",
+                "description": "ตั๋วกระดาษเก่า สีครีม มีลวดลายและตราประทับแดง ไม่มีข้อความขนาดเล็ก",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 87,
+                    "rx": 34,
+                    "ry": 4,
+                    "fill": "#14253b"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 11,
+                    "y": 21,
+                    "w": 78,
+                    "h": 52,
+                    "rx": 4,
+                    "fill": "#e1c69a",
+                    "stroke": "#826c52",
+                    "strokeWidth": 1.6
+                  },
+                  {
+                    "type": "rect",
+                    "x": 17,
+                    "y": 27,
+                    "w": 66,
+                    "h": 39,
+                    "rx": 0,
+                    "fill": "#f7e5ba"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 21,
+                    "y": 31,
+                    "w": 12,
+                    "h": 31,
+                    "rx": 0,
+                    "fill": "#a23e3a"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 41,
+                    "y1": 34,
+                    "x2": 76,
+                    "y2": 34,
+                    "stroke": "#8a7053",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "line",
+                    "x1": 41,
+                    "y1": 44,
+                    "x2": 70,
+                    "y2": 44,
+                    "stroke": "#8a7053",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 41,
+                    "y1": 54,
+                    "x2": 74,
+                    "y2": 54,
+                    "stroke": "#8a7053",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 76,
+                    "cy": 58,
+                    "r": 8,
+                    "fill": "#af4e3d"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 76,
+                    "cy": 58,
+                    "r": 4.8,
+                    "fill": "#e0b788"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 14,
+                    "cy": 45,
+                    "r": 3,
+                    "fill": "#73553f"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 87,
+                    "cy": 45,
+                    "r": 3,
+                    "fill": "#73553f"
+                  }
+                ]
+              },
+              "x": 67,
+              "y": 84,
+              "scale": 0.5,
+              "front": true
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Prae walks from left through the platform; ticket briefly in foreground."
+        },
+        {
+          "id": "s04",
+          "duration": 11,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue04",
+              "text": "ลายมือที่เธอจำได้",
+              "start": 5.8,
+              "end": 10.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ด้านหลังตั๋วมีลายมือของพ่อ เขาเคยเป็นนายสถานี ก่อนหายตัวไปในคืนเดียวกับรถไฟ",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-in",
+            "from": 1,
+            "to": 1.12,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 43,
+              "y": 90,
+              "pose": "read",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "last-train-ticket",
+                "name": "ตั๋วรถไฟเที่ยวสุดท้าย",
+                "category": "prop",
+                "description": "ตั๋วกระดาษเก่า สีครีม มีลวดลายและตราประทับแดง ไม่มีข้อความขนาดเล็ก",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 87,
+                    "rx": 34,
+                    "ry": 4,
+                    "fill": "#14253b"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 11,
+                    "y": 21,
+                    "w": 78,
+                    "h": 52,
+                    "rx": 4,
+                    "fill": "#e1c69a",
+                    "stroke": "#826c52",
+                    "strokeWidth": 1.6
+                  },
+                  {
+                    "type": "rect",
+                    "x": 17,
+                    "y": 27,
+                    "w": 66,
+                    "h": 39,
+                    "rx": 0,
+                    "fill": "#f7e5ba"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 21,
+                    "y": 31,
+                    "w": 12,
+                    "h": 31,
+                    "rx": 0,
+                    "fill": "#a23e3a"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 41,
+                    "y1": 34,
+                    "x2": 76,
+                    "y2": 34,
+                    "stroke": "#8a7053",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "line",
+                    "x1": 41,
+                    "y1": 44,
+                    "x2": 70,
+                    "y2": 44,
+                    "stroke": "#8a7053",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 41,
+                    "y1": 54,
+                    "x2": 74,
+                    "y2": 54,
+                    "stroke": "#8a7053",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 76,
+                    "cy": 58,
+                    "r": 8,
+                    "fill": "#af4e3d"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 76,
+                    "cy": 58,
+                    "r": 4.8,
+                    "fill": "#e0b788"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 14,
+                    "cy": 45,
+                    "r": 3,
+                    "fill": "#73553f"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 87,
+                    "cy": 45,
+                    "r": 3,
+                    "fill": "#73553f"
+                  }
+                ]
+              },
+              "x": 52,
+              "y": 82,
+              "scale": 1.3,
+              "front": true
+            },
+            {
+              "asset": {
+                "id": "old-station-photo",
+                "name": "ภาพถ่ายครอบครัวเก่า",
+                "category": "decor",
+                "description": "รูปถ่ายซีเปียในกรอบไม้ของพ่อกับเด็กหญิง ไว้เล่าเรื่องย้อนอดีต",
+                "shapes": [
+                  {
+                    "type": "rect",
+                    "x": 12,
+                    "y": 13,
+                    "w": 76,
+                    "h": 72,
+                    "rx": 3,
+                    "fill": "#634a35",
+                    "stroke": "#c99f69",
+                    "strokeWidth": 3
+                  },
+                  {
+                    "type": "rect",
+                    "x": 20,
+                    "y": 20,
+                    "w": 60,
+                    "h": 55,
+                    "rx": 0,
+                    "fill": "#d6c39e"
+                  },
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 72,
+                    "rx": 27,
+                    "ry": 3,
+                    "fill": "#a89a79"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 39,
+                    "cy": 43,
+                    "r": 10,
+                    "fill": "#614e43"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 30,
+                    "y": 53,
+                    "w": 19,
+                    "h": 19,
+                    "rx": 0,
+                    "fill": "#3f5360"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 64,
+                    "cy": 52,
+                    "r": 7,
+                    "fill": "#654e41"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 57,
+                    "y": 60,
+                    "w": 14,
+                    "h": 11,
+                    "rx": 0,
+                    "fill": "#c5a155"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 14,
+                    "y1": 16,
+                    "x2": 86,
+                    "y2": 82,
+                    "stroke": "#b28d5e",
+                    "strokeWidth": 1
+                  }
+                ]
+              },
+              "x": 73,
+              "y": 79,
+              "scale": 0.75,
+              "front": true
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Close-up of ticket and family photograph; never render illegible fake microtext."
+        },
+        {
+          "id": "s05",
+          "duration": 9,
+          "characters": [
+            "prae"
+          ],
+          "location": "controlroom",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue05",
+              "text": "ใครเปิดไฟ?",
+              "start": 3.8,
+              "end": 8.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ไฟในห้องขายตั๋วติดขึ้นเอง ทั้งที่ทั้งอาคารถูกตัดไฟมานานแล้ว",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Small abandoned railway signal control room, rusted mechanisms, dim practical light, wet footprints, vintage hardware. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "pan-left",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "none",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0.3
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 19,
+              "y": 90,
+              "pose": "surprised",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [
+            {
+              "kind": "lamp",
+              "x": 79,
+              "y": 75,
+              "scale": 1,
+              "front": false
+            }
+          ],
+          "customAssets": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Warm lamp suddenly comes on against cold deserted signal cabin."
+        },
+        {
+          "id": "s06",
+          "duration": 12,
+          "characters": [
+            "prae"
+          ],
+          "location": "controlroom",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue06",
+              "text": "รอยเท้าที่เพิ่งเกิด",
+              "start": 6.8,
+              "end": 11.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "บนพื้นมีรอยเท้าเปียกเพียงคู่เดียว มันเดินออกจากห้องมุ่งไปยังชานชาลาที่ไม่มีใครอยู่",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Small abandoned railway signal control room, rusted mechanisms, dim practical light, wet footprints, vintage hardware. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "dolly",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "none",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 28,
+              "y": 90,
+              "pose": "sneak",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "neutral",
+              "toX": 57,
+              "endPose": "think"
+            }
+          ],
+          "props": [],
+          "customAssets": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Low camera tracks the floor; hint at an unseen traveler."
+        },
+        {
+          "id": "s07",
+          "duration": 10,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue07",
+              "text": "เสียงจากรางที่ว่างเปล่า",
+              "start": 4.8,
+              "end": 9.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เสียงระฆังดังหนึ่งครั้ง แล้วลำแสงจากหัวรถจักรค่อย ๆ แทงผ่านม่านฝน",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "mysterious",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "pan-right",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "storm",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 31,
+              "y": 89,
+              "pose": "surprised",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [
+            {
+              "kind": "train",
+              "x": 93,
+              "y": 82,
+              "scale": 0.6,
+              "front": false
+            }
+          ],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "station-clock-0217",
+                "name": "นาฬิกาสถานี 02:17",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง17 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.81709865569442,
+                    "y2": 43.769479145686944,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 76.40998521981275,
+                    "y2": 55.613615652079496,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 50,
+              "y": 54,
+              "scale": 1.2,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "A single bell; reveal only a distant headlight, not a train in full view yet."
+        },
+        {
+          "id": "s08",
+          "duration": 12,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue08",
+              "text": "รถไฟที่ไม่มีตารางเดินรถ",
+              "start": 6.8,
+              "end": 11.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "รถไฟสีดำแล่นเข้ามาอย่างไร้เสียงล้อ คนในตู้โดยสารนั่งนิ่ง ราวกับกำลังรอคำสั่งบางอย่าง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "dolly",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 23,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [
+            {
+              "kind": "train",
+              "x": 73,
+              "y": 80,
+              "scale": 1.6,
+              "front": false
+            }
+          ],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "station-clock-0217",
+                "name": "นาฬิกาสถานี 02:17",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง17 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.81709865569442,
+                    "y2": 43.769479145686944,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 76.40998521981275,
+                    "y2": 55.613615652079496,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 45,
+              "y": 56,
+              "scale": 1.2,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Train enters on the far track; silhouettes seen through windows, no separate dialogue."
+        },
+        {
+          "id": "s09",
+          "duration": 14,
+          "characters": [
+            "prae",
+            "child"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue09",
+              "text": "เด็กหญิงในหน้าต่าง",
+              "start": 8.8,
+              "end": 13.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ที่หน้าต่างบานสุดท้าย มีเด็กหญิงเสื้อเหลืองนั่งกอดเข่า ใบหน้าของเธอเหมือนแพรในวัยเก้าขวบทุกอย่าง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-in",
+            "from": 1,
+            "to": 1.12,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [
+            "childclue"
+          ],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 23,
+              "y": 90,
+              "pose": "think",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            },
+            {
+              "char": "child",
+              "x": 73,
+              "y": 81,
+              "pose": "sit",
+              "view": "side",
+              "facing": "left",
+              "face": "sad",
+              "scale": 0.65
+            }
+          ],
+          "props": [
+            {
+              "kind": "train",
+              "x": 73,
+              "y": 81,
+              "scale": 1.5,
+              "front": false
+            }
+          ],
+          "customAssets": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Child framed within train window; keep adult Prae on foreground left."
+        },
+        {
+          "id": "s10",
+          "duration": 13,
+          "characters": [
+            "father",
+            "child"
+          ],
+          "location": "memory",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue10",
+              "text": "ความทรงจำที่ถูกลืม",
+              "start": 7.8,
+              "end": 12.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ทันใดนั้นภาพในความทรงจำก็ย้อนกลับมา คืนเกิดเหตุ พ่ออุ้มเธอลงจากรางก่อนขบวนรถจะพุ่งผ่าน",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Faded memory of a Thai railway incident eighteen years ago, safe rescue, soft fog, monochrome nostalgic palette. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "shake",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "flash",
+            "duration": 0.25
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 1.1,
+            "glow": 0.26,
+            "vignette": 0.2,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "father",
+              "x": 40,
+              "y": 88,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised",
+              "toX": 22,
+              "endPose": "run"
+            },
+            {
+              "char": "child",
+              "x": 46,
+              "y": 88,
+              "pose": "run",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised",
+              "toX": 23
+            }
+          ],
+          "props": [
+            {
+              "kind": "train",
+              "x": 88,
+              "y": 81,
+              "scale": 1.1,
+              "front": false
+            }
+          ],
+          "customAssets": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Flashback: father pulls child away from danger; no graphic injury."
+        },
+        {
+          "id": "s11",
+          "duration": 12,
+          "characters": [
+            "father",
+            "child"
+          ],
+          "location": "memory",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue11",
+              "text": "เขากลับเข้าไป",
+              "start": 6.8,
+              "end": 11.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "แต่สิ่งที่แพรจำไม่ได้คือ พ่อไม่ได้หนีตามมา เขาหันกลับเข้าไปในสถานีเพื่อช่วยผู้โดยสาร",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Faded memory of a Thai railway incident eighteen years ago, safe rescue, soft fog, monochrome nostalgic palette. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "pan-right",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 1.1,
+            "glow": 0.26,
+            "vignette": 0.2,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "father",
+              "x": 40,
+              "y": 90,
+              "pose": "run",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "neutral",
+              "toX": 81,
+              "endPose": "point"
+            },
+            {
+              "char": "child",
+              "x": 17,
+              "y": 89,
+              "pose": "sad",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "sad"
+            }
+          ],
+          "props": [],
+          "customAssets": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Father runs toward stranded passengers while child remains safe far behind."
+        },
+        {
+          "id": "s12",
+          "duration": 12,
+          "characters": [
+            "prae",
+            "father"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue12",
+              "text": "คนที่รออยู่ตลอดมา",
+              "start": 6.8,
+              "end": 11.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ชายในเสื้อเครื่องแบบเก่าปรากฏตรงปลายชานชาลา เขาคือพ่อ ใบหน้าแทบไม่เปลี่ยนจากวันนั้น",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-in",
+            "from": 1,
+            "to": 1.12,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 28,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            },
+            {
+              "char": "father",
+              "x": 84,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "sad"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "station-clock-0217",
+                "name": "นาฬิกาสถานี 02:17",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง17 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.81709865569442,
+                    "y2": 43.769479145686944,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 76.40998521981275,
+                    "y2": 55.613615652079496,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 46,
+              "y": 54,
+              "scale": 1,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Long silent eye contact across the platform; use wide gap for dramatic staging."
+        },
+        {
+          "id": "s13",
+          "duration": 10,
+          "characters": [
+            "prae",
+            "father"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue13",
+              "text": "ห้องสัญญาณ",
+              "start": 4.8,
+              "end": 9.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เขาไม่พูดอะไร เพียงชี้ไปยังห้องสัญญาณ ที่มีคันโยกสีแดงขึ้นสนิมรออยู่",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "pan-left",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [
+            "leverclue"
+          ],
+          "actors": [
+            {
+              "char": "father",
+              "x": 75,
+              "y": 90,
+              "pose": "point",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "neutral"
+            },
+            {
+              "char": "prae",
+              "x": 34,
+              "y": 90,
+              "pose": "think",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "platform-signal-red",
+                "name": "ไฟสัญญาณสีแดง",
+                "category": "architecture",
+                "description": "เสาไฟสัญญาณรถไฟสีแดงก่อนเปิดทาง",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 94,
+                    "rx": 18,
+                    "ry": 4,
+                    "fill": "#0f1b29"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 45,
+                    "y": 30,
+                    "w": 10,
+                    "h": 64,
+                    "rx": 0,
+                    "fill": "#455563"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 28,
+                    "y": 17,
+                    "w": 44,
+                    "h": 37,
+                    "rx": 8,
+                    "fill": "#192b37",
+                    "stroke": "#9b8a68",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 36,
+                    "r": 12,
+                    "fill": "#aa3032",
+                    "stroke": "#dc6a56",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 47,
+                    "cy": 31,
+                    "r": 4,
+                    "fill": "#f28c73"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 41,
+                    "y": 55,
+                    "w": 18,
+                    "h": 4,
+                    "rx": 0,
+                    "fill": "#6e786e"
+                  }
+                ]
+              },
+              "x": 85,
+              "y": 83,
+              "scale": 1.05,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Stationmaster points to rusty signal control beyond the platform."
+        },
+        {
+          "id": "s14",
+          "duration": 13,
+          "characters": [
+            "prae"
+          ],
+          "location": "controlroom",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue14",
+              "text": "ใครสักคนต้องเปิดทาง",
+              "start": 7.8,
+              "end": 12.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "แพรเริ่มเข้าใจ เวลาของสถานีหยุดลงพร้อมผู้โดยสาร ทุกคนจะไปต่อได้ ก็ต่อเมื่อมีใครเปิดทางให้รถไฟ",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Small abandoned railway signal control room, rusted mechanisms, dim practical light, wet footprints, vintage hardware. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "dolly",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "none",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 33,
+              "y": 90,
+              "pose": "think",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "sad"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "signal-lever-up",
+                "name": "คันโยกสัญญาณ ก่อนเปิด",
+                "category": "prop",
+                "description": "คันโยกเหล็กสีแดงยกขึ้นในห้องสัญญาณ ใช้ก่อนปล่อยขบวนรถ",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 93,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#1c2838"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 21,
+                    "y": 77,
+                    "w": 58,
+                    "h": 14,
+                    "rx": 4,
+                    "fill": "#4b5a63",
+                    "stroke": "#a0a5a9",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "rect",
+                    "x": 43,
+                    "y": 30,
+                    "w": 14,
+                    "h": 49,
+                    "rx": 3,
+                    "fill": "#78848c",
+                    "stroke": "#35434b",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 49,
+                    "x2": 65,
+                    "y2": 16,
+                    "stroke": "#b04b3c",
+                    "strokeWidth": 6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 67,
+                    "cy": 14,
+                    "r": 8,
+                    "fill": "#df6b55",
+                    "stroke": "#722b28",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 48,
+                    "r": 8,
+                    "fill": "#d7b889",
+                    "stroke": "#4b5460",
+                    "strokeWidth": 2
+                  }
+                ]
+              },
+              "x": 65,
+              "y": 89,
+              "scale": 1.15,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Slow reveal of red lever while Prae decides what to do."
+        },
+        {
+          "id": "s15",
+          "duration": 10,
+          "characters": [
+            "prae"
+          ],
+          "location": "controlroom",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue15",
+              "text": "เธอเลือกเปิดทาง",
+              "start": 4.8,
+              "end": 9.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เธอฝ่าสายฝนเข้าไปจับคันโยก เหล็กเย็นจัดจนมือชา แต่เธอดึงมันลงสุดแรง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "medium",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Small abandoned railway signal control room, rusted mechanisms, dim practical light, wet footprints, vintage hardware. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "shake",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 51,
+              "y": 89,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised",
+              "toX": 64,
+              "endPose": "point"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "signal-lever-down",
+                "name": "คันโยกสัญญาณ หลังเปิด",
+                "category": "prop",
+                "description": "คันโยกเหล็กดึงลงแล้ว แสดงการเปิดทางให้รถไฟออกเดินทาง",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 93,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#1c2838"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 21,
+                    "y": 77,
+                    "w": 58,
+                    "h": 14,
+                    "rx": 4,
+                    "fill": "#4b5a63",
+                    "stroke": "#a0a5a9",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "rect",
+                    "x": 43,
+                    "y": 30,
+                    "w": 14,
+                    "h": 49,
+                    "rx": 3,
+                    "fill": "#78848c",
+                    "stroke": "#35434b",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 49,
+                    "x2": 78,
+                    "y2": 69,
+                    "stroke": "#b04b3c",
+                    "strokeWidth": 6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 80,
+                    "cy": 70,
+                    "r": 8,
+                    "fill": "#df6b55",
+                    "stroke": "#722b28",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 48,
+                    "r": 8,
+                    "fill": "#d7b889",
+                    "stroke": "#4b5460",
+                    "strokeWidth": 2
+                  }
+                ]
+              },
+              "x": 69,
+              "y": 89,
+              "scale": 1.4,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Show final pulled-down lever; camera shake on impact."
+        },
+        {
+          "id": "s16",
+          "duration": 13,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue16",
+              "text": "ไฟสีเขียว",
+              "start": 7.8,
+              "end": 12.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ไฟสัญญาณเปลี่ยนจากแดงเป็นเขียว เสียงล้อดังขึ้นเป็นครั้งแรก และหน้าต่างทุกบานเริ่มมีชีวิต",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "medium",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "pan-right",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 31,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [
+            {
+              "kind": "train",
+              "x": 70,
+              "y": 80,
+              "scale": 1.6,
+              "front": false
+            }
+          ],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "platform-signal-green",
+                "name": "ไฟสัญญาณสีเขียว",
+                "category": "architecture",
+                "description": "เสาไฟสัญญาณรถไฟสีเขียวหลังเปิดทาง",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 94,
+                    "rx": 18,
+                    "ry": 4,
+                    "fill": "#0f1b29"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 45,
+                    "y": 30,
+                    "w": 10,
+                    "h": 64,
+                    "rx": 0,
+                    "fill": "#455563"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 28,
+                    "y": 17,
+                    "w": 44,
+                    "h": 37,
+                    "rx": 8,
+                    "fill": "#192b37",
+                    "stroke": "#9b8a68",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 36,
+                    "r": 12,
+                    "fill": "#3da778",
+                    "stroke": "#83e1ab",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 47,
+                    "cy": 31,
+                    "r": 4,
+                    "fill": "#caf9d7"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 41,
+                    "y": 55,
+                    "w": 18,
+                    "h": 4,
+                    "rx": 0,
+                    "fill": "#6e786e"
+                  }
+                ]
+              },
+              "x": 83,
+              "y": 86,
+              "scale": 1.3,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Signal is green, train can depart; windows brighten subtly."
+        },
+        {
+          "id": "s17",
+          "duration": 13,
+          "characters": [
+            "prae",
+            "father",
+            "child"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue17",
+              "text": "การบอกลาที่ไม่ต้องพูด",
+              "start": 7.8,
+              "end": 12.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เด็กหญิงในเสื้อเหลืองยิ้ม ก่อนค่อย ๆ เลือนหายไป พ่อถอดหมวกโบกให้แพรจากหน้าต่างขบวนสุดท้าย",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "tense",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-out",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 24,
+              "y": 90,
+              "pose": "wave",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "sad"
+            },
+            {
+              "char": "father",
+              "x": 75,
+              "y": 81,
+              "pose": "wave",
+              "view": "side",
+              "facing": "left",
+              "face": "happy",
+              "scale": 0.8
+            },
+            {
+              "char": "child",
+              "x": 61,
+              "y": 81,
+              "pose": "wave",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "happy",
+              "scale": 0.58
+            }
+          ],
+          "props": [
+            {
+              "kind": "train",
+              "x": 72,
+              "y": 80,
+              "scale": 1.6,
+              "front": false
+            }
+          ],
+          "customAssets": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Silent farewell; childhood figure fades by storytelling and atmosphere, not dialogue."
+        },
+        {
+          "id": "s18",
+          "duration": 14,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue18",
+              "text": "02:18 น.",
+              "start": 8.8,
+              "end": 13.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "รถไฟแล่นหายเข้าไปในหมอก เหลือเพียงเสียงเข็มนาฬิกาขยับหนึ่งครั้ง จากตีสองสิบเจ็ด เป็นตีสองสิบแปด",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "reflective",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "ตีสองสิบแปด",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-in",
+            "from": 1,
+            "to": 1.12,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.7
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 29,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "sad"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "station-clock-0218",
+                "name": "นาฬิกาสถานี 02:18",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง18 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.87086725045243,
+                    "y2": 43.907744857729895,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 75.67852593996915,
+                    "y2": 58.343458848123575,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 52,
+              "y": 55,
+              "scale": 1.7,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Clock changes to 02:18; train is no longer visible."
+        },
+        {
+          "id": "s19",
+          "duration": 13,
+          "characters": [
+            "prae"
+          ],
+          "location": "station",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue19",
+              "text": "เขาไม่เคยทิ้งเธอ",
+              "start": 7.8,
+              "end": 12.1,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "แพรไม่รู้ว่าพ่อไปที่ไหน แต่เป็นครั้งแรกในรอบสิบแปดปีที่เธอจำได้ชัด ว่าคืนนั้นเขาไม่ได้ทิ้งเธอ",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "vpnarrator",
+            "emotion": "reflective",
+            "tone": "low, intimate, natural Thai documentary narration",
+            "delivery": "one calm male narrator; never character dialogue",
+            "energy": "low",
+            "pace": "measured",
+            "articulation": "clear Thai",
+            "pause": "brief natural sentence pauses",
+            "breath": "soft",
+            "accent": "standard Thai",
+            "emphasis": "",
+            "pronunciation": "",
+            "recordingTips": "Record a single narrator voice, no synthetic dialogue",
+            "notes": "Leave breathing room after the final phrase"
+          },
+          "imagePrompt": "Abandoned Thai rural railway platform at night, wet roof, old clock, dark vintage train, cinematic atmospheric noir. Preserve the rig character costumes and shot continuity. No readable text.",
+          "camera": {
+            "type": "zoom-out",
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "world": 1,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "fireflies",
+          "lighting": {
+            "exposure": 0.88,
+            "glow": 0.1,
+            "vignette": 0.42,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "prae",
+              "x": 40,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "happy",
+              "toX": 63,
+              "endPose": "walk"
+            }
+          ],
+          "props": [],
+          "customAssets": [
+            {
+              "asset": {
+                "id": "old-station-photo",
+                "name": "ภาพถ่ายครอบครัวเก่า",
+                "category": "decor",
+                "description": "รูปถ่ายซีเปียในกรอบไม้ของพ่อกับเด็กหญิง ไว้เล่าเรื่องย้อนอดีต",
+                "shapes": [
+                  {
+                    "type": "rect",
+                    "x": 12,
+                    "y": 13,
+                    "w": 76,
+                    "h": 72,
+                    "rx": 3,
+                    "fill": "#634a35",
+                    "stroke": "#c99f69",
+                    "strokeWidth": 3
+                  },
+                  {
+                    "type": "rect",
+                    "x": 20,
+                    "y": 20,
+                    "w": 60,
+                    "h": 55,
+                    "rx": 0,
+                    "fill": "#d6c39e"
+                  },
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 72,
+                    "rx": 27,
+                    "ry": 3,
+                    "fill": "#a89a79"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 39,
+                    "cy": 43,
+                    "r": 10,
+                    "fill": "#614e43"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 30,
+                    "y": 53,
+                    "w": 19,
+                    "h": 19,
+                    "rx": 0,
+                    "fill": "#3f5360"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 64,
+                    "cy": 52,
+                    "r": 7,
+                    "fill": "#654e41"
+                  },
+                  {
+                    "type": "rect",
+                    "x": 57,
+                    "y": 60,
+                    "w": 14,
+                    "h": 11,
+                    "rx": 0,
+                    "fill": "#c5a155"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 14,
+                    "y1": 16,
+                    "x2": 86,
+                    "y2": 82,
+                    "stroke": "#b28d5e",
+                    "strokeWidth": 1
+                  }
+                ]
+              },
+              "x": 74,
+              "y": 81,
+              "scale": 0.8,
+              "front": true
+            },
+            {
+              "asset": {
+                "id": "station-clock-0218",
+                "name": "นาฬิกาสถานี 02:18",
+                "category": "architecture",
+                "description": "นาฬิกากลมโบราณที่ชานชาลา เวลาตีสอง18 นาที สำหรับหนังสั้นชานชาลา",
+                "shapes": [
+                  {
+                    "type": "ellipse",
+                    "cx": 50,
+                    "cy": 91,
+                    "rx": 31,
+                    "ry": 4,
+                    "fill": "#142334"
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 43,
+                    "fill": "#2a3444",
+                    "stroke": "#af8856",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 36,
+                    "fill": "#e9e2d1",
+                    "stroke": "#7b6246",
+                    "strokeWidth": 2
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 30,
+                    "fill": "#f7f1e7"
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 25,
+                    "x2": 50,
+                    "y2": 19,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 28.34936490538903,
+                    "x2": 65.5,
+                    "y2": 23.1532124826824,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461096,
+                    "y1": 37.5,
+                    "x2": 76.8467875173176,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 75,
+                    "y1": 50,
+                    "x2": 81,
+                    "y2": 50,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 71.65063509461098,
+                    "y1": 62.49999999999999,
+                    "x2": 76.84678751731761,
+                    "y2": 65.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 62.5,
+                    "y1": 71.65063509461098,
+                    "x2": 65.5,
+                    "y2": 76.84678751731761,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 75,
+                    "x2": 50.00000000000001,
+                    "y2": 81,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.5,
+                    "y1": 71.65063509461096,
+                    "x2": 34.5,
+                    "y2": 76.8467875173176,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.34936490538904,
+                    "y1": 62.500000000000014,
+                    "x2": 23.15321248268241,
+                    "y2": 65.50000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 25,
+                    "y1": 50.00000000000001,
+                    "x2": 19,
+                    "y2": 50.00000000000001,
+                    "stroke": "#66563f",
+                    "strokeWidth": 2.8
+                  },
+                  {
+                    "type": "line",
+                    "x1": 28.349364905389034,
+                    "y1": 37.5,
+                    "x2": 23.153212482682402,
+                    "y2": 34.5,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 37.499999999999986,
+                    "y1": 28.34936490538904,
+                    "x2": 34.499999999999986,
+                    "y2": 23.15321248268241,
+                    "stroke": "#66563f",
+                    "strokeWidth": 1.5
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 65.87086725045243,
+                    "y2": 43.907744857729895,
+                    "stroke": "#33475a",
+                    "strokeWidth": 4
+                  },
+                  {
+                    "type": "line",
+                    "x1": 50,
+                    "y1": 50,
+                    "x2": 75.67852593996915,
+                    "y2": 58.343458848123575,
+                    "stroke": "#9e3c32",
+                    "strokeWidth": 2.6
+                  },
+                  {
+                    "type": "circle",
+                    "cx": 50,
+                    "cy": 50,
+                    "r": 3.8,
+                    "fill": "#be975b"
+                  }
+                ]
+              },
+              "x": 42,
+              "y": 55,
+              "scale": 1.1,
+              "front": false
+            }
+          ],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Quiet dawn-like closing frame, photograph glimmers; all spoken lines belong to narrator."
+        }
+      ],
+      "cliffhanger": "ความรักที่หายไปจากความทรงจำ อาจยังรอเราอยู่ในเวลาที่หยุดนิ่ง"
+    }
+  ]
+}
