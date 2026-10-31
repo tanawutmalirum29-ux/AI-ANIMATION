@@ -85,7 +85,7 @@ function paint(ctx,scene,local,w,h){
  [cr,cg,cb]=hexRGB(f.tint);
  const kind=['moon','sun','flashlight','torch'].includes(f.kind)?f.kind:'moon';
  const cam=shift(scene,local,v.parallax),short=Math.min(w,h);
- ctx.save();ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();
+ ctx.save();if(f.blend==='screen'||f.blend==='lighter')ctx.globalCompositeOperation=f.blend;ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();
  // Color grading is a timed color-wash, not a per-pixel LUT; safe for mobile Canvas.
  if(v.grade>.001){
   const tint=ctx.createLinearGradient(0,0,0,h);
@@ -201,6 +201,7 @@ function preview(){
  const e=ep(),startsList=starts(),idx=Math.max(0,e.scenes.findIndex((s,i)=>T<startsList[i]+s.duration));
  const s=e.scenes[idx];if(!s)return;
  const loc=clamp(T-startsList[idx],0,s.duration);
+ overlay.style.mixBlendMode=cfg(s)?.blend==='screen'?'screen':cfg(s)?.blend==='lighter'?'plus-lighter':'normal';
  applyLayerTransforms(s,loc);
  ctx.save();ctx.scale(dpr,dpr);paint(ctx,s,loc,w,h);ctx.restore();
 }
