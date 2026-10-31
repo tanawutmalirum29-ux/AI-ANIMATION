@@ -4009,7 +4009,11 @@ function autoDubJobs(scope,skipExisting){
    ((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
   const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data);
   const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
-  if(narrated&&skipExisting&&existingClips.some(c=>!director?.isAuto(c)))return;
+  if(narrated){
+   if(!skipExisting||!existing.has(cues[0].id))
+    jobs.push({ei,si,cueId:cues[0].id,cueIds:[cues[0].id],text:narrated,speaker:'',narrator:true});
+   return;
+  }
   if(AUTODUB_SMART&&director){
    for(const group of director.plan(cues,{existing,skipExisting,speaker:scene.voiceDirection?.speaker||''}))
     jobs.push({ei,si,cueId:group.cueIds[0],cueIds:group.cueIds,text:group.text,speaker:group.speaker});
