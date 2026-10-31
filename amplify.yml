@@ -4,7 +4,7 @@ frontend:
     build:
       commands:
         - mkdir -p dist
-        - cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css dist/
+        - cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css dist/
   artifacts:
     baseDirectory: dist
     files:
