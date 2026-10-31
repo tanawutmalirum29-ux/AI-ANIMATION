@@ -16,6 +16,11 @@ on:
       - narration-director.js
       - site-auth.js
       - runtime-config.js
+      - studio-ai-core.js
+      - studio-ai-workspace.js
+      - studio-ai-workspace.css
+      - tests/local-ai-core-smoke.cjs
+      - tests/local-ai-workspace-smoke.cjs
       - autodub/handler.py
       - autodub/deploy.sh
       - amplify.yml
@@ -34,6 +39,11 @@ on:
       - narration-director.js
       - site-auth.js
       - runtime-config.js
+      - studio-ai-core.js
+      - studio-ai-workspace.js
+      - studio-ai-workspace.css
+      - tests/local-ai-core-smoke.cjs
+      - tests/local-ai-workspace-smoke.cjs
       - autodub/handler.py
       - autodub/deploy.sh
       - amplify.yml
@@ -65,6 +75,9 @@ jobs:
           node --check narration-director.js
           node --check site-auth.js
           node --check runtime-config.js
+          node --check studio-ai-core.js
+          node --check studio-ai-workspace.js
+          node tests/local-ai-core-smoke.cjs
           python3 -m py_compile autodub/handler.py
           python3 tests/site-auth-handler-smoke.py
           bash -n autodub/deploy.sh
@@ -78,12 +91,13 @@ jobs:
           node --check tests/voice-preview-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js site-auth.js runtime-config.js dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js site-auth.js runtime-config.js studio-ai-core.js studio-ai-workspace.js studio-ai-workspace.css dist/
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
           test -f dist/character-interaction.js && test -f dist/character-interaction.css
           test -f dist/narration-director.js
           test -f dist/site-auth.js && test -f dist/runtime-config.js
+          test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
       - name: Install browser test dependencies
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
@@ -96,4 +110,5 @@ jobs:
           node tests/mobile-scroll-smoke.cjs
           node tests/auto-dub-smoke.cjs
           node tests/site-auth-smoke.cjs
+          node tests/local-ai-workspace-smoke.cjs
           node tests/voice-preview-smoke.cjs
