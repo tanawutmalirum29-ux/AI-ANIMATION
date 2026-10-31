@@ -418,3 +418,81 @@ test('Amplify deployment includes both model workers used by the UI',()=>{
  assert.match(workspace,/new Worker\(new URL\('\.\/studio-ai-cpu-worker\.js'/);
  assert.match(workspace,/new Worker\(new URL\('\.\/studio-ai-model-worker\.js'/);
 });
+
+
+test('AI-3 → AI-2 → AI-1 coordinated production safely creates two ~60s episodes',async()=>{
+ const core=require('../studio-ai-core.js');
+ const auditor=require('../studio-timing-auditor.js');
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const backupStart='async function backupBeforeEdit(){';
+ const backupEnd='// No pasted story or replacement script operations';
+ const start=workspace.indexOf(backupStart),stop=workspace.indexOf(backupEnd,start);
+ assert.ok(start>0&&stop>start,'backups function must exist');
+ const instrument=workspace.slice(0,start)+'async function backupBeforeEdit(){return {ok:true}}\n'+workspace.slice(stop);
+ const source=instrument.replace(marker,
+  'root.__productionTest={setup:b=>{bridge=b},run:runCoordinatedProduction,state:()=>({busy,progress,lastError})};');
+ const original=Array.from({length:6},(_,i)=>({
+  id:'s'+i,duration:20,voiceover:'รถไฟมาถึงสถานี เวลาเที่ยงคืน',
+  subtitle:['รถไฟมาถึงสถานี'],subtitleCues:[{id:'c'+i,text:'รถไฟมาถึงสถานี',start:0,end:18}],
+  audioClips:[]
+ }));
+ const state={project:{title:'Episode QA',aiWorkspace:{}},episodes:[{id:'e1',title:'ต้นฉบับยาวเกิน',scenes:structuredClone(original)}],characters:[]};
+ const applied=[];
+ const editor={apply:(ops,options={})=>{
+  if(!options.dryRun){
+   applied.push(...ops.map(op=>op.op));
+   for(const op of ops){
+    if(op.op==='replaceScenes')state.episodes.find(e=>e.id===op.episode).scenes=op.scenes;
+    if(op.op==='addEpisode')state.episodes.splice(op.index,0,op.episode);
+    if(op.op==='updateEpisode')Object.assign(state.episodes.find(e=>e.id===op.id),op.patch);
+    if(op.op==='updateScene')Object.assign(state.episodes.flatMap(e=>e.scenes).find(s=>s.id===op.id),op.patch);
+   }
+  }
+  return {ok:true,applied:true};
+ }};
+ const bridge={get:()=>state,persist(){},episodeIndex:()=>0,sceneIndex:()=>0,
+  auditTiming:(scope,opts)=>auditor.audit(state,{...opts,scope,episodeIndex:0}),
+  narrate:async scope=>{
+   assert.equal(scope,'all');
+   for(const scene of state.episodes.flatMap(e=>e.scenes)){
+    scene.audioClips=[{id:'v'+scene.id,data:'data:audio/test',kind:'voice',duration:20,at:0,rate:1}];
+   }
+   return {ok:true,made:6,failed:0};
+  }
+ };
+ const win={StoryAIWorkspaceCore:core,StoryTimingAuditor:auditor,StudioAPI:editor};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',source)(
+  win,{readyState:'loading',addEventListener(){}},
+  {getItem:()=>null,setItem(){}},{now:()=>1},{},class Worker{},class URL{}
+ );
+ win.__productionTest.setup(bridge);
+ await win.__productionTest.run();
+ assert.equal(state.episodes.length,2);
+ assert.ok(state.episodes.every(ep=>{
+  const seconds=ep.scenes.reduce((sum,x)=>sum+x.duration,0);
+  return seconds>=60&&seconds<=65&&ep.targetSeconds===60;
+ }));
+ assert.deepEqual(state.episodes.flatMap(e=>e.scenes.map(s=>s.id)),original.map(s=>s.id));
+ assert.deepEqual(state.episodes.flatMap(e=>e.scenes.map(s=>s.voiceover)),original.map(s=>s.voiceover));
+ assert.ok(applied.includes('replaceScenes'));
+ assert.ok(state.episodes.flatMap(e=>e.scenes).every(s=>s.audioClips.length===1));
+ assert.equal(state.project.aiWorkspace.production.stage,'ready');
+ assert.equal(state.project.aiWorkspace.production.pendingDub,false);
+ assert.deepEqual(state.project.aiWorkspace.production.handoffs.map(x=>x.role),['AI-3','AI-2','AI-1']);
+ assert.equal(win.__productionTest.state().busy,false);
+});
+
+test('external JSON prompt may exceed the 60s target without requiring content deletion',()=>{
+ assert.match(html,/ต้นฉบับสามารถยาวกว่านี้ได้/);
+ assert.match(html,/60 วินาที/);
+ assert.match(html,/65 วินาที/);
+ assert.match(workspace,/function runCoordinatedProduction\(\)/);
+ const core=require('../studio-ai-core.js');
+ const state={project:{title:'สถานีปลายทาง',aiWorkspace:{}},episodes:[{
+  id:'e',title:'แนะนำ',scenes:[{id:'s',duration:120,voiceover:'ข้อความต้นฉบับ'}]
+ }]};
+ const context=core.context(state,0);
+ assert.equal(context.production.targetSeconds,60);
+ assert.equal(context.production.maxSeconds,65);
+ assert.match(core.systemPrompt('structure',state,0),/AI-3 → AI-2 → AI-1/);
+});
