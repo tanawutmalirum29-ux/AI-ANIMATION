@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - feature/character-interaction-scene-switch
       - feature/cinematic-fx-v1
     paths:
       - index.html
@@ -10,9 +11,12 @@ on:
       - animated-map.css
       - cinematic-fx.js
       - cinematic-fx.css
+      - character-interaction.js
+      - character-interaction.css
       - amplify.yml
       - tests/animated-map-smoke.cjs
       - tests/cinematic-fx-smoke.cjs
+      - tests/character-interaction-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   workflow_dispatch:
 permissions:
@@ -32,13 +36,16 @@ jobs:
         run: |
           node --check animated-map.js
           node --check cinematic-fx.js
+          node --check character-interaction.js
           node --check tests/animated-map-smoke.cjs
           node --check tests/cinematic-fx-smoke.cjs
+          node --check tests/character-interaction-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css dist/
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
+          test -f dist/character-interaction.js && test -f dist/character-interaction.css
       - name: Install browser test dependencies
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
@@ -47,3 +54,4 @@ jobs:
         run: |
           node tests/animated-map-smoke.cjs
           node tests/cinematic-fx-smoke.cjs
+          node tests/character-interaction-smoke.cjs

@@ -1,0 +1,20 @@
+#sceneSwitchBar{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;padding:7px 8px;border-radius:10px;background:#142a42;border:1px solid #d9bd834a;margin-top:5px}
+#sceneSwitchBar select{flex:1 1 auto;width:auto;min-width:0;min-height:38px;padding:7px;font-size:13px;background:#192f4c;color:#efeddf}
+#sceneSwitchBar button{flex:none;min-height:38px;padding:6px 10px;background:#233e5a;color:#f1e7d2}
+#sceneSwitchBar button:last-child{background:#cfb780;color:#14223c;font-weight:700}
+#studioToolNav button[data-tool="interaction"]{background:#2e4761;border-color:#b69d7680;color:#f3dbaa}
+#studioToolNav button[data-tool="interaction"].on{background:#d9bd83;color:#13213b}
+#interactionEditor{padding:12px;max-width:100%;min-width:0;overflow-wrap:anywhere}
+#interactionEditor h3{font-size:17px;color:#f1d39a;margin:4px 0 9px}
+#interactionEditor h4{font-size:13px;color:#f0d8a9;margin:16px 0 8px}
+#interactionEditor .interaction-note{font-size:12px;color:#bcd0df;line-height:1.55;margin:7px 0 10px}
+#interactionEditor .interaction-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+#interactionEditor .interaction-row>label{flex:1 1 145px;min-width:0}
+#interactionEditor .interaction-row>button{flex:1 1 140px}
+#interactionEditor label{font-size:12px;color:#e3dfd2;display:flex;flex-direction:column;gap:5px}
+#interactionEditor input,#interactionEditor select{width:100%;min-height:40px;padding:7px;background:#182d48;color:#f5e9da;border:1px solid #657993;border-radius:8px}
+#interactionEditor button{min-height:39px;border:1px solid #657993;padding:7px 10px;border-radius:8px;white-space:normal}
+#interactionEditor .interaction-event{background:#1a2c44;border:1px solid #4e6079;border-radius:10px;margin:9px 0;padding:10px}
+#interactionEditor .interaction-event strong{font-size:12px;color:#f2d7a3;line-height:1.6}
+#interactionEditor button:focus-visible,#interactionEditor input:focus-visible,#interactionEditor select:focus-visible{outline:2px solid #d9bd83;outline-offset:2px}
+@media(max-width:520px){#sceneSwitchBar{gap:4px;padding:6px}#sceneSwitchBar button{padding:6px;font-size:11px}#sceneSwitchBar button:last-child{font-size:11px}#interactionEditor{padding:9px}#interactionEditor .interaction-row{gap:6px}}
