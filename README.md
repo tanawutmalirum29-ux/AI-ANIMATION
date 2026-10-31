@@ -4,6 +4,16 @@
 
 เว็บตัดต่อ Story Studio Director พร้อม **คลังเสียงบรรยากาศ เอฟเฟกต์ และเพลงสังเคราะห์สำเร็จรูป 49 รายการ** บน GitHub (ตัวแอปเป็น HTML/JavaScript แบบ static)
 
+## ภาพรวมไฟล์ใน Repository (ตรวจสอบ 1 พฤศจิกายน 2026)
+
+โปรเจกต์มี 64 ไฟล์ก่อนเก็บกวาด: **31 ไฟล์ทดสอบ** (ไม่ส่งขึ้นเว็บ), 5 ไฟล์ GitHub Actions/Issue Template, 4 ไฟล์สำหรับ AWS Lambda และ CloudShell, 1 ไฟล์คลังเวกเตอร์ และ 23 ไฟล์ระดับรากรวมเอกสาร/ตัวเว็บ. หลังตัดโมดูลแบ่งบทที่เลิกใช้กับเทสต์คู่กัน เหลือ **62 ไฟล์** ในซอร์ส (30 ไฟล์ทดสอบ).
+
+**เว็บไซต์จริงไม่โหลด 62 ไฟล์**: `amplify.yml` คัดลอกเฉพาะตัวแอปและ `assets/library.json` ไปยัง `dist/`. `tests/`, `autodub/`, `.github/`, `README.md` และ `.gitignore` **ไม่รวมในไฟล์เว็บไซต์**. Backend `autodub/handler.py` ยังต้องใช้ `autodub/github_assets.py` สำหรับ GitHub Asset API เดิม; ฝั่งเบราว์เซอร์มี `studio-github-art.js` เป็นวิธีเชื่อมอีกทางหนึ่ง จึงยังไม่ลบทั้งสองโดยไม่ทดสอบว่าไม่มีใครใช้.
+
+ตัวไฟล์ที่ใหญ่ที่สุดคือ **`index.html` (~636 KB)** เพราะมี UI, state, การวาด, ตัดต่อ, ส่งออก และระบบฉากจำนวนมากรวมอยู่ในไฟล์เดียว — ไม่ใช่เพราะจำนวนไฟล์ทดสอบ. หากต้องการลดภาระการบำรุงรักษาหรือเวลาเริ่มแอป งานถัดไปควร **แยก `index.html` เป็นโมดูลตามหน้าที่พร้อมทดสอบพรีวิว/ส่งออกทีละส่วน** แทนการลบโค้ดอย่างกว้างขวาง.
+
+โปรเจกต์เหลือ AI ใน Workspace **เพียง 2 บทบาท**: AI-1 ตรวจเวลาและความต่อเนื่องของฉาก/ตอน **จาก JSON ที่ AI ภายนอกสร้างไว้** เทียบกับเสียงจริง และ AI-2 พากย์เสียง. `studio-episode-planner.js` ซึ่งเคยรับข้อความเพื่อสร้างตอนใหม่ถูกลบออก เพราะไม่ตรงกับงานล่าสุด. `studio-sound-assistant.js` เป็นเครื่องมือวางเสียงบรรยากาศใน Sound Desk ไม่ใช่ AI ตัวที่สาม และยังถูกเรียกจากหน้าเว็บ.
+
 ## เปิดเว็บและ Deploy บน AWS Amplify
 
 โค้ดเว็บหลักอยู่ที่ [index.html](./index.html) และมี [amplify.yml](./amplify.yml) สำหรับตั้งค่า Build สำเร็จรูป ไม่ต้องติดตั้ง npm หรือ Backend เพื่อเปิดหน้าแอป
@@ -11,7 +21,7 @@
 1. เปิด [AWS Amplify Console](https://console.aws.amazon.com/amplify/home) แล้วเลือก **Create new app → GitHub**
 2. เชื่อม GitHub (ถ้ายังไม่ได้เชื่อม) และเลือก Repository `tanawutmalirum29-ux/AI-ANIMATION`
 3. เลือกสาขา `main`; Amplify จะอ่านไฟล์ `amplify.yml` จาก Repository
-4. ตรวจว่าคำสั่ง Build คือการคัดลอก `index.html`, `animated-map.js`, `animated-map.css`, `cinematic-fx.js`, `cinematic-fx.css`, `character-interaction.js`, `character-interaction.css` ไปยัง `dist/` และ Artifact directory คือ `dist`
+4. ให้ Amplify ใช้คำสั่ง Build จาก [`amplify.yml`](./amplify.yml) ที่คัดลอกไฟล์แอปทั้งหมดที่ใช้งานจริง รวมถึงโมดูล AI และคลังรูป ไปยัง `dist/` (อย่าแทนที่ด้วยรายการไฟล์แบบเก่า)
 5. กด **Save and deploy** แล้วเปิดโดเมน HTTPS ของ Amplify เพื่อตรวจสอบการพากย์เสียงและไมโครโฟน
 
 เมื่อเชื่อม Continuous Deployment แล้ว GitHub commit ใหม่ในสาขาที่ตั้งค่าไว้จะกระตุ้นให้ Amplify สร้างและเผยแพร่เวอร์ชันใหม่ (หาก Auto-build เปิดอยู่)
