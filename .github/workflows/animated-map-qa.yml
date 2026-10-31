@@ -14,18 +14,31 @@ on:
       - character-interaction.js
       - character-interaction.css
       - narration-director.js
+      - site-auth.js
+      - runtime-config.js
+      - autodub/handler.py
+      - autodub/deploy.sh
       - amplify.yml
       - tests/animated-map-smoke.cjs
       - tests/cinematic-fx-smoke.cjs
       - tests/character-interaction-smoke.cjs
       - tests/mobile-scroll-smoke.cjs
       - tests/auto-dub-smoke.cjs
+      - tests/site-auth-smoke.cjs
+      - tests/site-auth-handler-smoke.py
       - tests/voice-preview-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   pull_request:
     paths:
       - index.html
       - narration-director.js
+      - site-auth.js
+      - runtime-config.js
+      - autodub/handler.py
+      - autodub/deploy.sh
+      - amplify.yml
+      - tests/site-auth-handler-smoke.py
+      - tests/site-auth-smoke.cjs
       - tests/auto-dub-smoke.cjs
       - tests/narration-director-smoke.cjs
       - tests/mobile-scroll-smoke.cjs
@@ -50,6 +63,11 @@ jobs:
           node --check cinematic-fx.js
           node --check character-interaction.js
           node --check narration-director.js
+          node --check site-auth.js
+          node --check runtime-config.js
+          python3 -m py_compile autodub/handler.py
+          python3 tests/site-auth-handler-smoke.py
+          bash -n autodub/deploy.sh
           node --check tests/narration-director-smoke.cjs
           node tests/narration-director-smoke.cjs
           node --check tests/animated-map-smoke.cjs
@@ -60,11 +78,12 @@ jobs:
           node --check tests/voice-preview-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js site-auth.js runtime-config.js dist/
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
           test -f dist/character-interaction.js && test -f dist/character-interaction.css
           test -f dist/narration-director.js
+          test -f dist/site-auth.js && test -f dist/runtime-config.js
       - name: Install browser test dependencies
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
@@ -76,4 +95,5 @@ jobs:
           node tests/character-interaction-smoke.cjs
           node tests/mobile-scroll-smoke.cjs
           node tests/auto-dub-smoke.cjs
+          node tests/site-auth-smoke.cjs
           node tests/voice-preview-smoke.cjs
