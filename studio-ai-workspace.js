@@ -50,10 +50,37 @@ function modelLoadPanel(){
  return panel;
 }
 
-function chooseModel(id){
+function confirmModelAction(message){
+ return new Promise(resolve=>{
+  const overlay=document.createElement('div');
+  overlay.setAttribute('role','presentation');
+  overlay.style.cssText='position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px;';
+  const card=document.createElement('section');
+  card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
+  card.setAttribute('aria-label','ยืนยันการใช้โมเดล AI');
+  card.style.cssText='width:min(420px,100%);background:#1c304b;color:#fff;border:1px solid #6484a8;border-radius:16px;padding:22px;box-shadow:0 20px 60px #0008;';
+  const title=document.createElement('h3');title.textContent='ยืนยันการทำงานของ AI';title.style.margin='0 0 12px';
+  const info=document.createElement('p');info.textContent=message;info.style.cssText='line-height:1.6;white-space:pre-wrap';
+  const actions=document.createElement('div');actions.style.cssText='display:flex;justify-content:flex-end;gap:12px;margin-top:20px;flex-wrap:wrap';
+  const cancel=document.createElement('button'),ok=document.createElement('button');
+  cancel.type=ok.type='button';cancel.textContent='ยกเลิก';ok.textContent='ดำเนินการ';
+  for(const b of [cancel,ok])b.style.cssText='border:1px solid #7f99b6;border-radius:10px;padding:12px 18px;background:#284361;color:white;cursor:pointer;min-height:44px';
+  ok.style.background='#d9b46e';ok.style.color='#101e30';
+  actions.append(cancel,ok);card.append(title,info,actions);overlay.append(card);document.body.append(overlay);
+  const previous=document.activeElement;
+  const done=value=>{document.removeEventListener('keydown',key);overlay.remove();previous?.focus?.();resolve(value)};
+  const key=ev=>{if(ev.key==='Escape'){ev.preventDefault();done(false)}};
+  document.addEventListener('keydown',key);
+  cancel.addEventListener('click',()=>done(false),{once:true});
+  ok.addEventListener('click',()=>done(true),{once:true});
+  overlay.addEventListener('click',ev=>{if(ev.target===overlay)done(false)});
+  cancel.focus();
+ });
+}
+async function chooseModel(id){
  if(busy)return;
  if(localEngine&&id!==loadedModel){
-  if(!root.confirm('การเปลี่ยนโมเดลที่โหลดอยู่ต้องรีโหลดหน้าเว็บเพื่อป้องกัน WebGPU ถูก dispose ต้องการเปลี่ยนและรีโหลดหรือไม่?'))return;
+  if(!(await confirmModelAction('เปลี่ยนโมเดลต้องโหลดหน้าเว็บใหม่เพื่อคืนหน่วยความจำ WebGPU ต้องการดำเนินการหรือไม่?'))) {render();return}
   try{localStorage.setItem(MODEL_KEY,id)}catch(_){}
   root.location.reload();return;
  }
@@ -109,7 +136,7 @@ async function benchmarkModel(applyChanges=false){
  if(busy)return;
  if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
- if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!root.confirm('เตรียมโมเดล '+model.label+' (หากยังไม่มีแคชอาจต้องดาวน์โหลดประมาณ '+model.mb+' MB) ดำเนินการบนเครื่องนี้?'))return;
+ if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!(await confirmModelAction('เตรียมโมเดล '+model.label+' (หากยังไม่มีแคชอาจต้องดาวน์โหลดประมาณ '+model.mb+' MB) ดำเนินการบนเครื่องนี้?')))return;
  busy=true;render();
  const start=performance.now();
  try{
@@ -257,7 +284,8 @@ const e=(tag,props={},...children)=>{
  for(const [k,v]of Object.entries(props)){
    if(k==='className')element.className=v;
    else if(k==='value')element.value=v;
-   else if(k==='checked')element.checked=v;
+   else if(k==='checked')element.checked=!!v;
+   else if(k==='selected')element.selected=!!v;
    else if(k==='disabled')element.disabled=!!v;
    else if(k==='style')element.style.cssText=v;
    else if(k.startsWith('on')&&typeof v==='function')element.addEventListener(k.slice(2),v);
@@ -446,7 +474,7 @@ function renderChat(container){
  e('h4',{},'AI-3 · ผู้กำกับบทบรรยายและซับไตเติล'),
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
-  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{const next=ev.target.value;if(localEngine&&next!==loadedModel){if(!root.confirm('ต้องโหลดหน้าเว็บใหม่ก่อนเปลี่ยนโมเดล AI-3 เพื่อป้องกัน WebGPU เสียหาย ต้องการดำเนินการหรือไม่?')){render();return}try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}root.location.reload();return}narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
+  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:async ev=>{const next=ev.target.value;if(localEngine&&next!==loadedModel){if(!(await confirmModelAction('ต้องโหลดหน้าเว็บใหม่ก่อนเปลี่ยนโมเดล AI-3 เพื่อคืนหน่วยความจำ GPU ต้องการดำเนินการหรือไม่?'))){render();return}try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}root.location.reload();return}narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
    ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
@@ -575,7 +603,7 @@ function renderProjects(container){
 function render(){
  if(!rootElement||!bridge)return;
  rootElement.replaceChildren(
-  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 2 ผู้ช่วย'),
+  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 3 ผู้ช่วย'),
    e('p',{},'ตรวจฉากจาก JSON จริง · เทียบเสียงกับความยาว · พากย์เสียง'))),
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
