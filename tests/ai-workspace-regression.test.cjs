@@ -180,3 +180,124 @@ test('iPad preview plays original and replaced narration clips without stale aud
  assert.equal(players[0].reloaded,true);
  assert.equal(players[0].playCount,2);
 });
+
+
+test('CPU/WASM models are explicitly selectable without requiring WebGPU',()=>{
+ assert.match(workspace,/smollm2-135m-cpu/);
+ assert.match(workspace,/qwen2\.5-0\.5b-cpu/);
+ assert.match(workspace,/studio-ai-cpu-worker\.js/);
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,
+  'root.__cpuTest={loadLocalModel,releaseLocalModel,state:()=>({loadedModel,modelBackend,ready:modelLoad.ready,worker:!!modelWorker})};');
+ const id='smollm2-135m-cpu';
+ let ended=0;
+ class FakeWorker{
+  constructor(){this.handlers={}}
+  addEventListener(type,cb){this.handlers[type]=cb}
+  removeEventListener(type){delete this.handlers[type]}
+  postMessage(m){
+   const event={data:{channel:'story-cpu',type:'complete',requestId:m.requestId,
+    result:m.type==='init'?{ready:true}:{choices:[{message:{content:'พร้อม'}}]}}};
+   queueMicrotask(()=>this.handlers.message?.(event));
+  }
+  terminate(){ended++}
+ }
+ const win={StoryAIWorkspaceCore:{}};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',instrument)(
+  win,{readyState:'loading',addEventListener(){},baseURI:'https://local.example/'},
+  {getItem(){return null},setItem(){}},{now:()=>100},{},FakeWorker,class URL{}
+ );
+ return win.__cpuTest.loadLocalModel(id).then(()=>{
+  assert.equal(win.__cpuTest.state().loadedModel,id);
+  assert.equal(win.__cpuTest.state().modelBackend,'cpu');
+  assert.equal(win.__cpuTest.state().ready,true);
+  win.__cpuTest.releaseLocalModel();
+  assert.equal(ended,1);
+ });
+});
+
+test('AI-3 standard produces timed cues for complete Thai narration without truncating',()=>{
+ const begin=workspace.indexOf('function narrativeChunks(source,limit=24){');
+ const end=workspace.indexOf('\nasync function runNarrative(){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const build=new Function(workspace.slice(begin,end)+';return standardNarrative;')();
+ const voice='ในค่ำคืนที่สถานีรถไฟร้าง แสงไฟเหนือชานชาลากะพริบเป็นจังหวะ เสียงลมพัดลอดหน้าต่าง และประตูรถไฟค่อย ๆ เปิดออกโดยไม่มีผู้โดยสารลงมา';
+ const src={id:'scene1',duration:22,voiceover:voice,subtitle:[],subtitleCues:[]};
+ const result=build(src);
+ assert.equal(result.subtitle.length<=3,true);
+ assert.ok(result.subtitleCues.length>2);
+ assert.equal(result.subtitleCues.at(-1).end,22);
+ assert.deepEqual(result.subtitleCues.map(x=>x.text.replace(/\s+/g,'')).join(''),voice.replace(/\s+/g,''));
+ assert.ok(result.subtitleCues.every(x=>x.end>x.start&&x.start>=0));
+ // Existing manual subtitle timing must not be overwritten by the baseline.
+ assert.equal(build({...src,subtitleCues:[{id:'custom',text:'กำหนดเอง',start:0,end:6}]}).subtitleCues,null);
+});
+
+
+test('CPU worker initializes and produces an OpenAI-compatible completion',async()=>{
+ const src=fs.readFileSync(path.join(root,'studio-ai-cpu-worker.js'),'utf8');
+ const mockSrc=src.replace(
+  "import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1')",
+  'Promise.resolve(self.__modelLib)'
+ );
+ const outputs=[];
+ const self={postMessage:m=>outputs.push(m)};
+ let handler=null,loadCount=0;
+ self.addEventListener=(type,cb)=>{if(type==='message')handler=cb};
+ const generated=async()=>[{generated_text:'สรุปฉากเรียบร้อย'}];
+ generated.tokenizer={encode:value=>[...value].map(x=>x.codePointAt(0))};
+ generated.dispose=async()=>{};
+ self.__modelLib={env:{backends:{onnx:{wasm:{numThreads:1}}}},
+  pipeline:async(task,id,opts)=>{
+   loadCount++;
+   assert.equal(task,'text-generation');
+   assert.equal(opts.device,'wasm');
+   assert.equal(opts.dtype,'q4');
+   opts.progress_callback({status:'progress',file:'model_q4.onnx',progress:30});
+   return generated;
+  }};
+ new Function('self',mockSrc)(self);
+ assert.ok(handler);
+ await handler({data:{channel:'story-cpu',type:'init',requestId:'a',model:'smollm2-135m-cpu'}});
+ const ready=outputs.find(x=>x.requestId==='a'&&x.type==='complete');
+ assert.equal(ready.result.ready,true);
+ assert.equal(loadCount,1);
+ await handler({data:{channel:'story-cpu',type:'generate',requestId:'b',
+  messages:[{role:'user',content:'สรุปฉาก'}],max_tokens:40}});
+ const completed=outputs.find(x=>x.requestId==='b'&&x.type==='complete');
+ assert.equal(completed.result.choices[0].message.content,'สรุปฉากเรียบร้อย');
+ assert.ok(completed.result.usage.completion_tokens>0);
+});
+
+
+test('AI-3 processes a six-scene story one scene at a time with CPU mode',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,
+  "root.__narrativeTest={set:(b,e)=>{bridge=b;localEngine=e;loadedModel='smollm2-135m-cpu';narrativeModel='smollm2-135m-cpu'},run:runNarrative,report:()=>narrativeReport};");
+ const scenes=Array.from({length:6},(_,i)=>({
+  id:'s'+i,duration:6,voiceover:'เนื้อเรื่อง '+i,subtitle:['เนื้อเรื่อง '+i],subtitleCues:[]
+ }));
+ const state={episodes:[{id:'episode1',scenes}],project:{}};
+ let count=0;
+ const engine={chat:{completions:{create:async()=>{count++;return{choices:[{message:{content:'{"changes":[]}'}}]}}}}};
+ const win={StoryAIWorkspaceCore:{}},doc={readyState:'loading',addEventListener(){}};
+ class FakeAbortController{
+  constructor(){this.signal={aborted:false,addEventListener(){},removeEventListener(){}}}
+  abort(){this.signal.aborted=true}
+ }
+ new Function('window','document','localStorage','performance','navigator','Worker','URL','AbortController',instrument)(
+  win,doc,{getItem:()=>null,setItem(){}},{now:()=>100},{},class Worker{},class URL{},FakeAbortController
+ );
+ win.__narrativeTest.set({get:()=>state,episodeIndex:()=>0},engine);
+ await win.__narrativeTest.run();
+ assert.equal(count,6);
+ assert.match(win.__narrativeTest.report(),/ไม่มีการแก้ไขใหม่/);
+});
+
+
+test('narration preview has a local speech option when no actual voice clip exists',()=>{
+ assert.match(html,/function tryPreviewReadNarration\(\)/);
+ assert.match(html,/onclick:tryPreviewReadNarration/);
+ assert.match(html,/ไม่มีไฟล์เสียงพากย์จริง/);
+ assert.match(html,/ไม่ใช่ไฟล์เสียงจริง และไม่รวมในวิดีโอที่ส่งออก/);
+});

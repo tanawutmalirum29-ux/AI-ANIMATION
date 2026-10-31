@@ -13,15 +13,18 @@ let targetMinutes=5,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
 const LOCAL_MODELS=[
  {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
- {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 0.5B',mb:280},
- {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 1.5B',mb:870},
- {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 3B',mb:1750},
- {id:'Qwen2.5-7B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 7B (อุปกรณ์แรง)',mb:4100}
+ {id:'smollm2-135m-cpu',label:'CPU/WASM · SmolLM2 135M (ภาษาไทยจำกัด)',backend:'wasm',mb:185},
+ {id:'qwen2.5-0.5b-cpu',label:'CPU/WASM · Qwen 2.5 0.5B (ไม่ใช้ WebGPU)',backend:'wasm',mb:790},
+ {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 0.5B',mb:280},
+ {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 1.5B',mb:870},
+ {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 3B',mb:1750},
+ {id:'Qwen2.5-7B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 7B (อุปกรณ์แรง)',mb:4100}
 ];
 const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
 let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false,modelWorker=null,modelAbortController=null,modelBackend='',modelCleanup=Promise.resolve();
+let gpuCapability=null;
 let modelLoad={active:false,ready:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
 function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
 function updateModelLoad(patch){
@@ -101,6 +104,75 @@ function abortableModelWork(promise){
    err=>{signal.removeEventListener('abort',abort);reject(err)});
  });
 }
+
+function createCpuModelClient(worker,callback){
+ let requestNumber=0;
+ const pending=new Map();
+ const onMessage=ev=>{
+  const m=ev.data;
+  if(m?.channel!=='story-cpu')return;
+  if(m.type==='progress'){callback?.(m);return}
+  const item=pending.get(m.requestId);
+  if(!item)return;
+  pending.delete(m.requestId);
+  if(m.type==='error')item.reject(Error(String(m.message||'CPU model failure')));
+  else if(m.type==='complete')item.resolve(m.result);
+ };
+ const onError=ev=>{
+  ev.preventDefault?.();
+  for(const p of pending.values())p.reject(Error('CPU Worker ทำงานล้มเหลว'));
+  pending.clear();
+ };
+ worker.addEventListener('message',onMessage);
+ worker.addEventListener('error',onError);
+ const send=(type,payload={})=>new Promise((resolve,reject)=>{
+  const requestId='cpu'+(++requestNumber);
+  pending.set(requestId,{resolve,reject});
+  try{worker.postMessage({channel:'story-cpu',type,requestId,...payload})}
+  catch(err){pending.delete(requestId);reject(err)}
+ });
+ return {init:id=>send('init',{model:id}),chat:{completions:{create:options=>send('generate',{
+  messages:options.messages,max_tokens:options.max_tokens,temperature:options.temperature
+ })}},unload:async()=>{
+  for(const p of pending.values())p.reject(Error('CPU โมเดลถูกปิด'));
+  pending.clear();
+  worker.removeEventListener('message',onMessage);
+  worker.removeEventListener('error',onError);
+  worker.terminate();
+ }};
+}
+async function loadCpuModel(id,selected){
+ updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
+  stage:'เตรียม AI แบบ CPU/WASM · ไม่ต้องใช้ WebGPU',started:performance.now(),error:''});
+ let worker=null;
+ try{
+  await abortableModelWork(modelCleanup);
+  worker=new Worker(new URL('./studio-ai-cpu-worker.js',document.baseURI),{type:'module'});
+  modelWorker=worker;
+  const engine=createCpuModelClient(worker,p=>{
+   if(modelWorker!==worker)return;
+   updateModelLoad({percent:Number.isFinite(p.percent)?p.percent:null,stage:String(p.stage||'กำลังโหลด CPU').slice(0,260)});
+  });
+  await abortableModelWork(engine.init(id));
+  updateModelLoad({active:true,ready:false,percent:100,stage:'ตรวจสอบการสร้างข้อความจริงบน CPU'});
+  const check=await abortableModelWork(engine.chat.completions.create({
+   messages:[{role:'user',content:'ตอบคำว่า พร้อม'}],max_tokens:10,temperature:0
+  }));
+  if(!String(check.choices?.[0]?.message?.content||'').trim())throw Error('CPU โมเดลไม่สร้างข้อความ');
+  if(modelWorker!==worker)throw Error('ยกเลิกการโหลดโมเดลแล้ว');
+  localEngine=engine;loadedModel=id;modelBackend='cpu';modelUnavailable=false;
+  updateModelLoad({active:false,ready:true,percent:100,error:'',
+   stage:'CPU/WASM ผ่านการสร้างข้อความแล้ว · อาจประมวลผลช้ากว่า GPU มาก'});
+  return engine;
+ }catch(err){
+  if(worker){try{worker.terminate()}catch(_){}}
+  if(modelWorker===worker)modelWorker=null;
+  localEngine=null;loadedModel='';modelBackend='';
+  updateModelLoad({active:false,ready:false,percent:null,
+   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ไม่สามารถประมวลผลบนอุปกรณ์นี้'});
+  throw err;
+ }
+}
 function chooseModel(id){
  if(busy)return;
  const next=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
@@ -150,12 +222,13 @@ async function loadLocalModel(id){
  if(!LOCAL_MODELS.some(m=>m.id===id&&m.id!=='standard'))throw Error('โมเดลไม่ถูกต้อง');
  if(localEngine||modelWorker)releaseLocalModel();
  const selected=LOCAL_MODELS.find(m=>m.id===id);
+ if(selected.backend==='wasm')return loadCpuModel(id,selected);
  updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
   stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
  let worker=null,engine=null,backend='worker',warning='',workerBooted=false;
  try{
   await abortableModelWork(modelCleanup);
-  if(!(await webGpuReady()))throw Error('เบราว์เซอร์ไม่รองรับ WebGPU');
+  if(!(await webGpuReady()))throw Error('เบราว์เซอร์นี้ไม่มี WebGPU · เลือกโมเดล CPU/WASM ในรายการ หรือใช้มาตรฐานแทน')
   updateModelLoad({stage:'โหลด WebLLM จาก CDN',percent:null});
   const webllm=await abortableModelWork(import('https://esm.run/@mlc-ai/web-llm@0.2.80').catch(()=>import('https://esm.sh/@mlc-ai/web-llm@0.2.80')));
   if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))
@@ -219,7 +292,10 @@ async function benchmarkModel(applyChanges=false){
  if(busy)return;
  if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
- if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!(await confirmModelAction('เตรียมโมเดล '+model.label+' (หากยังไม่มีแคชอาจต้องดาวน์โหลดประมาณ '+model.mb+' MB) ดำเนินการบนเครื่องนี้?')))return;
+ if(model.backend!=='wasm'&&gpuCapability===false){modelReport='อุปกรณ์นี้ไม่มี WebGPU ใช้ Qwen แบบ GPU ไม่ได้ · เปลี่ยนตัวเลือกเป็น CPU/WASM หรือมาตรฐาน';render();return}
+ if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!(await confirmModelAction(
+  'เตรียมโมเดล '+model.label+'\\n'+(model.backend==='wasm'?'CPU อาจช้ามากและใช้ RAM สูง ไม่มีการเรียก API':'ต้องรองรับ WebGPU')+
+  '\\nหากยังไม่มีแคชต้องดาวน์โหลดประมาณ '+model.mb+' MB · ดำเนินการบนเครื่องนี้?')))return;
  busy=true;modelAbortController=new AbortController();render();
  const start=performance.now();
  try{
@@ -301,12 +377,50 @@ function narrativeScenes(){
   subtitleCues:Array.isArray(scene.subtitleCues)?scene.subtitleCues:[],
   notes:String(scene.notes||'').slice(0,250)}))).slice(0,12);
 }
+function narrativeChunks(source,limit=24){
+ const value=String(source||'').replace(/\s+/g,' ').trim();
+ if(!value)return [];
+ const segmented=typeof Intl!=='undefined'&&Intl.Segmenter;
+ const units=segmented?[...new Intl.Segmenter('th',{granularity:'word'}).segment(value)].map(x=>x.segment):[value];
+ const graphemes=str=>segmented?[...new Intl.Segmenter('th',{granularity:'grapheme'}).segment(str)].map(x=>x.segment):[...str];
+ const chunks=[];let current='';
+ const length=str=>[...str].length;
+ const push=()=>{if(current.trim())chunks.push(current.trim());current=''};
+ for(const unit of units){
+  if(length(current+unit)<=limit){current+=unit;continue}
+  push();
+  if(length(unit)<=limit){current=unit;continue}
+  for(const glyph of graphemes(unit)){
+   if(length(current+glyph)>limit)push();
+   current+=glyph;
+  }
+ }
+ push();return chunks;
+}
 function standardNarrative(sc){
- const source=String(sc.voiceover||sc.subtitle.join(' ')).trim();
+ const source=String(sc.voiceover||(sc.subtitle||[]).join(' ')).trim();
  if(!source)return null;
- const chunks=source.match(/.{1,28}(?:\s|$)|.{1,28}/gu)||[source];
- const text=chunks.map(x=>x.trim()).filter(Boolean).slice(0,3);
- return {id:sc.id,voiceover:sc.voiceover,subtitle:text};
+ // Never discard text after 3 lines. One subtitle page can contain 1-2 lines,
+ // but many timed cues may be needed to cover the complete original narration.
+ const chunks=narrativeChunks(source,24);
+ const current=Array.isArray(sc.subtitle)?sc.subtitle:[];
+ const subtitle=current.length>0&&current.length<=3&&current.every(x=>[...x].length<=28)?
+  current:chunks.slice(0,3);
+ let subtitleCues=null;
+ if(!sc.subtitleCues?.length){
+  const cueText=[];
+  for(let i=0;i<chunks.length;i+=2)cueText.push(chunks.slice(i,i+2).join('\n'));
+  const weights=cueText.map(x=>Math.max(2,[...x].length));
+  const sum=weights.reduce((v,n)=>v+n,0)||1;
+  const duration=Math.max(.2,Number(sc.duration)||4);
+  let elapsed=0;
+  subtitleCues=cueText.map((text,i)=>{
+   const end=i===cueText.length-1?duration:Math.min(duration,elapsed+duration*weights[i]/sum);
+   const cue={id:'ai3'+sc.id+'c'+i,text,start:+elapsed.toFixed(2),end:+end.toFixed(2)};
+   elapsed=end;return cue;
+  });
+ }
+ return {id:sc.id,voiceover:sc.voiceover,subtitle,subtitleCues};
 }
 async function runNarrative(){
  if(busy)return;
@@ -322,14 +436,26 @@ async function runNarrative(){
    const rules=narrativeMode==='preserve'?'Keep voiceover EXACTLY unchanged. Only improve subtitle segmentation.':
     narrativeMode==='polish'?'Polish voiceover language and subtitles without changing events, identities, or plot.':
     'You may creatively rewrite narration and add small lines for atmosphere, but do not invent plot events or change identities.';
-   const response=await abortableModelWork(engine.chat.completions.create({messages:[
-    {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only scenes that need edits.'},
-    {role:'user',content:JSON.stringify(scenes).slice(0,11000)}
-   ],temperature:.25,max_tokens:1300}));
-   const raw=String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
-   const parsed=JSON.parse(raw);
-   if(!Array.isArray(parsed.changes))throw Error('โมเดลไม่ได้ส่ง changes JSON');
-   changes=parsed.changes;
+   const batchSize=LOCAL_MODELS.find(m=>m.id===narrativeModel)?.backend==='wasm'?1:3;
+   const allChanges=[];
+   for(let offset=0;offset<scenes.length;offset+=batchSize){
+    const batch=scenes.slice(offset,offset+batchSize);
+    updateModelLoad({active:true,ready:false,percent:null,
+     stage:'AI-3 วิเคราะห์ฉาก '+(offset+1)+'–'+(offset+batch.length)+' จาก '+scenes.length});
+    const response=await abortableModelWork(engine.chat.completions.create({messages:[
+     {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only supplied scene IDs.'},
+     {role:'user',content:JSON.stringify(batch).slice(0,6000)}
+    ],temperature:.2,max_tokens:batchSize===1?520:1050}));
+    const raw=String(response.choices?.[0]?.message?.content||'').trim()
+     .replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
+    let parsed;
+    try{parsed=JSON.parse(raw)}
+    catch(err){throw Error('AI-3 สร้าง JSON ไม่สมบูรณ์ ที่ฉาก '+(offset+1)+': '+String(err.message||err))}
+    if(!Array.isArray(parsed.changes))throw Error('AI-3 ไม่ส่ง changes[] ที่ฉาก '+(offset+1));
+    allChanges.push(...parsed.changes);
+   }
+   updateModelLoad({active:false,ready:true,percent:100,stage:'วิเคราะห์บทครบ '+scenes.length+' ฉาก'});
+   changes=allChanges;
   }
   const byId=new Map(scenes.map(x=>[x.id,x])),ops=[],summary=[];
   for(const item of changes.slice(0,12)){
@@ -341,12 +467,16 @@ async function runNarrative(){
    const voiceover=narrativeMode==='preserve'||narrativeModel==='standard'?old.voiceover:String(item.voiceover||old.voiceover).slice(0,1500);
    if(!voiceover&&!subtitle.some(Boolean))continue;
    const patch={voiceover,subtitle};
-   // Existing subtitleCues may be tied to previously generated audio. Clear only
-   // when narration changes, so the voice director can rebuild timing afterward.
+   // Keep explicitly authored subtitle timings. Estimated cues are created only
+   // for the standard mode when the scene previously had no timed captions.
    if(voiceover!==old.voiceover)patch.subtitleCues=[];
-   if(voiceover===old.voiceover&&JSON.stringify(subtitle)===JSON.stringify(old.subtitle))continue;
+   else if(narrativeModel==='standard'&&Array.isArray(item.subtitleCues)&&
+    item.subtitleCues.length&&!(old.subtitleCues||[]).length)patch.subtitleCues=item.subtitleCues;
+   const changedCues=Object.prototype.hasOwnProperty.call(patch,'subtitleCues');
+   if(voiceover===old.voiceover&&JSON.stringify(subtitle)===JSON.stringify(old.subtitle)&&!changedCues)continue;
    ops.push({op:'updateScene',id:old.id,patch});
-   summary.push(old.id+': '+(voiceover!==old.voiceover?'ปรับบทบรรยายและซับ':'จัดซับใหม่'));
+   summary.push(old.id+': '+(voiceover!==old.voiceover?'ปรับบทบรรยายและซับ':
+    changedCues?'จัดช่วงเวลาซับโดยประมาณ':'จัดซับใหม่'));
   }
   if(ops.length){
    const editor=root.StudioAPI;
@@ -357,8 +487,11 @@ async function runNarrative(){
    const result=editor.apply(ops);
    if(!result.applied)throw Error('ไม่สามารถใช้แผน AI-3: '+JSON.stringify((result.errors||[]).slice(0,3)));
   }
-  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
-   (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
+  const changedVoice=ops.some(o=>o.patch.subtitleCues?.length===0&&o.patch.voiceover);
+  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก'+
+   (ops.length?'\n'+summary.join('\n'):'\nไม่มีการแก้ไขใหม่ที่ผ่านเกณฑ์ หรือทุกฉากมีบทและซับเหมาะสมอยู่แล้ว')+
+   (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
+    ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'');
   status(narrativeReport);
  }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;modelAbortController=null;render()}
@@ -523,10 +656,10 @@ function renderChat(container){
   e('div',{className:'ai-script-settings'},
    e('label',{},'เครื่องมือวิเคราะห์',
     e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
-     ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel},m.label)))),
+     ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.label)))),
    button(busy?'กำลังทดสอบ…':loadedModel===chosenModel&&localEngine?'ทดสอบอีกครั้ง · โมเดลพร้อมแล้ว':'โหลดและทดสอบโมเดล',()=>benchmarkModel(false),{disabled:busy}),
    ...(chosenModel==='standard'?[]:[button('ให้ AI วิเคราะห์และปรับฉากจริง',()=>benchmarkModel(true),{disabled:busy,className:'ai-primary'})]),
-   e('small',{},'มาตรฐานทำงานโดยไม่โหลดโมเดล · รุ่นอื่นต้องใช้ WebGPU และดาวน์โหลดไฟล์ · ไม่มีค่า API')),
+   e('small',{},(gpuCapability===false?'ไม่พบ WebGPU บนอุปกรณ์นี้ · ใช้ CPU/WASM (ทดลอง) หรือมาตรฐานได้ · GPU ใช้ไม่ได้':'มาตรฐานไม่ต้องโหลด AI · Qwen GPU ต้องมี WebGPU · CPU/WASM ไม่ต้องมี WebGPU · ไม่มีค่า API'))),
   ...(modelReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},modelReport)]:[]),
   e('div',{className:'ai-script-settings'},e('label',{},'ตรวจขอบเขต',scope),
     e('label',{},'นาทีต่อตอน',minutes)),
@@ -559,7 +692,7 @@ function renderChat(container){
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
   e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{if(busy)return;const next=ev.target.value;if(localEngine&&next!==loadedModel)releaseLocalModel();narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}updateModelLoad({active:false,ready:!!localEngine,error:'',percent:localEngine?100:null,stage:localEngine?'พร้อมใช้งาน':'เปลี่ยนโมเดลแล้ว · ไม่ต้องรีโหลดเว็บไซต์'});render()}},
-   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
+   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.id==='standard'?'มาตรฐาน · จัดบทและเวลาซับ':m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
  button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
@@ -710,6 +843,18 @@ function mount(){
  const state=w();
  if(state.tasks.some(t=>t.status==='running'))persist(s=>{for(const t of s.tasks)if(t.status==='running')t.status='interrupted'});
  render();
+ webGpuReady().then(ready=>{
+  gpuCapability=ready;
+  if(!ready){
+   if(LOCAL_MODELS.find(m=>m.id===chosenModel)?.backend!=='wasm'&&chosenModel!=='standard')
+    chosenModel='standard';
+   if(LOCAL_MODELS.find(m=>m.id===narrativeModel)?.backend!=='wasm'&&narrativeModel!=='standard')
+    narrativeModel='standard';
+   try{localStorage.setItem(MODEL_KEY,chosenModel);localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}
+   status('อุปกรณ์นี้ไม่มี WebGPU · ใช้โมเดล CPU/WASM สำหรับทดลอง หรือใช้มาตรฐานได้');
+  }
+  render();
+ }).catch(()=>{gpuCapability=false;render()});
 }
 root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});

@@ -2180,7 +2180,7 @@ function showPreviewAudioProblem(message){PREVIEW_MEDIA_ERROR=message;updateAudi
 function checkPreviewAudio(){
  const voices=previewVoiceClips(),usable=voices.filter(c=>!c.mute&&c.duration>0);
  const contextState=PREVIEW_AUDIO_CTX?.state||'HTML Audio';
- if(!voices.length){showPreviewAudioProblem('ตอนนี้ยังไม่มีไฟล์เสียงพากย์จริง · ต้องสร้าง/นำเข้าเสียงก่อนจึงจะได้ยินในพรีวิว');return}
+ if(!voices.length){showPreviewAudioProblem('ไม่มีไฟล์เสียงพากย์จริง · กด 🗣 เพื่อทดลองอ่านบทด้วยเสียงระบบ หรือสร้างไฟล์พากย์ใน Sound Desk');return}
  if(!usable.length){showPreviewAudioProblem('มีคลิปพากย์ '+voices.length+' คลิป แต่ยังไม่มีคลิปที่มีความยาวใช้งานได้หรือถูกปิดเสียง · ตรวจ Sound Desk');return}
  // Prefer the selected scene; use another scene's clip only if this scene has none.
  const current=(ep().scenes[sel]?.audioClips||[]).find(c=>c.kind==='voice'&&c.data&&!c.mute&&c.duration>0);
@@ -3006,9 +3006,16 @@ function endMotionDrag(e){const d=MOTION_DRAG;if(!d||(e.pointerId!==undefined&&e
  if(d.before!==JSON.stringify(S)){past.push(d.before);if(past.length>100)past.shift();future=[];fix();save()}
  render();
 }
+function tryPreviewReadNarration(){
+ if(VOICE_SPEAKING){stopSpeak();showPreviewAudioProblem('หยุดการอ่านบททดลองแล้ว');return}
+ speakCurrentScene();
+ showPreviewAudioProblem(VOICE_SPEAKING?
+  'กำลังอ่านบทด้วยเสียงระบบในเครื่อง · ไม่ใช่ไฟล์เสียงจริง และไม่รวมในวิดีโอที่ส่งออก':
+  'ไม่สามารถอ่านบททดลองได้ · ตรวจว่ามีบทและมีเสียงภาษาไทยในอุปกรณ์ (Voice Studio)');
+}
 function ctl(){const tt=total();$('#ctl').replaceChildren(
 h('button',{onclick:()=>go(-1),'aria-label':'ฉากก่อน'},'⏮'),h('button',{id:'pp',onclick:toggle,'aria-label':'เล่น/หยุด'},playing?'⏸':'▶'),h('button',{onclick:()=>go(1),'aria-label':'ฉากถัดไป'},'⏭'),
-h('input',{type:'range',min:0,max:tt*100,value:T*100,'aria-label':'เวลา',oninput:e=>{T=e.target.value/100;playing=false;draw();if(MOTION_ACTIVE)renderMotionBar()}}),h('span',{id:'clock'},''),h('button',{type:'button',title:'ตรวจและทดลองฟังไฟล์พากย์จริง',onclick:checkPreviewAudio,'aria-label':'ตรวจเสียงพากย์'},'🔊'))}
+h('input',{type:'range',min:0,max:tt*100,value:T*100,'aria-label':'เวลา',oninput:e=>{T=e.target.value/100;playing=false;draw();if(MOTION_ACTIVE)renderMotionBar()}}),h('span',{id:'clock'},''),h('button',{type:'button',title:'ตรวจและทดลองฟังไฟล์พากย์จริง',onclick:checkPreviewAudio,'aria-label':'ตรวจเสียงพากย์'},'🔊'),h('button',{type:'button',title:'อ่านบทฉากปัจจุบันด้วยเสียงระบบ (ไม่ได้บันทึกเป็นไฟล์)',onclick:tryPreviewReadNarration,'aria-label':'ทดลองอ่านบทด้วยเสียงระบบ'},'🗣'))}
 function toggle(){if(T>=total())T=0;playing=!playing;last=performance.now();ctl();draw();if(playing&&!previewVoiceClips().length)showPreviewAudioProblem('ยังไม่มีไฟล์พากย์จริงในตอนนี้ · ต้องเพิ่มเสียงใน Sound Desk หรือสร้างเสียงด้วย AI-2')}
 function go(d){const n=Math.min(ep().scenes.length-1,Math.max(0,sel+d));sel=n;T=starts()[n];playing=false;render()}
 // v34 C3: คำนวณท่ากล้องของฉาก (ใช้ร่วมพรีวิว+ส่งออก) / cameraPoseAt เพิ่ม match cut: กล้องไหลต่อจากเฟรมสุดท้ายของฉากก่อน
