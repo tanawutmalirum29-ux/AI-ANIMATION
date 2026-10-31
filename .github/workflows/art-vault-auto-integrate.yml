@@ -1,0 +1,38 @@
+name: Art Vault safe automatic integration
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - assets/library.json
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate-and-merge:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == github.repository_owner &&
+      startsWith(github.event.pull_request.head.ref, 'studio-art-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: art-vault-main
+      cancel-in-progress: false
+    steps:
+      - name: Checkout trusted default branch validator
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Validate asset-only append, with no untrusted PR code execution
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node .github/scripts/validate-art-pr.mjs
+      - name: Merge passing art-only PR into main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --squash --delete-branch
