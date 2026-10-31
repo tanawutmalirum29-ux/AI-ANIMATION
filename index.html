@@ -650,6 +650,8 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 <dialog id="audioDesk" aria-labelledby="audioDeskTitle"><div class="audio-head"><h2 id="audioDeskTitle">Sound Desk — ตัดต่อเสียง</h2><button type="button" id="audioDeskClose">ปิด ✕</button></div><div id="audioDeskBody"></div></dialog>
 <div id="previewTheater" hidden role="dialog" aria-modal="true" aria-label="พรีวิววิดีโอเต็มจอ"><div class="theater-head"><span id="theaterTitle" class="theater-title">พรีวิวตอน</span><div class="theater-btns"><button type="button" id="theaterCaptions" aria-label="แสดงหรือซ่อนซับ">CC</button><button type="button" id="theaterLabels" aria-label="แสดงหรือซ่อนป้าย">ป้าย</button><button type="button" id="theaterClose">✕ ปิดเต็มจอ</button></div></div></div><button type="button" id="jumpTop" hidden aria-label="กลับไปส่วนบนสุดของหน้า">↑ กลับบนสุด</button>
 <dialog id="voiceStudio" aria-labelledby="voiceStudioTitle"><div class="voice-head"><h2 id="voiceStudioTitle">Voice Studio · ออกแบบและพากย์เสียง</h2><button type="button" id="voiceStudioClose">ปิด ✕</button></div><div id="voiceStudioBody"></div></dialog>
+<script src="./runtime-config.js"></script>
+<script src="./site-auth.js"></script>
 <script src="./narration-director.js"></script>
 <script>
 /* ===== state & history ===== */
@@ -3974,13 +3976,14 @@ function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_T
 let AUTODUB_RUNNING=false,AUTODUB_CANCEL=false,AUTODUB_SCOPE='scene',AUTODUB_SKIP=true,AUTODUB_SMART=true,AUTODUB_GAP=.16;
 const AUTODUB_LS={url:'storyStudio.autodub.url',key:'storyStudio.autodub.key'};
 const AUTODUB_MALE_TYPES=['male','deep','senior','villain'];
-function autoDubCfg(){let url='',key='';try{url=localStorage.getItem(AUTODUB_LS.url)||'';key=localStorage.getItem(AUTODUB_LS.key)||''}catch(e){}return{url:url.trim(),key:key.trim()}}
-function autoDubSave(url,key){try{localStorage.setItem(AUTODUB_LS.url,String(url||'').trim());localStorage.setItem(AUTODUB_LS.key,String(key||'').trim())}catch(e){}}
+function autoDubCfg(){const access=window.StoryStudioAccess;if(access?.enabled)return{url:access.apiUrl,key:'',session:true};let url='',key='';try{url=localStorage.getItem(AUTODUB_LS.url)||'';key=localStorage.getItem(AUTODUB_LS.key)||''}catch(e){}return{url:url.trim(),key:key.trim(),session:false}}
+function autoDubSave(url,key){if(window.StoryStudioAccess?.enabled)return;try{localStorage.setItem(AUTODUB_LS.url,String(url||'').trim());localStorage.setItem(AUTODUB_LS.key,String(key||'').trim())}catch(e){}}
 function autoDubVoiceFor(scene,speaker){const id=speakerVoiceProfileId(scene,speaker)||sceneVoiceProfileId(scene),p=getVoiceProfile(id);return AUTODUB_MALE_TYPES.includes(p?.type)?'th-TH-NiwatNeural':'th-TH-PremwadeeNeural'}
 async function autoDubFetch(cfg,text,voice,options={}){
- const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice,...(options.rate?{rate:options.rate}:{})})});
- let j=null;try{j=await r.json()}catch(e){}
- if(!r.ok||!j?.audio)throw new Error((j&&j.error)||('HTTP '+r.status));
+ let j=null;
+ if(cfg.session){j=await window.StoryStudioAccess.request({text,voice,...(options.rate?{rate:options.rate}:{})})}
+ else{const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice,...(options.rate?{rate:options.rate}:{})})});try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&j.error)||('HTTP '+r.status))}
+ if(!j?.audio)throw new Error((j&&j.error)||'ไม่พบไฟล์เสียงจาก AI');
  const bin=atob(j.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
  return new Blob([u],{type:'audio/mpeg'})}
 function autoDubJobs(scope,skipExisting){
@@ -4003,7 +4006,7 @@ async function autoDubTest(){
 async function autoDubRun(){
  if(AUTODUB_RUNNING)return;
  const cfg=autoDubCfg();
- if(!cfg.url||!cfg.key){setVoiceStatus('ใส่ URL และรหัสลับของ Lambda ก่อน (ดูวิธีติดตั้งใน README)');return}
+ if(!cfg.url||(!cfg.session&&!cfg.key)){setVoiceStatus('ยังไม่พบการเชื่อมต่อ AI — หากยังไม่ได้ติดตั้งเว็บไซต์ให้ดูขั้นตอน AWS ใน README');return}
  const keepEp=selEp,keepSel=sel,keepScene=AUDIO_DESK_SCENE,keepPast=past.length,before=JSON.stringify(S);
  // สร้างช่วงเวลาซับให้ฉากที่ยังไม่มี (ต้องมี cue เพื่อรู้เวลาเริ่มพูด)
  const targets=AUTODUB_SCOPE==='all'?S.episodes.flatMap((E,ei)=>E.scenes.map((s,si)=>[ei,si])):S.episodes[selEp].scenes.map((s,si)=>[selEp,si]).filter(([,si])=>AUTODUB_SCOPE!=='scene'||si===sel);
@@ -4069,10 +4072,10 @@ function autoDubPanel(){
  const skip=h('input',{type:'checkbox',checked:AUTODUB_SKIP,onchange:e=>{AUTODUB_SKIP=e.target.checked}});
   const smart=h('input',{type:'checkbox',checked:AUTODUB_SMART,onchange:e=>{AUTODUB_SMART=e.target.checked}});
   const gap=h('input',{type:'range',min:.08,max:.5,step:.02,value:AUTODUB_GAP,oninput:e=>{AUTODUB_GAP=+e.target.value;e.target.nextSibling.textContent=AUTODUB_GAP.toFixed(2)+' วินาที'}});
- return h('details',{className:'dub-detail autodub',open:AUTODUB_RUNNING||!cfg.url},h('summary',{},'✦ พากย์อัตโนมัติ (ฟรี · Lambda + Edge TTS)'),
+ return h('details',{className:'dub-detail autodub',open:AUTODUB_RUNNING||!!cfg.session||!cfg.url},h('summary',{},'✦ พากย์อัตโนมัติ (ฟรี · Lambda + Edge TTS)'),
   h('div',{className:'dub-directions'},
    h('p',{},'สร้างเสียงไทยจากซับของแต่ละช่วง แล้ววางที่เวลาเริ่มของช่วงนั้นให้เอง ตัวละครที่ใช้โปรไฟล์เสียงทุ้ม/ลึก/ผู้สูงอายุ/ตัวร้ายจะใช้เสียงชาย นอกนั้นใช้เสียงหญิง แล้วโปรไฟล์เสียงเดิมยังแต่งเสียงต่อได้'),
-   h('label',{},'URL ของ Lambda',url),h('label',{},'รหัสลับ',key),
+   ...(cfg.session?[h('p',{className:'dub-note'},window.StoryStudioAccess.isReady()?'เชื่อมต่อ AI พร้อมใช้งานด้วยรหัสผ่านเว็บไซต์แล้ว — ไม่ต้องใส่ URL หรือรหัสลับ Lambda':'รอการเข้าสู่ระบบเว็บไซต์เพื่อเปิด AI'),h('button',{type:'button',onclick:()=>window.StoryStudioAccess.logout()},'ล็อกสตูดิโอ / เปลี่ยนผู้ใช้')]:[h('label',{},'URL ของ Lambda',url),h('label',{},'รหัสลับ',key)]),
    h('label',{},'ขอบเขต',scope),
    h('label',{style:'display:flex;gap:7px;align-items:center'},skip,'ข้ามบรรทัดที่มีเสียงอยู่แล้ว'),
     h('h4',{},'ผู้ช่วย AI จัดจังหวะเสียงและเฟรม (Speech Director)'),
@@ -4140,6 +4143,6 @@ $('#mtabs').replaceChildren(...[['ins','✎ ฉาก'],['lib','☰ ไลบร
 try{S=JSON.parse(localStorage.getItem(LS))}catch(e){}
 if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.episodes&&old.project&&old.project.title!=='เปิดตัว Story Studio'&&old.project.title!=='ตัวอย่างผัง จุดยึด และ OpenPose')S=old}catch(e){}}
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
-render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);
+render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
 </script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script></body></html>

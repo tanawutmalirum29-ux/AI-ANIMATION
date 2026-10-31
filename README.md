@@ -195,3 +195,36 @@ QA: `node tests/handheld-props-smoke.cjs` ตรวจว่าพร็อพ�
 - Edge TTS เป็นบริการไม่เป็นทางการ ถ้าวันหนึ่งขึ้น “สร้างเสียงไม่สำเร็จ” ให้รัน `bash deploy.sh` ซ้ำ (อัปเดตไลบรารี) ถ้ายังไม่ได้ ต้องเปลี่ยนไปใช้บริการ TTS อื่นโดยแก้ `handler.py` ไฟล์เดียว
 - เสียงที่สร้างถูกฝังในโปรเจกต์ ไฟล์โปรเจกต์/พื้นที่เบราว์เซอร์จึงโตขึ้น ควรสำรอง JSON ทุกครั้งหลังพากย์ทั้งเรื่อง
 - ทดสอบอัตโนมัติ: `node tests/auto-dub-smoke.cjs` (ใช้ Lambda จำลอง)
+
+## เข้าสตูดิโอด้วยรหัสผ่านเดียว — AI พร้อมใช้ทันที
+
+เว็บไซต์: https://main.d1wc6w01kiwpnk.amplifyapp.com/
+
+หลังตั้งค่าครั้งแรกแล้ว ผู้ใช้ใส่รหัสผ่านสตูดิโอเพียงอย่างเดียว ไม่ต้องนำ Lambda URL หรือ DUB_KEY มากรอกในเว็บ ระบบใช้เซสชันที่ AWS Lambda เซ็นให้และหมดอายุภายใน 8 ชั่วโมง
+
+### ติดตั้งครั้งเดียวใน AWS CloudShell
+
+ใช้ AWS account เดียวกับ Amplify และ Region Asia Pacific (Sydney) `ap-southeast-2`:
+
+```bash
+git clone https://github.com/tanawutmalirum29-ux/AI-ANIMATION.git
+cd AI-ANIMATION/autodub
+bash deploy.sh https://main.d1wc6w01kiwpnk.amplifyapp.com
+```
+
+หาก clone ไว้แล้ว ให้ใช้ `cd AI-ANIMATION && git pull --ff-only && cd autodub` ก่อนรันสคริปต์
+
+- รอบแรก ระบบให้ตั้งรหัสผ่านสตูดิโออย่างน้อย 12 ตัวอักษรผ่าน CloudShell (พิมพ์แบบซ่อน) ห้ามส่งรหัสผ่านในแชตหรือ GitHub
+- สคริปต์อัปเดต AWS Lambda, ตั้ง salted PBKDF2-SHA256 password hash, session signing key, CORS เฉพาะเว็บไซต์ และ Lambda Function URL
+- สคริปต์จะพยายามใส่ `STORY_STUDIO_API_URL` ใน AWS Amplify Environment variables ของแอปให้เอง พร้อมสั่ง Redeploy หากขาดสิทธิ์จะบอกให้เพิ่มตัวแปรนี้ใน Amplify Console และกด Redeploy สาขา `main`
+- เมื่อ Deploy ผ่าน เปิดเว็บใหม่ ใส่รหัสผ่านสตูดิโอ แล้วใช้ระบบพากย์ AI ได้เลยโดยไม่กรอก URL/Key อีก
+- เมื่อเปิดโหมดรหัสผ่านแล้ว Lambda จะไม่ยอมใช้ DUB_KEY เดิมเพื่อข้ามการล็อกอิน
+- รันสคริปต์ซ้ำโดยไม่ตั้งรหัสใหม่จะคงรหัสผ่านและ signing key เดิมไว้
+
+**เปลี่ยนรหัสผ่านอย่างปลอดภัย:** ใน CloudShell ใช้ `read -rs SITE_PASSWORD; export SITE_PASSWORD; bash deploy.sh https://main.d1wc6w01kiwpnk.amplifyapp.com; unset SITE_PASSWORD` ห้ามพิมพ์รหัสผ่านตรง ๆ ในประวัติคำสั่ง
+
+**ขอบเขตการป้องกัน:** รหัสผ่านตรวจที่ Lambda จริงเพื่อควบคุมการใช้งาน AI แต่สตูดิโอนี้เป็น Static Hosting: ซอร์ส HTML/JavaScript ที่ Amplify แจกยังดาวน์โหลดได้แม้มีหน้ากรอกรหัสผ่าน หากต้องการห้ามเข้าถึงเว็บไซต์และไฟล์จริง ๆ ต้องเปิด Amplify Access Control/Basic Auth เพิ่ม (ซึ่งอาจต้องล็อกอินอีกครั้ง) อย่าเก็บข้อมูลลับในซอร์สเว็บ
+
+เซสชันบันทึกใน localStorage ของเบราว์เซอร์ 8 ชั่วโมง ผู้ที่ใช้เครื่องเดียวกันอาจเข้าใช้งานได้จนกว่าจะออกจากระบบ จึงควรกด Logout บนเครื่องสาธารณะ ถ้าเผยแพร่ให้คนอื่นใช้จำนวนมากควรเพิ่ม AWS WAF rate limiting หรือระบบบัญชีผู้ใช้ — ตัวจำกัดความถี่ใน Lambda เป็นเพียง best-effort
+
+ตัวแปร `STORY_STUDIO_API_URL` เป็น URL สาธารณะ ห้ามใส่ `SITE_PASSWORD_HASH` หรือ `SESSION_SECRET` ลงในตัวแปรที่เผยแพร่ไปหน้าเว็บ
