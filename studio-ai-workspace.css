@@ -1,0 +1,69 @@
+/* AI Workbench — independent scoped styles, iPad/mobile first. */
+#aiWorkspacePanel{display:block;width:100%;max-width:100%;min-width:0;min-height:65dvh;padding:12px;background:#111e32;color:#e9edf4;font-family:system-ui,"Noto Sans Thai",sans-serif;font-size:14px;line-height:1.55}
+#aiWorkspacePanel *{box-sizing:border-box}
+#aiWorkspacePanel .ai-header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid #40546d;padding-bottom:12px}
+#aiWorkspacePanel .ai-header h2{font-size:20px;font-weight:800;margin:0;color:#ead29a}
+#aiWorkspacePanel .ai-header p{color:#c2cedd;margin:4px 0;font-size:12px}
+#aiWorkspacePanel .ai-engine-controls{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+#aiWorkspacePanel .ai-engine-state{font-size:11px;max-width:250px;color:#d0d9e4}
+#aiWorkspacePanel button{font:inherit;font-size:12px;border:1px solid #6b7891;color:#f0f2f4;background:#263b54;padding:8px 10px;min-height:38px;border-radius:9px;cursor:pointer}
+#aiWorkspacePanel button:disabled{opacity:.5;cursor:not-allowed}
+#aiWorkspacePanel button.ai-primary{background:#e1c18b;border-color:#e1c18b;color:#172438;font-weight:750}
+#aiWorkspacePanel button:focus-visible,#aiWorkspacePanel textarea:focus-visible,#aiWorkspacePanel select:focus-visible{outline:2px solid #ffdc88;outline-offset:2px}
+#aiWorkspacePanel .ai-model-row{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:12px 0 4px}
+#aiWorkspacePanel .ai-model-row label{width:100%;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+#aiWorkspacePanel select,#aiWorkspacePanel textarea{border:1px solid #62768e;border-radius:9px;background:#1c2d45;color:#e8eef5;font-size:14px;min-height:42px;max-width:100%}
+#aiWorkspacePanel select{padding:8px 10px;min-width:min(300px,100%);width:auto}
+#aiWorkspacePanel textarea{display:block;width:100%;resize:vertical;line-height:1.55;padding:10px 12px}
+#aiWorkspacePanel .ai-model-row small{font-size:11px;color:#bfcad6}
+#aiWorkspacePanel .ai-status{padding:9px 11px;min-height:38px;margin:9px 0;background:#1d3048;border:1px solid #3f526c;border-radius:9px;font-size:12px;overflow-wrap:anywhere}
+#aiWorkspacePanel .ai-status[data-error="true"]{color:#ffd19d;border-color:#925e4b}
+#aiWorkspacePanel .ai-tabs{display:flex;gap:4px;overflow-x:auto;max-width:100%;scrollbar-width:thin;position:sticky;top:0;z-index:1;background:#111e32;padding:6px 0}
+#aiWorkspacePanel .ai-tabs button{white-space:nowrap;flex:1;min-width:91px}
+#aiWorkspacePanel .ai-tabs button.active{background:#e1c18b;color:#172438;border-color:#e1c18b;font-weight:750}
+#aiWorkspacePanel .ai-workspace-content{padding:10px 0;max-width:100%;min-width:0}
+#aiWorkspacePanel .ai-help{color:#bfcde0;font-size:12px;line-height:1.6}
+#aiWorkspacePanel .ai-chat-messages{display:flex;flex-direction:column;gap:9px;max-height:46dvh;min-height:180px;overflow-y:auto;overscroll-behavior:contain;padding:10px;background:#18283f;border:1px solid #435b73;border-radius:12px}
+#aiWorkspacePanel .ai-message{padding:9px 12px;border-radius:11px;max-width:95%;min-width:0;overflow-wrap:anywhere;background:#2a3e59;border:1px solid #3d5777;white-space:pre-wrap}
+#aiWorkspacePanel .ai-message.user{background:#283f48;align-self:flex-end;border-color:#568074}
+#aiWorkspacePanel .ai-message.assistant{align-self:flex-start}
+#aiWorkspacePanel .ai-message-meta{font-size:11px;color:#c5d4e6;margin-bottom:3px}
+#aiWorkspacePanel .ai-message p{margin:0;line-height:1.65}
+#aiWorkspacePanel button.ai-text-button{background:transparent;border:none;text-decoration:underline;padding:2px 0;margin-top:7px;min-height:unset}
+#aiWorkspacePanel .ai-composer{padding:12px 2px;display:grid;gap:9px}
+#aiWorkspacePanel .ai-composer>label{display:flex;gap:9px;align-items:center;flex-wrap:wrap;color:#e3e6ed}
+#aiWorkspacePanel .ai-composer>label select{flex:1}
+#aiWorkspacePanel .ai-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#aiWorkspacePanel .ai-task-panel{display:flex;flex-direction:column;gap:10px}
+#aiWorkspacePanel .ai-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#aiWorkspacePanel .ai-section-head h3,#aiWorkspacePanel .ai-bible-panel h3,#aiWorkspacePanel .ai-project-panel h3{font-size:17px;margin:3px 0 7px;color:#ead29a}
+#aiWorkspacePanel .ai-section-head span{font-size:12px;color:#c8d3df}
+#aiWorkspacePanel .ai-task{border:1px solid #475e78;border-radius:12px;padding:12px;background:#1a2c43;overflow-wrap:anywhere}
+#aiWorkspacePanel .ai-task-head{display:flex;justify-content:space-between;align-items:center;gap:7px}
+#aiWorkspacePanel .ai-task>p{white-space:pre-wrap;margin:8px 0}
+#aiWorkspacePanel .ai-task-state{font-size:11px;padding:3px 8px;background:#263d59;border-radius:12px;color:#e7d09b;white-space:nowrap}
+#aiWorkspacePanel .ai-task-state[data-state="done"],#aiWorkspacePanel .ai-task-state[data-state="applied"]{color:#bde8c1}
+#aiWorkspacePanel .ai-task-state[data-state="failed"]{color:#ffbcb0}
+#aiWorkspacePanel .ai-response{padding:9px 11px;margin:10px 0;background:#253b54;border-radius:9px;white-space:pre-wrap}
+#aiWorkspacePanel .ai-response p{margin:5px 0 0}
+#aiWorkspacePanel .ai-error{color:#fdbcb3!important}
+#aiWorkspacePanel .ai-ops{margin:8px 0;color:#c8d8e9}
+#aiWorkspacePanel .ai-ops summary{cursor:pointer}
+#aiWorkspacePanel .ai-ops pre{background:#101c2b;color:#f1eee4;border:1px solid #36495e;padding:9px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;font-size:11px}
+#aiWorkspacePanel .ai-bible-panel,#aiWorkspacePanel .ai-project-panel{display:flex;flex-direction:column;gap:10px}
+#aiWorkspacePanel .ai-field{display:block;color:#e9dcc5;font-weight:650}
+#aiWorkspacePanel .ai-field textarea{margin-top:5px;font-weight:400}
+#aiWorkspacePanel .ai-project-list{display:flex;flex-direction:column;gap:8px}
+#aiWorkspacePanel .ai-snapshot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#1e3046;border:1px solid #455b76;border-radius:9px;padding:11px}
+#aiWorkspacePanel .ai-snapshot strong{display:block;font-size:14px}
+#aiWorkspacePanel .ai-snapshot small{display:block;color:#bfd0df;font-size:11px;margin-top:3px}
+@media(max-width:820px){
+ #aiWorkspacePanel{padding:8px 6px;min-height:55dvh}
+ #aiWorkspacePanel .ai-header h2{font-size:17px}
+ #aiWorkspacePanel .ai-engine-controls{justify-content:flex-start}
+ #aiWorkspacePanel .ai-chat-messages{max-height:38dvh}
+ #aiWorkspacePanel .ai-actions button{flex:1 1 auto}
+ #aiWorkspacePanel .ai-tabs button{min-width:85px;font-size:11px;padding:7px 8px}
+ #aiWorkspacePanel select{width:100%;min-width:0}
+ #aiWorkspacePanel .ai-composer>label{align-items:stretch;flex-direction:column;gap:4px}
+}
