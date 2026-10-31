@@ -5,6 +5,21 @@ const path=require('node:path');
  const browser=await chromium.launch({headless:true});
  try{
   const page=await browser.newPage({viewport:{width:768,height:1024},acceptDownloads:true});
+  // Simulate a supported GPU and tiny local model: no external inference API or paid key.
+  await page.addInitScript(()=>{
+    Object.defineProperty(navigator,'gpu',{configurable:true,value:{requestAdapter:async()=>({})}});
+  });
+  await page.route('https://esm.run/@mlc-ai/web-llm@0.2.86',route=>route.fulfill({
+    status:200,contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},
+    body:`export const prebuiltAppConfig={model_list:[{model_id:"Qwen2.5-0.5B-Instruct-q4f16_1-MLC"}]};
+export const CreateMLCEngine=async() => ({
+ chat:{completions:{create:async()=>({choices:[{message:{
+  content:JSON.stringify({reply:"ปรับบทพากย์แล้ว",ops:[{op:"updateScene",
+   id:window.__aiTestSceneId,patch:{voiceover:"บทพากย์ที่ AI แก้อัตโนมัติ"}}]})
+ }}]})}},
+ unload:async()=>{}
+});`
+  }));
   page.on('dialog',dialog=>dialog.accept());
   const failures=[];page.on('pageerror',e=>failures.push(e.message));
   await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
@@ -38,6 +53,19 @@ const path=require('node:path');
   await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คิวงาน'}).click();
   await page.getByText('ช่วยวางเรื่องยาวต่อเนื่อง 3 ตอน').last().waitFor();
   assert.equal(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.tasks.length),1);
+  // Sending once must load AI, apply valid ops automatically, and preserve a local backup.
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'สนทนา'}).click();
+  await page.evaluate(()=>{window.__aiTestSceneId=window.StoryStudioBridge.get().episodes[0].scenes[0].id});
+  assert.equal(await page.locator('#aiWorkspacePanel .ai-auto-toggle input').isChecked(),true);
+  await page.locator('#aiWorkspacePanel [aria-label="สั่งงาน AI"]').fill('เปลี่ยนบทพากย์ฉากแรก');
+  await page.getByRole('button',{name:'ส่งให้ AI (Ctrl+Enter)'}).click();
+  await page.waitForFunction(
+    ()=>window.StoryStudioBridge.get().episodes[0].scenes[0].voiceover==='บทพากย์ที่ AI แก้อัตโนมัติ',
+    null,{timeout:12000}
+  );
+  assert.ok(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.tasks.some(t=>t.status==='applied')));
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'โปรเจกต์'}).click();
+  await page.getByText('ก่อน AI แก้',{exact:false}).first().waitFor();
   assert.deepEqual(failures,[]);
   console.log('PASS: iPad AI workspace, job history, story bible, project version save/open/reload');
  }finally{await browser.close()}

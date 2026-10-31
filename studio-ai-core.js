@@ -1,5 +1,5 @@
 /* Story Studio AI Workspace — shared, dependency-free continuity + response validation.
- * Model output is UNTRUSTED: never execute JS or apply edits automatically. */
+ * Model output is UNTRUSTED: always validate ops and save a recovery snapshot before auto-apply. */
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
@@ -62,7 +62,8 @@
       'ops เป็นคำสั่งแก้โปรเจกต์แบบย่อ ใช้เฉพาะเมื่อผู้ใช้ขอแก้ข้อมูลจริง เช่น {"op":"updateScene","id":"sceneId","patch":{"voiceover":"..."}}. ถ้าไม่แน่ใจชื่อ id หรือรูปแบบให้ ops=[].',
       'ห้ามสร้างคำสั่ง delete, แทนที่ทั้งโปรเจกต์, ฝัง data URL, เติมไฟล์เสียงหรือภาพจากการจินตนาการ.',
       'เรื่องยาว: ใช้ story bible และ summaries เพื่อรักษาชื่อตัวละคร เส้นเวลา ปมค้าง และลักษณะฉากเดิม. ห้ามสปอยล์หรือปิดปมเอง.',
-      'สิ่งที่ AI เสนอจะต้องให้ผู้ใช้ตรวจและกดยืนยันก่อนแก้โปรเจกต์จริง.'
+      'หากเสนอคำสั่ง ops ที่ถูกต้อง ระบบจะตรวจและสำรองก่อนแก้โปรเจกต์อัตโนมัติ (เมื่อผู้ใช้เปิดตัวเลือกนี้); ห้ามอ้างว่าแก้สำเร็จจนกว่าระบบยืนยัน.',
+      'ตัวอย่างการแก้บทพากย์: {"reply":"ปรับบทพากย์ฉากแรก","ops":[{"op":"updateScene","id":"scene-id-from-context","patch":{"voiceover":"บทพากย์ใหม่"}}]}; ต้องใช้ id ที่มีอยู่ในบริบทจริง.'
     ].join('\n');
   }
   function parseResult(text){

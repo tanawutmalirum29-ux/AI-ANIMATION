@@ -1,7 +1,7 @@
-/* Story Studio AI Workbench v1.
- * One on-device WebLLM engine, seven role prompts, editable story bible, durable chat/job history,
- * manual approval for AI patches, versioned IndexedDB project snapshots + JSON backups.
- * No API key or model is uploaded to a hosted service. Model files are fetched on demand.
+/* Story Studio AI Workbench — free on-device model with guarded automatic project editing.
+ * The browser loads an open-source local WebLLM model on first prompt; no cloud AI API key,
+ * paid inference endpoint, GitHub Models API, or new server billing required.
+ * Untrusted ops are dry-run validated and backed up before automatic application.
  */
 (function(root){
 'use strict';
@@ -16,6 +16,8 @@ const MODELS=[
 const DB='storyStudio.projectLibrary.v1',STORE='snapshots';
 let bridge,rootElement,view='chat',draft='',engine=null,engineModel='',loading=false,busy=false,progress='',lastError='',db=null,dbPromise=null;
 const MAX_TASKS=130;
+const AUTO_OPS=new Set(['setProject','updateScene','insertScene','updateEpisode','upsertCharacter','upsertLocation','upsertRule']);
+function autoApplyEnabled(){return w().autoApply!==false;}
 const e=(tag,props={},...children)=>{
  const element=document.createElement(tag);
  for(const [k,v]of Object.entries(props)){
@@ -92,7 +94,11 @@ function setJob(id,patch){
 }
 async function runTask(taskId){
  if(busy||loading){status('มีงานอื่นกำลังทำอยู่ กรุณารอ',true);return}
- if(!engine){status('ยังไม่ได้โหลดโมเดล: กด “โหลด AI ในเครื่อง” ก่อน งานถูกเก็บไว้ในคิวแล้ว',true);view='tasks';render();return}
+ if(!engine){
+  // The user only sends one prompt; the free model loads automatically on first use.
+  await loadModel();
+  if(!engine){status('AI ในเครื่องไม่พร้อม: '+(lastError||gpuStatus())+' · งานยังเก็บในคิว',true);view='tasks';render();return}
+ }
  const task=w().tasks.find(t=>t.id===taskId);
  if(!task)return;
  busy=true;setJob(taskId,{status:'running',error:''});view='tasks';render();
@@ -111,9 +117,35 @@ async function runTask(taskId){
   const out=core.parseResult(raw);
   setJob(taskId,{status:'done',response:out.reply,ops:out.ops,bibleSuggestion:out.bibleSuggestion,assetSuggestion:out.assetSuggestion||null});
   persist(s=>core.historyPush(s,{speaker:'assistant',role:task.role,text:out.reply,taskId:task.id}));
-  status('งานเสร็จแล้ว · ตรวจคำตอบและกดยืนยันก่อนใช้คำสั่งแก้ไขโปรเจกต์');
+  if(out.ops.length&&autoApplyEnabled())await autoApplyOps(taskId);
+  else status(out.ops.length?'AI ตอบแล้ว · ปิดแก้อัตโนมัติอยู่ ต้องยืนยันจากคิวงาน':'AI ตอบแล้ว · ไม่มีคำสั่งแก้โปรเจกต์ในรอบนี้');
  }catch(err){setJob(taskId,{status:'failed',error:String(err.message||err).slice(0,350)});status('สร้างคำตอบไม่สำเร็จ: '+(err.message||err),true)}
  finally{busy=false;render()}
+}
+async function autoApplyOps(taskId){
+ const task=w().tasks.find(t=>t.id===taskId);
+ if(!task?.ops?.length)return;
+ if(task.ops.some(op=>!AUTO_OPS.has(op.op))){status('AI เสนอคำสั่งที่ไม่อนุญาต จึงไม่แก้โปรเจกต์',true);return}
+ const api=root.StudioAPI;
+ if(!api?.apply){status('ระบบแก้โปรเจกต์ยังไม่พร้อม',true);return}
+ // Never trust model-generated commands. The editor performs a dry-run on a clone.
+ const check=api.apply(task.ops,{dryRun:true});
+ if(!check.ok){status('ตรวจคำสั่ง AI ไม่ผ่าน จึงไม่แก้โปรเจกต์: '+((check.errors||[]).map(x=>x.msg).join(' / ')||'ผลตรวจโปรเจกต์ผิดพลาด'),true);return}
+ try{
+  // Stop safely when an on-device recovery backup cannot be created.
+  const state=bridge.get(),wstate=core.ensure(state.project.aiWorkspace||{}),snapshot=JSON.stringify(state);
+  const meta=core.summaryOfSnapshot(state),database=await openDb();
+  const record={id:wstate.projectId+'-auto-before-'+Date.now()+'-'+core.id(),projectId:wstate.projectId,
+   title:meta.title+' (ก่อน AI แก้)',savedAt:now(),episodes:meta.episodes,scenes:meta.scenes,size:snapshot.length,snapshot};
+  await new Promise((resolve,reject)=>{
+   const tx=database.transaction(STORE,'readwrite');
+   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||Error('สำรองโปรเจกต์ไม่สำเร็จ'));
+   tx.objectStore(STORE).put(record);
+  });
+ }catch(err){status('AI ไม่แก้โปรเจกต์ เพราะสำรองข้อมูลไม่ได้: '+err.message,true);return}
+ const result=api.apply(task.ops);
+ if(result.applied){setJob(taskId,{status:'applied'});status('AI แก้โปรเจกต์ '+task.ops.length+' จุดสำเร็จ · มีสำรองก่อนแก้และ Undo ได้')}
+ else status('AI ไม่สามารถแก้โปรเจกต์ได้: '+((result.errors||[]).map(x=>x.msg).join(' / ')||'โครงสร้างข้อมูลไม่ถูกต้อง'),true);
 }
 function approveOps(taskId){
  const task=w().tasks.find(t=>t.id===taskId);
@@ -163,12 +195,15 @@ function renderChat(container){
  const input=e('textarea',{'aria-label':'สั่งงาน AI',rows:4,placeholder:'สั่ง AI วางแผน เขียนบท หรือเสนอแก้ฉาก... (บันทึกประวัติไว้ในโปรเจกต์)',oninput:evt=>{draft=evt.target.value}});
  input.value=draft;
  input.addEventListener('keydown',evt=>{if(evt.key==='Enter'&&(evt.ctrlKey||evt.metaKey)){evt.preventDefault();queueCurrent(true)}});
+ const autoLabel=e('label',{className:'ai-auto-toggle'},
+  e('input',{type:'checkbox',checked:autoApplyEnabled(),onchange:evt=>{persist(state=>state.autoApply=!!evt.target.checked);render()}}),
+  ' ตรวจคำสั่งและแก้โปรเจกต์อัตโนมัติ · สำรองก่อนทุกครั้ง (ไม่เสียค่า API)');
  const actions=e('div',{className:'ai-actions'},
    button('ส่งให้ AI (Ctrl+Enter)',()=>queueCurrent(true),{disabled:busy||loading,className:'ai-primary'}),
    button('เก็บคำสั่งในคิว',()=>queueCurrent(false),{disabled:busy}),
    button('บันทึกประวัติ .json',()=>exportText('story-studio-ai-history.json',JSON.stringify({project:s.projectId,history:s.history,tasks:s.tasks},null,2))),
    button('ล้างแชต',()=>{if(root.confirm('ลบเฉพาะประวัติแชต? งานและสมุดความต่อเนื่องจะยังอยู่')){persist(state=>{state.history=[]});render()}}));
- pane.append(messages,e('div',{className:'ai-composer'},e('label',{},'ทีมที่รับคำสั่ง',role),input,actions));
+ pane.append(messages,e('div',{className:'ai-composer'},e('label',{},'ทีมที่รับคำสั่ง',role),input,autoLabel,actions));
  container.append(pane);
  requestAnimationFrame(()=>{const log=rootElement?.querySelector('.ai-chat-messages');if(log)log.scrollTop=log.scrollHeight});
 }
@@ -183,7 +218,7 @@ function renderTasks(container){
   if(task.response)box.append(e('div',{className:'ai-response'},e('strong',{},'ผลการทำงาน'),e('p',{},task.response)));
   if(task.error)box.append(e('p',{className:'ai-error'},task.error));
   const actions=e('div',{className:'ai-actions'});
-  if(['queued','failed','interrupted'].includes(task.status))actions.append(button('เริ่มงานนี้',()=>runTask(task.id),{disabled:busy||loading,className:'ai-primary'}));
+  if(['queued','failed','interrupted'].includes(task.status))actions.append(button('ลองทำงานนี้อีกครั้ง',()=>runTask(task.id),{disabled:busy||loading,className:'ai-primary'}));
   if(task.ops?.length){
    const panel=e('details',{className:'ai-ops'},e('summary',{},'ดูคำสั่งแก้โปรเจกต์ '+task.ops.length+' รายการ'),e('pre',{},JSON.stringify(task.ops,null,2)));
    box.append(panel);
@@ -299,7 +334,7 @@ function render(){
   e('div',{className:'ai-model-row'},e('label',{},'โมเดลในเครื่อง ',
     e('select',{'aria-label':'เลือกโมเดลในเครื่อง',onchange:evt=>{if(engine){status('ปล่อยหน่วยความจำก่อนสลับโมเดล',true);render();return}persist(s=>s.engineModel=evt.target.value);render()}},
       ...MODELS.map(m=>e('option',{value:m[0],selected:state.engineModel===m[0]},m[1])))),
-   e('small',{},'ฟรี ไม่มีค่า API · โหลดครั้งแรกผ่านอินเทอร์เน็ต (อาจใช้หลายร้อย MB) · คอมพิวเตอร์/ iPad ต้องรองรับ WebGPU')),
+   e('small',{},'ฟรีทั้งหมด · ส่งคำสั่งครั้งแรกแล้วระบบโหลด AI อัตโนมัติ · ต้องรองรับ WebGPU และดาวน์โหลดโมเดลขนาดใหญ่ครั้งแรก')),
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},progress||gpuStatus()),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
     ...[['chat','สนทนา'],['tasks','คิวงาน'],['bible','สมุดความต่อเนื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),

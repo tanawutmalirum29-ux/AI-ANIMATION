@@ -67,3 +67,6 @@
  #aiWorkspacePanel select{width:100%;min-width:0}
  #aiWorkspacePanel .ai-composer>label{align-items:stretch;flex-direction:column;gap:4px}
 }
+
+#aiWorkspacePanel .ai-auto-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#d4deeb;line-height:1.55;padding:7px 2px}
+#aiWorkspacePanel .ai-auto-toggle input{width:18px;height:18px;flex:none;accent-color:#e1c18b}
