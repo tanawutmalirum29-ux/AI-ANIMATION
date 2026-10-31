@@ -537,7 +537,16 @@ async function runNarrative(config={}){
    const patch={voiceover,subtitle};
    // Keep explicitly authored subtitle timings. Estimated cues are created only
    // for the standard mode when the scene previously had no timed captions.
-   if(voiceover!==old.voiceover)patch.subtitleCues=[];
+   if(voiceover!==old.voiceover){
+    patch.subtitleCues=[];
+    // Voice clips from the OLD script must not silently pass AI-2 as current.
+    // Keep original media as muted backups, never delete user's recordings.
+    const live=bridge.get().episodes.flatMap(ep=>ep.scenes||[]).find(sc=>sc.id===old.id);
+    if((live?.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&!c.mute)){
+     patch.audioClips=live.audioClips.map(c=>c.kind==='voice'&&c.data?
+      {...c,mute:true,staleNarration:true}:c);
+    }
+   }
    else if(narrativeModel==='standard'&&Array.isArray(item.subtitleCues)&&
     item.subtitleCues.length&&!(old.subtitleCues||[]).length)patch.subtitleCues=item.subtitleCues;
    const changedCues=Object.prototype.hasOwnProperty.call(patch,'subtitleCues');
@@ -558,7 +567,7 @@ async function runNarrative(config={}){
   const changedVoice=ops.some(o=>o.patch.subtitleCues?.length===0&&o.patch.voiceover);
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก'+
    (ops.length?'\n'+summary.join('\n'):'\nไม่มีการแก้ไขใหม่ที่ผ่านเกณฑ์ หรือทุกฉากมีบทและซับเหมาะสมอยู่แล้ว')+
-   (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
+   (changedVoice?'\nบทเปลี่ยนแล้ว: พากย์เก่าถูกพักเสียงไว้โดยไม่ลบไฟล์ · กรุณาพากย์ใหม่ด้วย AI-2':
     ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'')+
    (advisories.length?'\n\nข้อเสนอจากโมเดล (ยังไม่แก้โปรเจกต์ เพราะผลลัพธ์ไม่ผ่าน JSON):\n'+advisories.slice(0,5).join('\n'):'');
   if(!coordinated&&typeof bridge.persist==='function')recordHandoff('AI-3','script_ready',narrativeReport,{pendingDub:ops.some(o=>o.patch.voiceover!==byId.get(o.id)?.voiceover)});
