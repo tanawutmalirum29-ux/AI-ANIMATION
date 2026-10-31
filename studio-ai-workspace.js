@@ -11,6 +11,74 @@ const DB='storyStudio.projectLibrary.v1',STORE='snapshots';
 let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',lastError='',db=null,dbPromise=null;
 let targetMinutes=5,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
+const LOCAL_MODELS=[
+ {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
+ {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 0.5B',mb:280},
+ {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 1.5B',mb:870},
+ {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 3B',mb:1750},
+ {id:'Qwen2.5-7B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 7B (อุปกรณ์แรง)',mb:4100}
+];
+const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
+let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
+if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
+let localEngine=null,loadedModel='',modelReport='';
+function chooseModel(id){
+ if(busy)return;
+ chosenModel=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
+ try{localStorage.setItem(MODEL_KEY,chosenModel)}catch(_){}
+ modelReport='';render();
+}
+async function webGpuReady(){
+ if(!navigator.gpu)return false;
+ try{return !!(await navigator.gpu.requestAdapter())}catch(_){return false}
+}
+async function loadLocalModel(id){
+ if(!(await webGpuReady()))throw Error('อุปกรณ์/เบราว์เซอร์ไม่รองรับ WebGPU');
+ if(localEngine&&loadedModel===id)return localEngine;
+ const webllm=await import('https://esm.sh/@mlc-ai/web-llm@0.2.80');
+ if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))throw Error('WebLLM รุ่นนี้ไม่มีโมเดลที่เลือก');
+ if(localEngine){try{await localEngine.unload()}catch(_){}localEngine=null;loadedModel=''}
+ status('กำลังดาวน์โหลด/โหลดโมเดล (ครั้งแรกอาจใช้ข้อมูลจำนวนมาก)…');
+ const engine=await webllm.CreateMLCEngine(id,{initProgressCallback:p=>status('โหลด AI '+Math.round((p.progress||0)*100)+'% · '+(p.text||''))});
+ localEngine=engine;loadedModel=id;return engine;
+}
+function analysisInput(){
+ const state=bridge.get(),scope=audioScope,epIndex=bridge.episodeIndex();
+ const episodes=scope==='all'?state.episodes:scope==='episode'?[state.episodes[epIndex]]:[state.episodes[epIndex]];
+ const scenes=episodes.flatMap(ep=>(scope==='scene'?[ep.scenes[bridge.sceneIndex?.()||0]]:ep.scenes).filter(Boolean).map(sc=>({
+  id:sc.id,duration:sc.duration,voiceover:String(sc.voiceover||'').slice(0,450),
+  actors:Array.isArray(sc.actors)?sc.actors.length:0,
+  audioClips:Array.isArray(sc.audioClips)?sc.audioClips.length:0,
+  notes:String(sc.notes||'').slice(0,180)
+ }))).slice(0,18);
+ return {scenes,baseline:evaluate().stats};
+}
+async function benchmarkModel(){
+ if(busy)return;
+ if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
+ const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
+ if(!root.confirm('โมเดล '+model.label+' ต้องดาวน์โหลดประมาณ '+model.mb+' MB และใช้หน่วยความจำเพิ่มเติม ทดสอบบนเครื่องนี้?'))return;
+ busy=true;render();
+ const start=performance.now();
+ try{
+  const engine=await loadLocalModel(chosenModel);
+  const loadedMs=performance.now()-start;
+  const sample=analysisInput();
+  status('กำลังทดสอบการวิเคราะห์ฉากด้วย '+model.label);
+  const inferenceStart=performance.now();
+  const response=await engine.chat.completions.create({messages:[
+   {role:'system',content:'คุณเป็นผู้ช่วยตรวจจังหวะภาพยนตร์ภาษาไทย วิเคราะห์ JSON ที่มีอยู่ ห้ามแต่งหรือแก้บท ตอบสั้นๆเป็นภาษาไทย ระบุฉากที่อาจยาวเกินเสียงพากย์ และบอกว่าไม่สามารถยืนยันความยาวเสียงจริงได้หากไม่มีข้อมูลเสียง ห้ามเดาตัวเลขความยาวเสียง'},
+   {role:'user',content:JSON.stringify(sample).slice(0,7000)}
+  ],temperature:0.1,max_tokens:220});
+  const inferenceSec=Math.max(.001,(performance.now()-inferenceStart)/1000);
+  const tokens=response.usage?.completion_tokens||0;
+  const answer=String(response.choices?.[0]?.message?.content||'ไม่มีคำตอบ').slice(0,1500);
+  modelReport='รุ่น: '+model.label+'\\nโหลดรวม: '+(loadedMs/1000).toFixed(1)+' วินาที\\nวิเคราะห์: '+inferenceSec.toFixed(1)+' วินาที'+(tokens?'\\nความเร็ว: '+(tokens/inferenceSec).toFixed(1)+' token/วินาที':'')+'\\nผลวิเคราะห์ (ยังไม่แก้ JSON):\\n'+answer;
+  status('ทดสอบสำเร็จ · '+model.label);
+ }catch(err){modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
+ finally{busy=false;render()}
+}
+
 const e=(tag,props={},...children)=>{
  const element=document.createElement(tag);
  for(const [k,v]of Object.entries(props)){
@@ -167,6 +235,13 @@ function renderChat(container){
  const structure=e('article',{className:'ai-audio-agent'},
   e('h4',{},'AI-1 · ตรวจจังหวะฉากและความยาวตอนจากงานจริง'),
   e('p',{},'ตรวจว่าเสียงพากย์จบเมื่อไร เทียบกับ duration ของฉาก ถ้าเหลือภาพนิ่งค้างนานจะลดเวลา ถ้าเสียงยังไม่จบจะขยายเวลา พร้อมตรวจความยาวแต่ละตอน'),
+  e('div',{className:'ai-script-settings'},
+   e('label',{},'เครื่องมือวิเคราะห์',
+    e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
+     ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel},m.label)))),
+   button(busy?'กำลังทดสอบ…':'ทดสอบโมเดลบนอุปกรณ์',benchmarkModel,{disabled:busy}),
+   e('small',{},'มาตรฐานทำงานโดยไม่โหลดโมเดล · รุ่นอื่นต้องใช้ WebGPU และดาวน์โหลดไฟล์ · ไม่มีค่า API')),
+  ...(modelReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},modelReport)]:[]),
   e('div',{className:'ai-script-settings'},e('label',{},'ตรวจขอบเขต',scope),
     e('label',{},'นาทีต่อตอน',minutes)),
   splitting,
