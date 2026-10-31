@@ -55,4 +55,47 @@ assert.equal(tailAudit.scenes.find(x=>x.sceneId==='keyed').kind,'review','explic
 assert.ok(!tailAudit.ops.some(x=>['hold','keyed','fx-end'].includes(x.id)),'protect intentional holds, timed actors and non-voice audio');
 assert.deepEqual(tailCase.episodes[0].scenes.map(s=>s.duration),[36,36,36,36,36],'analysis remains non-mutating');
 
+
+// Contract: every new part aims for 60s, with +5s upper tolerance.
+const exact={episodes:[{id:'policy-ep',title:'ตอนเต็ม',targetSeconds:300,scenes:
+ [20,20,20,20,20,20].map((duration,i)=>({id:'p'+i,duration,voiceover:'บทเดิม '+i}))}]};
+const exactAudit=auditor.audit(exact,{scope:'all',targetMinutes:1});
+const exactSplit=auditor.planEpisodeSplits(exact,exactAudit,{scope:'all',targetMinutes:1});
+assert.deepEqual(exactSplit.episodes[0].parts,[60,60]);
+assert.equal(exactSplit.created,1);
+assert.equal(exactSplit.targetSeconds,60);
+assert.equal(exactSplit.maxSeconds,65);
+assert.equal(exact.episodes[0].scenes.length,6,'planning cannot mutate JSON');
+const byScene=[exactSplit.ops.find(o=>o.op==='replaceScenes').scenes,
+ ...exactSplit.ops.filter(o=>o.op==='addEpisode').map(o=>o.episode.scenes)];
+assert.deepEqual(byScene.flat().map(x=>x.id),exact.episodes[0].scenes.map(x=>x.id));
+assert.deepEqual(byScene.flat().map(x=>x.voiceover),exact.episodes[0].scenes.map(x=>x.voiceover));
+assert.ok(exactSplit.ops.some(o=>o.op==='updateEpisode'&&o.patch.targetSeconds===60));
+
+const close={episodes:[{id:'near',scenes:[31,34,30,30].map((duration,i)=>({id:'n'+i,duration}))}]};
+const closePlan=auditor.planEpisodeSplits(close,auditor.audit(close,{scope:'all',targetMinutes:1}),
+ {scope:'all',targetMinutes:1});
+assert.deepEqual(closePlan.episodes[0].parts,[65,60]);
+assert.equal(closePlan.warnings.length,0);
+
+const short={episodes:[{id:'short',scenes:[25,25,25,25,25,25].map((duration,i)=>({id:'q'+i,duration}))}]};
+const shortPlan=auditor.planEpisodeSplits(short,auditor.audit(short,{scope:'all',targetMinutes:1}),
+ {scope:'all',targetMinutes:1});
+assert.ok(shortPlan.episodes[0].parts.every(t=>t<=65),'never knowingly leave a compound part above hard limit');
+assert.ok(shortPlan.warnings.some(t=>t.includes('ไม่ยืดภาพนิ่ง')),'warn instead of making padding');
+
+const indivisible={episodes:[{id:'longscene',scenes:[{id:'s80',duration:80,voiceover:'ต่อเนื่อง',
+ actors:[{char:'hero',to:70}]}]}]};
+const stuck=auditor.planEpisodeSplits(indivisible,auditor.audit(indivisible,{scope:'all',targetMinutes:1}),
+ {scope:'all',targetMinutes:1});
+assert.equal(stuck.created,0,'cannot split a single timed animation without re-timing');
+assert.ok(stuck.episodes[0].needsManualWork);
+assert.ok(stuck.warnings.some(x=>x.includes('เกินเพดาน')));
+const locked={episodes:[{id:'clue',clues:[{id:'c',sceneId:'a'}],
+ scenes:[{id:'a',duration:40},{id:'b',duration:40}]}]};
+const protectedPlan=auditor.planEpisodeSplits(locked,auditor.audit(locked,{scope:'all',targetMinutes:1}),
+ {scope:'all',targetMinutes:1});
+assert.equal(protectedPlan.created,0,'do not detach episode-level clue markers');
+assert.ok(protectedPlan.warnings.some(x=>x.includes('เบาะแส')));
+
 console.log('PASS: imported JSON live voice audit, safe shorten/extend, protect actions and music, no lost narrated text');
