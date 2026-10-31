@@ -19,7 +19,7 @@ function stateAt(scene,index,loc){
  if(init){v.hidden=true;v.actor=init.actor;v.hand=init.hand||'right'}
  let opened=0;
  for(const e of events(scene)){
-  if(Number(e.at)>loc+1e-5||Number(e.propIndex)!==index)break;
+  if(Number(e.at)>loc+1e-5)break;if(Number(e.propIndex)!==index)continue;
   if(e.type==='pickup'){v.hidden=true;v.actor=e.actor;v.hand=e.hand||'right'}
   if(e.type==='place'){v.hidden=false;v.actor=null;v.x=clamp(e.x??v.x,0,100);v.y=clamp(e.y??v.y,0,100)}
   if(e.type==='door'){const t=clamp((loc-(+e.at))/(Math.max(.05,(+e.duration)||.7)),0,1);opened=Number(e.open??1)?t:1-t}
@@ -77,7 +77,7 @@ function continueAt(location,art){
 function generateEvent(type,actor,propIndex,time){
  const e={id:'ci'+uid(),type,actor,propIndex,at:clamp(time,0,sc().duration),hand:'right'};
  if(type==='place'){e.x=50;e.y=85}
- if(type==='door'){e.duration:.7;e.open=1}
+ if(type==='door'){e.duration=.7;e.open=1}
  return e;
 }
 function h(tag,attrs={},content){
@@ -140,7 +140,7 @@ function renderPanel(){
    if(typ==='door'&&kind!=='door'){alert('เลือกพร็อพประตูก่อนใช้แอ็กชันเปิด/ปิด');return}
    const e={id:'ci'+uid(),type:typ,actor:person.value,propIndex:idx,at:clamp(time.value,0,scn.duration),hand:hand.value};
    if(typ==='place'){const a=actors.find(x=>x.char===e.actor);const cur=a?actorAtTime(a,scn,e.at,scn.duration):null;e.x=clamp(cur?.x??50,0,100);e.y=clamp(cur?.y??85,0,100)}
-   if(typ==='door'){e.duration:.65;e.open=1}
+   if(typ==='door'){e.duration=.65;e.open=1}
    commit(()=>{scn.interactions??=[];scn.interactions.push(e)});
   })));
  }
