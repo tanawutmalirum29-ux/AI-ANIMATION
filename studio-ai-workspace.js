@@ -483,7 +483,7 @@ async function runNarrative(){
  try{
   const scenes=narrativeScenes();
   if(!scenes.length)throw Error('ไม่มีฉากให้ปรับ');
-  let changes=[];
+  let changes=[];const advisories=[];
   if(narrativeModel==='standard'){
    changes=scenes.map(standardNarrative).filter(Boolean);
   }else{
@@ -505,8 +505,14 @@ async function runNarrative(){
      .replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
     let parsed;
     try{parsed=JSON.parse(raw)}
-    catch(err){throw Error('AI-3 สร้าง JSON ไม่สมบูรณ์ ที่ฉาก '+(offset+1)+': '+String(err.message||err))}
-    if(!Array.isArray(parsed.changes))throw Error('AI-3 ไม่ส่ง changes[] ที่ฉาก '+(offset+1));
+    catch(err){
+     advisories.push('ฉาก '+(offset+1)+' · โมเดลตอบเป็นข้อความ แต่ยังไม่เป็น JSON ที่แก้โปรเจกต์ได้: '+raw.slice(0,360));
+     continue;
+    }
+    if(!Array.isArray(parsed.changes)){
+     advisories.push('ฉาก '+(offset+1)+' · ผลลัพธ์ไม่ใช่ changes[] · จึงยังไม่แก้ JSON');
+     continue;
+    }
     allChanges.push(...parsed.changes);
    }
    updateModelLoad({active:false,ready:true,percent:100,stage:'วิเคราะห์บทครบ '+scenes.length+' ฉาก'});
@@ -521,6 +527,8 @@ async function runNarrative(){
    if(subtitle.some(x=>[...x].length>28))continue;
    const voiceover=narrativeMode==='preserve'||narrativeModel==='standard'?old.voiceover:String(item.voiceover||old.voiceover).slice(0,1500);
    if(!voiceover&&!subtitle.some(Boolean))continue;
+   if(/[\u0e00-\u0e7f]/.test(old.voiceover||'')&& !/[\u0e00-\u0e7f]/.test(voiceover)||
+    /[\u0e00-\u0e7f]/.test(old.voiceover||'')&&subtitle.some(line=>!/[\u0e00-\u0e7f]/.test(line)))continue;
    const patch={voiceover,subtitle};
    // Keep explicitly authored subtitle timings. Estimated cues are created only
    // for the standard mode when the scene previously had no timed captions.
@@ -546,7 +554,8 @@ async function runNarrative(){
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก'+
    (ops.length?'\n'+summary.join('\n'):'\nไม่มีการแก้ไขใหม่ที่ผ่านเกณฑ์ หรือทุกฉากมีบทและซับเหมาะสมอยู่แล้ว')+
    (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
-    ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'');
+    ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'')+
+   (advisories.length?'\n\nข้อเสนอจากโมเดล (ยังไม่แก้โปรเจกต์ เพราะผลลัพธ์ไม่ผ่าน JSON):\n'+advisories.slice(0,5).join('\n'):'');
   status(narrativeReport);
  }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;modelAbortController=null;render()}
