@@ -73,15 +73,27 @@ const preview=a=>{const node=el('div',{className:'ai-art-preview',role:'img','ar
 function announce(text){message=text;const e=host?.querySelector('#studioArtStatus');if(e)e.textContent=text}
 async function load(){
  if(catalog)return catalog;
- let remote=[];
- try{
-  let res;try{res=await fetch(repoCatalog,{cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status)}
-  catch(e){res=await fetch('./assets/library.json',{cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status)}
+ let local=[],remote=[];
+ const parse=async res=>{
+  if(!res.ok)throw Error('HTTP '+res.status);
   const d=await res.json();if(!Array.isArray(d.assets)||d.assets.length>300)throw Error('รายการสินทรัพย์ไม่ถูกต้อง');
-  remote=d.assets.map(a=>{try{return core.asset(a)}catch(e){return null}}).filter(Boolean);
- }catch(err){announce('โหลดคลัง GitHub ไม่สำเร็จ: '+err.message+' · ใช้คลังส่วนตัวแทน')}
- const seen=new Set(remote.map(nameKey));
- catalog=[...remote,...localAssets.filter(a=>!seen.has(nameKey(a)))];
+  return d.assets.map(a=>{try{return core.asset(a)}catch(e){return null}}).filter(Boolean);
+ };
+ const ctrl=new AbortController(),limit=setTimeout(()=>ctrl.abort(),2000);
+ try{
+  // A bundled catalog always works offline; merge newly integrated GitHub entries if reachable.
+  const [base,live]=await Promise.allSettled([
+   fetch('./assets/library.json',{cache:'no-store'}).then(parse),
+   fetch(repoCatalog,{cache:'no-store',signal:ctrl.signal}).then(parse)
+  ]);
+  if(base.status==='fulfilled')local=base.value;
+  if(live.status==='fulfilled')remote=live.value;
+  if(!local.length&&!remote.length)announce('โหลดคลังเว็บและ GitHub ไม่สำเร็จ · ใช้คลังส่วนตัวแทน');
+ }finally{clearTimeout(limit)}
+ const seen=new Set();
+ catalog=[...remote,...local,...localAssets].filter(a=>{
+  const key=nameKey(a);if(seen.has(key))return false;seen.add(key);return true;
+ });
  return catalog;
 }
 function useAsset(a){
