@@ -1,0 +1,41 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ try{
+  const page=await browser.newPage({viewport:{width:768,height:1024},acceptDownloads:true});
+  page.on('dialog',dialog=>dialog.accept());
+  const failures=[];page.on('pageerror',e=>failures.push(e.message));
+  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await page.locator('#aiQuick').click();
+  await page.locator('#aiWorkspacePanel').waitFor({state:'visible'});
+  assert.equal(await page.getByRole('heading',{name:'AI Production Workspace'}).count(),1);
+  assert.equal(await page.locator('#aiWorkspacePanel [aria-label="เลือกทีม AI"] option').count(),7);
+  await page.locator('#aiWorkspacePanel [aria-label="สั่งงาน AI"]').fill('ช่วยวางเรื่องยาวต่อเนื่อง 3 ตอน');
+  await page.getByRole('button',{name:'เก็บคำสั่งในคิว'}).click();
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คิวงาน'}).click();
+  await page.getByText('ช่วยวางเรื่องยาวต่อเนื่อง 3 ตอน').last().waitFor();
+  assert.equal(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.tasks.length),1);
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'สมุดความต่อเนื่อง'}).click();
+  const bible=page.locator('#aiWorkspacePanel .ai-field textarea').first();
+  await bible.fill('ชื่อพระเอกคนเดิมและจดหมายลับ');await bible.blur();
+  assert.equal(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.bible.premise),'ชื่อพระเอกคนเดิมและจดหมายลับ');
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'โปรเจกต์'}).click();
+  await page.getByRole('button',{name:'บันทึกเวอร์ชันในเครื่อง'}).click();
+  await page.locator('#aiProjectLibrary .ai-snapshot').first().waitFor();
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'สมุดความต่อเนื่อง'}).click();
+  const again=page.locator('#aiWorkspacePanel .ai-field textarea').first();
+  await again.fill('ข้อความชั่วคราว');await again.blur();
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'โปรเจกต์'}).click();
+  await page.getByRole('button',{name:'เปิดเวอร์ชัน'}).first().click();
+  await page.waitForFunction(()=>window.StoryStudioBridge.get().project.aiWorkspace.bible.premise==='ชื่อพระเอกคนเดิมและจดหมายลับ');
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#aiQuick').click();
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คิวงาน'}).click();
+  await page.getByText('ช่วยวางเรื่องยาวต่อเนื่อง 3 ตอน').last().waitFor();
+  assert.equal(await page.evaluate(()=>window.StoryStudioBridge.get().project.aiWorkspace.tasks.length),1);
+  assert.deepEqual(failures,[]);
+  console.log('PASS: iPad AI workspace, job history, story bible, project version save/open/reload');
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exit(1)});
