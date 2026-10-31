@@ -18,3 +18,15 @@
 .ai-art-review .ai-actions button{white-space:normal}
 @media(max-width:720px){.ai-art-edit-grid{grid-template-columns:1fr}.ai-art-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:390px){.ai-art-grid{grid-template-columns:1fr 1fr}}
+
+.ai-art-current{margin:12px 0 18px;padding:12px;background:#111f33;border:1px solid #ffffff22;border-radius:12px}
+.ai-art-current h4{margin:0 0 9px;color:#e9c98e}
+.ai-art-placement{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:10px;padding:7px 0;border-top:1px solid #ffffff20}
+.ai-art-placement>.ai-art-preview{width:90px;height:90px}
+.ai-art-placement-fields{display:grid;gap:6px;min-width:0}
+.ai-art-number-row{display:flex;gap:8px;flex-wrap:wrap}
+.ai-art-number-row label{flex:1;min-width:60px;font-size:11px}
+.ai-art-number-row input{width:100%;margin-top:3px}
+.ai-art-placement-fields>label{display:flex;align-items:center;gap:6px;margin:0}
+.ai-art-placement-fields input[type=checkbox]{width:18px;min-height:18px;height:18px}
+.ai-art-placement-fields button{justify-self:start}
