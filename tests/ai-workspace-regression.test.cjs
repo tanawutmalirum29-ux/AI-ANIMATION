@@ -218,7 +218,7 @@ test('CPU/WASM models are explicitly selectable without requiring WebGPU',()=>{
 
 test('AI-3 standard produces timed cues for complete Thai narration without truncating',()=>{
  const begin=workspace.indexOf('function narrativeChunks(source,limit=24){');
- const end=workspace.indexOf('\nasync function runNarrative(){',begin);
+ const end=workspace.indexOf('\nasync function runNarrative(',begin);
  assert.ok(begin>=0&&end>begin);
  const build=new Function(workspace.slice(begin,end)+';return standardNarrative;')();
  const voice='ในค่ำคืนที่สถานีรถไฟร้าง แสงไฟเหนือชานชาลากะพริบเป็นจังหวะ เสียงลมพัดลอดหน้าต่าง และประตูรถไฟค่อย ๆ เปิดออกโดยไม่มีผู้โดยสารลงมา';
