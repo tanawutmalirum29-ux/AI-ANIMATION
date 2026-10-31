@@ -3053,12 +3053,14 @@ const VIDEO_FORMATS=[
  {id:'mp4video',name:'MP4 · ไม่มีเสียง',mime:'video/mp4;codecs="avc1.42E01E"',ext:'mp4'}
 ];
 let ACTIVE_EXPORT=null;
-function compatibleVideoFormats(){if(typeof MediaRecorder==='undefined'||!HTMLCanvasElement.prototype.captureStream)return[];return VIDEO_FORMATS.filter(x=>MediaRecorder.isTypeSupported(x.mime))}
+const FAST_FORMAT={id:'fastmp4',name:'⚡ MP4 · H.264 เร็ว (แนะนำ)',mime:'video/mp4',ext:'mp4'};
+function compatibleVideoFormats(){const out=[];if(typeof VideoEncoder!=='undefined'&&typeof VideoFrame!=='undefined')out.push(FAST_FORMAT);
+ if(typeof MediaRecorder!=='undefined'&&HTMLCanvasElement.prototype.captureStream)out.push(...VIDEO_FORMATS.filter(x=>MediaRecorder.isTypeSupported(x.mime)));return out}
 function openVideoExport(){
  const diag=$('#videoDialog'),opts=compatibleVideoFormats(),sel=$('#videoFormat');
  sel.replaceChildren(...opts.map((f,i)=>h('option',{value:f.id,selected:i===0},f.name)));
  const sum=total();const preflight=smartAnalyze(S),need=preflight.filter(x=>x.severity==='error').length,advice=preflight.filter(x=>x.severity==='warn').length;$('#videoCompatibility').textContent=opts.length?
- `ตอนนี้ ${ep().scenes.length} ฉาก · ${sum.toFixed(1)} วินาที · QA ${need} error / ${advice} เตือน · รองรับ ${opts.map(x=>x.ext.toUpperCase()).filter((x,i,a)=>a.indexOf(x)===i).join(' / ')} · เข้ารหัสตามเวลาจริง · Downloads ไม่ใช่ Gallery`:
+ `ตอนนี้ ${ep().scenes.length} ฉาก · ${sum.toFixed(1)} วินาที · QA ${need} error / ${advice} เตือน · รองรับ ${opts.map(x=>x.ext.toUpperCase()).filter((x,i,a)=>a.indexOf(x)===i).join(' / ')} · โหมด ⚡ เร็วไม่ต้องรอเวลาจริง · Downloads ไม่ใช่ Gallery`:
  'เบราว์เซอร์นี้ไม่รองรับ MediaRecorder หรือ Canvas Capture; กรุณาใช้ Chrome / Edge เวอร์ชันใหม่';
  $('#videoStart').disabled=!opts.length||!!ACTIVE_EXPORT;$('#videoProgress').value=0;$('#videoStatus').textContent=opts.length?'พร้อมส่งออก · กรุณาอย่าปิดแท็บระหว่างทำงาน':'ไม่สามารถส่งออกบนเบราว์เซอร์นี้';
  $('#videoResult').classList.toggle('ready',!!LAST_VIDEO);
@@ -3266,19 +3268,193 @@ async function prepareExportAudio(E,format){
  const oscillator=audio.createOscillator(),silent=audio.createGain();silent.gain.value=.0000001;oscillator.connect(silent).connect(destination);oscillator.start();await audio.resume();
  return {audio,destination,buffers,warnings,sources:[oscillator]};
 }
+/* ===== v34 Fast export (WebCodecs): เรนเดอร์ทีละเฟรมแบบกำหนดเวลาเอง ไม่ผูกกับนาฬิกาจริง =====
+   - ความยาวไฟล์ถูกต้องเสมอ แม้เครื่องวาดช้า (ไม่ถูกบีบเวลาเหมือน MediaRecorder บน iOS)
+   - เร็วกว่าเวลาจริงบนเครื่องที่วาดทัน; MP4 แบบ faststart (เล่น/พรีวิวได้ทันที) */
+function fxBox(type,parts){let len=8;for(const a of parts)len+=a.length;const out=new Uint8Array(len),dv=new DataView(out.buffer);dv.setUint32(0,len);for(let i=0;i<4;i++)out[4+i]=type.charCodeAt(i);let o=8;for(const a of parts){out.set(a,o);o+=a.length}return out}
+function fxU32(list){const o=new Uint8Array(list.length*4),dv=new DataView(o.buffer);list.forEach((v,i)=>dv.setUint32(i*4,v>>>0));return o}
+function fxU16(list){const o=new Uint8Array(list.length*2),dv=new DataView(o.buffer);list.forEach((v,i)=>dv.setUint16(i*2,v&65535));return o}
+function fxBytes(list){return Uint8Array.from(list)}
+function fxZeros(n){return new Uint8Array(n)}
+function fxAsc(sampleRate,channels){const rates=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];let i=rates.indexOf(sampleRate);if(i<0)i=3;const v=(2<<11)|(i<<7)|(channels<<3);return fxBytes([v>>8,v&255])}
+function createMp4Muxer(o){
+ const vs=[],as=[];let vdesc=o.videoDesc||null,adesc=o.audioDesc||null;
+ const W=o.width,H=o.height,fps=o.fps,sr=o.sampleRate||48000,ch=o.channels||2,hasAudio=!!o.audio;
+ const matrix=fxU32([0x10000,0,0,0,0x10000,0,0,0,0x40000000]);
+ function stbl(stsd,durations,sizes,offsets,syncs){
+  const runs=[];for(const d of durations){const l=runs[runs.length-1];if(l&&l[1]===d)l[0]++;else runs.push([1,d])}
+  const flat=[];for(const r of runs)flat.push(r[0],r[1]);
+  const parts=[stsd,fxBox('stts',[fxU32([0,runs.length]),fxU32(flat)])];
+  if(syncs)parts.push(fxBox('stss',[fxU32([0,syncs.length]),fxU32(syncs)]));
+  parts.push(fxBox('stsc',[fxU32([0,1,1,1,1])]),fxBox('stsz',[fxU32([0,0,sizes.length]),fxU32(sizes)]),fxBox('stco',[fxU32([0,offsets.length]),fxU32(offsets)]));
+  return fxBox('stbl',parts)
+ }
+ function trak(id,kind,timescale,durTrack,durMovie,stblBox){
+  const video=kind==='vide';
+  const tkhd=fxBox('tkhd',[fxU32([0x00000003,0,0,id,0,durMovie,0,0]),fxU16([0,0,video?0:0x0100,0]),matrix,fxU32([video?W<<16:0,video?H<<16:0])]);
+  const mdhd=fxBox('mdhd',[fxU32([0,0,0,timescale,durTrack]),fxU16([0x55c4,0])]);
+  const hdlr=fxBox('hdlr',[fxU32([0,0]),fxBytes([...kind].map(c=>c.charCodeAt(0))),fxZeros(12),fxBytes([...(video?'VideoHandler':'SoundHandler')].map(c=>c.charCodeAt(0)).concat([0]))]);
+  const dinf=fxBox('dinf',[fxBox('dref',[fxU32([0,1]),fxBox('url ',[fxU32([1])])])]);
+  const mhd=video?fxBox('vmhd',[fxU32([1,0,0])]):fxBox('smhd',[fxU32([0,0])]);
+  return fxBox('trak',[tkhd,fxBox('mdia',[mdhd,hdlr,fxBox('minf',[mhd,dinf,stblBox])])])
+ }
+ function descLen(n){if(n>127)throw new Error('descriptor too long');return n}
+ function esds(asc){
+  const dcd=[0x04,descLen(13+2+asc.length),0x40,0x15,0,0,0,0,0,0,0,0,0,0,0,0x05,descLen(asc.length),...asc];
+  const esd=[0x03,descLen(3+dcd.length+3),0,1,0,...dcd,0x06,1,2];
+  return fxBox('esds',[fxU32([0]),fxBytes(esd)])
+ }
+ function build(base,orderInfo){
+  // video track
+  const vN=vs.length,vt=vs.map(s=>Math.round(s.ts*0.09)),vd=[];
+  for(let i=0;i<vN;i++)vd.push(Math.max(1,(i+1<vN?vt[i+1]:vt[i]+Math.round(1e6/fps*0.09))-vt[i]));
+  const vDurTs=vd.reduce((a,b)=>a+b,0),vDurMs=Math.round(vDurTs/90);
+  const avc1=fxBox('avc1',[fxZeros(6),fxU16([1]),fxZeros(16),fxU16([W,H]),fxU32([0x00480000,0x00480000,0]),fxU16([1]),fxZeros(32),fxU16([0x18,0xffff]),fxBox('avcC',[vdesc])]);
+  const vSync=[];vs.forEach((s,i)=>{if(s.key)vSync.push(i+1)});
+  const vStbl=stbl(fxBox('stsd',[fxU32([0,1]),avc1]),vd,vs.map(s=>s.data.length),orderInfo.vOff,vSync);
+  let aDurMs=0,aTrak=null;
+  if(hasAudio){
+   const aN=as.length,at=as.map(s=>Math.round(s.ts*sr/1e6)),ad=[];
+   for(let i=0;i<aN;i++)ad.push(Math.max(1,(i+1<aN?at[i+1]:at[i]+1024)-at[i]));
+   const aDurTs=ad.reduce((a,b)=>a+b,0);aDurMs=Math.round(aDurTs*1000/sr);
+   const mp4a=fxBox('mp4a',[fxZeros(6),fxU16([1]),fxZeros(8),fxU16([ch,16,0,0]),fxU32([sr<<16]),esds(adesc||fxAsc(sr,ch))]);
+   const aStbl=stbl(fxBox('stsd',[fxU32([0,1]),mp4a]),ad,as.map(s=>s.data.length),orderInfo.aOff,null);
+   aTrak=trak(2,'soun',sr,aDurTs,aDurMs,aStbl);
+  }
+  const movMs=Math.max(vDurMs,aDurMs);
+  const mvhd=fxBox('mvhd',[fxU32([0,0,0,1000,movMs,0x00010000]),fxU16([0x0100,0]),fxZeros(8),matrix,fxZeros(24),fxU32([hasAudio?3:2])]);
+  const parts=[mvhd,trak(1,'vide',90000,vDurTs,movMs,vStbl)];if(aTrak)parts.push(aTrak);
+  return fxBox('moov',parts)
+ }
+ return {
+  setVideoDesc(d){vdesc=d},setAudioDesc(d){adesc=d},
+  addVideo(data,ts,key){vs.push({data,ts,key,k:0})},addAudio(data,ts){as.push({data,ts,k:1})},
+  finish(){
+   if(!vs.length)throw new Error('ไม่มีเฟรมวิดีโอ');if(!vdesc)throw new Error('ไม่ได้รับค่า avcC จากตัวเข้ารหัส');
+   const ftyp=fxBox('ftyp',[fxBytes([...'isom'].map(c=>c.charCodeAt(0))),fxU32([512]),fxBytes([...'isomiso2avc1mp41'].map(c=>c.charCodeAt(0)))]);
+   const all=vs.concat(as).sort((p,q)=>p.ts-q.ts||p.k-q.k);
+   const dummy={vOff:vs.map(()=>0),aOff:as.map(()=>0)};
+   const moovSize=build(0,dummy).length,mdatStart=ftyp.length+moovSize+8;
+   let pos=mdatStart;const vOff=new Array(vs.length),aOff=new Array(as.length);
+   const vi=new Map(vs.map((s,i)=>[s,i])),ai=new Map(as.map((s,i)=>[s,i]));
+   for(const s of all){if(s.k===0)vOff[vi.get(s)]=pos;else aOff[ai.get(s)]=pos;pos+=s.data.length}
+   const moov=build(0,{vOff,aOff});if(moov.length!==moovSize)throw new Error('moov size mismatch');
+   const mdatHead=new Uint8Array(8),dv=new DataView(mdatHead.buffer);dv.setUint32(0,pos-mdatStart+8);mdatHead.set([109,100,97,116],4);
+   if(pos>0xFFFFFFF0)throw new Error('ไฟล์ใหญ่เกิน 4GB');
+   return new Blob([ftyp,moov,mdatHead,...all.map(s=>s.data)],{type:'video/mp4'})
+  }
+ }
+}
+function fxCopy(d){if(!d)return null;if(d instanceof ArrayBuffer)return new Uint8Array(d.slice(0));return new Uint8Array(d.buffer.slice(d.byteOffset,d.byteOffset+d.byteLength))}
+function fxSleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function fastAvcCodec(w,h){const mb=Math.ceil(w/16)*Math.ceil(h/16);return mb<=3600?'avc1.42E01F':mb<=8192?'avc1.42E028':'avc1.42E033'}
+function fastFrameSize(requested,aspect){let [ar,br]=String(aspect||'16:9').split(':').map(Number);if(!ar||!br){ar=16;br=9}
+ let w=ar>=br?Math.round(requested*ar/br):requested,h=ar>=br?requested:Math.round(requested*br/ar);return [w+(w&1),h+(h&1)]}
+async function fastExportCheck(w,h,fps,bitrate,needAudio,duration){
+ if(typeof VideoEncoder==='undefined'||typeof VideoFrame==='undefined')return null;
+ const cfg={codec:fastAvcCodec(w,h),width:w,height:h,bitrate,framerate:fps,avc:{format:'avc'}};
+ try{const s=await VideoEncoder.isConfigSupported(cfg);if(!s||!s.supported)return null;
+  if(needAudio){if(typeof AudioEncoder==='undefined'||typeof OfflineAudioContext==='undefined'||duration>600)return null;
+   const a=await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000});if(!a||!a.supported)return null}
+  return cfg}catch(e){return null}
+}
+function fxScheduleAudio(off,buffers){
+ for(const b of buffers){const source=off.createBufferSource();source.buffer=b.buffer;source.playbackRate.value=b.rate;let feed=source,xg=null;if(b.xin>0||b.xout>0){xg=off.createGain();source.connect(xg);feed=xg}
+  const nodes=createFxNodes(off,feed,off.destination);applyFxNodes(nodes,b.clip);const gain=nodes.gain;
+  const t0=b.start,finish=t0+b.length,fadeIn=Math.min(b.length/2,Math.max(0,b.fadeIn)),fadeOut=Math.min(b.length/2,Math.max(0,b.fadeOut));b.vol*=voiceGainFactor(b.clip)*clipAutoGainFactor(b.clip);
+  const points=[[t0,fadeIn>0?0:b.vol],[t0+fadeIn,b.vol],[finish-fadeOut,b.vol],[finish,fadeOut>0?0:b.vol]].sort((a,z)=>a[0]-z[0]);
+  points.forEach(([t,v],i)=>{if(i===0)gain.gain.setValueAtTime(v,t);else gain.gain.linearRampToValueAtTime(v,Math.max(t,points[i-1][0]+.0001))});
+  if(xg){const pts=[b.start,b.chainStart+b.xin,b.limit-b.xout,b.start+b.length].filter(v=>v>=b.start-1e-6&&v<=b.start+b.length+1e-6).sort((p,q)=>p-q);pts.forEach((tt,k)=>{const v=eventXGain(b,tt);if(k===0)xg.gain.setValueAtTime(v,tt);else xg.gain.linearRampToValueAtTime(v,Math.max(tt,pts[k-1]+.0001))})}
+  source.start(t0,b.sourceAt,b.sourceDuration)}
+}
+async function startFastExport(f,cfg,o){
+ const {w,h,fps,duration,needAudio}=o,project=ep();
+ const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:false});
+ const job={aborted:false,recorder:null,context:null,finished:false};ACTIVE_EXPORT=job;
+ $('#videoStart').disabled=true;$('#videoCancel').disabled=false;$('#videoClose').disabled=true;
+ const keep={T,playing,sel};playing=false;pauseAudioPlayers();
+ let venc=null,aenc=null;const t0=performance.now();
+ try{
+  const mux=createMp4Muxer({width:w,height:h,fps,audio:needAudio,sampleRate:48000,channels:2});
+  let encErr=null,warn='';
+  // 1) เสียง: ผสมแบบ offline (เร็วกว่าเวลาจริง) แล้วค่อยเข้ารหัส AAC
+  let audioBuf=null;
+  if(needAudio){
+   exportStatus('เตรียมและผสมเสียง…',1);
+   const pa=await prepareExportAudio(project,f);job.context=pa.audio;
+   if(pa.warnings.length)warn=pa.warnings[0];
+   if(pa.buffers.length){
+    const off=new OfflineAudioContext(2,Math.max(1,Math.ceil(duration*48000)),48000);
+    fxScheduleAudio(off,pa.buffers);audioBuf=await off.startRendering();
+   }
+   try{pa.audio.close()}catch(e){}job.context=null;
+   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
+  }
+  // 2) วิดีโอ: เรนเดอร์ทีละเฟรมตามเวลาที่กำหนดเอง (ไม่ผูกกับนาฬิกาจริง)
+  venc=new VideoEncoder({output:(chunk,meta)=>{const d=meta?.decoderConfig?.description;if(d)mux.setVideoDesc(fxCopy(d));const buf=new Uint8Array(chunk.byteLength);chunk.copyTo(buf);mux.addVideo(buf,chunk.timestamp,chunk.type==='key')},error:e=>{encErr=e}});
+  venc.configure(cfg);
+  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map()},N=Math.max(1,Math.round(duration*fps)),keyEvery=Math.max(1,Math.round(fps*2));
+  let lastUi=0;
+  for(let i=0;i<N;i++){
+   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');if(encErr)throw new Error('เข้ารหัสวิดีโอผิดพลาด: '+(encErr.message||encErr));
+   await renderVideoFrame(ctx,Math.min(duration-.001,i/fps),info);
+   const vf=new VideoFrame(canvas,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});
+   try{venc.encode(vf,{keyFrame:i%keyEvery===0})}finally{vf.close()}
+   while(venc.encodeQueueSize>8){await fxSleep(4);if(job.aborted||encErr)break}
+   const now=performance.now();if(now-lastUi>250){lastUi=now;const el=(now-t0)/1000,rate=(i+1)/Math.max(.001,el),eta=(N-i-1)/Math.max(.001,rate);
+    exportStatus(`เรนเดอร์ ${(i/fps).toFixed(1)} / ${duration.toFixed(1)} วินาที · ${i+1}/${N} เฟรม · เหลือประมาณ ${Math.ceil(eta)} วินาที${warn?' · บางเสียงไม่รองรับ':''}`,8+(i/N)*88)}
+  }
+  await venc.flush();venc.close();venc=null;if(encErr)throw new Error('เข้ารหัสวิดีโอผิดพลาด: '+(encErr.message||encErr));
+  // 3) เข้ารหัสเสียง
+  if(audioBuf){
+   exportStatus('เข้ารหัสเสียง…',97);
+   aenc=new AudioEncoder({output:(chunk,meta)=>{const d=meta?.decoderConfig?.description;if(d)mux.setAudioDesc(fxCopy(d));const buf=new Uint8Array(chunk.byteLength);chunk.copyTo(buf);mux.addAudio(buf,chunk.timestamp)},error:e=>{encErr=e}});
+   aenc.configure({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000});
+   const L=audioBuf.getChannelData(0),R=audioBuf.numberOfChannels>1?audioBuf.getChannelData(1):L,BLK=4800;
+   for(let p=0;p<L.length;p+=BLK){if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');if(encErr)throw new Error('เข้ารหัสเสียงผิดพลาด: '+(encErr.message||encErr));
+    const n=Math.min(BLK,L.length-p),data=new Float32Array(n*2);data.set(L.subarray(p,p+n),0);data.set(R.subarray(p,p+n),n);
+    const ad=new AudioData({format:'f32-planar',sampleRate:48000,numberOfFrames:n,numberOfChannels:2,timestamp:Math.round(p*1e6/48000),data});
+    try{aenc.encode(ad)}finally{ad.close()}
+    while(aenc.encodeQueueSize>16){await fxSleep(2);if(job.aborted||encErr)break}}
+   await aenc.flush();aenc.close();aenc=null;if(encErr)throw new Error('เข้ารหัสเสียงผิดพลาด: '+(encErr.message||encErr));
+  }
+  exportStatus('รวมไฟล์ MP4…',99);
+  const blob=mux.finish();if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า');
+  const filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.mp4';
+  showExportResult(blob,filename);
+  const took=(performance.now()-t0)/1000;
+  exportStatus(`ส่งออกสำเร็จ: ${filename}\n${(blob.size/1048576).toFixed(2)} MB · ${duration.toFixed(1)} วินาที · ใช้เวลา ${took.toFixed(0)} วินาที (${(duration/took).toFixed(1)}× ของเวลาจริง)${warn?'\n'+warn:''}`,100);
+ }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
+  try{venc&&venc.state!=='closed'&&venc.close()}catch(e){}try{aenc&&aenc.state!=='closed'&&aenc.close()}catch(e){}
+  try{job.context?.close()}catch(e){}
+  T=keep.T;playing=false;sel=keep.sel;resetTransitionCache();draw();ctl();
+  ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;
+ }
+}
+
 async function startVideoExport(){
  if(ACTIVE_EXPORT)return;
- const supported=compatibleVideoFormats(),f=supported.find(x=>x.id===$('#videoFormat').value);
+ const supported=compatibleVideoFormats();let f=supported.find(x=>x.id===$('#videoFormat').value);
  if(!f){exportStatus('เบราว์เซอร์นี้ไม่รองรับชนิดวิดีโอที่เลือก');return}
  const project=ep(),duration=total();if(!(duration>0&&duration<=1800)){exportStatus('ตอนนี้ต้องมีความยาว 0–30 นาที');return}
  const requested=Number($('#videoResolution').value),fps=Number($('#videoFPS').value),aspect=S.project.aspect||'16:9';
  let [ar,br]=aspect.split(':').map(Number);if(!ar||!br){ar=16;br=9}
  const w=ar>=br?Math.round(requested*ar/br):requested,h=ar>=br?requested:Math.round(requested*br/ar);
+ if(f.id==='fastmp4'){
+  const needAudio=audioEvents().some(ev=>ev.c.data&&!ev.c.mute),[fw,fh]=fastFrameSize(requested,aspect),bitrate=Math.round((requested>=1080?5e6:requested>=720?3e6:1.3e6)*(fps>12?1.3:1));
+  exportStatus('ตรวจการเข้ารหัสแบบเร็ว…',0);
+  const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration);
+  if(cfg)return startFastExport(f,cfg,{w:fw,h:fh,fps,duration,needAudio});
+  const alt=supported.find(x=>x.id!=='fastmp4');
+  if(!alt){exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
+  f=alt;exportStatus('เข้ารหัสแบบเร็วใช้ไม่ได้บนเครื่องนี้ (ต้องมี H.264/AAC) · ใช้โหมดเวลาจริงแทน');
+ }
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:false});
  const job={aborted:false,recorder:null,context:null,finished:false};ACTIVE_EXPORT=job;
  $('#videoStart').disabled=true;$('#videoCancel').disabled=false;$('#videoClose').disabled=true;
  const keep={T,playing,sel};playing=false;pauseAudioPlayers();
  const frames=canvas.captureStream(0),vTrack=frames.getVideoTracks()[0];
+ let lastReq=0,beat=null,realFrames=1;const pushFrame=()=>{lastReq=performance.now();realFrames++;try{vTrack.requestFrame?.()}catch(e){}};
  try{
   exportStatus('เตรียมภาพและตรวจไฟล์เสียง…',0);
   let audioData;
@@ -3292,7 +3468,9 @@ async function startVideoExport(){
   const stopped=new Promise((resolve,reject)=>{rec.onstop=resolve});
   const info={w,h,captions:$('#videoCaptions').checked,previous:new Map()};
   await renderVideoFrame(ctx,0,info);
-  rec.start(1000);vTrack.requestFrame?.();
+  rec.start(1000);pushFrame();
+  /* heartbeat: iOS/Safari writes frames at the nominal fps, so when rendering is slower than real time the file gets time-compressed. Re-send the last canvas at fps while a slow frame is still rendering. */
+  beat=setInterval(()=>{if(!job.aborted&&performance.now()-lastReq>=900/fps){lastReq=performance.now();try{vTrack.requestFrame?.()}catch(e){}}},1000/fps);
   const began=performance.now(),nowAudio=audioData?.audio.currentTime||0;
   if(audioData&&f.id!=='mp4video'){for(const b of audioData.buffers){const source=audioData.audio.createBufferSource();source.buffer=b.buffer;source.playbackRate.value=b.rate;let feed=source,xg=null;if(b.xin>0||b.xout>0){xg=audioData.audio.createGain();source.connect(xg);feed=xg}const nodes=createFxNodes(audioData.audio,feed,audioData.destination);applyFxNodes(nodes,b.clip);const gain=nodes.gain;
    const t0=nowAudio+.045+b.start,finish=t0+b.length,fadeIn=Math.min(b.length/2,Math.max(0,b.fadeIn)),fadeOut=Math.min(b.length/2,Math.max(0,b.fadeOut));b.vol*=voiceGainFactor(b.clip)*clipAutoGainFactor(b.clip);
@@ -3305,19 +3483,19 @@ async function startVideoExport(){
    const elapsed=(performance.now()-began)/1000;if(elapsed>=duration)break;
    const target=nextFrame/fps;
    if(elapsed+0.002<target){await new Promise(r=>setTimeout(r,Math.min(32,Math.max(1,(target-elapsed)*1000))));continue}
-   const current=Math.min(duration,elapsed);await renderVideoFrame(ctx,current,info);vTrack.requestFrame?.();framesShown++;nextFrame=Math.floor((performance.now()-began)/1000*fps)+1;
+   const current=Math.min(duration,elapsed);await renderVideoFrame(ctx,current,info);pushFrame();framesShown++;nextFrame=Math.floor((performance.now()-began)/1000*fps)+1;
    if(performance.now()-lastReal>250){exportStatus(`กำลังเข้ารหัส ${current.toFixed(1)} / ${duration.toFixed(1)} วินาที · ${framesShown} เฟรม${audioData?.warnings.length?' · บางเสียงไม่รองรับ':''}`,current/duration*100);lastReal=performance.now()}
   }
-  if(!job.aborted){await renderVideoFrame(ctx,duration-.001,info);vTrack.requestFrame?.()}
-  if(rec.state!=='inactive')rec.stop();await stopped;
+  if(!job.aborted){await renderVideoFrame(ctx,duration-.001,info);pushFrame()}
+  clearInterval(beat);beat=null;if(rec.state!=='inactive')rec.stop();await stopped;
   if(mediaError)throw mediaError;
   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
   const blob=new Blob(chunks,{type:rec.mimeType||f.mime});if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า เบราว์เซอร์อาจบล็อกการบันทึก');
   const filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.'+f.ext;
   showExportResult(blob,filename);
-  exportStatus(`ส่งออกสำเร็จ: ${filename}\n${(blob.size/1048576).toFixed(2)} MB · ${(duration).toFixed(1)} วินาที${audioData?.warnings.length?'\n'+audioData.warnings[0]:''}`,100);
+  exportStatus(`ส่งออกสำเร็จ: ${filename}\n${(blob.size/1048576).toFixed(2)} MB · ${(duration).toFixed(1)} วินาที${audioData?.warnings.length?'\n'+audioData.warnings[0]:''}${framesShown<duration*fps*0.5?'\n⚠ เครื่องเรนเดอร์ช้า ('+framesShown+' เฟรมจริงจาก '+Math.round(duration*fps)+') ภาพจะกระตุก ลองลดความละเอียด/FPS':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
-  try{if(job.recorder?.state!=='inactive')job.recorder?.stop()}catch(e){}
+  try{clearInterval(beat)}catch(e){}try{if(job.recorder?.state!=='inactive')job.recorder?.stop()}catch(e){}
   try{job.context?.close()}catch(e){}try{frames.getTracks().forEach(x=>x.stop())}catch(e){}
   T=keep.T;playing=false;sel=keep.sel;resetTransitionCache();draw();ctl();
   ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;
