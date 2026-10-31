@@ -1,0 +1,33 @@
+name: Make reference video contact sheets
+on:
+  push:
+    branches:
+      - video-analysis-issue-1
+    paths:
+      - .github/workflows/issue-1-video-review.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+  issues: read
+jobs:
+  create-contact-sheets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+      - name: Check FFmpeg
+        run: ffmpeg -version | head -n 1
+      - name: Generate preview frames from Issue 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/video-contact-sheet.py
+      - name: Save generated previews on analysis branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add video-review/issue-1/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add contact sheets for issue #1 reference videos"
+            git push origin HEAD:video-analysis-issue-1
+          fi
