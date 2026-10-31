@@ -78,5 +78,48 @@
     extended:rounded(extended),edits:ops.length,overlongEpisodes:episodeReports.filter(e=>e.overBy>5).length
   }};
  }
- return Object.freeze({audit,clipSeconds,hasTimedEvents});
+
+ /* Split only at EXISTING scene boundaries, preserving the complete original scene
+  * objects and their actors/FX/audio. Never split a single rich scene or move
+  * episode-level music, clue markers, opening, or explicit continuity automatically. */
+ function planEpisodeSplits(state,report,options={}){
+  const target=clamp(finite(options.targetMinutes,5),1,30)*60;
+  const ops=[],warnings=[],updates=new Map(report.ops.filter(o=>o.op==='updateScene').map(o=>[o.id,o.patch.duration]));
+  let inserted=0,created=0;
+  (state.episodes||[]).forEach((ep,ei)=>{
+   if(options.scope!=='all'&&ei!==Math.max(0,finite(options.episodeIndex)))return;
+   const scenes=ep.scenes||[];
+   const seconds=scenes.reduce((a,s)=>a+finite(updates.get(s.id),finite(s.duration,4)),0);
+   if(seconds<=target*1.12||scenes.length<2)return;
+   if((ep.clues||[]).length||(ep.musicClips||[]).length||ep.opening||ep.continuity){
+    warnings.push('ตอน '+(ei+1)+' ยาวเกินเป้า แต่มีเพลง/เบาะแส/การเชื่อมต่อข้ามตอน ต้องเลือกจุดแบ่งเอง');
+    return;
+   }
+   const groups=[],group=[],flush=()=>{if(group.length){groups.push(group.splice(0))}};
+   let used=0;
+   for(const s of scenes){
+    const duration=finite(updates.get(s.id),finite(s.duration,4));
+    if(group.length&&used+duration>target*1.05&&used>=target*.45){flush();used=0}
+    group.push(s);used+=duration;
+   }
+   flush();
+   if(groups.length<2){warnings.push('ตอน '+(ei+1)+' มีฉากเดียวที่ยาวเกิน ไม่แยกภาพเคลื่อนไหวอัตโนมัติ');return}
+   const now=Date.now().toString(36);
+   ops.push({op:'replaceScenes',episode:ep.id,scenes:groups[0]});
+   if(ep.cliffhanger)ops.push({op:'updateEpisode',id:ep.id,patch:{cliffhanger:''}});
+   for(let n=1;n<groups.length;n++){
+    const sceneGroup=groups[n],last=n===groups.length-1;
+    ops.push({op:'addEpisode',index:ei+inserted+n,episode:{
+     id:'split'+now+'e'+ei+'p'+n,
+     title:(ep.title||'ตอนที่ '+(ei+1))+' · ส่วน '+(n+1),
+     targetSeconds:target,scenes:sceneGroup,clues:[],
+     cliffhanger:last?(ep.cliffhanger||''):''
+    }});
+    created++;
+   }
+   inserted+=groups.length-1;
+  });
+  return {ops,created,warnings};
+ }
+ return Object.freeze({audit,clipSeconds,hasTimedEvents,planEpisodeSplits});
 });
