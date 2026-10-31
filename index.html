@@ -4125,7 +4125,8 @@ window.StoryStudioBridge={
  persist:()=>save(),
  load:(d)=>{if(!window.StoryAIWorkspaceCore)throw Error('AI workspace module unavailable');window.StoryAIWorkspaceCore.validateSnapshot(d);commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});},
  exportJSON:()=>dl((S?.project?.title||'story-studio').replace(/[\\/:*?"<>|]/g,'_').slice(0,40)+'.json',JSON.stringify(S,null,1),'application/json'),
- importJSON:()=>$('#file').click(),openWorkspace:()=>switchStudioTool('ai')
+ importJSON:()=>$('#file').click(),openWorkspace:()=>switchStudioTool('ai'),
+ continueEpisode:()=>commit(()=>nextEpisodeContinuing())
 };
 
 /* ===== boot ===== */
