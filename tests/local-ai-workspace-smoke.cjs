@@ -22,15 +22,16 @@ const path=require('node:path');
     StoryStudioBridge.persist();
     return scene.voiceover;
   });
+  const beforeEpisodeCount=await page.evaluate(()=>StoryStudioBridge.get().episodes.length);
   const story=('ค่ำคืนหนึ่งแสงดาวเต็มท้องฟ้า เด็กหญิงเดินผ่านห้องสมุดและพบจดหมายลึกลับ。'+
    'เธอเก็บจดหมายแล้วเดินต่อไปยังประตูที่ไม่เคยมีอยู่ก่อน！\n\n').repeat(18);
   await panel.locator('textarea[aria-label="วางบทสำหรับแบ่งตอน"]').fill(story);
   await panel.locator('input[aria-label="นาทีต่อตอน"]').fill('1');
   await panel.getByRole('button',{name:'จัดบทเป็นตอนอัตโนมัติ'}).click();
   await page.waitForFunction(()=>StoryStudioBridge.get().project.aiWorkspace.tasks?.some(t=>t.role==='structure'&&t.status==='done'));
-  const result=await page.evaluate(()=>{
+  const result=await page.evaluate((beforeEpisodeCount)=>{
    const state=StoryStudioBridge.get();
-   const fresh=state.episodes.slice(1);
+   const fresh=state.episodes.slice(beforeEpisodeCount);
    const flattened=fresh.flatMap(e=>e.scenes.map(s=>s.voiceover)).join('');
    return {
     count:fresh.length,previous:state.episodes[0].scenes[0].voiceover,
@@ -38,7 +39,7 @@ const path=require('node:path');
     cues:fresh.flatMap(e=>e.scenes.flatMap(s=>s.subtitleCues)),
     ids:fresh.flatMap(e=>e.scenes.map(s=>s.id))
    };
-  });
+  },beforeEpisodeCount);
   assert.ok(result.count>=2,'script must split into multiple episodes');
   assert.equal(result.previous,original,'original episode must remain unchanged');
   assert.equal(result.flattened.replace(/\s/g,''),story.replace(/\s/g,''),'no script content may be lost');
