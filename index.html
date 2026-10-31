@@ -568,6 +568,7 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 #studioToolBody .dub-indicator.recording{background:#4b252b;border-color:#f19b94;color:#fff}
 #studioToolBody .dub-clip{padding:11px;margin:8px 0;border-radius:10px;border:1px solid #435d7a;background:#1b304a}
 #studioToolBody .dub-clip audio{width:100%;height:42px;display:block;margin:6px 0}
+#studioToolBody .autodub input[type=text],#studioToolBody .autodub input[type=password],#studioToolBody .autodub select{width:100%;min-height:40px;margin:4px 0;box-sizing:border-box}#studioToolBody .autodub label{display:block;font-size:12px;margin:6px 0}
 #studioToolBody .dub-clip button{min-height:33px}
 #studioToolBody .dub-clip .dub-meta{font-size:11px;color:#bfcfe0;overflow-wrap:anywhere}
 #studioToolBody .dub-note{color:#b5c7d7;font-size:11px;line-height:1.6}
@@ -673,7 +674,33 @@ function openProjectDB(){return new Promise(resolve=>{if(!('indexedDB'in window)
  }catch(e){STORAGE_READY=true;save();resolve()}};
  })}
 
-function fix(){S.project=merge(blank().project,isObj(S.project)?S.project:{});ensureSmartConfig(S);S.characters||=[];S.locations||=[];locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)});S.rules||=[];ensureVoiceProfiles(S);S.episodes.forEach(E=>{if(E.opening&&!['fadeblack','titlecard','recap'].includes(E.opening.mode))delete E.opening;if(E.continuity&&typeof E.continuity!=='object')delete E.continuity});S.episodes.forEach(E=>E.scenes.forEach(s=>{s.duration=Number(s.duration)||4;s.camera||={type:'static',from:1,to:1};s.transition||={type:'dissolve',duration:.55};if(s.transition.mode!==undefined&&!['overlap','preroll','handle'].includes(s.transition.mode))delete s.transition.mode;s.subtitle||=[];if(typeof s.imagePrompt!=='string')s.imagePrompt='';s.characters||=[];s.clueIds||=[];s.actors||=[];s.props||=[];s.audioClips||=[];s.subtitleCues=Array.isArray(s.subtitleCues)?s.subtitleCues:[];s.graphicCards=Array.isArray(s.graphicCards)?s.graphicCards:[];if(s.audio&&!s.audioClips.some(x=>x.legacy)){s.audioClips.push({id:'clip'+uid(),kind:'voice',name:'เสียงพากย์เดิม',data:s.audio,at:0,trimStart:0,trimEnd:0,volume:1,fadeIn:0,fadeOut:0,rate:1,legacy:true});s.audio=null};s.voiceDirection||={speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''}}));S.episodes.forEach(E=>{E.musicClips||=[];if(E.bgm&&!E.musicClips.some(x=>x.legacy)){E.musicClips.push({id:'clip'+uid(),kind:'music',name:'เพลงเดิม',data:E.bgm,at:0,trimStart:0,trimEnd:0,volume:E.bgmVol??.3,fadeIn:0,fadeOut:0,rate:1,legacy:true,loop:true});E.bgm=null}});for(const E of S.episodes)for(const scene of E.scenes)for(const c of scene.audioClips||[])if(c.kind==='voice'&&!c.voiceProfileId)assignVoiceClipFromAI(scene,c);if(selEp>=S.episodes.length)selEp=0;if(sel>=ep().scenes.length)sel=Math.max(0,ep().scenes.length-1)}
+// v30 D1: ทำความสะอาดฟิลด์ transition/เสียงที่มาจาก JSON/AI patch (null, สตริง, ค่าที่ไม่รู้จัก) ให้กลับเป็นค่าเริ่มต้นเงียบ ๆ แทนที่จะพังตอนเล่น/ส่งออก
+const TRANSITION_EASES=['linear','ease-in','ease-out','ease-in-out'];
+function sanitizeTransition(tr){
+ if(!isObj(tr))return tr;
+ if(tr.live!==undefined){if(tr.live==='true')tr.live=true;else if(tr.live==='false')tr.live=false;if(typeof tr.live!=='boolean')delete tr.live}
+ if(tr.turn!==undefined){if(tr.turn==='false')tr.turn=false;if(tr.turn!==false)delete tr.turn}
+ if(tr.ease!==undefined&&!TRANSITION_EASES.includes(tr.ease))delete tr.ease;
+ if(tr.mode!==undefined&&!['overlap','preroll','handle'].includes(tr.mode))delete tr.mode;
+ if(tr.match!==undefined){if(tr.match==='true')tr.match=true;if(tr.match!==true)delete tr.match}
+ if(tr.matchDur!==undefined){const v=typeof tr.matchDur==='string'&&tr.matchDur.trim()!==''?Number(tr.matchDur):tr.matchDur;if(typeof v==='number'&&Number.isFinite(v)&&v>0)tr.matchDur=Math.min(v,5);else delete tr.matchDur}
+ return tr}
+function sanitizeAudioLinks(E){
+ if(E.audioLink!==undefined){if(!isObj(E.audioLink))delete E.audioLink;else for(const k of ['link','xfade'])if(E.audioLink[k]!==undefined&&typeof E.audioLink[k]!=='boolean')delete E.audioLink[k]}
+ for(const sc of E.scenes||[])for(const c of sc.audioClips||[])if(isObj(c))for(const k of ['audioLead','audioTail']){if(c[k]===undefined)continue;const v=typeof c[k]==='string'&&c[k].trim()!==''?Number(c[k]):c[k];if(typeof v==='number'&&Number.isFinite(v)&&v>=0)c[k]=Math.min(v,30);else delete c[k]}}
+// v31 D2: ตั้งค่าทั้งตอนแบบรวม — คัดลอกบรรยากาศ/แสง/เอฟเฟกต์ภาพของฉาก src ไปทุกฉากอื่นในตอน; คืนจำนวนฉากที่เปลี่ยนจริง
+function applyEpisodeWide(E,src,what){
+ if(!E||!src||!Array.isArray(E.scenes))return 0;let n=0;
+ const J=v=>JSON.stringify(v===undefined?null:v);
+ for(const x of E.scenes){if(x===src)continue;let ch=false;
+  if(what==='atmosphere'){const v=src.atmosphere||'none';if((x.atmosphere||'none')!==v){x.atmosphere=v;ch=true}}
+  else if(what==='light'){const l=typeof src.light==='string'?src.light:'',lg=src.lighting?JSON.parse(J(src.lighting)):null;
+   if((typeof x.light==='string'?x.light:'')!==l){x.light=l;ch=true}
+   if(lg&&J(x.lighting)!==J(lg)){x.lighting=JSON.parse(J(lg));ch=true}}
+  else if(what==='fx'){const f=src.cinematicFx?JSON.parse(J(src.cinematicFx)):null;if(J(x.cinematicFx||null)!==J(f)){if(f)x.cinematicFx=f;else delete x.cinematicFx;ch=true}}
+  if(ch)n++}
+ return n}
+function fix(){S.project=merge(blank().project,isObj(S.project)?S.project:{});ensureSmartConfig(S);S.characters||=[];S.locations||=[];locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)});S.rules||=[];ensureVoiceProfiles(S);S.episodes.forEach(E=>{if(E.opening&&!['fadeblack','titlecard','recap'].includes(E.opening.mode))delete E.opening;if(E.continuity&&typeof E.continuity!=='object')delete E.continuity});S.episodes.forEach(E=>E.scenes.forEach(s=>{s.duration=Number(s.duration)||4;s.camera||={type:'static',from:1,to:1};s.transition||={type:'dissolve',duration:.55};if(!isObj(s.transition))s.transition={type:'dissolve',duration:.55};sanitizeTransition(s.transition);s.subtitle||=[];if(typeof s.imagePrompt!=='string')s.imagePrompt='';s.characters||=[];s.clueIds||=[];s.actors||=[];s.props||=[];s.audioClips||=[];s.subtitleCues=Array.isArray(s.subtitleCues)?s.subtitleCues:[];s.graphicCards=Array.isArray(s.graphicCards)?s.graphicCards:[];if(s.audio&&!s.audioClips.some(x=>x.legacy)){s.audioClips.push({id:'clip'+uid(),kind:'voice',name:'เสียงพากย์เดิม',data:s.audio,at:0,trimStart:0,trimEnd:0,volume:1,fadeIn:0,fadeOut:0,rate:1,legacy:true});s.audio=null};s.voiceDirection||={speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''}}));S.episodes.forEach(E=>{sanitizeAudioLinks(E);E.musicClips||=[];if(E.bgm&&!E.musicClips.some(x=>x.legacy)){E.musicClips.push({id:'clip'+uid(),kind:'music',name:'เพลงเดิม',data:E.bgm,at:0,trimStart:0,trimEnd:0,volume:E.bgmVol??.3,fadeIn:0,fadeOut:0,rate:1,legacy:true,loop:true});E.bgm=null}});for(const E of S.episodes)for(const scene of E.scenes)for(const c of scene.audioClips||[])if(c.kind==='voice'&&!c.voiceProfileId)assignVoiceClipFromAI(scene,c);if(selEp>=S.episodes.length)selEp=0;if(sel>=ep().scenes.length)sel=Math.max(0,ep().scenes.length-1)}
 function commit(fn){const before=ep()?.scenes?.[sel],beforeId=before?.id,oldStarts=starts(),oldLocal=clampN(T-(oldStarts[sel]||0),0,before?.duration||0);past.push(JSON.stringify(S));if(past.length>100)past.shift();future=[];fn(S);fix();const current=ep()?.scenes?.[sel];if(current){const newStarts=starts();if(current.id!==beforeId){T=newStarts[sel]||0;playing=false}else{T=(newStarts[sel]||0)+clampN(oldLocal,0,Math.max(0,current.duration-.001))}}save();render()}
 function undo(){if(!past.length)return;future.push(JSON.stringify(S));S=JSON.parse(past.pop());fix();save();render()}
 function redo(){if(!future.length)return;past.push(JSON.stringify(S));S=JSON.parse(future.pop());fix();save();render()}
@@ -832,8 +859,11 @@ function frontCostumeSVG(type,color,k){if(!type||type==='basic')return'';
    Waypoint travel durations are relative weights; hold is real seconds at that anchor. */
 // v27 C1: ฉากใหม่ (location เดียวกัน, transition ไม่ใช่ cut) ที่ตัวละครหันตรงข้ามท้ายฉากก่อน -> หมุนผ่านมุมหน้าตั้งแต่ต้นฉาก หัวนำลำตัวเล็กน้อย ปิดได้ด้วย transition.turn=false
 let C1_BUSY=false;
+// v35 C4: สัตว์สี่เท้า (cat/dog/rabbit/fox/deer/bear) ท่า sleep วาดเหมือนเดิมทุกมุม bodyYaw (วัดด้วยการเรนเดอร์) -> หมุนแล้วไม่เห็นอะไร มีแต่ทิศพลิกกลางทาง จึงไม่หมุน (นก/มนุษย์ท่า sleep หมุนได้จริง ยังหมุนตามเดิม)
+const SLEEP_NOYAW_SPECIES=new Set(['cat','dog','rabbit','fox','deer','bear']);
+function entryTurnable(a){if(!a)return false;const c=(S.characters||[]).find(x=>x&&x.id===a.char);if(c&&c.rig&&c.rig.style==='creature'&&(a.pose||'stand')==='sleep'&&SLEEP_NOYAW_SPECIES.has(c.rig.species||'cat'))return false;return true}
 function sceneEntryTurn(a,scn,local,face){
- if(C1_BUSY||!scn||!a)return null;const tr=scn.transition;
+ if(C1_BUSY||!scn||!a||!entryTurnable(a))return null;const tr=scn.transition;
  if(!tr||(tr.type||'cut')==='cut'||tr.turn===false||tr.mode==='preroll')return null;
  if(a.at||a.to||Number.isFinite(a.bodyYaw)||Number.isFinite(a.toBodyYaw)||(a.view&&a.view!=='side'))return null;
  const td=Math.min(.45,cleanNum(scn.duration)*.35,transitionSpan(scn));if(!(td>.06)||!(local<td))return null;
@@ -1351,6 +1381,92 @@ Object.assign(PROPS,{
  star:c=>`<path d="M0 -13L2.2 -7L9 -7L3.4 -2L5.7 4L0 0L-5.7 4L-3.4 -2L-9 -7L-2.2 -7Z" fill="${c||'#ffe39a'}"/>`,
  podium:c=>R_(-16,-15,32,15,c||'#7e8a9f',2)+R_(-18,-17,36,3,'#e1e7ee',1)
 });
+/* ===== Handheld & decorative prop pack (v37): phone, flashlight, torch, bags, drinks, gadgets, room decor ===== */
+const QP=(d,f,x='')=>`<path d="${d}" fill="${f}"${x?' '+x:''}/>`;
+const QL=(x1,y1,x2,y2,s,w=1,x='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${s}" stroke-width="${w}" stroke-linecap="round"${x?' '+x:''}/>`;
+const QE=(cx,cy,rx,ry,f,op=1)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f}"${op<1?` opacity="${op}"`:''}/>`;
+const QS=(d,s,w=1,x='')=>`<path d="${d}" fill="none" stroke="${s}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${x?' '+x:''}/>`;
+const QSTAR=(cx,cy,r,f)=>`<path d="${[0,1,2,3,4,5,6,7,8,9].map(i=>{const a=(-90+i*36)*Math.PI/180,q=i%2?r*.45:r;return(i?'L':'M')+f2(cx+Math.cos(a)*q)+' '+f2(cy+Math.sin(a)*q)}).join('')}Z" fill="${f}"/>`;
+const Q_PALETTE=['#ef4444','#facc15','#38bdf8','#4ade80','#f472b6','#fb923c'];
+Object.assign(PROPS,{
+/* ---------- ถือได้: อุปกรณ์สื่อสาร / แสงสว่าง ---------- */
+phone:c=>{c=c||'#2d3748';return C_c(0,-4.4,6.5,'#8fe3ff',.1)+R_(-2.5,-8.6,5,8.6,c,1.1)+R_(-2.05,-7.9,4.1,6.9,'#8fe3ff',.5,.92)+R_(-1.4,-6.8,2.8,.7,'#fff',.3,.7)+R_(-1.4,-5.4,1.8,.7,'#fff',.3,.5)+R_(-1.4,-3.9,2.8,1.9,'#fff',.4,.35)+R_(-.7,-8.35,1.4,.35,'#111',.2)+C_c(1.3,-8.05,.28,'#111')},
+flashlight:c=>{c=c||'#e0a43a';return QP('M7.8 -2.6L36 -9.4L36 5.6L7.8 -.4Z','url(#qfBeam)')+`<defs><linearGradient id="qfBeam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff6c0" stop-opacity=".62"/><stop offset="1" stop-color="#fff6c0" stop-opacity="0"/></linearGradient></defs>`+R_(-6.2,-2.5,1.2,2.2,shade(c,.7),.5)+R_(-5.2,-2.7,9.4,2.7,c,1.2)+R_(-2.6,-3.3,2.2,.7,'#3b3b3b',.3)+QP('M4 -3.6L7.4 -4.2L7.4 .1L4 -.2Z','#9aa4b2')+R_(7.1,-3.9,.9,3.7,'#fff7cf',.3)+C_c(8,-2,2.6,'#fff7cf',.35)},
+torch:c=>R_(-1.2,-12,2.4,12,c||'#7a5230',.6)+R_(-1.7,-10.4,3.4,1.4,'#4a3320')+R_(-1.7,-6.6,3.4,1,'#4a3320')+C_c(0,-16,8,'#ffb347',.17)+QP('M0 -22.4C-3.4 -19.2 -3.8 -15.6 0 -12.4C3.8 -15.6 3.4 -19.2 0 -22.4Z','#ff8a2b')+QP('M0 -19C-1.7 -17 -1.9 -15 0 -13.4C1.9 -15 1.7 -17 0 -19Z','#ffd95a'),
+lantern:c=>C_c(0,-4.8,8.5,c||'#ffd27a',.16)+QS('M-3.2 -9.6Q0 -15 3.2 -9.6','#555',.9)+R_(-3.6,-10,7.2,1.5,'#555',.5)+R_(-3,-8.6,6,8,c||'#ffd27a',1,.78)+QE(0,-4.6,1.3,2.3,'#fff3b8')+QL(-1,-8.6,-1,-.6,'#555',.45)+QL(1,-8.6,1,-.6,'#555',.45)+R_(-3.8,-.9,7.6,1.3,'#555',.5),
+candle:c=>C_c(0,-10.4,5.4,'#ffcf6a',.2)+QE(0,-.7,4,.8,'#b08a4c')+R_(-1.6,-8.2,3.2,7.6,c||'#f4ecd8',.6)+QL(0,-8.2,0,-9.2,'#333',.4)+QP('M0 -13C-1.7 -11.2 -1.7 -9.8 0 -8.9C1.7 -9.8 1.7 -11.2 0 -13Z','#ffb02e')+QP('M0 -11.4C-.7 -10.6 -.7 -9.9 0 -9.5C.7 -9.9 .7 -10.6 0 -11.4Z','#fff0a6'),
+walkieTalkie:c=>R_(-1.4,-13.4,.9,4.6,'#111',.3)+R_(-2.1,-9.2,4.2,9.2,c||'#374151',.9)+R_(.4,-10.3,1.2,1.2,'#ef4444',.3)+[0,1,2].map(i=>QL(-1,-7.8+i*.8,1,-7.8+i*.8,'#9ca3af',.3)).join('')+R_(-1.3,-4.7,2.6,1.5,'#86efac',.2)+C_c(0,-1.9,.7,'#ef4444'),
+/* ---------- ถือได้: ดิจิทัล / ของใช้ ---------- */
+tablet:c=>{c=c||'#1f2937';return R_(-4,-11,8,11,c,1)+R_(-3.4,-10.4,6.8,9.8,'#7dd3fc',.5,.92)+R_(-2.6,-9,5.2,1.2,'#fff',.3,.65)+R_(-2.6,-6.9,2.3,2.3,'#fff',.4,.4)+R_(.2,-6.9,2.4,2.3,'#fff',.4,.3)+R_(-2.6,-3.8,5.2,.8,'#fff',.3,.4)},
+laptop:c=>{c=c||'#cbd5e1';return R_(-6.6,-10.8,13.2,9.6,'#1f2937',.8)+R_(-6,-10.2,12,8.4,'#7dd3fc',.4,.88)+R_(-4.6,-8.6,5,.7,'#fff',.3,.6)+R_(-4.6,-7,8,.7,'#fff',.3,.4)+R_(-4.6,-5.4,3.4,.7,'#fff',.3,.4)+R_(-8.2,-1.3,16.4,1.3,c,.6)+R_(-1.6,-1.3,3.2,.5,shade(c,.7),.2)},
+camera:c=>R_(-5,-5.6,10,5.6,c||'#374151',1.2)+R_(-4,-6.8,4,1.4,'#2b323d',.5)+R_(2.2,-5.1,1.9,1,'#fde68a',.3)+C_c(-3,-6.9,.6,'#ef4444')+C_c(0,-2.9,2.5,'#111827')+C_c(0,-2.9,1.6,'#60a5fa',.75)+C_c(-.5,-3.4,.5,'#fff',.8),
+microphone:c=>R_(-1,-8.6,2,8.6,c||'#4b5563',.9)+R_(-1.7,-8.8,3.4,.9,'#e8c98a',.3)+C_c(0,-11.4,2.8,'#9ca3af')+QS('M-2.4 -11.4H2.4M0 -14.1V-8.9','#6b7280',.3),
+magnifier:c=>R_(-.8,-6.4,1.6,6.4,'#6b4226',.6)+`<circle cx="0" cy="-10.4" r="4" fill="#bfe7ff" fill-opacity=".38" stroke="${c||'#c9a24a'}" stroke-width="1.1"/>`+QS('M-2.2 -11.4Q-1.6 -12.8 0 -13.2','#fff',.5,'opacity=".7"'),
+key:c=>{c=c||'#e0b74a';return`<circle cx="0" cy="-6.8" r="1.9" fill="none" stroke="${c}" stroke-width="1"/>`+R_(-.5,-4.9,1,4.9,c)+R_(.5,-2.8,1.5,.8,c)+R_(.5,-1.2,1,.8,c)},
+envelope:c=>R_(-4.6,-6,9.2,6,c||'#f8fafc',.5)+QS('M-4.6 -6H4.6V0H-4.6Z','#cbd5e1',.4)+QS('M-4.6 -6L0 -2.4L4.6 -6','#cbd5e1',.5)+C_c(0,-2.5,.9,'#ef4444'),
+clipboard:c=>R_(-3.8,-10,7.6,10,c||'#a1743c',.8)+R_(-3,-8.8,6,8.2,'#fff',.2)+R_(-1.7,-10.9,3.4,1.9,'#9ca3af',.5)+[0,1,2,3].map(i=>R_(-2.2,-7.2+i*1.7,4.4,.5,'#94a3b8',.2)).join(''),
+book:c=>{c=c||'#c0504d';return R_(-3.6,-9,7.2,9,c,.6)+R_(-3.6,-9,1.3,9,shade(c,.7),.5)+R_(-1.4,-6.8,4.2,1.2,'#e8c98a',.3,.9)+R_(-1.4,-4.8,3,.7,'#e8c98a',.3,.7)},
+notebook:c=>{c=c||'#3b82a0';return R_(-3.4,-9,6.8,9,c,.6)+[0,1,2,3].map(i=>C_c(-3.4,-7.6+i*2.3,.75,'#e5e7eb')).join('')+R_(-1.6,-6.6,4.2,3.2,'#f4ecd8',.3)+R_(-.8,-5.6,2.6,.5,'#94a3b8',.2)+R_(-.8,-4.6,1.8,.5,'#94a3b8',.2)},
+/* ---------- ถือได้: เครื่องดื่ม / อาหาร ---------- */
+coffeeCup:c=>QP('M-2.6 -5.4L2.6 -5.4L2 0L-2 0Z',c||'#f1f5f9')+R_(-2.4,-3.7,4.8,1.8,'#c08457',.2)+QS('M2.4 -4.4Q5.2 -4.4 4.7 -2.1Q4.3 -.8 2.1 -1','#f1f5f9',.9)+QE(0,-5.4,2.6,.6,'#6b3f26')+QS('M-1 -7.2Q-2 -9 -1 -10.6M1.2 -7.2Q2.2 -9 1.2 -10.6','#fff',.5,'opacity=".65"'),
+bottle:c=>{c=c||'#7fd0ee';return R_(-1.7,-8,3.4,8,c,1,.88)+R_(-.9,-10.2,1.8,2.4,c,.4,.88)+R_(-1.1,-11.3,2.2,1.2,'#2563eb',.4)+R_(-1.7,-5.8,3.4,2.2,'#2563eb',0,.6)+R_(-1.7,-8,3.4,2,'#fff',1,.22)},
+soda:c=>QP('M-2.6 -7.6L2.6 -7.6L2 0L-2 0Z',c||'#ef4444')+QP('M-2.4 -5.4L2.4 -5.4L2.2 -3.2L-2.2 -3.2Z','#fff','opacity=".75"')+R_(-3,-8.7,6,1.3,'#f1f5f9',.5)+QL(.8,-8.7,2.6,-12.8,'#fff',.8)+QL(1.6,-10.8,2.2,-12,'#ef4444',.8),
+icecream:c=>QP('M-2.5 -7L2.5 -7L0 0Z','#d9a05b')+QS('M-1.4 -5.4L1.4 -3.6M1.4 -5.4L-1.4 -3.6','#b9803f',.3)+C_c(0,-8.6,3.1,c||'#f9a8d4')+C_c(.2,-12.4,2.6,'#fde68a')+C_c(.5,-15.1,.9,'#dc2626'),
+apple:c=>QP('M0 -6C-2 -7.3 -5 -6 -4.6 -2.6C-4.2 .2 -1.8 .7 0 -.6C1.8 .7 4.2 .2 4.6 -2.6C5 -6 2 -7.3 0 -6Z',c||'#e0383e')+QL(0,-6,.6,-8.2,'#5b3a1e',.6)+QP('M.6 -7.4Q3 -9.6 4.5 -7.8Q2.5 -6.5 .6 -7.4Z','#4ea852')+QE(-1.8,-3.8,.8,1.3,'#fff',.25),
+pizza:c=>QP('M-4.8 -8L4.8 -8L0 0Z','#f6c453')+R_(-5.2,-9.4,10.4,1.8,'#d9a05b',.9)+C_c(-1.5,-6,1,'#c0392b')+C_c(1.5,-4.8,.9,'#c0392b')+C_c(0,-2.5,.7,'#c0392b')+C_c(.2,-6.6,.35,'#3f9142'),
+/* ---------- ถือได้: กระเป๋า / ร่ม / ไม้ ---------- */
+umbrella:c=>{c=c||'#d9534f';return QL(0,-23,0,-3.4,'#4b4b4b',.8)+QS('M0 -3.4Q0 0 -2.2 0Q-3.8 0 -3.8 -1.6','#4b4b4b',.9)+QP('M-12.5 -23Q-10.4 -35 0 -35.6Q10.4 -35 12.5 -23Q9 -25.6 6.2 -23Q3.1 -25.6 0 -23Q-3.1 -25.6 -6.2 -23Q-9 -25.6 -12.5 -23Z',c)+QS('M0 -35.6L-6.2 -23.4M0 -35.6L6.2 -23.4','#000',.4,'opacity=".25"')+QL(0,-35.6,0,-37.4,'#4b4b4b',.6)},
+handbag:c=>{c=c||'#c0508a';return QS('M-3 -8Q-3 -12.8 0 -12.8Q3 -12.8 3 -8','#6b3f26',.9)+QP('M-5.4 -8L5.4 -8L6.3 0L-6.3 0Z',c)+QP('M-5.4 -8L5.4 -8L4.8 -5.2L-4.8 -5.2Z',shade(c,.8))+C_c(0,-5.2,.8,'#e8c98a')},
+backpack:c=>{c=c||'#4c8bd6';return QS('M-2 -12Q0 -15.2 2 -12','#333',.9)+R_(-4.6,-12,9.2,12,c,3)+R_(-3.4,-6.4,6.8,5.2,shade(c,.8),1.4)+QL(-3.4,-6.6,3.4,-6.6,'#e8c98a',.4)+R_(-5.2,-10,1.1,8,shade(c,.6),.4)+R_(4.1,-10,1.1,8,shade(c,.6),.4)},
+suitcase:c=>{c=c||'#2f7f8f';return R_(-.6,-20,1.2,7,'#9aa4b2')+R_(-2.4,-21.2,4.8,1.5,'#444',.6)+R_(-5.4,-14,10.8,13.4,c,1.6)+[-3.4,0,3.4].map(x=>R_(x-.4,-12.4,.8,10.4,shade(c,.72))).join('')+C_c(-3.6,-.2,1,'#333')+C_c(3.6,-.2,1,'#333')+R_(-5.4,-14,10.8,1.2,shade(c,.85),.6)},
+briefcase:c=>{c=c||'#7a4b2a';return QS('M-2.4 -7.8Q-2.4 -10.2 0 -10.2Q2.4 -10.2 2.4 -7.8','#3b2a1a',.9)+R_(-6,-7.8,12,7.8,c,1)+R_(-6,-4.5,12,.8,shade(c,.7))+R_(-1,-5.2,2,1.7,'#e8c98a',.3)},
+cane:c=>{c=c||'#6b4226';return R_(-.7,-17,1.4,17,c,.6)+QS('M0 -17Q0 -20.6 3 -20.6Q6 -20.6 6 -17.6',c,1.4)+R_(-.95,-1.1,1.9,1.1,'#333')},
+flag:c=>R_(-.5,-30,1,30,'#7a5230',.4)+C_c(0,-30.4,1,'#e8c98a')+QP('M.5 -29.4Q6 -31.4 12 -27.4Q6 -23.6 .5 -24.6Z',c||'#ef4444')+QS('M3 -28Q6 -29 8.4 -27.4','#fff',.4,'opacity=".5"'),
+/* ---------- ถือได้: ของวิเศษ / ของขวัญ / ดอกไม้ ---------- */
+wand:c=>R_(-.5,-13,1,13,c||'#4a3320',.4)+C_c(0,-16.6,6,'#ffe06b',.2)+QSTAR(0,-16.6,3.6,'#ffe06b')+C_c(3.8,-20,.5,'#fff')+C_c(-3.6,-14,.4,'#fff'),
+brush:c=>QL(0,-.4,0,-9.4,'#c9a24a',1.1)+R_(-.8,-10.8,1.6,1.7,'#9ca3af')+QP('M-.95 -10.8L.95 -10.8L.4 -14.8L-.4 -14.8Z',c||'#e11d48'),
+flower:c=>{c=c||'#ef6f91';return QL(0,0,0,-10,'#3f9142',.8)+QP('M0 -4Q3.6 -6.2 4.8 -4.4Q2.6 -2.4 0 -4Z','#4ea852')+[0,72,144,216,288].map(a=>C_c(f2(Math.sin(a*Math.PI/180)*2.2),f2(-12.2-Math.cos(a*Math.PI/180)*2.2),1.8,c)).join('')+C_c(0,-12.2,1.2,'#ffd54a')},
+bouquet:c=>QP('M-4.8 -10L4.8 -10L1.3 0L-1.3 0Z','#f4ecd8')+QP('M-4.8 -10L0 -8.4L4.8 -10L1.3 0L-1.3 0Z','#e0d4b4','opacity=".6"')+R_(-2.1,-3.8,4.2,1,'#ef4444',.4)+C_c(-3.1,-12.6,2.5,c||'#ef6f91')+C_c(0,-14,2.7,'#ffd54a')+C_c(3.1,-12.4,2.5,'#b794f6')+C_c(-1.4,-10.8,2,'#fb923c')+C_c(1.9,-10.6,2,'#fff')+C_c(-3.1,-12.6,.9,'#ffd54a',.8),
+balloon:c=>QS('M0 0Q-1.6 -6 .6 -12Q1.6 -16 0 -18.6','#cbd5e1',.4)+QE(0,-26,5.4,7,c||'#ef4444')+QP('M0 -19.2L-1.1 -17.6L1.1 -17.6Z',shade(c||'#ef4444',.8))+QE(-2,-28.4,1.2,2.2,'#fff',.38),
+gift:c=>{c=c||'#ef4444';return R_(-4.6,-6,9.2,6,c,.6)+R_(-5,-7.6,10,2,shade(c,.85),.5)+R_(-.9,-7.6,1.8,7.6,'#fde68a')+R_(-4.6,-3.4,9.2,1.2,'#fde68a',0,.9)+QE(-1.9,-8.6,1.9,1.1,'#fde68a')+QE(1.9,-8.6,1.9,1.1,'#fde68a')},
+trophy:c=>{c=c||'#f0c93a';return QS('M-3.6 -11Q-6.6 -10.6 -5.4 -8.2Q-4.6 -7 -3 -7.2','#d4a72a',.8)+QS('M3.6 -11Q6.6 -10.6 5.4 -8.2Q4.6 -7 3 -7.2','#d4a72a',.8)+QP('M-3.8 -12.4L3.8 -12.4L2.9 -7Q1.6 -5.2 0 -5.2Q-1.6 -5.2 -2.9 -7Z',c)+R_(-.8,-5.4,1.6,2.8,c)+R_(-3.2,-2.7,6.4,2.7,'#8b5a2b',.5)+QSTAR(0,-9.3,1.5,'#fff7c2')},
+teddy:c=>{c=c||'#b7824f';return QE(0,-3.8,3.3,3.7,c)+QE(0,-3.5,1.9,2.1,'#e8c9a0')+QE(-3.7,-4.4,1.1,1.9,c)+QE(3.7,-4.4,1.1,1.9,c)+QE(-2.1,-.8,1.5,1.2,c)+QE(2.1,-.8,1.5,1.2,c)+C_c(-2.5,-11.5,1.2,c)+C_c(2.5,-11.5,1.2,c)+C_c(0,-9,3,c)+C_c(0,-8.1,1.2,'#e8c9a0')+C_c(0,-8.6,.4,'#333')+C_c(-1.1,-9.6,.35,'#222')+C_c(1.1,-9.6,.35,'#222')},
+alarmClock:c=>{c=c||'#ef4444';return QL(-2.6,-1,-3.4,0,'#333',.6)+QL(2.6,-1,3.4,0,'#333',.6)+C_c(-2.7,-8.2,1.4,'#9ca3af')+C_c(2.7,-8.2,1.4,'#9ca3af')+C_c(0,-4.4,3.9,c)+C_c(0,-4.4,3.1,'#fffbe8')+QL(0,-4.4,0,-6.6,'#222',.45)+QL(0,-4.4,1.7,-3.6,'#222',.45)+C_c(0,-4.4,.35,'#222')},
+/* ---------- ตกแต่งฉาก ---------- */
+paintingFrame:c=>{c=c||'#c9a24a';return R_(-9,-13,18,13,c,.8)+R_(-7.8,-11.8,15.6,10.6,'#9ad0ec',.3)+QP('M-7.8 -1.2L-7.8 -5Q-3.4 -8 0 -5.6Q4 -8.8 7.8 -4.6L7.8 -1.2Z','#5a9b58')+C_c(4.6,-9,1.4,'#ffe39a')},
+poster:c=>R_(-6,-16,12,16,c||'#fde68a',.4)+QSTAR(0,-10.6,3.4,'#ef4444')+R_(-4,-5.2,8,.9,'#6b7280',.3)+R_(-3,-3.4,6,.7,'#6b7280',.3,.7)+R_(-1.2,-17,2.4,1.4,'#e5e7eb',.2,.8),
+wallClock:c=>C_c(0,-7,7,c||'#6d4c41')+C_c(0,-7,5.9,'#fffbe8')+[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>{const a=i*Math.PI/6;return QL(f2(Math.sin(a)*5),f2(-7-Math.cos(a)*5),f2(Math.sin(a)*4.4),f2(-7-Math.cos(a)*4.4),'#555',.4)}).join('')+QL(0,-7,0,-11,'#222',.7)+QL(0,-7,3,-5.4,'#222',.7)+C_c(0,-7,.6,'#222'),
+mirror:c=>R_(-5.6,-26,11.2,26,c||'#a1743c',5)+R_(-4.6,-25,9.2,24,'#cfe9f4',4)+QL(-2.4,-21.5,-.6,-13.5,'#fff',.9,'opacity=".6"')+R_(-4.2,-1.2,8.4,1.2,'#7a5230',.4),
+curtain:c=>{c=c||'#b4536a';return R_(-16,-31,32,1.3,'#6b4226',.5)+QP('M-15 -30L-3 -30Q-6.4 -14 -4.4 0L-15 0Z',c)+QP('M15 -30L3 -30Q6.4 -14 4.4 0L15 0Z',c)+[-12,-8.6,-5.4].map(x=>QS(`M${x} -30L${x-.8} -1`,'#000',.5,'opacity=".18"')).join('')+[12,8.6,5.4].map(x=>QS(`M${x} -30L${x+.8} -1`,'#000',.5,'opacity=".18"')).join('')+C_c(-4,-14,1,'#e8c98a')+C_c(4,-14,1,'#e8c98a')},
+rug:c=>{c=c||'#b4536a';return QE(0,-1.5,22,2.8,c)+QE(0,-1.5,18.6,2.1,shade(c,.78))+QE(0,-1.5,12,1.2,'#f1e4c8',.7)+QE(0,-1.5,6,.6,c)},
+vase:c=>{c=c||'#4aa3c9';return QP('M-3 -12C-6 -8 -5 -2 -3 0L3 0C5 -2 6 -8 3 -12Z',c)+R_(-3.6,-10,7.2,.9,'#fff',0,.35)+QL(0,-12,-3.2,-20,'#3f9142',.6)+QL(0,-12,0,-22.4,'#3f9142',.6)+QL(0,-12,3.6,-19.6,'#3f9142',.6)+C_c(-3.2,-20.8,2,'#ef6f91')+C_c(0,-23.4,2.2,'#ffd54a')+C_c(3.6,-20.2,2,'#b794f6')+C_c(0,-23.4,.8,'#fb923c')},
+cactus:c=>QP('M-4.2 -5L4.2 -5L3.2 0L-3.2 0Z','#a1523a')+R_(-2.3,-16.4,4.6,11.6,c||'#3a8d5c',2.3)+R_(-6,-12.4,3.7,1.9,c||'#3a8d5c',.9)+R_(-6.1,-15,1.9,4.2,c||'#3a8d5c',.9)+R_(2.3,-10.4,3.7,1.9,c||'#3a8d5c',.9)+R_(4.1,-13,1.9,4,c||'#3a8d5c',.9)+C_c(0,-17,1.1,'#f472b6'),
+flowerPot:c=>QP('M-4.2 -5.4L4.2 -5.4L3.2 0L-3.2 0Z',c||'#c2693f')+R_(-4.7,-6.4,9.4,1.4,shade(c||'#c2693f',.85),.4)+QL(-2,-6,-3,-11,'#3f9142',.6)+QL(0,-6,0,-13,'#3f9142',.6)+QL(2,-6,3.2,-10.6,'#3f9142',.6)+C_c(-3,-11.6,1.8,'#ef6f91')+C_c(0,-13.6,2,'#facc15')+C_c(3.2,-11.2,1.8,'#a78bfa')+QP('M-1 -6Q-4.4 -8.6 -5.2 -7.2Q-3.6 -5.4 -1 -6Z','#4ea852')+QP('M1 -6Q4.4 -8.6 5.2 -7.2Q3.6 -5.4 1 -6Z','#4ea852'),
+bookStack:c=>R_(-7,-3,14,3,c||'#c0504d',.5)+R_(-6,-6,12,3,'#4c8bd6',.5)+R_(-7.6,-9,13,3,'#e8c98a',.5)+R_(-5.6,-12,11,3,'#3a8d5c',.5)+R_(5.6,-2.4,1.4,1.8,'#f4ecd8',.3)+R_(5,-5.4,1,1.8,'#f4ecd8',.3),
+globe:c=>R_(-3.6,-1,7.2,1,'#6b4226',.4)+R_(-.5,-4.2,1,3.4,'#6b4226')+C_c(0,-10,6,c||'#4a90c2')+QP('M-3.2 -12.6Q-1 -14.6 1 -12.6Q0 -10.4 -2 -10Z','#5a9b58')+QP('M1.6 -8.4Q4.6 -9.4 5 -6.6Q3.6 -4.6 1.6 -5.8Z','#5a9b58')+QS('M-5.2 -14.4Q-9.2 -8 -3.4 -3.6','#c9a24a',.7)+QE(-2,-13,1.4,2.2,'#fff',.2),
+tableLamp:c=>C_c(0,-12,9.5,'#ffe39a',.17)+QP('M-5.2 -10L5.2 -10L3.4 -16L-3.4 -16Z',c||'#f6d98f')+R_(-.6,-10,1.2,6.6,'#8d6e63')+R_(-3.2,-3.8,6.4,3.8,'#6d4c41',1.2),
+tv:c=>R_(-11,-16,22,15,c||'#2b2f38',1.5)+R_(-9.6,-14.6,19.2,11.8,'#5ec2b7',1,.88)+QP('M-9.6 -2.8L-5 -9L-1 -4.8L2.6 -9.6L9.6 -2.8Z','#2f7f8f','opacity=".8"')+C_c(5.6,-12,1.5,'#fff7cf',.9)+QP('M-9.6 -14.6L-2 -14.6L-9.6 -6Z','#fff','opacity=".14"')+R_(-4,-1,8,1,'#555',.4)+R_(-6,-.4,12,.4,'#333'),
+fireplace:c=>R_(-15,-31,30,3,'#6d4c41',.6)+R_(-13,-28,26,28,c||'#8a5a44',.8)+[0,1,2,3,4].map(i=>[0,1,2].map(j=>R_(-12+j*8+(i%2)*3,-26.6+i*5.4,7,.5,'#000',0,.14)).join('')).join('')+R_(-8,-18,16,18,'#1a1210',2)+C_c(0,-9,13,'#ff8a3d',.16)+QP('M-4 -3C-6.6 -8.6 -3 -10.4 -3 -14C-1 -11 0 -10 0 -7C2 -9.4 1.6 -11.6 2 -12.6C5 -9 6.6 -6 4.2 -3Z','#ff8a2b')+QP('M-1.6 -3C-3 -6 -1 -7.4 0 -9.4C2.4 -6.6 3 -4.6 1.8 -3Z','#ffd95a')+R_(-6.4,-2.6,12.8,2.6,'#5a3a1e',1.2),
+bunting:c=>QS('M-24 -20Q0 -12 24 -20','#7a5230',.5)+[0,1,2,3,4,5,6,7].map(i=>{const t=(i+.5)/8,x=-24+48*t,y=-20+16*t*(1-t),col=c?(i%2?shade(c,.78):c):Q_PALETTE[i%Q_PALETTE.length];return QP(`M${f2(x-2.6)} ${f2(y-.2)}L${f2(x+2.6)} ${f2(y-.2)}L${f2(x)} ${f2(y+5.8)}Z`,col)}).join(''),
+stringLights:c=>{let o=QS('M-26 -22Q-13 -12 0 -22Q13 -12 26 -22','#334155',.5);for(let i=0;i<=8;i++){const u=i/8,seg=u<.5?0:1,t=seg?(u-.5)*2:u*2,x=-26+26*(seg+t),y=-22+20*t*(1-t),col=c||Q_PALETTE[i%Q_PALETTE.length];o+=C_c(f2(x),f2(y+1.8),3.4,col,.18)+QE(f2(x),f2(y+1.8),.9,1.3,col)}return o},
+balloons:c=>QS('M0 -1.8Q-3.4 -14 -6 -23M0 -1.8Q0 -16 0 -27M0 -1.8Q3.6 -13 6.2 -22','#cbd5e1',.35)+R_(-1.6,-1.8,3.2,1.8,'#555',.6)+QE(-6,-30,4.6,6,c||'#ef4444')+QE(0,-34,4.8,6.2,'#facc15')+QE(6.2,-29,4.6,6,'#3b82f6')+QE(-7.4,-32,1,1.8,'#fff',.35)+QE(-1.4,-36,1,1.8,'#fff',.35)+QE(4.8,-31,1,1.8,'#fff',.35),
+grandClock:c=>{c=c||'#6d4c41';return R_(-5,-34,10,31.2,c,1)+R_(-6.4,-38,12.8,12.4,shade(c,.85),1.6)+C_c(0,-32,4.3,'#fffbe8')+QL(0,-32,0,-35,'#222',.6)+QL(0,-32,2,-30.6,'#222',.6)+R_(-3.2,-24,6.4,17,'#2a1c12',.6)+QL(0,-23.4,0,-12.6,'#c9a24a',.5)+C_c(0,-11.8,1.5,'#c9a24a')+R_(-6.4,-3,12.8,3,shade(c,.8),.6)},
+aquarium:c=>R_(-13,-2,26,2,'#5d4037',.4)+R_(-12,-15,24,13,c||'#9ad0ec',1.4,.38)+R_(-12,-4.4,24,2.4,'#e7d09a',.4)+QE(-3,-8.6,2.4,1.3,'#fb923c')+QP('M-5.2 -8.6L-7.6 -10L-7.6 -7.2Z','#fb923c')+QE(4,-10.6,2,1.1,'#38bdf8')+QP('M5.8 -10.6L7.8 -11.8L7.8 -9.4Z','#38bdf8')+QS('M8 -4.4Q6 -8 8.4 -11.4','#3f9142',.8)+QS('M-9 -4.4Q-7.6 -7.4 -9.4 -10','#3f9142',.8)+C_c(-1,-12.6,.5,'#fff',.6)+C_c(-.2,-14,.35,'#fff',.6)
+});
+/* จุดจับเมื่อตัวละครถือ: gx,gy = จุดบนพร็อพที่วางตรงข้อมือ, s = ขนาดเมื่อถือ (คูณกับ scale ของพร็อพ), r = องศาหมุน (บวก = เอนไปด้านหน้า) */
+const HELD_PROPS={
+ phone:{gx:0,gy:-3.4},flashlight:{gx:-1.4,gy:-1.4},torch:{gx:0,gy:-3.2,r:10},lantern:{gx:0,gy:-12.4},candle:{gx:0,gy:-2.6},walkieTalkie:{gx:0,gy:-4.4},
+ tablet:{gx:0,gy:-5},laptop:{gx:0,gy:-.7,s:.8},camera:{gx:0,gy:-2.9},microphone:{gx:0,gy:-4.2},magnifier:{gx:0,gy:-2.4,r:12},key:{gx:0,gy:-3.2},envelope:{gx:0,gy:-3},clipboard:{gx:0,gy:-5},book:{gx:0,gy:-4.6},notebook:{gx:0,gy:-4.6},
+ coffeeCup:{gx:0,gy:-2.7},bottle:{gx:0,gy:-3.8},soda:{gx:0,gy:-3.8},icecream:{gx:0,gy:-4},apple:{gx:0,gy:-3},pizza:{gx:0,gy:-4.6},
+ umbrella:{gx:0,gy:-7,r:-24},handbag:{gx:0,gy:-12},backpack:{gx:0,gy:-14},suitcase:{gx:0,gy:-20.6,s:.74},briefcase:{gx:0,gy:-10},cane:{gx:.6,gy:-17},flag:{gx:0,gy:-6,s:.9},
+ wand:{gx:0,gy:-3,r:26},brush:{gx:0,gy:-4,r:20},flower:{gx:0,gy:-3,r:8},bouquet:{gx:0,gy:-4},balloon:{gx:0,gy:0,s:.85,r:-26},gift:{gx:0,gy:-3},trophy:{gx:0,gy:-4},teddy:{gx:0,gy:-4.6},alarmClock:{gx:0,gy:-4},
+ vase:{gx:0,gy:-5,s:.55},tableLamp:{gx:0,gy:-6,s:.55},globe:{gx:0,gy:-6,s:.55},cactus:{gx:0,gy:-6,s:.6},flowerPot:{gx:0,gy:-5,s:.6},bookStack:{gx:0,gy:-6,s:.6},paintingFrame:{gx:0,gy:-6.5,s:.5},poster:{gx:0,gy:-8,s:.5},wallClock:{gx:0,gy:-7,s:.7},mirror:{gx:0,gy:-13,s:.5}
+};
+const PROP_GROUPS=[
+ {id:'hold',label:'📱 ถือได้ · อุปกรณ์/แสง',kinds:['phone','flashlight','torch','lantern','candle','walkieTalkie','tablet','laptop','camera','microphone','magnifier','key','envelope','clipboard','book','notebook']},
+ {id:'carry',label:'🎒 ถือได้ · ของใช้/กระเป๋า/อาหาร',kinds:['coffeeCup','bottle','soda','icecream','apple','pizza','umbrella','handbag','backpack','suitcase','briefcase','cane','flag','wand','brush','flower','bouquet','balloon','gift','trophy','teddy','alarmClock']},
+ {id:'deco',label:'🖼️ ตกแต่งฉาก',kinds:['paintingFrame','poster','wallClock','mirror','curtain','rug','vase','cactus','flowerPot','bookStack','globe','tableLamp','tv','fireplace','bunting','stringLights','balloons','grandClock','aquarium']}
+];
 const PROP_KINDS=Object.keys(PROPS);
 const LIGHTS={day:['#fff6d8',.06],evening:['#ff8a3d',.2],night:['#0a1030',.48],warm:['#ffb347',.13],cold:['#6fa8ff',.15],dim:['#000000',.32]};
 const LIGHT_TH={day:'กลางวัน',evening:'เย็น',night:'กลางคืน',warm:'โทนอุ่น',cold:'โทนเย็น',dim:'มัว'};
@@ -1439,7 +1555,7 @@ return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 90" preserveAsp
 
 const SET_DOC=`ผังสถานที่ + จุดยึด (ให้ฉากหน้าตาเหมือนเดิมทุกครั้ง): สถานที่แต่ละแห่งมี set = {"bg":["#top","#bottom"],"floor":"#hex","floorY":78,"light":"day","anchors":{"desk":{"x":62,"y":90,"facing":"left","pose":"sit"},...},"props":[{"kind":"desk","at":"desk","dx":-12,"scale":1.3,"front":true}]}
 - ผังสำเร็จรูป (ใช้ได้ทันทีตาม location id): ${Object.keys(SETS).map(k=>k+'['+Object.keys(SETS[k].anchors).join(',')+']').join(' | ')}  (id สถานที่อื่น: ใช้ applySetPreset {id:locId, preset:"office"} แล้วแก้ต่อ หรือเขียน set เองด้วย upsertLocation {item:{id,set:{...}}})
-- ชิ้นส่วนมาตรฐาน (props.kind): ${PROP_KINDS.join(' / ')} | ฟิลด์ prop: kind, at (ชื่อจุดยึด) หรือ x,y (% ของเฟรม, y = ฐานของ), dx,dy, scale, color (#hex), flip, front:true = วาดทับตัวละคร (เช่นโต๊ะที่ตัวละครนั่งหลัง)
+- ชิ้นส่วนมาตรฐาน (props.kind): ${PROP_KINDS.join(' / ')} | ของที่ตัวละครถือได้จริง (วางใน scenes[].props แล้วผูกกับมือ): ${PROP_GROUPS.slice(0,2).flatMap(g=>g.kinds).join(' / ')} → scenes[].interactionInitialHold=[{propIndex,actor,hand:"right"|"left"}] ถือตั้งแต่ต้นฉาก หรือ scenes[].interactions=[{id,type:"pickup"|"place",actor,propIndex,at,hand}] (คู่กับท่า phone / point / carry / read; ไฟฉายชี้ไปด้านหน้าของตัวละคร) | ฟิลด์ prop: kind, at (ชื่อจุดยึด) หรือ x,y (% ของเฟรม, y = ฐานของ), dx,dy, scale, color (#hex), flip, front:true = วาดทับตัวละคร (เช่นโต๊ะที่ตัวละครนั่งหลัง)
 - วางตัวละครด้วยชื่อจุด ไม่ต้องเดาพิกัด: actors[] = {"char":"host","at":"desk"} (ท่า/ทิศหันมาจากจุดยึดถ้าไม่ระบุ) | เดินระหว่างจุด {"char":"host","at":"door","to":"desk","pose":"walk"} | dx,dy = ขยับจากจุด | x,y ที่ระบุเองชนะเสมอ
 - เพิ่มท่า typing / carry / openDoor / handshake; ตั้ง view เป็น front หรือ threeQuarter เพื่อส่ง OpenPose Body-18 ทั้งสองแขนและตา/หู
 - เส้นทางหลายจุด: actors[].route = ["door",{"at":"desk","pose":"typing","hold":1},"window"] (แสดงตัวละครระหว่างทางได้; ส่งออกภาพ middle ได้)
@@ -1800,12 +1916,18 @@ return det('r','ตัวละครเคลื่อนไหว (rig)'+(A.le
 
 
 const PROP_LABELS={desk:'โต๊ะทำงาน',table:'โต๊ะ',door:'ประตู',window:'หน้าต่าง',bed:'เตียง',shelf:'ชั้นหนังสือ',board:'กระดาน',sofa:'โซฟา',counter:'เคาน์เตอร์',lamp:'โคมไฟ',plant:'ต้นไม้กระถาง',bench:'ม้านั่ง',tree:'ต้นไม้',monitor:'จอมอนิเตอร์',building:'ตึก',awning:'กันสาด',sign:'ป้าย',rock:'หิน',waves:'คลื่นน้ำ',grass:'พุ่มหญ้า',palm:'ต้นปาล์ม',fence:'รั้ว',hospitalBed:'เตียงผู้ป่วย',cart:'รถเข็น',train:'รถไฟ',track:'รางรถไฟ',railing:'ราวกันตก',stairs:'บันได',crate:'ลัง',star:'ดาว',podium:'แท่น'};
+Object.assign(PROP_LABELS,{phone:'โทรศัพท์มือถือ',flashlight:'ไฟฉาย',torch:'คบเพลิง',lantern:'โคมตะเกียง',candle:'เทียนไข',walkieTalkie:'วิทยุสื่อสาร',tablet:'แท็บเล็ต',laptop:'แล็ปท็อป',camera:'กล้องถ่ายรูป',microphone:'ไมโครโฟน',magnifier:'แว่นขยาย',key:'กุญแจ',envelope:'จดหมาย',clipboard:'คลิปบอร์ด',book:'หนังสือ',notebook:'สมุดโน้ต',coffeeCup:'แก้วกาแฟ',bottle:'ขวดน้ำ',soda:'แก้วน้ำอัดลม',icecream:'ไอศกรีม',apple:'แอปเปิล',pizza:'พิซซ่า',umbrella:'ร่ม',handbag:'กระเป๋าถือ',backpack:'กระเป๋าเป้',suitcase:'กระเป๋าเดินทาง',briefcase:'กระเป๋าเอกสาร',cane:'ไม้เท้า',flag:'ธง',wand:'ไม้กายสิทธิ์',brush:'พู่กัน',flower:'ดอกไม้',bouquet:'ช่อดอกไม้',balloon:'ลูกโป่ง',gift:'กล่องของขวัญ',trophy:'ถ้วยรางวัล',teddy:'ตุ๊กตาหมี',alarmClock:'นาฬิกาปลุก',paintingFrame:'กรอบภาพ',poster:'โปสเตอร์',wallClock:'นาฬิกาแขวน',mirror:'กระจกเงา',curtain:'ผ้าม่าน',rug:'พรมปูพื้น',vase:'แจกันดอกไม้',cactus:'กระบองเพชร',flowerPot:'กระถางดอกไม้',bookStack:'กองหนังสือ',globe:'ลูกโลก',tableLamp:'โคมไฟตั้งโต๊ะ',tv:'โทรทัศน์',fireplace:'เตาผิง',bunting:'ธงราว',stringLights:'ไฟประดับ',balloons:'ช่อลูกโป่ง',grandClock:'นาฬิกาตั้งพื้น',aquarium:'ตู้ปลา'});
 function propPanel(s){
- const addPicker=h('select',{'aria-label':'เลือกพร็อพ'},...PROP_KINDS.map(k=>h('option',{value:k},PROP_LABELS[k]||k)));
+ const addPicker=h('select',{'aria-label':'เลือกพร็อพ'});
+ {const grouped=new Set(PROP_GROUPS.flatMap(g=>g.kinds)),mk=(label,kinds)=>{const og=h('optgroup',{label});kinds.forEach(k=>og.append(h('option',{value:k},PROP_LABELS[k]||k)));addPicker.append(og)};
+  PROP_GROUPS.forEach(g=>mk(g.label,g.kinds.filter(k=>PROPS[k])));mk('🏠 เฟอร์นิเจอร์/ฉากพื้นฐาน',PROP_KINDS.filter(k=>!grouped.has(k)))}
  const panels=(s.props||[]).map((v,i)=>det('prop:'+s.id+':'+i,(PROP_LABELS[v.kind]||v.kind)+' #'+(i+1),
   h('div',{className:'row'},fld('x (%)',v.x??50,x=>v.x=clampN(x,-100,200),'number'),fld('y (%)',v.y??85,y=>v.y=clampN(y,-100,200),'number')),
   fld('ขนาด',v.scale??1,x=>v.scale=clampN(x,.1,6),'number'),
   sel_('ลำดับการซ้อน',[['','หลังตัวละคร'],['yes','หน้าตัวละคร']],v.front?'yes':'',x=>v.front=x==='yes'),
+  ...((s.actors||[]).length?(()=>{const cur=(s.interactionInitialHold||[]).find(e=>e.propIndex===i),setHold=(actor,hand)=>{s.interactionInitialHold=(s.interactionInitialHold||[]).filter(e=>e.propIndex!==i);if(actor)s.interactionInitialHold.push({propIndex:i,actor,hand:hand==='left'?'left':'right'})};
+   return[sel_('ให้ตัวละครถือตั้งแต่ต้นฉาก',[['','— ไม่ถือ (วางในฉาก) —'],...(s.actors||[]).map(a=>[a.char,(S.characters.find(c=>c.id===a.char)||{}).name||a.char])],cur?cur.actor:'',x=>setHold(x,cur?cur.hand:'right')),
+   sel_('มือที่ถือ',[['right','มือขวา'],['left','มือซ้าย']],cur?cur.hand:'right',x=>{if(cur)setHold(cur.actor,x)})]})():[]),
   fld('สี (รหัส #hex, ไม่บังคับ)',v.color||'',x=>{if(x)v.color=x;else delete v.color}),
   h('button',{className:'dng',onclick:()=>commit(()=>{s.props.splice(i,1);s.interactions=(s.interactions||[]).filter(e=>e.propIndex!==i).map(e=>({...e,propIndex:e.propIndex>i?e.propIndex-1:e.propIndex}));s.interactionInitialHold=(s.interactionInitialHold||[]).filter(e=>e.propIndex!==i).map(e=>({...e,propIndex:e.propIndex>i?e.propIndex-1:e.propIndex}))})},'ลบพร็อพนี้')));
  return det('props','ของประกอบฉาก · '+(s.props||[]).length,
@@ -2502,10 +2624,14 @@ det('lighting','ออกแบบแสงและความต่อเน�
  sel_('จังหวะการเปลี่ยน (Easing)',[['','นุ่มนวล (ค่าเริ่มต้น)'],['linear','เส้นตรง'],['ease-in','เริ่มช้า'],['ease-out','จบช้า'],['ease-in-out','ช้าหัว-ท้าย']],s.transition.ease||'',v=>{if(v)s.transition.ease=v;else delete s.transition.ease}),
  sel_('ฉากเดิมยังขยับ (หายใจ/กะพริบ) ระหว่างเปลี่ยนฉาก',[['auto','อัตโนมัติ (เปิดกับ ละลาย/Fade/ดับจอ/เบลอ/ซูม)'],['on','เปิดเสมอ'],['off','ปิด (ภาพฉากเดิมค้างนิ่ง)']],s.transition.live===true?'on':s.transition.live===false?'off':'auto',v=>{if(v==='on')s.transition.live=true;else if(v==='off')s.transition.live=false;else delete s.transition.live}),
  sel_('หมุนตัวละครเมื่อทิศหันต่างจากฉากก่อน',[['on','หมุนผ่านด้านหน้า (ค่าเริ่มต้น)'],['off','ไม่หมุน (สลับทิศทันที)']],s.transition.turn===false?'off':'on',v=>{if(v==='off')s.transition.turn=false;else delete s.transition.turn}),
+ ...(s.transition.type==='cut'&&E.scenes.indexOf(s)>0?[sel_('Match cut · กล้องไหลต่อจากท้ายฉากก่อน',[['off','ปิด (ตัดตรงปกติ)'],['on','เปิด (กล้องต่อเนื่องจากเฟรมสุดท้ายของฉากก่อน แล้วค่อยไปมุมของฉากนี้)']],s.transition.match===true?'on':'off',v=>{if(v==='on')s.transition.match=true;else{delete s.transition.match;delete s.transition.matchDur}}),...(s.transition.match===true?[fld('เวลากล้องไหลเข้าสู่มุมฉากนี้ (วินาที)',s.transition.matchDur??.6,v=>s.transition.matchDur=clampN(v,.1,Math.max(.1,s.duration*.5)),'number')]:[])]:[]),
  sel_('การเริ่มฉากใหม่ระหว่าง Transition',[['overlap','เริ่มทันที (ซ้อนกัน)'],['preroll','รอ Transition จบก่อน (ตัวละคร/เสียง/คำบรรยายเริ่มหลังจบ)'],['handle','ซ้อนกัน + ตรวจความยาวเข้มงวด']],s.transition.mode||'overlap',v=>{if(v==='overlap')delete s.transition.mode;else s.transition.mode=v}),
  h('div',{className:'quick-cam'},...[['นุ่มนวล',()=>{Object.assign(s.transition,{type:'dissolve',duration:.65})}],['แบบภาพยนตร์',()=>{Object.assign(s.transition,{type:'fadeblack',duration:.8})}],['แอ็กชัน',()=>{Object.assign(s.transition,{type:'push-left',duration:.38})}]].map(([label,fn])=>h('button',{onclick:()=>commit(fn)},label))),
  h('button',{className:'add',onclick:()=>commit(()=>{E.scenes.slice(1).forEach(x=>{x.transition={type:s.transition.type,duration:s.transition.duration};if(s.transition.mode)x.transition.mode=s.transition.mode;if(s.transition.ease)x.transition.ease=s.transition.ease;if(s.transition.turn===false)x.transition.turn=false;if(s.transition.live!==undefined)x.transition.live=s.transition.live})})},'ใช้ทรานซิชันนี้กับฉากทั้งหมด'),
  h('button',{className:'add',onclick:()=>commit(()=>{E.scenes.slice(1).filter(x=>!x.transition||x.transition.type==='cut').forEach(x=>x.transition={type:'dissolve',duration:.6})})},'แก้ฉากตัดตรงทั้งหมด → ละลายภาพ'),
+ h('div',{className:'transition-quick episode-wide'},h('strong',{},'ตั้งค่าทั้งตอน (ใช้ค่าของฉากนี้กับทุกฉากในตอน)'),
+  h('div',{className:'transition-quick-buttons'},...[['atmosphere','บรรยากาศ'],['light','โทนแสง'],['fx','เอฟเฟกต์ภาพ']].map(([what,label])=>h('button',{disabled:E.scenes.length<2,onclick:()=>commit(()=>{applyEpisodeWide(E,s,what)})},label))),
+  h('p',{className:'sum'},'ช่วยให้อากาศ/แสงต่อเนื่องทั้งตอน และลดคำเตือนตัดตรงที่บรรยากาศเปลี่ยน (Undo ได้)')),
  h('div',{className:'gallery-note'},'หมุน 2.5D เป็นการจำลองมุมกล้องบนภาพ SVG แบบเลเยอร์ ไม่ใช่โมเดล 3D จริง')),
 det('k','Marker / จุดใบ้',E.clues.length?E.clues.map(c=>h('label',{className:'chip',style:'display:flex'},h('input',{type:'checkbox',checked:c.sceneId===s.id,onchange:e=>commit(()=>{c.sceneId=e.target.checked?s.id:'';s.clueIds=E.clues.filter(x=>x.sceneId===s.id).map(x=>x.id)})}),c.label)):[h('span',{className:'sum'},'ยังไม่มี marker — เพิ่มที่ไลบรารี > ตอน/marker')]),
 det('v','ตรวจสอบตอน',checks().map(([ok,t])=>h('div',{className:ok?'ok':'warn'},(ok?'✓ ':'⚠ ')+t)),issuesList()))}
@@ -2733,10 +2859,9 @@ h('button',{onclick:()=>go(-1),'aria-label':'ฉากก่อน'},'⏮'),h('b
 h('input',{type:'range',min:0,max:tt*100,value:T*100,'aria-label':'เวลา',oninput:e=>{T=e.target.value/100;playing=false;draw();if(MOTION_ACTIVE)renderMotionBar()}}),h('span',{id:'clock'},''))}
 function toggle(){if(T>=total())T=0;playing=!playing;last=performance.now();ctl();draw()}
 function go(d){const n=Math.min(ep().scenes.length-1,Math.max(0,sel+d));sel=n;T=starts()[n];playing=false;render()}
-function draw(){
- const E=ep(),st=starts();let i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration);if(i<0)i=E.scenes.length-1;
- if(i!==sel&&(playing||document.activeElement===$('#ctl input'))){sel=i;if(playing&&!drawingPreviousFrame)deferSceneUi();else{inspector();timeline()}}
- const s=E.scenes[i];if(!s)return;if(THEATER_ACTIVE)updateTheaterTitle(i);const loc=(drawingPreviousFrame&&PRIOR_TAU>0)?s.duration+PRIOR_TAU:clampN(T-st[i],0,s.duration),pre=prerollSpan(E,i,s),aloc=Math.max(0,loc-pre),adur=Math.max(.1,s.duration-pre),p=clampN(loc/Math.max(.1,s.duration),0,1),c=s.camera||{},world=$('#world');
+// v34 C3: คำนวณท่ากล้องของฉาก (ใช้ร่วมพรีวิว+ส่งออก) / cameraPoseAt เพิ่ม match cut: กล้องไหลต่อจากเฟรมสุดท้ายของฉากก่อน
+function cameraPose(s,loc,aloc,adur){
+ const c=s.camera||{},p=clampN(loc/Math.max(.1,s.duration),0,1);
  const extent=clampN(nm(c.world,1),1,3.5),ease=p*p*(3-2*p),kind=c.type||'static';
  let zoom=nm(c.from,1)+(nm(c.to,1)-nm(c.from,1))*ease,dx=0,dy=0,ry=0,rz=0;
  if(kind==='static')zoom=nm(c.from,1);
@@ -2755,6 +2880,19 @@ function draw(){
  if(kind==='panorama'&&c.subjectLock&&extent>1.001&&(s.actors||[]).length){const subject=actorAtTime(s.actors[0],s,aloc,adur);track=clampN((nm(subject.x,50)/100*extent-.5)/(extent-1),0,1)}
  const panoShift=(extent-1)*clampN(track,0,1)*100/extent;
  if(kind==='panorama'&&extent<=1.001)dx=7-14*ease;
+ return{extent,zoom,dx,dy,ry,rz,panoShift}}
+function cameraMatchSpan(s){const tr=s&&s.transition;if(!tr||tr.match!==true||(tr.type||'cut')!=='cut')return 0;return Math.min(Math.max(.1,nm(tr.matchDur,.6)),Math.max(.1,nm(s.duration,0)*.5))}
+function cameraPoseAt(E,i,s,loc,aloc,adur){
+ const cur=cameraPose(s,loc,aloc,adur),D=cameraMatchSpan(s);
+ if(!(D>0)||loc>=D)return cur;
+ const prev=prevSceneOf(E,i);if(!prev)return cur;
+ const pre=i>0?prerollSpan(E,i-1,prev):0,pd=nm(prev.duration,0),pp=cameraPose(prev,pd,Math.max(0,pd-pre),Math.max(.1,pd-pre)),r=clampN(loc/D,0,1),w=r*r*(3-2*r),mix=(a,b)=>a+(b-a)*w,tx=q=>-q.extent*q.panoShift+q.dx;
+ return Object.assign({},cur,{zoom:mix(pp.zoom,cur.zoom),dy:mix(pp.dy,cur.dy),ry:mix(pp.ry,cur.ry),rz:mix(pp.rz,cur.rz),dx:mix(clampN(tx(pp),-(cur.extent-1)*100-8,8),tx(cur)),panoShift:0})}
+function draw(){
+ const E=ep(),st=starts();let i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration);if(i<0)i=E.scenes.length-1;
+ if(i!==sel&&(playing||document.activeElement===$('#ctl input'))){sel=i;if(playing&&!drawingPreviousFrame)deferSceneUi();else{inspector();timeline()}}
+ const s=E.scenes[i];if(!s)return;if(THEATER_ACTIVE)updateTheaterTitle(i);const loc=(drawingPreviousFrame&&PRIOR_TAU>0)?s.duration+PRIOR_TAU:clampN(T-st[i],0,s.duration),pre=prerollSpan(E,i,s),aloc=Math.max(0,loc-pre),adur=Math.max(.1,s.duration-pre),p=clampN(loc/Math.max(.1,s.duration),0,1),c=s.camera||{},world=$('#world');
+ const CP=cameraPoseAt(E,i,s,loc,aloc,adur),{extent}=CP;let{zoom,dx,dy,ry,rz,panoShift}=CP;
  world.style.width=(extent*100)+'%';
  world.style.transform=`translateX(calc(${-panoShift}% + ${dx/extent}%)) translateY(${dy}%) perspective(850px) rotateY(${ry}deg) rotate(${rz}deg) scale(${Math.max(.55,zoom)})`;
  const bg=$('#bg');bg.style.backgroundImage=s.image?`url(${s.image})`:'';
@@ -2846,7 +2984,7 @@ function applyCameraCanvas(ctx,im,world,scene,w,h){
  const cs=getComputedStyle(world),m=new DOMMatrix(cs.transform==='none'?'matrix(1,0,0,1,0,0)':cs.transform);
  const stage=$('#stage'),scaleX=w/Math.max(1,stage.clientWidth),scaleY=h/Math.max(1,stage.clientHeight);
  ctx.save();ctx.translate(wide/2,h/2);ctx.transform(m.a,m.b,m.c,m.d,m.e*scaleX,m.f*scaleY);ctx.translate(-wide/2,-h/2);
- const L=scene.lighting||{};ctx.filter=`brightness(${clampN(nm(L.exposure,1),.6,1.5)})`;
+ const L=scene.lighting||{},ex=clampN(nm(L.exposure,1),.6,1.5);ctx.filter=ex===1?'none':`brightness(${ex})`; /* v33 A5: brightness(1) เป็น identity แต่ทำให้ drawImage ช้าลง ~10ms/เฟรมที่ 1080p -> ใช้ 'none' (พิกเซลเท่าเดิม; 'none' ยังล้าง blur จาก paint() เหมือนเดิม) */
  ctx.drawImage(im,0,0,wide,h);ctx.restore();
 }
 /* ===== v22/v23 — continuous atmosphere + light blending (shared by preview and export) ===== */
@@ -3174,7 +3312,7 @@ function smartAnalyze(D){const issues=[];const push=(severity,kind,ei,si,scene,m
     const cues=Array.isArray(s.subtitleCues)?s.subtitleCues.filter(x=>x&&String(x.text||'').trim()):[];
     cues.forEach((c,ci)=>{if(Number.isFinite(c.end)&&Number.isFinite(c.start)&&c.end-c.start<.48&&[...String(c.text||'')].length>14)push('warn','visual',ei,si,s,'ซับยาวแต่แสดงสั้นกว่า 0.48 วินาที',`${path}.subtitleCues[${ci}]`,'ขยายช่วงหรือแบ่งข้อความ');});
     if(cues.length&&Array.isArray(s.graphicCards)&&s.graphicCards.some(c=>c?.position==='bottom'&&Number(c.end||dur)>0))push('warn','visual',ei,si,s,'กราฟิกด้านล่างอาจทับซับ',`${path}.graphicCards`,'ย้ายกราฟิกขึ้นด้านบนหรือปรับเวลา');
-    if(dur>0&&si>0&&(s.transition?.type||'cut')!=='cut'&&Number(s.transition?.duration)>dur*.4)push('warn','visual',ei,si,s,'Transition ยาวเกิน 40% ของฉาก (ฉากสั้นเกินไปสำหรับเปลี่ยนภาพ)',`${path}.transition.duration`,'ลดความยาว Transition');if(dur>0&&s.transition?.mode==='preroll'&&Number(s.transition?.duration)>dur*.5)push('warn','visual',ei,si,s,'โหมดรอ Transition จบกินเวลาฉากเกินครึ่ง ตัวละครจะเหลือเวลาเล่นน้อย',`${path}.transition.mode`,'ลดความยาว Transition หรือใช้โหมดซ้อนกัน');
+    if(dur>0&&si>0&&(s.transition?.type||'cut')!=='cut'&&Number(s.transition?.duration)>dur*.4)push('warn','visual',ei,si,s,'Transition ยาวเกิน 40% ของฉาก (ฉากสั้นเกินไปสำหรับเปลี่ยนภาพ)',`${path}.transition.duration`,'ลดความยาว Transition');if(dur>0&&si>0&&s.transition?.mode==='handle'&&(s.transition?.type||'cut')!=='cut'&&scenes[si-1]){const td=handleLimit(scenes[si-1],s);if(td.over)push('warn','visual',ei,si,s,`โหมดซ้อนกัน+ตรวจเข้มงวด: Transition ${td.dur.toFixed(2)} วินาที ยาวเกิน handle (ไม่เกิน ${td.max.toFixed(2)} วินาที = 30% ของฉากนี้ / 50% ของฉากก่อน)`,`${path}.transition.duration`,'ลดความยาว Transition หรือยืดความยาวฉาก',{kind:'handle'})}if(dur>0&&s.transition?.mode==='preroll'&&Number(s.transition?.duration)>dur*.5)push('warn','visual',ei,si,s,'โหมดรอ Transition จบกินเวลาฉากเกินครึ่ง ตัวละครจะเหลือเวลาเล่นน้อย',`${path}.transition.mode`,'ลดความยาว Transition หรือใช้โหมดซ้อนกัน');
    }
    if(smartEnabled('audio',D)){
     if(String(s.voiceover||'').trim()&&!Array.isArray(s.audioClips)&&!s.audio)push('warn','audio',ei,si,s,'มีบทพากย์ แต่ไม่มี audioClips',`${path}.audioClips`,'อัดเสียงหรือนำเข้าจาก Sound Desk');
@@ -3194,15 +3332,26 @@ function smartAnalyze(D){const issues=[];const push=(severity,kind,ei,si,scene,m
 function continuityActorEnd(a,prev){try{return endFrameActor(a,prev)}catch(e){return null}}
 function continuityHeldAtEnd(scene){try{return typeof window.STUDIO_INTERACTION_ACTIVE_HELD==='function'?window.STUDIO_INTERACTION_ACTIVE_HELD(scene):[]}catch(e){return[]}}
 function continuityHeldAtStart(scene){const props=Array.isArray(scene.props)?scene.props:[],out=[];(Array.isArray(scene.interactionInitialHold)?scene.interactionInitialHold:[]).forEach(it=>{const p=props[it.propIndex];if(p&&p.kind)out.push({actor:it.actor,kind:p.kind})});(Array.isArray(scene.interactions)?scene.interactions:[]).forEach(e=>{const p=props[e.propIndex];if(e&&e.type==='pickup'&&p&&p.kind)out.push({actor:e.actor,kind:p.kind})});return out}
+// v32 D3: ขีดจำกัด handle ของ transition โหมด 'handle' = ไม่เกิน 30% ของฉากใหม่ และไม่เกิน 50% ของฉากก่อน
+function handleLimit(prev,s){const dur=transitionSpan(s),max=Math.max(.05,Math.min(cleanNum(s.duration)*.3,cleanNum(prev&&prev.duration)*.5));return{dur,max,over:dur>max+1e-6}}
 function continuityExtraFindings(prev,s){
- const out=[];if(!prev||!s||!prev.location||prev.location!==s.location)return out;
+ const out=[];if(!prev||!s)return out;
+ if(prev.location&&s.location&&prev.location!==s.location){
+  // ต่างสถานที่ + ตัดตรง + ตัวละครอยู่ตำแหน่ง/ทิศ/ท่าเดิมเป๊ะ = มักเป็นฉากที่ก๊อปมาแล้วเปลี่ยนแค่สถานที่ (วาร์ปโดยไม่มีสัญญาณ)
+  if((s.transition&&s.transition.type||'cut')==='cut'&&!(s.transition&&s.transition.match===true)){ /* v34 C3: match cut ที่ตั้งใจ = ไม่ใช่วาร์ป */
+   const before=Array.isArray(prev.actors)?prev.actors:[],cur=Array.isArray(s.actors)?s.actors:[];const same=[];
+   for(const a of cur){if(!isObj(a)||!a.char||a.at||a.to||(Array.isArray(a.route)&&a.route.length>1))continue;const old=before.find(b=>isObj(b)&&b.char===a.char);if(!old)continue;const last=continuityActorEnd(old,prev);if(!last)continue;
+    if(Math.abs(Number(a.x)-Number(last.x))<.5&&Math.abs(Number(a.y)-Number(last.y))<.5&&(a.facing||'right')===(last.facing||'right')&&(a.pose||'stand')===(last.pose||'stand'))same.push(a.char)}
+   if(same.length&&same.length===cur.filter(a=>isObj(a)&&a.char&&!a.at).length)out.push({msg:`เปลี่ยนสถานที่ (${prev.location} → ${s.location}) ด้วยตัดตรง แต่ตัวละคร ${same.join(', ')} อยู่ตำแหน่ง/ทิศ/ท่าเดิมเป๊ะ (อาจก๊อปฉากมาแล้วเปลี่ยนแค่สถานที่)`,advice:'ใส่ transition ให้เห็นการย้ายสถานที่ หรือปรับตำแหน่ง/ท่าของตัวละครให้เหมาะกับสถานที่ใหม่',autoFix:{kind:'transition'}})}
+  return out}
+ if(!prev.location||prev.location!==s.location)return out;
  const before=Array.isArray(prev.actors)?prev.actors:[],cur=Array.isArray(s.actors)?s.actors:[];
  for(const a of cur){
   if(!isObj(a)||!a.char||a.at||a.to||(Array.isArray(a.route)&&a.route.length>1))continue;
   const old=before.find(b=>isObj(b)&&b.char===a.char);if(!old)continue;
   const last=continuityActorEnd(old,prev);if(!last)continue;
   const first=(a.facing==='auto'||!a.facing)?'right':a.facing;
-  const turns=s.transition&&(s.transition.type||'cut')!=='cut'&&s.transition.turn!==false&&s.transition.mode!=='preroll'&&!a.bodyYaw&&(!a.view||a.view==='side');
+  const turns=s.transition&&(s.transition.type||'cut')!=='cut'&&s.transition.turn!==false&&s.transition.mode!=='preroll'&&!a.bodyYaw&&(!a.view||a.view==='side')&&entryTurnable(a);
   if(!turns&&(first==='left'||first==='right')&&(last.facing==='left'||last.facing==='right')&&first!==last.facing)
    out.push({msg:`ตัวละคร ${a.char} หันกลับด้านจากฉากก่อน (${last.facing==='left'?'ซ้าย':'ขวา'} → ${first==='left'?'ซ้าย':'ขวา'}) โดยไม่มีการเดินหรือเหตุผล`,advice:'ตั้งทิศหันให้ตรงกับท้ายฉากก่อน หรือใส่ route/ทรานซิชันหมุนตัวถ้าตั้งใจ',autoFix:{kind:'facing',char:a.char}})
  }
@@ -3223,6 +3372,7 @@ function continuityExtraFindings(prev,s){
  return out}
 function applyContinuityFix(E,si,f){
  const s=E&&E.scenes[si],prev=E&&E.scenes[si-1];if(!s||!prev||!f)return false;
+ if(f.kind==='handle'){const hl=handleLimit(prev,s);if(s.transition)s.transition.duration=+hl.max.toFixed(2);return true}
  if(f.kind==='transition'){s.transition={type:'dissolve',duration:Math.max(.2,Math.min(.6,cleanNum(s.duration)*.3))};return true}
  if(f.kind==='prop'){s.props=Array.isArray(s.props)?s.props:[];s.interactionInitialHold=Array.isArray(s.interactionInitialHold)?s.interactionInitialHold:[];const pi=s.props.push(JSON.parse(JSON.stringify(f.prop)))-1;s.interactionInitialHold.push({propIndex:pi,actor:f.char,hand:f.hand||'right'});return true}
  const a=(s.actors||[]).find(x=>x&&x.char===f.char),old=(prev.actors||[]).find(x=>x&&x.char===f.char);if(!a||!old)return false;
@@ -3344,6 +3494,7 @@ if(s.location&&!lset.has(s.location))add('error',sp+'.location','ไม่มี
 if(s.camera!==undefined&&(!isObj(s.camera)||!CAM.includes(s.camera.type)))add('error',sp+'.camera.type','camera.type ไม่รู้จัก: '+(s.camera&&s.camera.type),'ใช้ '+CAM.join(' / '));
 if(s.transition!==undefined&&(!isObj(s.transition)||!TRN.includes(s.transition.type)))add('error',sp+'.transition.type','transition.type ไม่รู้จัก: '+(s.transition&&s.transition.type),'ใช้ '+TRN.join(' / '));
 if(isObj(s.transition)&&s.transition.live!==undefined&&typeof s.transition.live!=='boolean')add('warn',sp+'.transition.live','transition.live ต้องเป็น true/false','ใช้ true หรือ false (ไม่ใส่ = อัตโนมัติ)');
+if(isObj(s.transition)&&s.transition.match!==undefined&&typeof s.transition.match!=='boolean')add('warn',sp+'.transition.match','transition.match ต้องเป็น true/false','ใช้ true เพื่อเปิด Match cut (ใช้กับ type cut) หรือไม่ใส่');
 if(isObj(s.transition)&&s.transition.ease!==undefined&&!['linear','ease-in','ease-out','ease-in-out'].includes(s.transition.ease))add('warn',sp+'.transition.ease','transition.ease ไม่รู้จัก: '+s.transition.ease,'ใช้ linear / ease-in / ease-out / ease-in-out');
  if(isObj(s.camera)){if(s.camera.world!==undefined&&(!Number.isFinite(s.camera.world)||s.camera.world<1||s.camera.world>3.5))add('error',sp+'.camera.world','ความกว้างโลกต้องอยู่ระหว่าง 1 ถึง 3.5');if(s.camera.subjectLock!==undefined&&typeof s.camera.subjectLock!=='boolean')add('error',sp+'.camera.subjectLock','subjectLock ต้องเป็น true/false')}
  if(s.atmosphere!==undefined&&!['none','rain','storm','snow','fog','wind','dust','fireflies','stars'].includes(s.atmosphere))add('error',sp+'.atmosphere','บรรยากาศไม่รู้จัก: '+s.atmosphere);
@@ -3420,7 +3571,7 @@ insertScene(D,o){const sc=merge(newScene(),clone(o.scene||{}));fixCam(sc,(o.scen
 if(o.after||o.before){const L=need(locate(D,o.after||o.before),o.after||o.before);E=L.E;k=L.k+(o.after?1:0)}else{E=epOf(D,o.episode);k=o.index==null?E.scenes.length:clampI(o.index,E.scenes.length)}
 E.scenes.splice(k,0,sc);FOCUS=sc.id;return`เพิ่มฉาก ${sc.id} ที่ตำแหน่ง ${k+1} ของตอน ${E.id}`},
 updateScene(D,o){const L=need(locate(D,o.id),o.id);if(!isObj(o.patch))throw new Error('ต้องมี patch');if(o.patch.id!==undefined&&o.patch.id!==o.id)throw new Error('เปลี่ยน id ฉากด้วย patch ไม่ได้');
-merge(L.s,clone(o.patch));fixCam(L.s,o.patch.camera);FOCUS=o.id;return`แก้ฉาก ${o.id}: `+Object.keys(o.patch).join(', ')},
+merge(L.s,clone(o.patch));if(o.patch.transition!==undefined)sanitizeTransition(L.s.transition);fixCam(L.s,o.patch.camera);FOCUS=o.id;return`แก้ฉาก ${o.id}: `+Object.keys(o.patch).join(', ')},
 deleteScene(D,o){const L=need(locate(D,o.id),o.id);if(L.E.scenes.length<=1)throw new Error('ลบฉากสุดท้ายของตอนไม่ได้');L.E.scenes.splice(L.k,1);(L.E.clues||[]).forEach(c=>{if(c.sceneId===o.id)c.sceneId=''});return'ลบฉาก '+o.id},
 moveScene(D,o){const L=need(locate(D,o.id),o.id);const ref=o.after||o.before;if(ref===o.id)throw new Error('ย้ายไปข้างตัวเองไม่ได้');
 L.E.scenes.splice(L.k,1);let E,k;
@@ -3592,7 +3743,7 @@ const PRESET_DOC=`## ชุดสำเร็จรูปให้ AI ใช้�
 ### Prompt recipe สำหรับตัวละคร
 - promptBlock ควรระบุอายุคร่าว ๆ เพศ บุคลิก เสื้อผ้า โทนสี เอกลักษณ์ผม/เครื่องประดับ และสไตล์ภาพให้คงที่ทุกฉาก`
 
-const DIRECTOR_DOC=`## Director v4: staging, camera, captions\n- scenes[].subtitle เก็บเนื้อหาเต็ม แต่พรีวิวจำกัดสูงสุด 2 บรรทัดและแบ่งช่วงตามระยะเวลาฉาก; ไม่ยัดข้อความทั้งหมดลงหน้าจอ หลีกเลี่ยงกล่อง UI ซ้ำกับซับ\n- ป้ายข้อความ scenes[].uiBox ต้องเป็นข้อมูลสั้นๆ ที่จำเป็นเท่านั้น; ป้ายอยู่มุมบน ไม่แย่งพื้นที่แสดงตัวละคร\n- scenes[].atmosphere = none | rain | storm | snow | fog | wind | dust | fireflies | stars (แสดงด้วย CSS จริง)\n- scenes[].camera.type = ${CAM.join(' / ')}; camera.world = 1..3.5 สำหรับโลกกว้าง / pan panorama, startX/endX เป็นตำแหน่งการแพน 0..100, rotation มุมสำหรับ rotate\n- scenes[].transition.type = ${TRN.join(' / ')}; transition.duration วินาที\n- 'orbit' คือ 2.5D แบบเลเยอร์ ไม่ใช่หมุนโมเดล 3D จริง; ใช้ panorama และ camera.world>1 สำหรับภาพกว้างจริง\n- ตัวละครสำเร็จรูป ${CHAR_PRESETS.length} แบบ และสัตว์/สิ่งมีชีวิต ${CREATURE_PRESETS.length} แบบ สามารถใช้ rig แบบแก้ไขได้;\n- Motion Studio v14: actors[].motionKeys = [{t,x,y,scale,bodyYaw,headYaw,pose,override,easing}]; ใช้ t เป็นวินาทีภายในฉาก สำหรับทำ Keyframe; แสดงผลทั้งในพรีวิวและ Export costume = ${D6_COSTUMES.map(x=>x[0]).join(" | ")}\n- สัตว์ใช้ characters[].rig={style:'creature',species:'cat|dog|rabbit|bird|owl|fox|bear|deer|duck|chicken',skin:'#...',hair:'#...',shirt:'#...',pants:'#...',eye:'#...'} และ actors[].pose ใช้ ${CREATURE_POSES.map(x=>x[0]).join(' / ')}; ห้ามใช้ท่าของคนกับสัตว์ถ้าไม่ตรงกายวิภาค.
+const DIRECTOR_DOC=`## Director v4: staging, camera, captions\n- scenes[].subtitle เก็บเนื้อหาเต็ม แต่พรีวิวจำกัดสูงสุด 2 บรรทัดและแบ่งช่วงตามระยะเวลาฉาก; ไม่ยัดข้อความทั้งหมดลงหน้าจอ หลีกเลี่ยงกล่อง UI ซ้ำกับซับ\n- ป้ายข้อความ scenes[].uiBox ต้องเป็นข้อมูลสั้นๆ ที่จำเป็นเท่านั้น; ป้ายอยู่มุมบน ไม่แย่งพื้นที่แสดงตัวละคร\n- scenes[].atmosphere = none | rain | storm | snow | fog | wind | dust | fireflies | stars (แสดงด้วย CSS จริง)\n- scenes[].camera.type = ${CAM.join(' / ')}; camera.world = 1..3.5 สำหรับโลกกว้าง / pan panorama, startX/endX เป็นตำแหน่งการแพน 0..100, rotation มุมสำหรับ rotate\n- scenes[].transition.type = ${TRN.join(' / ')}; transition.duration วินาที\n- scenes[].transition ฟิลด์เสริม (ไม่ใส่ = ค่าเริ่มต้น): ease (นุ่ม/linear/ease-in/ease-out/ease-in-out), live true|false (ฉากเดิมยังขยับระหว่างเปลี่ยนฉาก), turn:false (ปิดการหมุนตัวละครเมื่อทิศหันต่างจากฉากก่อน), mode overlap|preroll|handle, match:true + matchDur วินาที (ใช้กับ type cut เท่านั้น: กล้องไหลต่อจากเฟรมสุดท้ายของฉากก่อนเข้าสู่มุมของฉากนี้ — match cut ที่ตั้งใจ ไม่ถูกเตือนเรื่องวาร์ปต่างสถานที่)\n- 'orbit' คือ 2.5D แบบเลเยอร์ ไม่ใช่หมุนโมเดล 3D จริง; ใช้ panorama และ camera.world>1 สำหรับภาพกว้างจริง\n- ตัวละครสำเร็จรูป ${CHAR_PRESETS.length} แบบ และสัตว์/สิ่งมีชีวิต ${CREATURE_PRESETS.length} แบบ สามารถใช้ rig แบบแก้ไขได้;\n- Motion Studio v14: actors[].motionKeys = [{t,x,y,scale,bodyYaw,headYaw,pose,override,easing}]; ใช้ t เป็นวินาทีภายในฉาก สำหรับทำ Keyframe; แสดงผลทั้งในพรีวิวและ Export costume = ${D6_COSTUMES.map(x=>x[0]).join(" | ")}\n- สัตว์ใช้ characters[].rig={style:'creature',species:'cat|dog|rabbit|bird|owl|fox|bear|deer|duck|chicken',skin:'#...',hair:'#...',shirt:'#...',pants:'#...',eye:'#...'} และ actors[].pose ใช้ ${CREATURE_POSES.map(x=>x[0]).join(' / ')}; ห้ามใช้ท่าของคนกับสัตว์ถ้าไม่ตรงกายวิภาค.
 - มีผังสถานที่ ${Object.keys(SETS).length} แบบ โดยชื่อ ID เป็น ${Object.keys(SETS).join(' / ')}\n- เพื่อให้รู้สึกเป็นภาพยนตร์ ให้สั่งการแสดง actors[].pose/route/endPose, การเดินเข้าออกจากจุดยึด และกำหนดบรรยากาศตามฉาก; ห้ามอัดซับทั้งหมดลงฉากเดียว`;
 const VOICE_DESK_DOC=`## Director v9 · เสียงและขั้นตอน AI พากย์
 - บทพากย์ฉาก: scenes[].voiceover เป็นข้อความพูดจริง ห้ามใส่คำกำกับการแสดงลงไปในบทพูด
@@ -3740,6 +3891,86 @@ function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_T
  [...$('#studioToolNav').children].forEach(b=>{const on=b.dataset.tool===id;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false')});
  if(innerWidth<=820){const body=$('#studioToolBody');const y=body.getBoundingClientRect().top;if(y>innerHeight*.85)window.scrollTo({top:Math.max(0,scrollY+y-innerHeight*.58),behavior:'smooth'})}
 }
+/* ===== Auto Dub: พากย์อัตโนมัติฟรี (Lambda + Edge TTS) ===== */
+let AUTODUB_RUNNING=false,AUTODUB_CANCEL=false,AUTODUB_SCOPE='scene',AUTODUB_SKIP=true;
+const AUTODUB_LS={url:'storyStudio.autodub.url',key:'storyStudio.autodub.key'};
+const AUTODUB_MALE_TYPES=['male','deep','senior','villain'];
+function autoDubCfg(){let url='',key='';try{url=localStorage.getItem(AUTODUB_LS.url)||'';key=localStorage.getItem(AUTODUB_LS.key)||''}catch(e){}return{url:url.trim(),key:key.trim()}}
+function autoDubSave(url,key){try{localStorage.setItem(AUTODUB_LS.url,String(url||'').trim());localStorage.setItem(AUTODUB_LS.key,String(key||'').trim())}catch(e){}}
+function autoDubVoiceFor(scene,speaker){const id=speakerVoiceProfileId(scene,speaker)||sceneVoiceProfileId(scene),p=getVoiceProfile(id);return AUTODUB_MALE_TYPES.includes(p?.type)?'th-TH-NiwatNeural':'th-TH-PremwadeeNeural'}
+async function autoDubFetch(cfg,text,voice){
+ const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice})});
+ let j=null;try{j=await r.json()}catch(e){}
+ if(!r.ok||!j?.audio)throw new Error((j&&j.error)||('HTTP '+r.status));
+ const bin=atob(j.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+ return new Blob([u],{type:'audio/mpeg'})}
+function autoDubJobs(scope,skipExisting){
+ const jobs=[],eps=scope==='all'?S.episodes.map((E,i)=>i):[selEp];
+ for(const ei of eps)S.episodes[ei].scenes.forEach((scene,si)=>{
+  if(scope==='scene'&&si!==sel)return;
+  const cues=effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
+  for(const cue of cues){if(skipExisting&&(scene.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&c.cueId===cue.id))continue;jobs.push({ei,si,cueId:cue.id})}});
+ return jobs}
+async function autoDubTest(){
+ const cfg=autoDubCfg();if(!cfg.url){setVoiceStatus('ใส่ URL ของ Lambda ก่อน');return}
+ setVoiceStatus('กำลังทดสอบเสียง ...');
+ try{const blob=await autoDubFetch(cfg,'สวัสดีครับ ทดสอบเสียงพากย์','th-TH-NiwatNeural');const a=new Audio(URL.createObjectURL(blob));a.play().catch(()=>{});setVoiceStatus('ทดสอบสำเร็จ — ได้ไฟล์เสียงแล้ว ('+Math.round(blob.size/1024)+' KB)')}
+ catch(e){setVoiceStatus('ทดสอบไม่ผ่าน: '+e.message)}}
+async function autoDubRun(){
+ if(AUTODUB_RUNNING)return;
+ const cfg=autoDubCfg();
+ if(!cfg.url||!cfg.key){setVoiceStatus('ใส่ URL และรหัสลับของ Lambda ก่อน (ดูวิธีติดตั้งใน README)');return}
+ const keepEp=selEp,keepSel=sel,keepScene=AUDIO_DESK_SCENE,keepPast=past.length,before=JSON.stringify(S);
+ // สร้างช่วงเวลาซับให้ฉากที่ยังไม่มี (ต้องมี cue เพื่อรู้เวลาเริ่มพูด)
+ const targets=AUTODUB_SCOPE==='all'?S.episodes.flatMap((E,ei)=>E.scenes.map((s,si)=>[ei,si])):S.episodes[selEp].scenes.map((s,si)=>[selEp,si]).filter(([,si])=>AUTODUB_SCOPE!=='scene'||si===sel);
+ for(const [ei,si] of targets){const scene=S.episodes[ei].scenes[si];if(!effectiveSubtitleCues(scene).length&&(scene.subtitle||[]).some(x=>String(x||'').trim()))scene.subtitleCues=autoCaptionCues(scene)}
+ const jobs=autoDubJobs(AUTODUB_SCOPE,AUTODUB_SKIP);
+ if(!jobs.length){setVoiceStatus('ไม่มีบทที่ต้องพากย์ในขอบเขตที่เลือก (หรือทุกบรรทัดมีเสียงแล้ว)');return}
+ AUTODUB_RUNNING=true;AUTODUB_CANCEL=false;
+ let made=0,failed=0,lastErr='';const long=[];
+ try{
+  for(let n=0;n<jobs.length;n++){
+   if(AUTODUB_CANCEL)break;
+   const {ei,si,cueId}=jobs[n],scene=S.episodes[ei].scenes[si],cue=(scene.subtitleCues||[]).find(q=>q.id===cueId);
+   const text=String(cue?.text||'').replace(/\s*\n\s*/g,' ').trim();
+   if(!cue||!text)continue;
+   setVoiceStatus('กำลังสร้างเสียง '+(n+1)+'/'+jobs.length+' · ตอน '+(ei+1)+' ฉาก '+(si+1));
+   const speaker=cue.speaker||scene.voiceDirection?.speaker||'';
+   let blob=null;
+   for(let attempt=0;attempt<2&&!blob;attempt++){try{blob=await autoDubFetch(cfg,text,autoDubVoiceFor(scene,speaker))}catch(e){lastErr=e.message;await new Promise(r=>setTimeout(r,1200))}}
+   if(!blob){failed++;continue}
+   selEp=ei;sel=si;AUDIO_DESK_SCENE=si;
+   await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id});
+   past.length=keepPast; // ไม่สะสมสแนปชอตทีละคลิป (กันหน่วยความจำเต็ม) — รวมเป็น undo ครั้งเดียวตอนจบ
+   const sc2=S.episodes[ei].scenes[si],clip=(sc2.audioClips||[]).at(-1);
+   if(clip&&clip.cueId===cue.id){made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05)long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
+  }
+ }catch(e){lastErr=e.message;failed++}
+ finally{
+  selEp=Math.min(keepEp,S.episodes.length-1);sel=Math.min(keepSel,Math.max(0,ep().scenes.length-1));AUDIO_DESK_SCENE=keepScene;
+  if(made){past.length=keepPast;past.push(before);if(past.length>100)past.shift();future=[]}
+  AUTODUB_RUNNING=false;
+  try{render()}catch(e){}
+  setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
+ }}
+function autoDubPanel(){
+ const cfg=autoDubCfg();
+ const url=h('input',{type:'text',value:cfg.url,placeholder:'https://xxxx.lambda-url.ap-southeast-1.on.aws/',autocomplete:'off',autocapitalize:'off','aria-label':'URL ของ Lambda'}),
+  key=h('input',{type:'password',value:cfg.key,placeholder:'รหัสลับ (DUB_KEY)',autocomplete:'off','aria-label':'รหัสลับ'});
+ const save=()=>autoDubSave(url.value,key.value);url.addEventListener('change',save);key.addEventListener('change',save);
+ const scope=h('select',{onchange:e=>{AUTODUB_SCOPE=e.target.value}},...[['scene','ฉากนี้'],['episode','ทั้งตอนนี้'],['all','ทั้งเรื่อง (ทุกตอน)']].map(([v,t])=>h('option',{value:v,selected:v===AUTODUB_SCOPE},t)));
+ const skip=h('input',{type:'checkbox',checked:AUTODUB_SKIP,onchange:e=>{AUTODUB_SKIP=e.target.checked}});
+ return h('details',{className:'dub-detail autodub',open:AUTODUB_RUNNING||!cfg.url},h('summary',{},'✦ พากย์อัตโนมัติ (ฟรี · Lambda + Edge TTS)'),
+  h('div',{className:'dub-directions'},
+   h('p',{},'สร้างเสียงไทยจากซับของแต่ละช่วง แล้ววางที่เวลาเริ่มของช่วงนั้นให้เอง ตัวละครที่ใช้โปรไฟล์เสียงทุ้ม/ลึก/ผู้สูงอายุ/ตัวร้ายจะใช้เสียงชาย นอกนั้นใช้เสียงหญิง แล้วโปรไฟล์เสียงเดิมยังแต่งเสียงต่อได้'),
+   h('label',{},'URL ของ Lambda',url),h('label',{},'รหัสลับ',key),
+   h('label',{},'ขอบเขต',scope),
+   h('label',{style:'display:flex;gap:7px;align-items:center'},skip,'ข้ามบรรทัดที่มีเสียงอยู่แล้ว'),
+   h('div',{className:'dub-actions'},
+    h('button',{className:'dub-primary',disabled:AUTODUB_RUNNING,onclick:()=>{save();autoDubRun()}},AUTODUB_RUNNING?'กำลังสร้างเสียง ...':'✦ เริ่มพากย์อัตโนมัติ'),
+    h('button',{onclick:()=>{AUTODUB_CANCEL=true;setVoiceStatus('กำลังหยุดหลังคลิปนี้ ...')}},'■ หยุด'),
+    h('button',{onclick:()=>{save();autoDubTest()}},'▶ ทดสอบการเชื่อมต่อ'))))}
+
 function renderDubDesk(){const root=$('#dubPanel');if(!root||!S?.episodes?.length)return;
  const s=sc(),cueList=Array.isArray(s.subtitleCues)?s.subtitleCues:[],who=VOICE_TARGET_SPEAKER??s.voiceDirection?.speaker??'',voiceId=speakerVoiceProfileId(s,who)||sceneVoiceProfileId(s),vprof=getVoiceProfile(voiceId),clips=(s.audioClips||[]).filter(c=>c.kind==='voice');
  const selScene=h('select',{onchange:e=>{sel=+e.target.value;T=starts()[sel];VOICE_TARGET_SPEAKER=null;STUDIO_DUB_CUE='';STUDIO_DUB_STATUS='';render()}},...ep().scenes.map((v,i)=>h('option',{value:i,selected:i===sel},'ฉาก '+(i+1)+' · '+Number(v.duration||0).toFixed(1)+' วินาที')));
@@ -3759,6 +3990,7 @@ function renderDubDesk(){const root=$('#dubPanel');if(!root||!S?.episodes?.lengt
    h('button',{onclick:()=>{AUDIO_DESK_SCENE=sel;const input=h('input',{type:'file',accept:'audio/*',onchange:async e=>{await addAudioFile(e.target.files[0],'voice',{speakerId:VOICE_TARGET_SPEAKER??s.voiceDirection?.speaker??'',cueId:STUDIO_DUB_CUE});renderDubDesk()}});input.click()}},'↑ ใส่ไฟล์เสียง'),
    h('button',{onclick:()=>{VOICE_EDIT_ID=voiceId||VOICE_EDIT_ID;speakCurrentScene()}},'▶ ฟังเสียงอ่านทดลอง'),
    h('button',{onclick:()=>switchStudioTool('scene')},'✎ แก้บท / ซับ')),
+  autoDubPanel(),
   h('div',{id:'dubStatus',className:'dub-note',role:'status','aria-live':'polite'},STUDIO_DUB_STATUS),
   h('div',{className:'dub-indicator'+(VOICE_RECORDER?.state==='recording'?' recording':''),role:'status','aria-live':'polite'},VOICE_RECORDER?.state==='recording'?'● กำลังอัดเสียง — กด “หยุดและบันทึกเสียง” เมื่อพูดจบ':(clips.length?'บันทึกแล้ว '+clips.length+' คลิป · เลือกกดเล่นเพื่อฟังซ้ำหรือเปิดตัดต่อ':'ยังไม่มีเสียงพากย์ในฉากนี้ · อนุญาตไมค์เมื่อเบราว์เซอร์ถาม')),
   h('h3',{},'คลิปพากย์ฉากนี้ ('+clips.length+')'),

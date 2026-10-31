@@ -38,7 +38,14 @@ window.STUDIO_INTERACTION_HELD_SVG=function(character,actor,scene,local){
   if(!v.hidden||v.actor!==actor.char||typeof PROPS[p.kind]!=='function')return;
   const hand=v.hand==='left'?7:4,pt=wrist[hand];
   if(!pt)return;
-  const size=clamp((p.scale||1)*.27,.08,.52),fill=p.color?colOK(p.color,''):'';
+  const fill=p.color?colOK(p.color,''):'',cfg=typeof HELD_PROPS!=='undefined'?HELD_PROPS[p.kind]:null;
+  if(cfg){
+   /* v37: new handheld pack — grip point (gx,gy) of the prop is pinned to the wrist, optional tilt r */
+   const size=clamp((p.scale||1)*(cfg.s||1),.12,2.6);
+   result+='<g data-held-prop="'+i+'" transform="translate('+f2(pt[0])+' '+f2(pt[1])+') rotate('+f2(cfg.r||0)+') scale('+f2(size)+') translate('+f2(-(cfg.gx||0))+' '+f2(-(cfg.gy||0))+')">'+PROPS[p.kind](fill)+'</g>';
+   return;
+  }
+  const size=clamp((p.scale||1)*.27,.08,.52);
   const moveY=clamp(p.kind==='lamp'?-7:p.kind==='plant'?-3:0,-10,0);
   result+='<g data-held-prop="'+i+'" transform="translate('+f2(pt[0])+' '+f2(pt[1]+moveY)+') scale('+f2(size)+')">'+PROPS[p.kind](fill)+'</g>';
  });
