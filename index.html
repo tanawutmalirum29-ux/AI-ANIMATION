@@ -3728,9 +3728,16 @@ function repairCommonJsonAliases(D){
  for(const [ei,E] of D.episodes.entries())for(const [si,scene] of (E.scenes||[]).entries()){
   if(!scene||typeof scene!=='object')continue;
   const path='ตอน '+(ei+1)+' ฉาก '+(si+1);
-  if(scene.camera&&['wide','wide-shot','wide shot'].includes(scene.camera.type)){
-   scene.camera.type='static';
-   changes.push(path+': camera wide → static (คงองค์ประกอบภาพกว้าง)');
+  if(scene.camera&&typeof scene.camera.type==='string'){
+   const cameraAliases={
+    wide:'static','wide-shot':'static','wide shot':'static',
+    tracking:'follow','tracking-shot':'follow','close-up':'zoom-in',closeup:'zoom-in'
+   };
+   const mapped=cameraAliases[scene.camera.type.toLowerCase()];
+   if(mapped){
+    changes.push(path+': camera '+scene.camera.type+' → '+mapped);
+    scene.camera.type=mapped;
+   }
   }
   for(const [ai,actor] of (scene.actors||[]).entries()){
    if(!actor||typeof actor!=='object')continue;
