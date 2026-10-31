@@ -616,7 +616,7 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 .sound-library .preset-actions{display:flex;gap:5px;flex:none}.sound-library .preset-actions button{min-height:35px;font-size:12px}.sound-library .preset-actions .primary{background:#d9bd83;color:#18243a;font-weight:750}
 @media(max-width:700px){.sound-library{max-height:calc(100dvh - 12px);padding:10px;width:calc(100vw - 12px);max-width:calc(100vw - 12px)}.sound-library .preset-head{top:-10px}.sound-library .preset-grid{grid-template-columns:1fr}.sound-library .preset-config{grid-template-columns:1fr 1fr}.sound-library .preset-config label:first-child{grid-column:1/-1}}
 
-</style><link rel="stylesheet" href="./animated-map.css"></head><body>
+</style><link rel="stylesheet" href="./animated-map.css"><link rel="stylesheet" href="./cinematic-fx.css"></head><body>
 <header id="top"></header><aside id="lib"></aside>
 <main id="pre"><section id="welcome" aria-label="เริ่มต้นใช้งานสตูดิโอ"></section><div class="preview-toolbar"><span class="preview-label">พรีวิวฉาก</span><div class="preview-actions"><span class="preview-context" id="previewContext"></span><button type="button" id="motionQuick" title="แก้ท่าทางโดยแตะบนพรีวิว" aria-label="เปิดตัวแก้ไขท่าทาง" aria-pressed="false">✥ Motion</button><button type="button" id="smartQuick" title="Smart Director ตรวจงานทั้งโปรเจกต์" aria-label="เปิด Smart Director">✦ Smart</button><button type="button" id="directorQuick" title="กำกับฉาก" aria-label="กำกับฉาก">กำกับฉาก</button><button type="button" id="capToggle" aria-label="เปิดหรือปิดซับไตเติล" title="เปิดหรือปิดซับ">CC</button><button type="button" id="labelToggle" aria-label="เปิดหรือปิดป้ายข้อความ" title="เปิดหรือปิดป้ายข้อความ">ป้าย</button><button type="button" id="previewFullscreenQuick" class="fullscreen-quick" aria-label="ดูพรีวิวแบบเต็มจอ" title="พรีวิวเต็มจอ">⛶ เต็มจอ</button><button type="button" id="voiceQuick" aria-label="ตั้งค่าเสียงพากย์และโปรไฟล์เสียง">Voice Studio</button><button type="button" id="soundQuick" aria-label="เปิดโต๊ะตัดต่อเสียง">เสียง / ตัดต่อ</button><button type="button" id="videoQuick" class="video-quick" aria-label="ส่งออกวิดีโอ">Export วิดีโอ</button></div></div><div id="stageWrap"><div id="stage"><div id="world"><div id="bg"></div><div id="set"></div><div id="art"></div><div id="rig"></div><div id="setf"></div><div id="motionOverlay" aria-label="ตัวควบคุมท่าและตำแหน่งตัวละคร"></div></div><div id="lt"></div><div id="lightFx"></div><div id="vignetteFx"></div><div id="weather" aria-hidden="true"></div><div id="transitionPrevious" aria-hidden="true"></div><div id="transitionOverlay" aria-hidden="true"></div><div id="ph"></div><div id="storyGraphics" aria-hidden="true"></div><div id="ui"></div><div id="sub" role="status" aria-live="off"></div></div></div>
 <div id="ctl"></div><div id="motionBar" aria-label="เครื่องมือตัดต่อคีย์เฟรม"></div></main>
@@ -2725,7 +2725,9 @@ function svgFrameFromWorld(world,scene,w,h){
     outNodes[i].style.animation='none';
    }payload=copy.innerHTML;
   }
-  body+=payload;
+  const move=typeof window.STUDIO_CINEMATIC_PARALLAX==='function'?window.STUDIO_CINEMATIC_PARALLAX(scene,id,wide,h):[0,0];
+  if(move&&(Math.abs(move[0])+Math.abs(move[1])>.01))body+='<g transform="translate('+move[0]+' '+move[1]+')">'+payload+'</g>';
+  else body+=payload;
  }
  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${wide}" height="${h}" viewBox="0 0 ${wide} ${h}">${body}</svg>`
 }
@@ -3553,4 +3555,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./animated-map.js"></script></body></html>
+</script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script></body></html>
