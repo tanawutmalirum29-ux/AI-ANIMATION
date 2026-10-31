@@ -3725,7 +3725,9 @@ function syncClues(D){D.episodes.forEach(E=>{const cl=Array.isArray(E.clues)?E.c
 function repairCommonJsonAliases(D){
  const changes=[];
  if(!Array.isArray(D?.episodes))return changes;
- for(const [ei,E] of D.episodes.entries())for(const [si,scene] of (E.scenes||[]).entries()){
+ for(const [ei,E] of D.episodes.entries()){
+  if(!E||!Array.isArray(E.scenes))continue;
+  for(const [si,scene] of E.scenes.entries()){
   if(!scene||typeof scene!=='object')continue;
   const path='ตอน '+(ei+1)+' ฉาก '+(si+1);
   if(scene.camera&&typeof scene.camera.type==='string'){
@@ -3739,13 +3741,14 @@ function repairCommonJsonAliases(D){
     scene.camera.type=mapped;
    }
   }
-  for(const [ai,actor] of (scene.actors||[]).entries()){
+  for(const [ai,actor] of (Array.isArray(scene.actors)?scene.actors:[]).entries()){
    if(!actor||typeof actor!=='object')continue;
    if(actor.face==='concerned'){actor.face='think';changes.push(path+' ตัวละคร '+(ai+1)+': concerned → think')}
    if(actor.facing==='front'||actor.facing==='forward'){
     actor.facing='auto';if(!actor.view)actor.view='front';
     changes.push(path+' ตัวละคร '+(ai+1)+': front → auto + front view');
    }
+  }
   }
  }
  return changes;
