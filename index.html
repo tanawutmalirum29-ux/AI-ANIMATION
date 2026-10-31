@@ -2327,8 +2327,8 @@ function syncAudioAt(t,play){
   if(part<0||part>=len)continue;
   active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';AUDIO_PLAYERS.set(id,a)}
   let n=AUDIO_PLAYER_GRAPHS.get(id);
-  if(c.kind==='voice'){
-   // A suspended WebAudio graph can silently swallow voice on iPad Safari.
+  if(PREVIEW_DIRECT_VOICE||c.kind==='voice'){
+   // A suspended WebAudio graph can silently swallow audio on iPad Safari.
    // Use the HTML media element directly, with volume and timeline sync.
    a.muted=!!c.mute;
    a.volume=clampN(clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c),0,1);
@@ -3075,7 +3075,7 @@ function deferSceneUi(){/* playback: cheap highlight now, full Inspector/Timelin
 function prefetchTransition(){
  if(!playing||drawingPreviousFrame)return;const E=ep(),st=starts(),i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration),n=i+1,nx=E.scenes[n];
  if(i<0||!nx||(nx.transition?.type||'cut')==='cut'||T<st[n]-.7)return;if(prevSnapshotIndex!==n){ensurePreviousFrame(n);return}if(liveEnabled(nx,n)){const K=liveK(nx);for(let k=1;k<=K;k++)if(!prevLive[k-1]){liveFrame(n,k);break}}}
-function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl()}else prefetchTransition();draw()}last=now;requestAnimationFrame(loop)}
+function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl();pauseAudioPlayers()}else prefetchTransition();draw()}last=now;requestAnimationFrame(loop)}
 
 /* ===== Director v8: actual browser-side video encoding ===== */
 const VIDEO_FORMATS=[
