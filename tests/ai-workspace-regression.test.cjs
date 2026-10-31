@@ -141,3 +141,42 @@ test('iPad preview plays an existing voice clip and immediately replays after da
  assert.equal(media[0].paused,false);
  assert.equal(media[0].playCount,2);
 });
+
+
+test('iPad preview plays original and replaced narration clips without stale audio',async()=>{
+ const begin=html.indexOf('function syncAudioAt(t,play){'),end=html.indexOf('\nfunction audioWaveSVG',begin);
+ assert.ok(begin>0&&end>begin);
+ const players=[],map=new Map(),retry=new Map();
+ class MockAudio{
+  constructor(src){this._src=src;this.paused=true;this.currentTime=0;players.push(this)}
+  get src(){return this._src}set src(v){this._src=v}
+  pause(){this.paused=true}
+  load(){this.reloaded=true}
+  play(){this.paused=false;this.playCount=(this.playCount||0)+1;return Promise.resolve()}
+ }
+ const event={c:{id:'v1',kind:'voice',data:'data:audio/first',duration:5,rate:1,volume:1,at:0},start:0,cycle:0,limit:5};
+ const ctx={
+  VOICE_RECORDER:null,STUDIO_CURRENT_TOOL:'ai',STUDIO_DUB_AUTOPLAY:false,
+  pauseAudioPlayers(){},audioEvents:()=>[event],PREVIEW_DIRECT_VOICE:true,
+  safeClipDuration:c=>c.duration,VOICE_PREVIEW_BAD:new Set(),previewContext:()=>null,
+  PREVIEW_AUDIO_CTX:null,updateAudioHint(){},VOICE_PREVIEW_CLOCK:null,stopVoicePreview(){},
+  VOICE_PREVIEW_BUFFERS:new Map(),VOICE_PREVIEW_SOURCES:new Map(),primeVoicePreview(){},
+  AUDIO_PLAYERS:map,AUDIO_PLAYER_GRAPHS:new Map(),Audio:MockAudio,clipGain:()=>1,
+  eventXGain:()=>1,voiceGainFactor:()=>1,clipAutoGainFactor:()=>1,
+  effectiveClipRate:()=>1,cleanNum:(x,d=0)=>Number.isFinite(Number(x))?Number(x):d,
+  PREVIEW_MEDIA_RETRY_AT:retry,performance:{now:()=>2500},
+  clampN:(x,min,max)=>Math.max(min,Math.min(max,x)),
+  showPreviewAudioProblem(){},PREVIEW_MEDIA_ERROR:'',createFxNodes(){},applyFxNodes(){},
+  $:()=>({pause(){}})
+ };
+ const run=new Function(...Object.keys(ctx),html.slice(begin,end)+';return syncAudioAt;')(...Object.values(ctx));
+ run(1,true);await Promise.resolve();
+ assert.equal(players.length,1);
+ assert.equal(players[0].src,'data:audio/first');
+ assert.equal(players[0].playCount,1);
+ event.c.data='data:audio/replaced';
+ run(2,true);await Promise.resolve();
+ assert.equal(players[0].src,'data:audio/replaced');
+ assert.equal(players[0].reloaded,true);
+ assert.equal(players[0].playCount,2);
+});
