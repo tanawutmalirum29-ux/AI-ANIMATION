@@ -45,7 +45,7 @@ let server=http.createServer((req,res)=>{
  assert.ok(basics.nontransparent>1000,'Cinematic preview should paint a visible FX overlay');
  assert.notDeepEqual(basics.after,basics.before,'Video render must show cinematic effects');
  assert.equal(basics.editor,'cinema');
- await page.locator('#cinematicFxEditor button').filter({hasText:'+ คีย์เฟรมที่ Playhead'}).click();
+ await page.locator('#cinematicFxEditor button').filter({hasText:'เพิ่มคีย์เฟรมที่เวลา Playhead'}).click();
  assert.equal(await page.evaluate(()=>sc().cinematicFx.keyframes.length),3);
  await page.locator('#cinematicFxEditor select').filter({has:page.locator('option[value="flashlight"]')}).selectOption('flashlight');
  assert.equal(await page.evaluate(()=>sc().cinematicFx.kind),'flashlight');
