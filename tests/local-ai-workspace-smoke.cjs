@@ -49,6 +49,7 @@ const path=require('node:path');
     window.StoryAIWorkspace.render();
   });
   await page.locator('#aiWorkspacePanel [aria-label="เลือกการประมวลผล AI"]').selectOption('cloud');
+  await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'สนทนา'}).click();
   await page.locator('#aiWorkspacePanel [aria-label="สั่งงาน AI"]').fill('แก้บทพากย์ฉากแรกผ่าน AI ออนไลน์');
   await page.getByRole('button',{name:'ส่งให้ AI (Ctrl+Enter)'}).click();
   await page.waitForFunction(()=>window.StoryStudioBridge.get().episodes[0].scenes[0].voiceover==='เสียงทดสอบระบบคลาวด์',{timeout:20000});
