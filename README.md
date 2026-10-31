@@ -1,1 +1,39 @@
-# AI-ANIMATION
+# AI-ANIMATION · Story Studio Director
+
+เว็บตัดต่อ Story Studio Director พร้อม **คลังเสียงบรรยากาศ เอฟเฟกต์ และเพลงสังเคราะห์สำเร็จรูป 49 รายการ** บน GitHub (ตัวแอปเป็น HTML/JavaScript แบบ static)
+
+## เปิดเว็บและ Deploy บน AWS Amplify
+
+โค้ดเว็บหลักอยู่ที่ [index.html](./index.html) และมี [amplify.yml](./amplify.yml) สำหรับตั้งค่า Build สำเร็จรูป ไม่ต้องติดตั้ง npm หรือ Backend เพื่อเปิดหน้าแอป
+
+1. เปิด [AWS Amplify Console](https://console.aws.amazon.com/amplify/home) แล้วเลือก **Create new app → GitHub**
+2. เชื่อม GitHub (ถ้ายังไม่ได้เชื่อม) และเลือก Repository `tanawutmalirum29-ux/AI-ANIMATION`
+3. เลือกสาขา `main`; Amplify จะอ่านไฟล์ `amplify.yml` จาก Repository
+4. ตรวจว่าคำสั่ง Build คือการคัดลอก `index.html` ไปยัง `dist/` และ Artifact directory คือ `dist`
+5. กด **Save and deploy** แล้วเปิดโดเมน HTTPS ของ Amplify เพื่อตรวจสอบการพากย์เสียงและไมโครโฟน
+
+เมื่อเชื่อม Continuous Deployment แล้ว GitHub commit ใหม่ในสาขาที่ตั้งค่าไว้จะกระตุ้นให้ Amplify สร้างและเผยแพร่เวอร์ชันใหม่ (หาก Auto-build เปิดอยู่)
+
+> สิทธิ์ไมโครโฟนต้องขอจากเบราว์เซอร์บนเว็บ HTTPS โดยตรง หน้าพรีวิวบางแบบอาจบล็อกได้ และการส่งออกวิดีโอบางรูปแบบอาจมีข้อจำกัดบน Safari/iPad
+
+## ส่งคลิปวิดีโอให้ตรวจบน GitHub
+
+**[กดเปิดแบบฟอร์มส่งวิดีโอ](https://github.com/tanawutmalirum29-ux/AI-ANIMATION/issues/new?template=video-review.yml)**
+
+1. ลงชื่อเข้าใช้ GitHub แล้วเปิดลิงก์ด้านบน
+2. เลือกตอน/ฉาก และเลือกว่าต้องการให้ตรวจภาพ เสียง หรือการส่งออก
+3. ในช่อง **แนบวิดีโอ / วางลิงก์** ให้อัปโหลดไฟล์ `.mp4`, `.mov` หรือ `.webm` โดยใช้ปุ่มแนบไฟล์ของ GitHub หรือวางลิงก์ที่เปิดดูได้
+4. กด **Submit new issue** แล้วคัดลอก URL ของ Issue มาให้ผู้ตรวจในแชต
+
+ไฟล์วิดีโอที่แนบจะอยู่เป็น Attachment ใน GitHub Issue **ไม่ถูกเก็บไว้ใน Git history** จึงไม่ทำให้เว็บช้าจากการเก็บไฟล์ขนาดใหญ่ใน Git Repository
+
+**ข้อจำกัด:** GitHub Issues รองรับวิดีโอใน Repository แผนฟรีได้สูงสุด **10 MB ต่อไฟล์** ส่วนบางแผนแบบเสียเงินรองรับสูงสุด **100 MB**; หากใหญ่กว่านั้น ให้ส่งลิงก์ไฟล์ที่ฝากบนบริการอื่นหรือ GitHub Releases แทน [ข้อจำกัดทางการ GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files)
+
+**ความเป็นส่วนตัว:** Repository นี้เป็นแบบ Public คลิปที่แนบอาจมีคนทั่วไปเข้าดูได้ อย่าอัปโหลดข้อมูลลับหรือวิดีโอส่วนตัว
+
+## ขอบเขตระบบ
+
+- HTML/JavaScript แบบ Single-file App
+- Sound Desk + คลังเสียงสังเคราะห์ 49 รายการ เลือกฟัง วางในฉากหรือทั้งตอน ปรับระดับเสียง เฟด และวนซ้ำได้
+- ระบบพากย์ผ่านไมโครโฟนต้องอาศัยสิทธิ์และความเข้ากันได้ของเบราว์เซอร์
+- การตั้งค่า Amplify ใน Repository เตรียมไว้ให้ แต่ต้องเชื่อมบัญชี AWS/GitHub และสั่ง Deploy ใน AWS Console หนึ่งครั้งก่อนจึงจะมี URL ออนไลน์
