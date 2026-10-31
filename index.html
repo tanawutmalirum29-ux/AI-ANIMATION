@@ -4039,6 +4039,27 @@ async function autoDubRun(){
   try{render()}catch(e){}
   setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(planned?'\nผู้ช่วยจัดเฟรมเสียง '+planned+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ'+(extended?' · ขยายเวลาฉาก '+extended.toFixed(1)+' วิ':''):'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
  }}
+async function autoDubReflowExisting(){
+ if(AUTODUB_RUNNING)return;
+ const director=window.StoryNarrationDirector;if(!director){setVoiceStatus('โมดูลจัดเฟรมเสียงยังไม่พร้อม');return}
+ const targetScenes=AUTODUB_SCOPE==='all'?S.episodes.flatMap(E=>E.scenes):AUTODUB_SCOPE==='scene'?[sc()]:ep().scenes;
+ const voices=targetScenes.flatMap(scene=>(scene.audioClips||[]).filter(c=>director.isAuto(c)&&c.data));
+ if(!voices.length){setVoiceStatus('ไม่พบคลิปพากย์อัตโนมัติในขอบเขตนี้');return}
+ AUTODUB_RUNNING=true;let n=0,extra=0,trimmed=0;const trims=new Map();
+ try{
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  try{
+   for(let i=0;i<voices.length;i++){
+    const c=voices[i];setVoiceStatus('กำลังตรวจความเงียบคลิปเดิม '+(i+1)+'/'+voices.length);
+    try{const b=await ctx.decodeAudioData(await(await fetch(c.data)).arrayBuffer());trims.set(c,director.silenceTrim(b));trimmed++}catch(err){}
+   }
+  }finally{await ctx.close().catch(()=>{})}
+  commit(()=>{for(const [clip,t] of trims){clip.trimStart=t.start;clip.trimEnd=t.end}
+   for(const scene of targetScenes){const r=director.layout(scene,{gap:AUTODUB_GAP});n+=r.clips;extra+=r.extended}});
+  setVoiceStatus('จัดเฟรมเสียงเดิม '+n+' คลิป · ตรวจหัว/ท้าย '+trimmed+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ · ขยายฉาก '+extra.toFixed(1)+' วิ (ย้อนกลับได้)');
+ }catch(e){setVoiceStatus('จัดเฟรมไม่สำเร็จ: '+e.message)}
+ finally{AUTODUB_RUNNING=false}
+}
 function autoDubPanel(){
  const cfg=autoDubCfg();
  const url=h('input',{type:'text',value:cfg.url,placeholder:'https://xxxx.lambda-url.ap-southeast-1.on.aws/',autocomplete:'off',autocapitalize:'off','aria-label':'URL ของ Lambda'}),
@@ -4046,16 +4067,23 @@ function autoDubPanel(){
  const save=()=>autoDubSave(url.value,key.value);url.addEventListener('change',save);key.addEventListener('change',save);
  const scope=h('select',{onchange:e=>{AUTODUB_SCOPE=e.target.value}},...[['scene','ฉากนี้'],['episode','ทั้งตอนนี้'],['all','ทั้งเรื่อง (ทุกตอน)']].map(([v,t])=>h('option',{value:v,selected:v===AUTODUB_SCOPE},t)));
  const skip=h('input',{type:'checkbox',checked:AUTODUB_SKIP,onchange:e=>{AUTODUB_SKIP=e.target.checked}});
+  const smart=h('input',{type:'checkbox',checked:AUTODUB_SMART,onchange:e=>{AUTODUB_SMART=e.target.checked}});
+  const gap=h('input',{type:'range',min:.08,max:.5,step:.02,value:AUTODUB_GAP,oninput:e=>{AUTODUB_GAP=+e.target.value;e.target.nextSibling.textContent=AUTODUB_GAP.toFixed(2)+' วินาที'}});
  return h('details',{className:'dub-detail autodub',open:AUTODUB_RUNNING||!cfg.url},h('summary',{},'✦ พากย์อัตโนมัติ (ฟรี · Lambda + Edge TTS)'),
   h('div',{className:'dub-directions'},
    h('p',{},'สร้างเสียงไทยจากซับของแต่ละช่วง แล้ววางที่เวลาเริ่มของช่วงนั้นให้เอง ตัวละครที่ใช้โปรไฟล์เสียงทุ้ม/ลึก/ผู้สูงอายุ/ตัวร้ายจะใช้เสียงชาย นอกนั้นใช้เสียงหญิง แล้วโปรไฟล์เสียงเดิมยังแต่งเสียงต่อได้'),
    h('label',{},'URL ของ Lambda',url),h('label',{},'รหัสลับ',key),
    h('label',{},'ขอบเขต',scope),
    h('label',{style:'display:flex;gap:7px;align-items:center'},skip,'ข้ามบรรทัดที่มีเสียงอยู่แล้ว'),
+    h('h4',{},'ผู้ช่วย AI จัดจังหวะเสียงและเฟรม (Speech Director)'),
+    h('p',{},'รวมคำพูดต่อเนื่องของผู้พูดคนเดียวกันเป็นเสียงชุดเดียว ลดความเงียบหัว/ท้าย ปรับเวลาซับให้ตรงเสียง และขยายฉากที่สั้นเกินโดยอัตโนมัติ ใช้ตัววางแผนในเว็บ ไม่เรียก AI ภายนอกหรือแก้เนื้อหาบทพูด'),
+    h('label',{style:'display:flex;gap:7px;align-items:center'},smart,'เปิดผู้ช่วยจัดจังหวะอัตโนมัติขณะพากย์'),
+    h('label',{},'ระยะเว้นช่วงเสียง',h('div',{style:'display:flex;align-items:center;gap:10px'},gap,h('span',{},AUTODUB_GAP.toFixed(2)+' วินาที'))),
    h('div',{className:'dub-actions'},
     h('button',{className:'dub-primary',disabled:AUTODUB_RUNNING,onclick:()=>{save();autoDubRun()}},AUTODUB_RUNNING?'กำลังสร้างเสียง ...':'✦ เริ่มพากย์อัตโนมัติ'),
     h('button',{onclick:()=>{AUTODUB_CANCEL=true;setVoiceStatus('กำลังหยุดหลังคลิปนี้ ...')}},'■ หยุด'),
-    h('button',{onclick:()=>{save();autoDubTest()}},'▶ ทดสอบการเชื่อมต่อ'))))}
+    h('button',{onclick:()=>{save();autoDubTest()}},'▶ ทดสอบการเชื่อมต่อ'),
+     h('button',{disabled:AUTODUB_RUNNING,onclick:()=>autoDubReflowExisting()},'จัดเฟรมคลิปพากย์เดิม'))))}
 
 function renderDubDesk(){const root=$('#dubPanel');if(!root||!S?.episodes?.length)return;
  const s=sc(),cueList=Array.isArray(s.subtitleCues)?s.subtitleCues:[],who=VOICE_TARGET_SPEAKER??s.voiceDirection?.speaker??'',voiceId=speakerVoiceProfileId(s,who)||sceneVoiceProfileId(s),vprof=getVoiceProfile(voiceId),clips=(s.audioClips||[]).filter(c=>c.kind==='voice');
