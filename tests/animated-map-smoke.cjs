@@ -13,7 +13,7 @@ const { Script } = require('node:vm');
  assert.match(html, /animated-map\.css/);
  const server=http.createServer((req,res)=>{
   const resource=(req.url||'/').split('?')[0];
-  const routes={'/':'index.html','/index.html':'index.html','/animated-map.js':'animated-map.js','/animated-map.css':'animated-map.css'};
+  const routes={'/':'index.html','/index.html':'index.html','/animated-map.js':'animated-map.js','/animated-map.css':'animated-map.css','/cinematic-fx.js':'cinematic-fx.js','/cinematic-fx.css':'cinematic-fx.css'};
   const file=routes[resource];if(!file){res.writeHead(404);res.end('Not found');return}
   const data=fs.readFileSync(path.join(process.cwd(),file));res.writeHead(200,{'Content-Type':file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html; charset=utf-8'});res.end(data);
  });
