@@ -73,7 +73,7 @@ async function benchmarkModel(applyChanges=false){
   const inferenceSec=Math.max(.001,(performance.now()-inferenceStart)/1000);
   const tokens=response.usage?.completion_tokens||0;
   const answer=String(response.choices?.[0]?.message?.content||'ไม่มีคำตอบ').slice(0,1500);
-  modelReport='รุ่น: '+model.label+'\\nโหลดรวม: '+(loadedMs/1000).toFixed(1)+' วินาที\\nวิเคราะห์: '+inferenceSec.toFixed(1)+' วินาที'+(tokens?'\\nความเร็ว: '+(tokens/inferenceSec).toFixed(1)+' token/วินาที':'')+'\\nผลวิเคราะห์ (ยังไม่แก้ JSON):\\n'+answer;
+  modelReport='รุ่น: '+model.label+'\nโหลดรวม: '+(loadedMs/1000).toFixed(1)+' วินาที\nวิเคราะห์: '+inferenceSec.toFixed(1)+' วินาที'+(tokens?'\nความเร็ว: '+(tokens/inferenceSec).toFixed(1)+' token/วินาที':'')+'\nผลวิเคราะห์ (ยังไม่แก้ JSON):\n'+answer;
   if(applyChanges){
    status('กำลังให้ AI วิเคราะห์แผนแก้ไข JSON จริง…');
    const state=bridge.get(),audit=evaluate(),scope=audioScope;
@@ -116,7 +116,7 @@ async function benchmarkModel(applyChanges=false){
     const applied=editor.apply(ops);
     if(!applied.applied)throw Error('ไม่สามารถแก้ JSON ตามแผน AI');
    }
-   modelReport+='\\n\\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\\n'+(reasons.join('\\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
+   modelReport+='\n\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\n'+(reasons.join('\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
   }
   status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
  }catch(err){modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
@@ -194,8 +194,8 @@ async function runNarrative(){
    const result=editor.apply(ops);
    if(!result.applied)throw Error('ไม่สามารถใช้แผน AI-3');
   }
-  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\\n'+summary.join('\\n')+
-   (ops.some(o=>o.patch.subtitleCues)?'\\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
+  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
+   (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
   status(narrativeReport);
  }catch(err){narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;render()}
