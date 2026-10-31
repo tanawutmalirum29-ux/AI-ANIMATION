@@ -59,4 +59,5 @@ test('importer safely normalizes known camera/actor aliases, preserves unknown d
  assert.equal(scenes[0].actors[0].facing,'auto');
  assert.equal(scenes[0].actors[0].view,'front');
  assert.equal(scenes[2].actors[0].face,'happy');
+ assert.doesNotThrow(()=>normalize({episodes:[null,{scenes:[]},{scenes:[{actors:{notAnArray:true},camera:null}]}]}));
 });
