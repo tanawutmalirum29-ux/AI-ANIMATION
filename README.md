@@ -9,7 +9,7 @@
 1. เปิด [AWS Amplify Console](https://console.aws.amazon.com/amplify/home) แล้วเลือก **Create new app → GitHub**
 2. เชื่อม GitHub (ถ้ายังไม่ได้เชื่อม) และเลือก Repository `tanawutmalirum29-ux/AI-ANIMATION`
 3. เลือกสาขา `main`; Amplify จะอ่านไฟล์ `amplify.yml` จาก Repository
-4. ตรวจว่าคำสั่ง Build คือการคัดลอก `index.html`, `animated-map.js`, `animated-map.css`, `cinematic-fx.js`, `cinematic-fx.css` ไปยัง `dist/` และ Artifact directory คือ `dist`
+4. ตรวจว่าคำสั่ง Build คือการคัดลอก `index.html`, `animated-map.js`, `animated-map.css`, `cinematic-fx.js`, `cinematic-fx.css`, `character-interaction.js`, `character-interaction.css` ไปยัง `dist/` และ Artifact directory คือ `dist`
 5. กด **Save and deploy** แล้วเปิดโดเมน HTTPS ของ Amplify เพื่อตรวจสอบการพากย์เสียงและไมโครโฟน
 
 เมื่อเชื่อม Continuous Deployment แล้ว GitHub commit ใหม่ในสาขาที่ตั้งค่าไว้จะกระตุ้นให้ Amplify สร้างและเผยแพร่เวอร์ชันใหม่ (หาก Auto-build เปิดอยู่)
@@ -42,6 +42,20 @@
 หมายเหตุ: Reflection เป็นแสงสะท้อนเชิงภาพ (procedural) โดยผู้ใช้ตั้งระดับผิวน้ำ ไม่ใช่ระบบ ray-tracing หรือการจำลองผิวน้ำจริง และประสิทธิภาพส่งออกขึ้นอยู่กับอุปกรณ์/เบราว์เซอร์
 
 QA: `tests/cinematic-fx-smoke.cjs` ทดสอบ Chromium จริงร่วมกับ `tests/animated-map-smoke.cjs` ผ่าน GitHub Actions
+
+## การสลับฉากและ Character Interaction (v20)
+
+เพิ่มตัวเลือก **ฉาก** ใต้แถบเวลา Preview พร้อมปุ่ม ◀ ▶ สำหรับเปลี่ยนฉากโดยตรงบน iPad/มือถือ และหน้าเครื่องมือ **ตัวละคร / เปลี่ยนฉาก** ใน Workspace
+
+- **สร้างฉากใหม่ต่อเนื่อง:** เลือกสถานที่ใหม่หรือฉากเวกเตอร์ แล้วกด **สร้างฉากถัดไปแบบต่อเนื่อง** คัดลอกตัวละครที่มีอยู่โดยใช้ตำแหน่ง/ท่าท้ายฉากก่อนหน้า และคงพร็อพที่ตัวละครกำลังถือ
+- **เปลี่ยนสถานที่ฉากปัจจุบัน:** เปลี่ยนสถานที่หรือฉากเวกเตอร์แล้วให้โปรแกรมล้างภาพพื้นหลังที่ขัดกัน เพื่อแก้ปัญหาเลือกฉากใหม่แต่ยังเห็นฉากเดิม
+- **แก้การเลือกฉากค้าง:** การเพิ่ม/คัดลอก/ลบ/เลื่อนฉากผ่านปุ่มใน Inspector จะปรับ Playhead ให้ตรงกับฉากที่เลือกโดยไม่อ้างตำแหน่งเวลาเก่า
+- **Interaction Timeline:** เพิ่มคำสั่ง **หยิบและถือ**, **วาง**, **เปิด/ปิดประตู** โดยเลือกระหว่างตัวละคร/พร็อพ/เวลาภายในฉาก/มือซ้ายหรือขวา และแก้/ลบคำสั่งเดิมได้
+- **Rig Hand Grip:** สิ่งของถูกยึดกับข้อมือจริงของ Rig และติดไปใน SVG ทั้ง Preview และวิดีโอ Export; สามารถนำสิ่งที่ถืออยู่ติดไปฉากถัดไป
+- การลบพร็อพจะลบ/เลื่อนดัชนี Interaction ให้ตรงกับพร็อพที่เหลือเสมอ
+- ฉากเก่าไม่มี Interaction จะยังเล่นและแสดงผลตามเดิม ข้อมูลจะเก็บใน `scene.interactions` และ `scene.interactionInitialHold` พร้อม Undo/Redo และ JSON Save/Import
+
+**ข้อจำกัด:** ตอนนี้การจับของเป็นการติดไอเทมเข้ากับจุดข้อมือที่กำหนด ไม่ใช่ IK แบบแก้ท่ามืออัตโนมัติ; การเปิดประตูใช้แอนิเมชัน 2D; การปีนบันไดและ AI วิเคราะห์ประโยคยังไม่รวมในรุ่นนี้
 
 ## ส่งคลิปวิดีโอให้ตรวจบน GitHub
 
