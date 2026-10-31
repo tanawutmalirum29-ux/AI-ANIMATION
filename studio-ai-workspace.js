@@ -152,7 +152,7 @@ async function loadLocalModel(id){
  const selected=LOCAL_MODELS.find(m=>m.id===id);
  updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
   stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
- let worker=null,engine=null,backend='worker',warning='';
+ let worker=null,engine=null,backend='worker',warning='',workerBooted=false;
  try{
   await abortableModelWork(modelCleanup);
   if(!(await webGpuReady()))throw Error('เบราว์เซอร์ไม่รองรับ WebGPU');
@@ -170,10 +170,13 @@ async function loadLocalModel(id){
    worker=new Worker(new URL('./studio-ai-model-worker.js',document.baseURI),{type:'module'});
    modelWorker=worker;
    await abortableModelWork(waitWorkerBootstrap(worker));
+   workerBooted=true;
    updateModelLoad({stage:'โหลดโมเดลใน Web Worker',percent:0});
    engine=await abortableModelWork(webllm.CreateWebWorkerMLCEngine(worker,id,{initProgressCallback:onProgress}));
   }catch(workerError){
-   if(modelAbortController?.signal.aborted)throw workerError;
+   if(modelAbortController?.signal.aborted||workerBooted)throw workerError;
+   // Only fall back when Safari cannot *start* the worker. Never launch a second
+   // large model immediately after a failed GPU allocation/OOM in a live worker.
    if(worker){worker.terminate();worker=null;modelWorker=null}
    backend='main';
    warning='Web Worker ใช้งานไม่ได้: '+String(workerError?.message||workerError).slice(0,170);
