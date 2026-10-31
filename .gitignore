@@ -1,0 +1,11 @@
+# Keep exported videos and temporary audio out of the source repository
+*.mp4
+*.mov
+*.webm
+*.wav
+*.mp3
+*.m4a
+*.zip
+.DS_Store
+node_modules/
+dist/
