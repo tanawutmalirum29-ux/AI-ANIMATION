@@ -2,16 +2,34 @@
   {
     "clip": 1,
     "source": "https://github.com/user-attachments/assets/6ec24a6f-47fc-4602-b62f-2ffc367dcbd1",
-    "error": "[Errno 2] No such file or directory: 'ffprobe'"
+    "duration_seconds": 73.96,
+    "width": 576,
+    "height": 1024,
+    "codec": "h264",
+    "bytes": 4721226,
+    "sheet": "video-review/issue-1/clip-1-contact-sheet.jpg",
+    "sample_interval_sec": 4.622
   },
   {
     "clip": 2,
     "source": "https://github.com/user-attachments/assets/68ced14d-2573-4be7-860f-96c67a805a1c",
-    "error": "[Errno 2] No such file or directory: 'ffprobe'"
+    "duration_seconds": 75.3,
+    "width": 576,
+    "height": 1024,
+    "codec": "h264",
+    "bytes": 4368400,
+    "sheet": "video-review/issue-1/clip-2-contact-sheet.jpg",
+    "sample_interval_sec": 4.706
   },
   {
     "clip": 3,
     "source": "https://github.com/user-attachments/assets/91b4e34b-8f72-4ada-972a-fe8ce028e7fb",
-    "error": "[Errno 2] No such file or directory: 'ffprobe'"
+    "duration_seconds": 74.0,
+    "width": 576,
+    "height": 1024,
+    "codec": "h264",
+    "bytes": 5087335,
+    "sheet": "video-review/issue-1/clip-3-contact-sheet.jpg",
+    "sample_interval_sec": 4.625
   }
 ]
