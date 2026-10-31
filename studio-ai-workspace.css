@@ -79,3 +79,11 @@
 #aiWorkspacePanel .ai-audio-agent small{font-size:11px;color:#b7c9dd;line-height:1.55}
 #aiWorkspacePanel .ai-audio-agent button{width:100%;min-height:46px;font-size:13px}
 @media(max-width:720px){#aiWorkspacePanel .ai-audio-agents{grid-template-columns:1fr}}
+
+/* Exactly two operators: script organizer and dubbing */
+#aiWorkspacePanel .ai-script-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:10px 0}
+#aiWorkspacePanel .ai-script-settings label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--muted,#b3c1d2);font-size:12px}
+#aiWorkspacePanel .ai-script-settings input,#aiWorkspacePanel .ai-script-settings select{width:100%;min-height:40px;padding:8px;background:var(--panel,#1d293b);color:inherit;border:1px solid #53657b;border-radius:9px}
+#aiWorkspacePanel .ai-script-settings input:focus-visible,#aiWorkspacePanel .ai-script-settings select:focus-visible{outline:2px solid #e0b46e;outline-offset:2px}
+#aiWorkspacePanel .ai-audio-agent textarea{width:100%;min-height:140px;max-height:340px;resize:vertical;padding:12px;font-size:14px;line-height:1.7;background:#192738;color:#f0f3f7;border:1px solid #53657b;border-radius:9px}
+#aiWorkspacePanel .ai-audio-agent textarea:focus-visible{outline:2px solid #e0b46e;outline-offset:2px}

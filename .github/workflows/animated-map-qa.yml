@@ -19,6 +19,7 @@ on:
       - runtime-config.js
       - studio-ai-core.js
       - studio-github-art.js
+      - studio-episode-planner.js
       - studio-ai-workspace.js
       - studio-ai-workspace.css
       - studio-asset-core.js
@@ -33,6 +34,7 @@ on:
       - tests/art-vault-core-smoke.cjs
       - tests/art-vault-backend-smoke.py
       - tests/art-vault-browser-smoke.cjs
+      - tests/story-episode-planner-smoke.cjs
       - tests/local-ai-core-smoke.cjs
       - tests/studio-sound-assistant-smoke.cjs
       - tests/local-ai-workspace-smoke.cjs
@@ -57,6 +59,7 @@ on:
       - runtime-config.js
       - studio-ai-core.js
       - studio-github-art.js
+      - studio-episode-planner.js
       - studio-ai-workspace.js
       - studio-ai-workspace.css
       - studio-asset-core.js
@@ -71,6 +74,7 @@ on:
       - tests/art-vault-core-smoke.cjs
       - tests/art-vault-backend-smoke.py
       - tests/art-vault-browser-smoke.cjs
+      - tests/story-episode-planner-smoke.cjs
       - tests/local-ai-core-smoke.cjs
       - tests/local-ai-workspace-smoke.cjs
       - autodub/handler.py
@@ -107,6 +111,7 @@ jobs:
           node --check runtime-config.js
           node --check studio-github-art.js
           node --check studio-ai-core.js
+          node --check studio-episode-planner.js
           node --check studio-ai-workspace.js
           node --check studio-asset-core.js
           node --check studio-art-vault.js
@@ -117,6 +122,7 @@ jobs:
           python3 tests/art-vault-backend-smoke.py
           bash -n autodub/enable-github.sh
           node tests/local-ai-core-smoke.cjs
+          node tests/story-episode-planner-smoke.cjs
           node tests/studio-sound-assistant-smoke.cjs
           python3 -m py_compile autodub/handler.py
           python3 tests/site-auth-handler-smoke.py
@@ -131,7 +137,7 @@ jobs:
           node --check tests/voice-preview-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist/assets
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-episode-planner.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
           cp assets/library.json dist/assets/library.json
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
@@ -139,7 +145,7 @@ jobs:
           test -f dist/narration-director.js
           test -f dist/studio-sound-assistant.js
           test -f dist/site-auth.js && test -f dist/runtime-config.js
-          test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
+          test -f dist/studio-episode-planner.js && test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
           test -f dist/studio-github-art.js
           test -f dist/studio-asset-core.js && test -f dist/studio-art-vault.js && test -f dist/studio-art-vault.css && test -f dist/assets/library.json
       - name: Install browser test dependencies

@@ -9,6 +9,7 @@ const core=root.StoryAIWorkspaceCore;
 if(!core)return;
 const DB='storyStudio.projectLibrary.v1',STORE='snapshots';
 let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',lastError='',db=null,dbPromise=null;
+let scriptDraft='',targetMinutes=5,voiceRate=6.5,scriptPlacement='append';
 const MAX_TASKS=130;
 const e=(tag,props={},...children)=>{
  const element=document.createElement(tag);
@@ -38,50 +39,105 @@ function persist(mutator){
 function status(message,fail=false){progress=message;lastError=fail?message:'';const node=rootElement?.querySelector('#aiWorkspaceStatus');if(node){node.textContent=message;node.dataset.error=String(!!fail)}}
 function setView(id){view=id;render()}
 function createTask(role,scope){
- if(!['voice','sound'].includes(role))throw Error('รองรับเฉพาะผู้ช่วยพากย์และผู้ช่วยจัดเสียง');
- if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตงานไม่ถูกต้อง');
- const prompt=role==='voice'?'พากย์จากบทเดิมที่ผู้ใช้เตรียมไว้':'ตรวจเหตุการณ์และจัดเสียงจากคลังที่มีอยู่';
- const job={id:core.id(),role,scope,prompt,status:'queued',createdAt:now(),updatedAt:now(),response:'',ops:[],bibleSuggestion:''};
+ if(!['voice','structure'].includes(role))throw Error('มีเพียงผู้ช่วยจัดบทและผู้ช่วยพากย์เสียง');
+ if(role==='voice'&&!['scene','episode','all'].includes(scope))throw Error('ขอบเขตพากย์ไม่ถูกต้อง');
+ const source=role==='structure'?scriptDraft.trim():'';
+ if(role==='structure'&&!source)throw Error('โปรดใส่บทพากย์ก่อนให้ AI จัดตอน');
+ if(role==='structure'&&Array.from(source).length>60000)throw Error('บทเกิน 60,000 ตัวอักษร');
+ const prompt=role==='voice'?'พากย์ตามบทเดิมของผู้ใช้':'จัดแบ่งบทเป็นตอน โดยตั้งเป้า '+targetMinutes+' นาที/ตอน';
+ const job={id:core.id(),role,scope:role==='voice'?scope:'all',prompt,status:'queued',
+   createdAt:now(),updatedAt:now(),source:role==='structure'?source:undefined,
+   targetMinutes:role==='structure'?targetMinutes:undefined,
+   charsPerSecond:role==='structure'?voiceRate:undefined,
+   placement:role==='structure'?scriptPlacement:undefined,response:'',ops:[]};
  persist(s=>{s.role=role;s.tasks.push(job);if(s.tasks.length>MAX_TASKS)s.tasks.splice(0,s.tasks.length-MAX_TASKS);
-  core.historyPush(s,{speaker:'user',role,text:prompt+' · '+scope,taskId:job.id})});
+  core.historyPush(s,{speaker:'user',role,text:prompt,taskId:job.id})});
  return job;
 }
-function queueAudio(role){
- if(busy){status('มีงานเสียงกำลังทำอยู่',true);return}
+function queueWork(role){
+ if(busy){status('กำลังทำงานอื่นอยู่',true);return}
+ if(role==='structure'&&scriptPlacement==='replace'&&!root.confirm('แทนฉากในตอนที่เปิดอยู่ด้วยบทใหม่หรือไม่? ระบบจะสำรองเวอร์ชันก่อนแก้ และ Undo ได้'))return;
  try{const job=createTask(role,audioScope);runTask(job.id)}
  catch(err){status('เริ่มงานไม่ได้: '+err.message,true)}
 }
+async function backupBeforeEdit(){
+ const state=bridge.get(),metadata=core.summaryOfSnapshot(state);
+ const snapshot=JSON.stringify(state),database=await openDb();
+ const record={id:metadata.projectId+'-script-before-'+Date.now()+'-'+core.id(),projectId:metadata.projectId,
+   title:metadata.title+' (ก่อนจัดบท)',savedAt:now(),episodes:metadata.episodes,scenes:metadata.scenes,
+   size:snapshot.length,snapshot};
+ await new Promise((resolve,reject)=>{
+   const tx=database.transaction(STORE,'readwrite');
+   tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error||Error('สร้างสำรองก่อนแก้ไม่สำเร็จ'));
+   tx.objectStore(STORE).put(record);
+ });
+ return record;
+}
+function planOps(plan,placement){
+ if(placement==='replace'){
+  const old=bridge.episode();if(!old)throw Error('ไม่มีตอนปัจจุบันให้แทนที่');
+  if(plan.episodes.some(ep=>ep.scenes.some(sc=>(bridge.get().episodes||[]).some(e=>e.scenes.some(s=>s.id===sc.id)))))
+    throw Error('รหัสฉากซ้ำกับโปรเจกต์เดิม');
+  const [first,...rest]=plan.episodes;
+  return {firstEpisode:old.id,ops:[
+   {op:'replaceScenes',episode:old.id,scenes:first.scenes},
+   {op:'updateEpisode',id:old.id,patch:{targetSeconds:first.targetSeconds}},
+   ...rest.map((ep,i)=>({op:'addEpisode',index:bridge.episodeIndex()+i+1,episode:{
+    id:ep.id,title:'ตอนที่ '+(bridge.episodeIndex()+i+2),targetSeconds:ep.targetSeconds,scenes:ep.scenes,clues:[]}}))
+  ]};
+ }
+ return {firstEpisode:plan.episodes[0].id,ops:plan.episodes.map(ep=>({op:'addEpisode',episode:{
+   id:ep.id,title:'ตอนที่ '+(bridge.get().episodes.length+plan.episodes.indexOf(ep)+1),
+   targetSeconds:ep.targetSeconds,scenes:ep.scenes,clues:[]}}))};
+}
+
 function setJob(id,patch){
  persist(s=>{const j=s.tasks.find(t=>t.id===id);if(j)Object.assign(j,patch,{updatedAt:now()})});
 }
 async function runTask(taskId){
- if(busy){status('กำลังจัดการเสียงงานอื่นอยู่',true);return}
- const task=w().tasks.find(t=>t.id===taskId);
- if(!task)return;
- if(!['voice','sound'].includes(task.role)){
-  status('งานเก่าจากทีม AI ที่เลิกใช้แล้วเป็นประวัติเท่านั้น ไม่สามารถสั่งเขียนบท/แก้ฉากได้',true);return;
+ if(busy){status('มีงานอื่นกำลังทำอยู่',true);return}
+ const task=w().tasks.find(t=>t.id===taskId);if(!task)return;
+ if(!['voice','structure'].includes(task.role)){
+   status('งาน AI เก่าที่เลิกใช้แล้วเป็นประวัติอย่างเดียว',true);return;
  }
  busy=true;setJob(taskId,{status:'running',error:''});render();
- status((task.role==='voice'?'กำลังพากย์จากบทเดิม':'กำลังจับคู่เสียงกับเหตุการณ์')+' · ไม่แก้ไขบทต้นฉบับ');
+ status(task.role==='voice'?'กำลังพากย์เสียงจากบทเดิม':'กำลังแบ่งวรรค แบ่งฉาก และประเมินความยาวแต่ละตอน');
  try{
-  let reply;
+  let reply,exportPlan=null;
   if(task.role==='voice'){
    const result=await bridge.narrate(task.scope||'episode');
-   if(!result?.ok)throw Error(result?.error||'ระบบสร้างเสียงยังไม่พร้อม เช็กการเชื่อม Edge TTS ในหน้าพากย์เสียง');
-   reply='พากย์เสียงจากบทเดิมสำเร็จ '+result.made+' คลิป'+(result.failed?' · ไม่สำเร็จ '+result.failed+' คลิป':'')+
-    (result.cancelled?' · ผู้ใช้หยุดงาน':'')+' · ตรวจหรือปรับใน Sound Desk ได้';
+   if(!result?.ok)throw Error(result?.error||'บริการพากย์ยังไม่พร้อม โปรดตรวจการเชื่อม Edge TTS');
+   reply='พากย์เสียงจากบทเดิมสำเร็จ '+result.made+' คลิป'+(result.failed?' · ล้มเหลว '+result.failed+' คลิป':'')+
+    (result.cancelled?' · ยกเลิกระหว่างทาง':'')+' · ตรวจจังหวะจริงใน Sound Desk';
   }else{
-   const result=bridge.applyAudioPlan(task.scope||'episode');
-   reply='จัดเสียงตามเหตุการณ์ '+result.applied+' คลิปใน '+result.scenes+' ฉาก · รักษาเสียงที่ใส่เองทั้งหมด · มี Undo';
+   if(!root.StoryEpisodePlanner)throw Error('ไม่พบโมดูล AI แบ่งตอน');
+   const plan=root.StoryEpisodePlanner.plan(task.source,{targetMinutes:task.targetMinutes,charsPerSecond:task.charsPerSecond});
+   const {ops,firstEpisode}=planOps(plan,task.placement||'append');
+   const api=root.StudioAPI;if(!api?.apply)throw Error('ระบบจัดการตอนยังไม่พร้อม');
+   const check=api.apply(ops,{dryRun:true});
+   if(!check.ok)throw Error('ตรวจโครงสร้างโปรเจกต์ไม่ผ่าน: '+((check.errors||[]).map(x=>x.msg).join(' / ')||
+     (check.issues||[]).find(x=>x.level==='error')?.msg||'รูปแบบตอนผิดพลาด'));
+   try{await backupBeforeEdit()}catch(err){throw Error('ยังไม่แก้บท เพราะสร้างสำรองก่อนแก้ไม่ได้: '+err.message)}
+   const outcome=api.apply(ops);
+   if(!outcome.applied)throw Error('นำตอนเข้าโปรเจกต์ไม่สำเร็จ');
+   api.select?.({episode:firstEpisode});
+   const minutes=(plan.totalSeconds/60).toFixed(1);
+   reply='แบ่งบทสำเร็จ '+plan.episodes.length+' ตอน '+plan.totalScenes+' ฉาก · รวมเวลาพากย์ประมาณ '+minutes+
+     ' นาที · เป้าหมาย '+task.targetMinutes+' นาที/ตอน · สร้างสำรองไว้ก่อนแล้ว · เวลาจริงปรับตามเสียงที่พากย์';
+   exportPlan={targetSeconds:plan.targetSeconds,totalSeconds:plan.totalSeconds,episodes:plan.episodes.map(ep=>({
+     id:ep.id,title:ep.title,estimatedSeconds:ep.estimatedSeconds,sceneCount:ep.scenes.length
+   }))};
+   // The project (not just the reply text) now owns the generated scenes and voiceover.
   }
-  setJob(taskId,{status:'done',response:reply,ops:[],bibleSuggestion:'',assetSuggestion:null});
+  setJob(taskId,{status:'done',response:reply,ops:[],planSummary:exportPlan});
   persist(s=>core.historyPush(s,{speaker:'assistant',role:task.role,text:reply,taskId}));
   status(reply);
  }catch(err){
-  const msg=String(err.message||err).slice(0,350);
-  setJob(taskId,{status:'failed',error:msg});status('งานเสียงไม่สำเร็จ: '+msg,true);
+  const msg=String(err.message||err).slice(0,400);
+  setJob(taskId,{status:'failed',error:msg});status('งานไม่สำเร็จ: '+msg,true);
  }finally{busy=false;render()}
 }
+
 function exportText(name,data,mime='application/json'){
  const url=URL.createObjectURL(new Blob([data],{type:mime+';charset=utf-8'}));
  const a=e('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
@@ -89,32 +145,50 @@ function exportText(name,data,mime='application/json'){
 
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
- pane.append(e('h3',{},'ผู้ช่วยเสียง 2 ตัว · บทและฉากคุณจัดการเอง'),
-  e('p',{className:'ai-help'},'AI ทั้งสองใช้เนื้อเรื่องที่คุณสร้างแล้วเท่านั้น ไม่สร้างบทใหม่ ไม่แก้ซับ ตัวละคร ฉาก หรือภาพ'));
- const scope=e('select',{'aria-label':'เลือกขอบเขตงานเสียง',onchange:evt=>{audioScope=evt.target.value}},
-  ...[['scene','เฉพาะฉากปัจจุบัน'],['episode','ทั้งตอนปัจจุบัน'],['all','ทุกตอนในโปรเจกต์']].map(([id,label])=>
-   e('option',{value:id,selected:id===audioScope},label)));
- pane.append(e('label',{className:'ai-field'},'ขอบเขตที่ให้ทำ',scope));
+ pane.append(e('h3',{},'ผู้ช่วย AI เพียง 2 ตัว · จัดบทก่อน แล้วพากย์เสียง'),
+  e('p',{className:'ai-help'},'AI-1 จะแบ่งวรรค แบ่งฉากและตอนจากต้นฉบับที่คุณให้ พร้อมประมาณความยาว · AI-2 พากย์จากบทเดิม ไม่แต่งบทใหม่'));
  const cards=e('div',{className:'ai-audio-agents'});
- cards.append(
-  e('article',{className:'ai-audio-agent'},
-   e('h4',{},'AI-1 · ผู้ช่วยพากย์เสียง'),
-   e('p',{},'อ่านข้อความ voiceover หรือซับที่คุณเขียนไว้ สร้างคลิปเสียงพากย์จริงผ่านระบบ Edge TTS เดิม จัดจังหวะและเว้นเสียงโดยอัตโนมัติ ไม่เขียนบทแทนคุณ'),
-   button(busy?'กำลังทำงาน…':'พากย์จากบทเดิม',()=>queueAudio('voice'),{disabled:busy,className:'ai-primary'}),
-   e('small',{},'ต้องมีการเชื่อมบริการพากย์ Edge TTS เดิม · หากมีคลิปเสียงพากย์อยู่แล้ว จะพยายามไม่สร้างซ้ำ')),
-  e('article',{className:'ai-audio-agent'},
-   e('h4',{},'AI-2 · ผู้ช่วยจัดเสียงเหตุการณ์'),
-   e('p',{},'อ่านหมายเหตุฉาก บทพากย์ และช่วงซับ เพื่อเลือกเสียงฝน ลม ประตู ฝีเท้า การต่อสู้ เสียงบรรยากาศ หรือเพลงที่ตรงอารมณ์จากคลังเดิม พร้อมจัดเวลาลดเสียงกลบคำพากย์'),
-   button(busy?'กำลังทำงาน…':'จัดเสียงตามเหตุการณ์',()=>queueAudio('sound'),{disabled:busy,className:'ai-primary'}),
-   e('small',{},'ทำงานบนอุปกรณ์ ไม่ต้องโหลดโมเดล AI/ใช้ API เสียเงิน · ถ้าฉากไม่มีเหตุการณ์ที่ชัดเจน ระบบจะไม่ใส่เสียงมั่ว'))
- );
- pane.append(cards,e('p',{className:'ai-help'},'ต้องการแก้บท คำบรรยาย มุมกล้อง หรือวาดภาพ ให้ใช้เครื่องมือสตูดิโอตามปกติ ผู้ช่วยเสียงจะไม่แก้แทน'));
+ const script=e('textarea',{'aria-label':'วางบทสำหรับแบ่งตอน',rows:7,maxlength:60000,
+  placeholder:'วางบทบรรยาย/เนื้อเรื่องที่ต้องการให้แบ่งฉากและตอน... ไม่ต้องกำหนดเวลาทีละฉาก',
+  oninput:evt=>{scriptDraft=evt.target.value}});
+ script.value=scriptDraft;
+ const rate=e('select',{'aria-label':'ความเร็วพากย์โดยประมาณ',onchange:evt=>voiceRate=Number(evt.target.value)},
+  ...[[5,'พากย์ช้า'],[6.5,'พากย์ปกติ'],[8,'พากย์เร็ว']].map(([x,label])=>e('option',{value:x,selected:voiceRate===x},label)));
+ const duration=e('input',{type:'number','aria-label':'นาทีต่อตอน',min:1,max:30,step:1,value:targetMinutes,
+  onchange:evt=>{targetMinutes=Number(evt.target.value)}});
+ const placement=e('select',{'aria-label':'วิธีนำตอนเข้าโปรเจกต์',onchange:evt=>scriptPlacement=evt.target.value},
+  e('option',{value:'append',selected:scriptPlacement==='append'},'เพิ่มตอนใหม่ (ไม่ลบของเดิม)'),
+  e('option',{value:'replace',selected:scriptPlacement==='replace'},'แทนฉากของตอนปัจจุบัน (มีสำรองและยืนยัน)'));
+ const structure=e('article',{className:'ai-audio-agent'},
+  e('h4',{},'AI-1 · แบ่งบท / จัดตอนและความยาว'),
+  e('p',{},'นำบทที่คุณให้มาแบ่งเป็นข้อความบรรยายสั้น ๆ พร้อมจังหวะซับและจำนวนตอนตามความยาวเป้าหมาย ตรวจไม่ให้คำในบทหาย ไม่เพิ่มเนื้อเรื่องเอง'),
+  script,
+  e('div',{className:'ai-script-settings'},e('label',{},'เป้าหมาย (นาที/ตอน)',duration),
+    e('label',{},'ความเร็วอ่าน',rate),e('label',{},'การบันทึก',placement)),
+  e('div',{className:'ai-actions'},
+   button('ดึงบทจากตอนปัจจุบัน',()=>{scriptDraft=(bridge.episode()?.scenes||[]).map(s=>s.voiceover||'').filter(Boolean).join('\n\n');renderChatReset();},{disabled:busy}),
+   button('ดึงบทจากทุกตอน',()=>{scriptDraft=(bridge.get().episodes||[]).flatMap(ep=>ep.scenes.map(s=>s.voiceover||'')).filter(Boolean).join('\n\n');renderChatReset();},{disabled:busy}),
+   button(busy?'กำลังทำงาน…':'จัดบทเป็นตอนอัตโนมัติ',()=>queueWork('structure'),{disabled:busy,className:'ai-primary'})),
+  e('small',{},'ไม่ใช้ API เสียเงิน · ความยาวเป็นค่าประมาณ ต้องปรับตามเสียงพากย์จริง · สร้างสำรองก่อนแก้ทุกครั้ง'));
+ const scope=e('select',{'aria-label':'เลือกขอบเขตงานพากย์',onchange:evt=>audioScope=evt.target.value},
+  ...[['scene','ฉากปัจจุบัน'],['episode','ตอนปัจจุบัน'],['all','ทุกตอน']].map(([id,label])=>
+   e('option',{value:id,selected:id===audioScope},label)));
+ const voice=e('article',{className:'ai-audio-agent'},
+  e('h4',{},'AI-2 · พากย์เสียง'),
+  e('p',{},'อ่านข้อความ voiceover หรือซับจากฉากที่ AI-1 จัดไว้ สร้างคลิปเสียงผ่านระบบพากย์เดิม และวางตามเวลาของฉากโดยไม่เปลี่ยนคำต้นฉบับ'),
+  e('label',{className:'ai-field'},'ขอบเขตพากย์',scope),
+  button(busy?'กำลังทำงาน…':'เริ่มพากย์เสียง',()=>queueWork('voice'),{disabled:busy,className:'ai-primary'}),
+  e('small',{},'ใช้ระบบ Edge TTS ที่เชื่อมไว้เดิม · ถ้ายังไม่เชื่อมหรือบริการไม่พร้อม ระบบจะแจ้งข้อผิดพลาดอย่างชัดเจน'));
+ cards.append(structure,voice);
+ pane.append(cards,e('p',{className:'ai-help'},'เครื่องมือภาพ เสียงบรรยากาศ และ GitHub Asset Vault ยังอยู่ในสตูดิโอ แต่ไม่ใช่ทีม AI เพิ่มเติม'));
  container.append(pane);
 }
+function renderChatReset(){render()}
+
 function renderTasks(container){
  const tasks=w().tasks.slice().reverse(),pane=e('section',{className:'ai-task-panel'});
- pane.append(e('div',{className:'ai-section-head'},e('h3',{},'ประวัติงานเสียง'),e('span',{},'งานเดิมจากผู้ช่วยเขียนบทถูกเก็บให้อ่านอย่างเดียว')));
- if(!tasks.length)pane.append(e('p',{className:'ai-help'},'ยังไม่มีงานเสียง เลือกพากย์เสียงหรือจัดเสียงเหตุการณ์จากแท็บแรก'));
+ pane.append(e('div',{className:'ai-section-head'},e('h3',{},'ประวัติงานเสียง'),e('span',{},'บันทึกงานเก่าไว้เป็นประวัติ แต่รันได้เฉพาะผู้ช่วยจัดตอนและพากย์')));
+ if(!tasks.length)pane.append(e('p',{className:'ai-help'},'ยังไม่มีงาน เริ่มจากแบ่งบทเป็นตอนหรือพากย์เสียง'));
  for(const task of tasks){
   const role=core.roles.find(r=>r.id===task.role);
   const box=e('article',{className:'ai-task','data-task-id':task.id});
@@ -125,8 +199,8 @@ function renderTasks(container){
   if(task.response)box.append(e('div',{className:'ai-response'},e('p',{},task.response)));
   if(task.error)box.append(e('p',{className:'ai-error'},task.error));
   const actions=e('div',{className:'ai-actions'});
-  if(['voice','sound'].includes(task.role)&&['queued','failed','interrupted'].includes(task.status))
-   actions.append(button('ลองทำงานเสียงอีกครั้ง',()=>runTask(task.id),{disabled:busy,className:'ai-primary'}));
+  if(['voice','structure'].includes(task.role)&&['queued','failed','interrupted'].includes(task.status))
+   actions.append(button('ลองทำงานอีกครั้ง',()=>runTask(task.id),{disabled:busy,className:'ai-primary'}));
   if(task.response)actions.append(button('คัดลอกผล',()=>navigator.clipboard?.writeText(task.response).then(()=>status('คัดลอกแล้ว')).catch(()=>status('คัดลอกไม่สำเร็จ',true))));
   box.append(actions);pane.append(box);
  }
@@ -229,12 +303,12 @@ function renderProjects(container){
 function render(){
  if(!rootElement||!bridge)return;
  rootElement.replaceChildren(
-  e('div',{className:'ai-header'},e('div',{},e('h2',{},'Audio AI Workspace'),
-   e('p',{},'พากย์เสียง · จัดเสียงตามเหตุการณ์ · ประวัติงาน · บันทึกโปรเจกต์'))),
+  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 2 ผู้ช่วย'),
+   e('p',{},'จัดวรรคและแบ่งตอนตามเวลา · พากย์เสียง · บันทึกโปรเจกต์'))),
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},
-    progress||'เลือกผู้ช่วยเสียงได้ทันที · ไม่ต้องโหลดโมเดลหรือซื้อ AI API'),
+    progress||'จัดบทเป็นตอนก่อน แล้วสั่งพากย์ได้ · ไม่มี AI API เสียเงิน'),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['chat','ผู้ช่วยเสียง'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['chat','2 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );
