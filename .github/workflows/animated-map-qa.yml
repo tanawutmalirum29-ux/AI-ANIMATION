@@ -18,6 +18,8 @@ on:
       - tests/cinematic-fx-smoke.cjs
       - tests/character-interaction-smoke.cjs
       - tests/mobile-scroll-smoke.cjs
+      - tests/auto-dub-smoke.cjs
+      - tests/voice-preview-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   pull_request:
     paths:
@@ -47,6 +49,8 @@ jobs:
           node --check tests/cinematic-fx-smoke.cjs
           node --check tests/character-interaction-smoke.cjs
           node --check tests/mobile-scroll-smoke.cjs
+          node --check tests/auto-dub-smoke.cjs
+          node --check tests/voice-preview-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist
           cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css dist/
@@ -63,3 +67,5 @@ jobs:
           node tests/cinematic-fx-smoke.cjs
           node tests/character-interaction-smoke.cjs
           node tests/mobile-scroll-smoke.cjs
+          node tests/auto-dub-smoke.cjs
+          node tests/voice-preview-smoke.cjs
