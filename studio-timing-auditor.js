@@ -24,10 +24,29 @@
   }
   return {voice,other,voices};
  }
+ // Ordinary characters, camera movement and decorative FX are visual content,
+ // not a request to keep the frame alive for the entire imported JSON duration.
+ // Protect only explicitly timed story beats and intentional holds.
  function hasTimedEvents(scene){
-  return !!(scene.video||(scene.actors||[]).length||(scene.graphicCards||[]).length||
-   (scene.sfx||[]).length||(scene.customAssets||[]).some(a=>a?.animated)||
-   scene.cinematicFx||scene.notes?.includes('[HOLD]')||scene.notes?.includes('[ค้างภาพ]'));
+  const timed=x=>x&&typeof x==='object'&&
+   ['at','time','start','end','duration'].some(k=>typeof x[k]==='number'&&x[k]>0);
+  return !!(scene.video||
+   (scene.actors||[]).some(a=>a&&(typeof a.to==='number'&&a.to>0||
+     typeof a.at==='number'&&a.at>0))||
+   (scene.graphicCards||[]).some(timed)||(scene.sfx||[]).some(timed)||
+   (scene.cinematicFx&&timed(scene.cinematicFx))||
+   /\\[(?:HOLD|PAUSE|ค้างภาพ)\\]/i.test(String(scene.notes||'')));
+ }
+ // Leave a modest visual beat after narration. Long un-timed walks and camera
+ // pans play at scene-relative speed, so a 36s imported duration must not force
+ // 30 seconds of silence after the voice is finished.
+ function visualTail(scene){
+  const actors=scene.actors||[];
+  const moving=actors.some(a=>a&&(a.toX!==undefined||a.toY!==undefined||
+    Array.isArray(a.route)&&a.route.length>0||a.endPose||a.motion))||
+   (scene.camera&&scene.camera.type&&scene.camera.type!=='static')||
+   (scene.customAssets||[]).some(a=>a?.animated)||!!scene.cinematicFx;
+  return moving?2.4:actors.length?1.25:.65;
  }
  function audit(state,options={}){
   const eps=state?.episodes;if(!Array.isArray(eps))throw Error('ไม่มี episodes จากโปรเจกต์');
@@ -51,11 +70,16 @@
      // Long scene with narration still running: expand rather than cut off audio.
      const required=Math.max(1.2,last+.35);
      if(required>old+.12){updated=rounded(required);kind='extend';extended+=updated-old}
-     else if(!hasEvents&&!bounds.other&&bounds.voice>0){
-      // Only compress a truly passive scene. Respect timed captions and scene events.
-      const held=Math.max(bounds.voice+.65,1.5);
-      if(old-held>=1.3){updated=rounded(held);kind='shorten';shortened+=old-updated}
-     }else if(old-bounds.voice>1.3)kind='review';
+     else if(old-last>1.3){
+      if(hasEvents)kind='review';
+      else {
+       // Measure the end of ALL non-looping audio, not the imported subtitle
+       // timestamps (which may have inherited the bad 36-second duration).
+       // A visible actor alone does not mean 36 seconds of scripted motion.
+       const held=Math.max(1.5,last+visualTail(s));
+       if(old-held>=1.3){updated=rounded(held);kind='shorten';shortened+=old-updated}
+      }
+     }
     }else{
      unvoiced++;
      if(String(s.voiceover||'').trim())kind='needs-dub';
@@ -65,7 +89,8 @@
     total+=old;nextTotal+=updated;
     const report={episode:ei+1,episodeId:ep.id,scene:si+1,sceneId:s.id,old:rounded(old),
      suggested:rounded(updated),voicedSeconds:rounded(bounds.voice),clips:bounds.voices,
-     cueEnd:rounded(cueEnd),hasTimedEvents:hasEvents,kind};
+     cueEnd:rounded(cueEnd),hasTimedEvents:hasEvents,
+     visualTailSeconds:rounded(visualTail(s)),kind};
     results.push(report);
     if(Math.abs(updated-old)>.01){
      const patch={duration:rounded(updated)};
