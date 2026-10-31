@@ -3,7 +3,7 @@
 (async()=>{
  try {
   if(!self.navigator?.gpu)throw Error('WebGPU ไม่พร้อมใช้งานภายใน Web Worker ของเบราว์เซอร์นี้');
-  const mod=await import('https://esm.run/@mlc-ai/web-llm@0.2.80');
+  const mod=await import('https://esm.run/@mlc-ai/web-llm@0.2.80').catch(()=>import('https://esm.sh/@mlc-ai/web-llm@0.2.80'));
   if(typeof mod.WebWorkerMLCEngineHandler!=='function')throw Error('CDN ไม่ส่ง WebWorkerMLCEngineHandler');
   const handler=new mod.WebWorkerMLCEngineHandler();
   self.onmessage=event=>handler.onmessage(event);
