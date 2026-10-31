@@ -232,3 +232,39 @@ test('AI-3 standard produces timed cues for complete Thai narration without trun
  // Existing manual subtitle timing must not be overwritten by the baseline.
  assert.equal(build({...src,subtitleCues:[{id:'custom',text:'กำหนดเอง',start:0,end:6}]}).subtitleCues,null);
 });
+
+
+test('CPU worker initializes and produces an OpenAI-compatible completion',async()=>{
+ const src=fs.readFileSync(path.join(root,'studio-ai-cpu-worker.js'),'utf8');
+ const mockSrc=src.replace(
+  "import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1')",
+  'Promise.resolve(self.__modelLib)'
+ );
+ const outputs=[];
+ const self={postMessage:m=>outputs.push(m)};
+ let handler=null,loadCount=0;
+ self.addEventListener=(type,cb)=>{if(type==='message')handler=cb};
+ const generated=async()=>[{generated_text:'สรุปฉากเรียบร้อย'}];
+ generated.tokenizer={encode:value=>[...value].map(x=>x.codePointAt(0))};
+ generated.dispose=async()=>{};
+ self.__modelLib={env:{backends:{onnx:{wasm:{numThreads:1}}}},
+  pipeline:async(task,id,opts)=>{
+   loadCount++;
+   assert.equal(task,'text-generation');
+   assert.equal(opts.device,'wasm');
+   assert.equal(opts.dtype,'q4');
+   opts.progress_callback({status:'progress',file:'model_q4.onnx',progress:30});
+   return generated;
+  }};
+ new Function('self',mockSrc)(self);
+ assert.ok(handler);
+ await handler({data:{channel:'story-cpu',type:'init',requestId:'a',model:'smollm2-135m-cpu'}});
+ const ready=outputs.find(x=>x.requestId==='a'&&x.type==='complete');
+ assert.equal(ready.result.ready,true);
+ assert.equal(loadCount,1);
+ await handler({data:{channel:'story-cpu',type:'generate',requestId:'b',
+  messages:[{role:'user',content:'สรุปฉาก'}],max_tokens:40}});
+ const completed=outputs.find(x=>x.requestId==='b'&&x.type==='complete');
+ assert.equal(completed.result.choices[0].message.content,'สรุปฉากเรียบร้อย');
+ assert.ok(completed.result.usage.completion_tokens>0);
+});
