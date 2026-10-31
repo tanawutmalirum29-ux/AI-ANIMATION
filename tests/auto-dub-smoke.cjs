@@ -79,6 +79,25 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
   assert.ok(smart.secondCue>=smart.firstEnd-.01,'subtitle frames follow speech');
   assert.equal(smart.running,false);
   assert.equal(calls.at(-1).body.rate,'+6%','TTS pacing is supplied to Lambda');
+  // New AI narrator: read authored voiceover even when no subtitle cues exist.
+  // It must not invent dialogue or rewrite the script/captions.
+  const narrator=await page.evaluate(async()=>{
+   AUTODUB_SMART=true;AUTODUB_SCOPE='scene';AUTODUB_SKIP=true;
+   commit(()=>{const s=sc();s.duration=4;s.voiceover='ในคืนที่ฝนตก เขาเดินเข้าสู่บ้านหลังเก่า';
+    s.subtitle=[];s.subtitleCues=[];s.audioClips=[]});
+   const before=sc().voiceover,originalCues=sc().subtitleCues.length;
+   const first=await StoryStudioBridge.narrate('scene');
+   const afterFirst=sc().audioClips.filter(c=>c.kind==='voice'&&c.autoDub);
+   const second=await StoryStudioBridge.narrate('scene');
+   return {first,second,clips:afterFirst.length,cueId:afterFirst[0]?.cueId,
+    before,after:sc().voiceover,cues:sc().subtitleCues.length,originalCues};
+  });
+  assert.equal(narrator.first.made,1);
+  assert.equal(narrator.second.made,0,'duplicate narrator clips skipped');
+  assert.equal(narrator.clips,1);
+  assert.ok(narrator.cueId.startsWith('narration-'));
+  assert.equal(narrator.before,narrator.after,'author voiceover unchanged');
+  assert.equal(narrator.cues,narrator.originalCues,'no extra subtitles');
   assert.deepEqual(errors,[],'no page errors');
   console.log('PASS auto dub:',JSON.stringify({...r,requests:calls.length,undone,fail:f,smart}));
  }finally{await browser.close();server.close()}

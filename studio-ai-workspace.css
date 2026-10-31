@@ -70,3 +70,12 @@
 
 #aiWorkspacePanel .ai-auto-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#d4deeb;line-height:1.55;padding:7px 2px}
 #aiWorkspacePanel .ai-auto-toggle input{width:18px;height:18px;flex:none;accent-color:#e1c18b}
+
+/* Two dedicated sound assistants, no script-writing AI or GPU downloads. */
+#aiWorkspacePanel .ai-audio-agents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+#aiWorkspacePanel .ai-audio-agent{background:#1c2f46;border:1px solid #4c6580;border-radius:13px;padding:15px;display:flex;flex-direction:column;gap:9px;min-width:0}
+#aiWorkspacePanel .ai-audio-agent h4{font-size:16px;color:#e5c993;margin:0}
+#aiWorkspacePanel .ai-audio-agent p{font-size:13px;line-height:1.7;color:#e0e7f2;flex:1;margin:0}
+#aiWorkspacePanel .ai-audio-agent small{font-size:11px;color:#b7c9dd;line-height:1.55}
+#aiWorkspacePanel .ai-audio-agent button{width:100%;min-height:46px;font-size:13px}
+@media(max-width:720px){#aiWorkspacePanel .ai-audio-agents{grid-template-columns:1fr}}
