@@ -11,6 +11,195 @@ const DB='storyStudio.projectLibrary.v1',STORE='snapshots';
 let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',lastError='',db=null,dbPromise=null;
 let targetMinutes=5,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
+const LOCAL_MODELS=[
+ {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
+ {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 0.5B',mb:280},
+ {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 1.5B',mb:870},
+ {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 3B',mb:1750},
+ {id:'Qwen2.5-7B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 7B (อุปกรณ์แรง)',mb:4100}
+];
+const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
+let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
+if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
+let localEngine=null,loadedModel='',modelReport='';
+function chooseModel(id){
+ if(busy)return;
+ chosenModel=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
+ try{localStorage.setItem(MODEL_KEY,chosenModel)}catch(_){}
+ modelReport='';render();
+}
+async function webGpuReady(){
+ if(!navigator.gpu)return false;
+ try{return !!(await navigator.gpu.requestAdapter())}catch(_){return false}
+}
+async function loadLocalModel(id){
+ if(!(await webGpuReady()))throw Error('อุปกรณ์/เบราว์เซอร์ไม่รองรับ WebGPU');
+ if(localEngine&&loadedModel===id)return localEngine;
+ const webllm=await import('https://esm.sh/@mlc-ai/web-llm@0.2.80');
+ if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))throw Error('WebLLM รุ่นนี้ไม่มีโมเดลที่เลือก');
+ if(localEngine){try{await localEngine.unload()}catch(_){}localEngine=null;loadedModel=''}
+ status('กำลังดาวน์โหลด/โหลดโมเดล (ครั้งแรกอาจใช้ข้อมูลจำนวนมาก)…');
+ const engine=await webllm.CreateMLCEngine(id,{initProgressCallback:p=>status('โหลด AI '+Math.round((p.progress||0)*100)+'% · '+(p.text||''))});
+ localEngine=engine;loadedModel=id;return engine;
+}
+function analysisInput(){
+ const state=bridge.get(),scope=audioScope,epIndex=bridge.episodeIndex();
+ const episodes=scope==='all'?state.episodes:scope==='episode'?[state.episodes[epIndex]]:[state.episodes[epIndex]];
+ const scenes=episodes.flatMap(ep=>(scope==='scene'?[ep.scenes[bridge.sceneIndex?.()||0]]:ep.scenes).filter(Boolean).map(sc=>({
+  id:sc.id,duration:sc.duration,voiceover:String(sc.voiceover||'').slice(0,450),
+  actors:Array.isArray(sc.actors)?sc.actors.length:0,
+  audioClips:Array.isArray(sc.audioClips)?sc.audioClips.length:0,
+  notes:String(sc.notes||'').slice(0,180)
+ }))).slice(0,18);
+ return {scenes,baseline:evaluate().stats};
+}
+async function benchmarkModel(applyChanges=false){
+ if(busy)return;
+ if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
+ const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
+ if(!root.confirm('โมเดล '+model.label+' ต้องดาวน์โหลดประมาณ '+model.mb+' MB และใช้หน่วยความจำเพิ่มเติม ดำเนินการบนเครื่องนี้?'))return;
+ busy=true;render();
+ const start=performance.now();
+ try{
+  const engine=await loadLocalModel(chosenModel);
+  const loadedMs=performance.now()-start;
+  const sample=analysisInput();
+  status('กำลังทดสอบการวิเคราะห์ฉากด้วย '+model.label);
+  const inferenceStart=performance.now();
+  const response=await engine.chat.completions.create({messages:[
+   {role:'system',content:'คุณเป็นผู้ช่วยตรวจจังหวะภาพยนตร์ภาษาไทย วิเคราะห์ JSON ที่มีอยู่ ห้ามแต่งหรือแก้บท ตอบสั้นๆเป็นภาษาไทย ระบุฉากที่อาจยาวเกินเสียงพากย์ และบอกว่าไม่สามารถยืนยันความยาวเสียงจริงได้หากไม่มีข้อมูลเสียง ห้ามเดาตัวเลขความยาวเสียง'},
+   {role:'user',content:JSON.stringify(sample).slice(0,7000)}
+  ],temperature:0.1,max_tokens:220});
+  const inferenceSec=Math.max(.001,(performance.now()-inferenceStart)/1000);
+  const tokens=response.usage?.completion_tokens||0;
+  const answer=String(response.choices?.[0]?.message?.content||'ไม่มีคำตอบ').slice(0,1500);
+  modelReport='รุ่น: '+model.label+'\nโหลดรวม: '+(loadedMs/1000).toFixed(1)+' วินาที\nวิเคราะห์: '+inferenceSec.toFixed(1)+' วินาที'+(tokens?'\nความเร็ว: '+(tokens/inferenceSec).toFixed(1)+' token/วินาที':'')+'\nผลวิเคราะห์ (ยังไม่แก้ JSON):\n'+answer;
+  if(applyChanges){
+   status('กำลังให้ AI วิเคราะห์แผนแก้ไข JSON จริง…');
+   const state=bridge.get(),audit=evaluate(),scope=audioScope;
+   const selected=audit.scenes.filter(x=>x.kind!=='other').slice(0,20);
+   const scenes=selected.map(x=>{
+    const ep=state.episodes.find(ep=>ep.id===x.episodeId);
+    const scene=ep?.scenes?.find(sc=>sc.id===x.sceneId);
+    return {id:x.sceneId,old:x.old,baseline:x.suggested,voiceEnd:x.voicedSeconds,
+     hasTimedEvents:x.hasTimedEvents,kind:x.kind,
+     notes:String(scene?.notes||'').slice(0,350),
+     actors:(scene?.actors||[]).slice(0,6).map(a=>({at:a.at,to:a.to,motion:a.motion})),
+     audioClips:(scene?.audioClips||[]).slice(0,8).map(c=>({kind:c.kind,at:c.at,duration:c.duration,loop:c.loop}))};
+   });
+   const proposal=await engine.chat.completions.create({messages:[
+    {role:'system',content:'You are an animation timing editor. Return ONLY valid JSON {"changes":[{"id":"existing scene id","duration":number,"reason":"Thai concise explanation"}]}. Do not change story text, actors, dialogue, audio, scene order, or create scenes. Keep all narration and timed animation/audio events. Duration in seconds. For scenes with voice clips, duration must be >= voiceEnd+0.35. If a scene has timed events, prefer keeping old duration. Limit to existing ids. Avoid arbitrary changes. You may make no changes.'},
+    {role:'user',content:JSON.stringify({scenes,targetMinutes,scope}).slice(0,12000)}
+   ],temperature:0.1,max_tokens:700});
+   const raw=String(proposal.choices?.[0]?.message?.content||'').trim().replace(/^\x60\x60\x60(?:json)?/i,'').replace(/\x60\x60\x60$/,'').trim();
+   const parsed=JSON.parse(raw);
+   if(!Array.isArray(parsed.changes))throw Error('AI ไม่ส่ง changes JSON ที่ถูกต้อง');
+   const byId=new Map(scenes.map(x=>[x.id,x]));
+   const ops=[],reasons=[];
+   for(const change of parsed.changes.slice(0,20)){
+    const base=byId.get(change.id);
+    if(!base||!Number.isFinite(change.duration))continue;
+    const duration=Math.round(change.duration*100)/100;
+    if(duration<1||duration>600||Math.abs(duration-base.old)<.1)continue;
+    if(base.hasTimedEvents&&duration<base.old)continue;
+    if(base.voiceEnd>0&&duration<base.voiceEnd+.35)continue;
+    if(base.kind==='needs-dub'&&duration<base.old)continue;
+    ops.push({op:'updateScene',id:base.id,patch:{duration}});
+    reasons.push(base.id+': '+base.old+' → '+duration+' วินาที · '+String(change.reason||'').slice(0,100));
+   }
+   if(ops.length){
+    const editor=root.StudioAPI;
+    if(!editor?.apply)throw Error('StudioAPI ไม่พร้อม');
+    const dry=editor.apply(ops,{dryRun:true});
+    if(!dry.ok)throw Error('ตรวจแผนแก้ไขไม่ผ่าน');
+    await backupBeforeEdit();
+    const applied=editor.apply(ops);
+    if(!applied.applied)throw Error('ไม่สามารถแก้ JSON ตามแผน AI');
+   }
+   modelReport+='\n\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\n'+(reasons.join('\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
+  }
+  status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
+ }catch(err){modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
+ finally{busy=false;render()}
+}
+
+
+let narrativeModel='standard',narrativeMode='preserve',narrativeReport='';
+const NARRATIVE_MODEL_KEY='storyStudio.narrativeModel.v1';
+try{narrativeModel=localStorage.getItem(NARRATIVE_MODEL_KEY)||'standard'}catch(_){}
+if(!LOCAL_MODELS.some(m=>m.id===narrativeModel))narrativeModel='standard';
+function narrativeScenes(){
+ const state=bridge.get(),index=bridge.episodeIndex(),ep=state.episodes[index];
+ if(!ep)throw Error('ไม่พบตอนปัจจุบัน');
+ const list=audioScope==='all'?state.episodes: [ep];
+ return list.flatMap(episode=>(audioScope==='scene'?[episode.scenes[bridge.sceneIndex?.()||0]]:episode.scenes)
+ .filter(Boolean).map(scene=>({id:scene.id,episode:episode.id,duration:scene.duration,
+  voiceover:String(scene.voiceover||'').slice(0,1000),
+  subtitle:Array.isArray(scene.subtitle)?scene.subtitle:[],
+  subtitleCues:Array.isArray(scene.subtitleCues)?scene.subtitleCues:[],
+  notes:String(scene.notes||'').slice(0,250)}))).slice(0,12);
+}
+function standardNarrative(sc){
+ const source=String(sc.voiceover||sc.subtitle.join(' ')).trim();
+ if(!source)return null;
+ const chunks=source.match(/.{1,28}(?:\\s|$)|.{1,28}/gu)||[source];
+ const text=chunks.map(x=>x.trim()).filter(Boolean).slice(0,12);
+ return {id:sc.id,voiceover:sc.voiceover,subtitle:text};
+}
+async function runNarrative(){
+ if(busy)return;
+ busy=true;render();
+ try{
+  const scenes=narrativeScenes();
+  if(!scenes.length)throw Error('ไม่มีฉากให้ปรับ');
+  let changes=[];
+  if(narrativeModel==='standard'){
+   changes=scenes.map(standardNarrative).filter(Boolean);
+  }else{
+   const engine=await loadLocalModel(narrativeModel);
+   const rules=narrativeMode==='preserve'?'Keep voiceover EXACTLY unchanged. Only improve subtitle segmentation.':
+    narrativeMode==='polish'?'Polish voiceover language and subtitles without changing events, identities, or plot.':
+    'You may creatively rewrite narration and add small lines for atmosphere, but do not invent plot events or change identities.';
+   const response=await engine.chat.completions.create({messages:[
+    {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, no more than 12 lines per scene. Do not change scene order or other fields. Keep story faithful. Output only scenes that need edits.'},
+    {role:'user',content:JSON.stringify(scenes).slice(0,11000)}
+   ],temperature:.25,max_tokens:1300});
+   const raw=String(response.choices?.[0]?.message?.content||'').trim().replace(/^\\x60\\x60\\x60(?:json)?/i,'').replace(/\\x60\\x60\\x60$/,'').trim();
+   const parsed=JSON.parse(raw);
+   if(!Array.isArray(parsed.changes))throw Error('โมเดลไม่ได้ส่ง changes JSON');
+   changes=parsed.changes;
+  }
+  const byId=new Map(scenes.map(x=>[x.id,x])),ops=[],summary=[];
+  for(const item of changes.slice(0,12)){
+   const old=byId.get(item.id);
+   if(!old||!Array.isArray(item.subtitle)||item.subtitle.length>12)continue;
+   const subtitle=item.subtitle.map(x=>String(x||'').trim());
+   if(subtitle.some(x=>x.length>28))continue;
+   const voiceover=narrativeMode==='preserve'||narrativeModel==='standard'?old.voiceover:String(item.voiceover||old.voiceover).slice(0,1500);
+   if(!voiceover&&!subtitle.some(Boolean))continue;
+   const patch={voiceover,subtitle};
+   // Existing subtitleCues may be tied to previously generated audio. Clear only
+   // when narration changes, so the voice director can rebuild timing afterward.
+   if(voiceover!==old.voiceover)patch.subtitleCues=[];
+   if(voiceover===old.voiceover&&JSON.stringify(subtitle)===JSON.stringify(old.subtitle))continue;
+   ops.push({op:'updateScene',id:old.id,patch});
+   summary.push(old.id+': '+(voiceover!==old.voiceover?'ปรับบทบรรยายและซับ':'จัดซับใหม่'));
+  }
+  if(ops.length){
+   const editor=root.StudioAPI;
+   if(!editor?.apply)throw Error('StudioAPI ไม่พร้อม');
+   const dry=editor.apply(ops,{dryRun:true});
+   if(!dry.ok)throw Error('ตรวจรูปแบบการแก้ไขไม่ผ่าน');
+   await backupBeforeEdit();
+   const result=editor.apply(ops);
+   if(!result.applied)throw Error('ไม่สามารถใช้แผน AI-3');
+  }
+  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
+   (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
+  status(narrativeReport);
+ }catch(err){narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
+ finally{busy=false;render()}
+}
 const e=(tag,props={},...children)=>{
  const element=document.createElement(tag);
  for(const [k,v]of Object.entries(props)){
@@ -153,7 +342,7 @@ function exportText(name,data,mime='application/json'){
 
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
- pane.append(e('h3',{},'ผู้ช่วย 2 ตัว · ใช้โปรเจกต์ JSON จาก AI ภายนอกโดยตรง'),
+ pane.append(e('h3',{},'ผู้ช่วย 3 ตัว · ใช้โปรเจกต์ JSON จาก AI ภายนอกโดยตรง'),
   e('p',{className:'ai-help'},'บท ฉาก ภาพ ตัวละคร และเหตุการณ์มาจาก JSON ที่นำเข้าแล้ว ผู้ช่วยตรวจงานจริง ไม่ให้วางบทใหม่ และไม่สร้างเนื้อเรื่องแทน'));
  const cards=e('div',{className:'ai-audio-agents'});
  const scope=e('select',{'aria-label':'ขอบเขตตรวจและพากย์',onchange:evt=>{audioScope=evt.target.value;lastAudit=null;render()}},
@@ -167,6 +356,14 @@ function renderChat(container){
  const structure=e('article',{className:'ai-audio-agent'},
   e('h4',{},'AI-1 · ตรวจจังหวะฉากและความยาวตอนจากงานจริง'),
   e('p',{},'ตรวจว่าเสียงพากย์จบเมื่อไร เทียบกับ duration ของฉาก ถ้าเหลือภาพนิ่งค้างนานจะลดเวลา ถ้าเสียงยังไม่จบจะขยายเวลา พร้อมตรวจความยาวแต่ละตอน'),
+  e('div',{className:'ai-script-settings'},
+   e('label',{},'เครื่องมือวิเคราะห์',
+    e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
+     ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel},m.label)))),
+   button(busy?'กำลังทดสอบ…':'ทดสอบโมเดลบนอุปกรณ์',()=>benchmarkModel(false),{disabled:busy}),
+   ...(chosenModel==='standard'?[]:[button('ให้ AI วิเคราะห์และปรับฉากจริง',()=>benchmarkModel(true),{disabled:busy,className:'ai-primary'})]),
+   e('small',{},'มาตรฐานทำงานโดยไม่โหลดโมเดล · รุ่นอื่นต้องใช้ WebGPU และดาวน์โหลดไฟล์ · ไม่มีค่า API')),
+  ...(modelReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},modelReport)]:[]),
   e('div',{className:'ai-script-settings'},e('label',{},'ตรวจขอบเขต',scope),
     e('label',{},'นาทีต่อตอน',minutes)),
   splitting,
@@ -193,14 +390,24 @@ function renderChat(container){
   e('p',{},'พากย์ข้อความ voiceover / subtitle จาก JSON เดิม แบ่งข้อความที่ยาวเป็นคลิปสั้นเพื่อลดการเว้นวรรคนานเกินไป ใช้ความยาว MP3 จริงจัดจังหวะอีกครั้งหลังจบ'),
   button(busy?'กำลังพากย์…':'พากย์และจัดเวลาหลังพากย์',()=>queueWork('voice'),{disabled:busy,className:'ai-primary'}),
   e('small',{},'ทำงานบน Edge TTS ที่เชื่อมไว้เดิม · หากบริการไม่พร้อม จะแจ้งว่าไม่สามารถพากย์ได้ ไม่แสดงผลสำเร็จปลอม'));
- cards.append(structure,voice);
+ const narrative=e('article',{className:'ai-audio-agent'},
+ e('h4',{},'AI-3 · ผู้กำกับบทบรรยายและซับไตเติล'),
+ e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
+ e('div',{className:'ai-script-settings'},
+  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{narrativeModel=ev.target.value;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
+   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
+  e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
+   ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
+ button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
+ ...(narrativeReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},narrativeReport)]:[]));
+ cards.append(structure,voice,narrative);
  pane.append(cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
  container.append(pane);
 }
 
 function renderTasks(container){
  const tasks=w().tasks.slice().reverse(),pane=e('section',{className:'ai-task-panel'});
- pane.append(e('div',{className:'ai-section-head'},e('h3',{},'ประวัติการตรวจจังหวะและพากย์'),e('span',{},'บันทึกงานเก่าไว้เป็นประวัติ · มีผู้ช่วย 2 ตัวเท่านั้น')));
+ pane.append(e('div',{className:'ai-section-head'},e('h3',{},'ประวัติการตรวจจังหวะและพากย์'),e('span',{},'บันทึกงานเก่าไว้เป็นประวัติ · มีผู้ช่วย 3 ตัวเท่านั้น')));
  if(!tasks.length)pane.append(e('p',{className:'ai-help'},'ยังไม่มีงาน กดตรวจ JSON หรือเริ่มพากย์เสียง'));
  for(const task of tasks){
   const role=core.roles.find(r=>r.id===task.role);
@@ -321,7 +528,7 @@ function render(){
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['chat','2 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['chat','3 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );

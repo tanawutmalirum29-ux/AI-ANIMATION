@@ -6,11 +6,12 @@
   if(root)root.StoryAIWorkspaceCore=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
   'use strict';
-  // Exactly TWO operators: script/episode-duration planning, then dubbing.
+  // Three operators: scene timing, dubbing, and narrative/subtitle direction.
   // Sound effects, art, camera, writing and QA remain editor tools, not AI teams.
   const roles=Object.freeze([
     {id:'structure',name:'AI-1 ตรวจจังหวะและระยะเวลาฉาก',instruction:'อ่านโปรเจกต์ JSON ที่ AI ภายนอกเขียนไว้และไฟล์เสียงพากย์ที่มีจริง แก้เวลาฉากซึ่งค้างหรือเสียงถูกตัด จัดความยาวตอนจากฉากเดิมโดยไม่เขียนบทใหม่'},
-    {id:'voice',name:'AI-2 พากย์เสียง',instruction:'สร้างเสียงจากบทพากย์และซับที่ AI ภายนอกเขียนไว้แล้ว แบ่งคลิปยาวเป็นช่วงพากย์สั้น วางตามเสียงจริง โดยไม่เขียนบทใหม่'}
+    {id:'voice',name:'AI-2 พากย์เสียง',instruction:'สร้างเสียงจากบทพากย์และซับที่ AI ภายนอกเขียนไว้แล้ว แบ่งคลิปยาวเป็นช่วงพากย์สั้น วางตามเสียงจริง โดยไม่เขียนบทใหม่'},
+    {id:'narrative',name:'AI-3 ผู้กำกับบทและซับ',instruction:'ปรับบทบรรยายและจังหวะซับจาก JSON ภายนอก รักษาเหตุการณ์และตัวละครเดิม ใช้เสียงพากย์จริงกำหนดเวลาเมื่อมี'}
   ]);
   const LIMIT=180;
   const short=(x,n)=>String(x??'').trim().slice(0,n);
