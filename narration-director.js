@@ -26,6 +26,36 @@ function plan(cues,options={}){
  }
  flush();return out;
 }
+/* Break overly long TTS requests into short, natural phrasing units.
+ * Preserve every non-whitespace character of the author's narration. */
+function splitNarration(text,maxChars=175){
+ const raw=normalize(text),max=clamp(Math.floor(num(maxChars,175)),80,260);
+ if(!raw)return[];
+ if(Array.from(raw).length<=max)return[raw];
+ const seg=typeof Intl!=='undefined'&&Intl.Segmenter?
+  Array.from(new Intl.Segmenter('th',{granularity:'word'}).segment(raw),s=>s.segment):
+  Array.from(raw);
+ const units=[],pushChunk=s=>{if(s.trim())units.push(s.trim())};
+ let chunk='';
+ for(const token of seg){
+  if(Array.from(chunk+token).length>max){
+   if(chunk.trim())pushChunk(chunk);
+   chunk='';
+   if(Array.from(token).length>max){
+    const letters=Array.from(token);
+    for(let i=0;i<letters.length;i+=max)pushChunk(letters.slice(i,i+max).join(''));
+    continue;
+   }
+  }
+  chunk+=token;
+  if(/[.!?。！？…ฯ]$/.test(chunk.trim())&&Array.from(chunk).length>=55){pushChunk(chunk);chunk=''}
+ }
+ pushChunk(chunk);
+ // Don't silently drop author punctuation or Thai graphemes at boundaries.
+ const preserve=s=>Array.from(s).filter(c=>!/\s/.test(c)).join('');
+ if(preserve(units.join(''))!==preserve(raw))throw Error('Narration split changed authored text');
+ return units;
+}
 function silenceTrim(buffer){
  if(!buffer||!buffer.length||!buffer.sampleRate||!buffer.numberOfChannels)return {start:0,end:0};
  const sr=buffer.sampleRate,windowSize=Math.max(1,Math.round(sr*.018)),maxDur=buffer.length/sr;
@@ -74,5 +104,5 @@ function layout(scene,options={}){
  if(extended>0)scene.duration=+(original+extended).toFixed(2);
  return {clips:all.length,extended:+Math.max(0,extended).toFixed(2),seconds:+lastEnd.toFixed(2)};
 }
-root.StoryNarrationDirector=Object.freeze({normalize,plan,silenceTrim,layout,isAuto,duration});
+root.StoryNarrationDirector=Object.freeze({normalize,plan,splitNarration,silenceTrim,layout,isAuto,duration});
 })(typeof window!=='undefined'?window:globalThis);

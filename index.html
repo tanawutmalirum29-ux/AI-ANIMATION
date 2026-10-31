@@ -4010,10 +4010,15 @@ function autoDubJobs(scope,skipExisting){
   const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data);
   const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
   if(narrated){
-   // Never dub over a manually recorded voice unless the user explicitly disables skip-existing.
+   // One external JSON scene can contain minutes of narration. Chunk only TTS requests;
+   // preserve the scene, actors, animation, visuals and original authored voiceover.
    if(skipExisting&&existingClips.some(c=>!director?.isAuto(c)))return;
-   if(!skipExisting||!existing.has(cues[0].id))
-    jobs.push({ei,si,cueId:cues[0].id,cueIds:[cues[0].id],text:narrated,speaker:'',narrator:true});
+   const parts=director?.splitNarration?.(narrated,175)||[narrated];
+   for(let i=0;i<parts.length;i++){
+    const id='narration-'+scene.id+'-part'+(i+1);
+    if(skipExisting&&existing.has(id))continue;
+    jobs.push({ei,si,cueId:id,cueIds:[id],text:parts[i],speaker:'',narrator:true});
+   }
    return;
   }
   if(AUTODUB_SMART&&director){
@@ -4044,8 +4049,7 @@ async function autoDubRun(){
    if(AUTODUB_CANCEL)break;
    const {ei,si,cueId,cueIds}=jobs[n],scene=S.episodes[ei].scenes[si],
     cue=(scene.subtitleCues||[]).find(q=>q.id===cueId)||
-      (cueId==='narration-'+scene.id&&String(scene.voiceover||'').trim()?
-       {id:cueId,text:scene.voiceover,start:0,end:scene.duration,speaker:''}:null);
+      (jobs[n].narrator?{id:cueId,text:jobs[n].text,start:0,end:scene.duration,speaker:''}:null);
    const text=String(jobs[n].text||cue?.text||'').replace(/\s*\n\s*/g,' ').trim();
    if(!cue||!text)continue;
    setVoiceStatus('กำลังสร้างเสียง '+(n+1)+'/'+jobs.length+' · ตอน '+(ei+1)+' ฉาก '+(si+1));
@@ -4057,7 +4061,7 @@ async function autoDubRun(){
    await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id,smartTrim:AUTODUB_SMART});
    past.length=keepPast; // ไม่สะสมสแนปชอตทีละคลิป (กันหน่วยความจำเต็ม) — รวมเป็น undo ครั้งเดียวตอนจบ
    const sc2=S.episodes[ei].scenes[si],clip=(sc2.audioClips||[]).at(-1);
-   if(clip&&(clip.cueId===cue.id||cueId==='narration-'+sc2.id)){if(!clip.cueId)clip.cueId=cue.id;clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
+   if(clip&&clip.kind==='voice'&&(clip.cueId===cue.id||jobs[n].narrator)){clip.cueId=cue.id;clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
   }
  }catch(e){lastErr=e.message;failed++}
  finally{
@@ -4187,6 +4191,11 @@ window.StoryStudioBridge={
   const prev=AUTODUB_SCOPE;AUTODUB_SCOPE=scope;
   try{return await autoDubRun()}finally{AUTODUB_SCOPE=prev}
  },
+ auditTiming:(scope='episode',opts={})=>{
+  if(!window.StoryTimingAuditor)throw Error('ยังไม่โหลดระบบตรวจเวลาจริง');
+  return window.StoryTimingAuditor.audit(S,{scope,episodeIndex:selEp,sceneId:sc()?.id,
+    rateOf:effectiveClipRate,...opts});
+ },
  audioPlan:(scope='episode')=>autoSoundPlan(scope),
  applyAudioPlan:(scope='episode')=>autoSoundApply(scope),
  soundCatalog:()=>SOUND_PRESETS.map(p=>({id:p.id,name:p.name,group:p.group})),
@@ -4234,4 +4243,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./studio-ai-core.js"></script><script src="./studio-episode-planner.js"></script><script src="./studio-ai-workspace.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script></body></html>
+</script><script src="./studio-ai-core.js"></script><script src="./studio-episode-planner.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-ai-workspace.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script></body></html>
