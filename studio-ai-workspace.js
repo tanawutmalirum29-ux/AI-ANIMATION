@@ -94,7 +94,7 @@ async function webGpuReady(){
 }
 async function loadLocalModel(id){
  if(localEngine&&loadedModel===id&&!modelUnavailable)return localEngine;
- if(modelUnavailable)throw Error('WebGPU สูญเสียการเชื่อมต่อ กรุณาโหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง');
+ if(modelUnavailable)throw Error('โมเดลหรือ Tokenizer ไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง');
  if(localEngine&&loadedModel!==id)throw Error('หากต้องการเปลี่ยนโมเดล กรุณาโหลดหน้าเว็บใหม่ก่อน เพื่อคืนหน่วยความจำ GPU อย่างปลอดภัย');
  const selected=LOCAL_MODELS.find(m=>m.id===id);
  updateModelLoad({active:true,ready:false,model:selected?.label||id,percent:null,stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
@@ -110,13 +110,16 @@ async function loadLocalModel(id){
    const percent=Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null;
    updateModelLoad({percent,stage:String(p.text||'กำลังเตรียมโมเดล').slice(0,260)});
   }});
+  // A completed download does not mean the tokenizer can generate text.
+  updateModelLoad({active:true,ready:false,percent:100,stage:'ตรวจสอบ Tokenizer ด้วยการสร้างข้อความจริง'});
+  await engine.chat.completions.create({messages:[{role:'user',content:'ตอบคำว่า พร้อม'}],max_tokens:8,temperature:0});
   localEngine=engine;loadedModel=id;
   try{const device=engine?.getDevice?.();if(device?.lost)device.lost.then(()=>{modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,error:'WebGPU device lost · โหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง',percent:null})})}catch(_){}
   updateModelLoad({active:false,ready:true,percent:100,stage:'โมเดลพร้อมใช้งาน · ไม่ต้องโหลดซ้ำในหน้านี้',error:''});
   return engine;
  }catch(err){
-  if(/disposed|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
-  updateModelLoad({active:false,ready:false,error:String(err.message||err)+(modelUnavailable?' · กรุณาโหลดหน้าเว็บใหม่และเริ่มจากโมเดล 0.5B':''),stage:'',percent:null});
+  if(/disposed|deleted object|tokenizer\\*|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
+  updateModelLoad({active:false,ready:false,error:String(err.message||err)+(modelUnavailable?' · โมเดลไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่และลอง 0.5B':''),stage:'',percent:null});
   throw err;
  }
 }
@@ -198,7 +201,7 @@ async function benchmarkModel(applyChanges=false){
    modelReport+='\n\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\n'+(reasons.join('\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
   }
   status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
- }catch(err){modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
+ }catch(err){if(/disposed|deleted object|tokenizer\\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
  finally{busy=false;render()}
 }
 
@@ -276,7 +279,7 @@ async function runNarrative(){
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
    (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
   status(narrativeReport);
- }catch(err){narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
+ }catch(err){if(/disposed|deleted object|tokenizer\\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;render()}
 }
 const e=(tag,props={},...children)=>{
