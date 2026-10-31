@@ -11,7 +11,7 @@ const path=require('node:path');
   await page.locator('#aiQuick').click();
   await page.locator('#aiWorkspacePanel').waitFor({state:'visible'});
   assert.equal(await page.getByRole('heading',{name:'AI Production Workspace'}).count(),1);
-  assert.equal(await page.locator('#aiWorkspacePanel [aria-label="เลือกทีม AI"] option').count(),7);
+  assert.equal(await page.locator('#aiWorkspacePanel [aria-label="เลือกทีม AI"] option').count(),8);
   await page.locator('#aiWorkspacePanel [aria-label="สั่งงาน AI"]').fill('ช่วยวางเรื่องยาวต่อเนื่อง 3 ตอน');
   await page.getByRole('button',{name:'เก็บคำสั่งในคิว'}).click();
   await page.locator('#aiWorkspacePanel .ai-tabs button').filter({hasText:'คิวงาน'}).click();
