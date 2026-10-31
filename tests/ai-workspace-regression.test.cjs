@@ -101,3 +101,43 @@ test('iPad preview prioritizes direct audible media and offers diagnostics',()=>
  assert.match(html,/showPreviewAudioProblem/);
  assert.match(html,/a\.play\(\)\.then/);
 });
+
+test('iPad preview plays an existing voice clip and immediately replays after data changes',async()=>{
+ const start=html.indexOf('function syncAudioAt(t,play){');
+ const end=html.indexOf('\\nfunction audioWaveSVG',start);
+ assert.ok(start>=0&&end>start);
+ const source=html.slice(start,end);
+ let data='data:audio/old',now=2500;
+ const audioPlayers=new Map(),media=[],retry=new Map();
+ const voice={id:'voice1',kind:'voice',duration:5,rate:1,volume:1,data};
+ class FakeAudio{
+  constructor(src){this.src=src;this.paused=true;this.currentTime=0;media.push(this)}
+  pause(){this.paused=true}
+  load(){this.loaded=true}
+  play(){this.paused=false;this.playCount=(this.playCount||0)+1;return Promise.resolve()}
+ }
+ const scope={
+  VOICE_RECORDER:null,STUDIO_CURRENT_TOOL:'ai',STUDIO_DUB_AUTOPLAY:false,
+  pauseAudioPlayers(){},audioEvents:()=>[{c:voice,start:0,cycle:0,limit:5}],
+  PREVIEW_DIRECT_VOICE:true,safeClipDuration:c=>c.duration,
+  VOICE_PREVIEW_BAD:new Set(),previewContext(){},updateAudioHint(){},
+  VOICE_PREVIEW_CLOCK:null,stopVoicePreview(){},VOICE_PREVIEW_BUFFERS:new Map(),
+  VOICE_PREVIEW_SOURCES:new Map(),primeVoicePreview(){},
+  AUDIO_PLAYERS:audioPlayers,AUDIO_PLAYER_GRAPHS:new Map(),Audio:FakeAudio,
+  clipGain:()=>1,eventXGain:()=>1,voiceGainFactor:()=>1,clipAutoGainFactor:()=>1,
+  effectiveClipRate:()=>1,cleanNum:(x,d=0)=>Number.isFinite(Number(x))?Number(x):d,
+  PREVIEW_MEDIA_RETRY_AT:retry,performance:{now:()=>now},
+  clampN:(x,l,h)=>Math.max(l,Math.min(h,x)),showPreviewAudioProblem(){},
+  PREVIEW_MEDIA_ERROR:'',createFxNodes(){},applyFxNodes(){},$:()=>({pause(){}})
+ };
+ const fn=new Function(...Object.keys(scope),source+';return syncAudioAt;')(...Object.values(scope));
+ fn(1,true);await Promise.resolve();
+ assert.equal(media.length,1);
+ assert.equal(media[0].src,'data:audio/old');
+ assert.equal(media[0].paused,false);
+ voice.data='data:audio/new';
+ fn(2,true);await Promise.resolve();
+ assert.equal(media[0].src,'data:audio/new');
+ assert.equal(media[0].paused,false);
+ assert.equal(media[0].playCount,2);
+});
