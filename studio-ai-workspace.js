@@ -1,7 +1,6 @@
-/* Story Studio AI Workbench v1.
- * One on-device WebLLM engine, seven role prompts, editable story bible, durable chat/job history,
- * manual approval for AI patches, versioned IndexedDB project snapshots + JSON backups.
- * No API key or model is uploaded to a hosted service. Model files are fetched on demand.
+/* Story Studio AI Workbench: cloud AI through authenticated AWS gateway, or local WebLLM.
+ * Untrusted model outputs are validated; cloud auto-edits require a recovery snapshot.
+ * API keys are stored only on the Lambda server, never in browser assets.
  */
 (function(root){
 'use strict';
@@ -24,7 +23,8 @@ const e=(tag,props={},...children)=>{
  for(const [k,v]of Object.entries(props)){
    if(k==='className')element.className=v;
    else if(k==='value')element.value=v;
-   else if(k==='checked')element.checked=v;
+   else if(k==='checked')element.checked=!!v;
+   else if(k==='selected')element.selected=!!v;
    else if(k==='disabled')element.disabled=!!v;
    else if(k==='style')element.style.cssText=v;
    else if(k.startsWith('on')&&typeof v==='function')element.addEventListener(k.slice(2),v);
