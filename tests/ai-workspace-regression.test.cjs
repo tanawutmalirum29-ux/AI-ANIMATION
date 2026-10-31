@@ -365,3 +365,48 @@ test('CPU worker message errors retain the actual failed stage',async()=>{
  handlers.error({message:'Script error',filename:'https://example/worker.js',lineno:9,preventDefault(){}});
  await assert.rejects(started,/ดาวน์โหลดไลบรารี v2.*Script error/);
 });
+
+
+test('short CPU suggestions are shown without inventing JSON edits',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,
+  "root.__narrativeTest={set:(b,e)=>{bridge=b;localEngine=e;loadedModel='lamini-77m-cpu';narrativeModel='lamini-77m-cpu'},run:runNarrative,report:()=>narrativeReport};");
+ const state={episodes:[{id:'ep',scenes:[{
+  id:'scene1',duration:10,voiceover:'คืนนี้เรากำลังรอรถไฟขบวนสุดท้าย',subtitle:['คืนนี้เรากำลังรอรถไฟ'],subtitleCues:[]
+ }]}],project:{}};
+ const engine={chat:{completions:{create:async()=>({
+  choices:[{message:{content:'Shorten captions and emphasize the station mood.'}}]
+ })}}};
+ class FakeAbortController{
+  constructor(){this.signal={aborted:false,addEventListener(){},removeEventListener(){}}}
+  abort(){this.signal.aborted=true}
+ }
+ const root={StoryAIWorkspaceCore:{}};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL','AbortController',instrument)(
+  root,{readyState:'loading',addEventListener(){}},{getItem:()=>null,setItem(){}},
+  {now:()=>0},{},class Worker{},class URL{},FakeAbortController
+ );
+ root.__narrativeTest.set({get:()=>state,episodeIndex:()=>0},engine);
+ await root.__narrativeTest.run();
+ assert.match(root.__narrativeTest.report(),/ยังไม่แก้โปรเจกต์/);
+ assert.match(root.__narrativeTest.report(),/Shorten captions/);
+});
+
+test('device preflight checks the worker without downloading a model',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,"root.__probeTest={run:probeLocalRuntime,result:()=>runtimeProbeReport};");
+ class FakeWorker{
+  constructor(){this.handlers={};queueMicrotask(()=>this.handlers.message?.({data:{channel:'story-cpu',type:'boot'}}))}
+  addEventListener(k,fn){this.handlers[k]=fn}
+  terminate(){}
+ }
+ const root={StoryAIWorkspaceCore:{}};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',instrument)(
+  root,{readyState:'loading',addEventListener(){},baseURI:'https://test.example'},
+  {getItem:()=>null,setItem(){}},{now:()=>0},{gpu:null},FakeWorker,class URL{}
+ );
+ await root.__probeTest.run();
+ assert.match(root.__probeTest.result(),/WebGPU: ไม่มี/);
+ assert.match(root.__probeTest.result(),/Worker เริ่มทำงานได้/);
+ assert.match(root.__probeTest.result(),/ยังไม่ได้ยืนยันว่าโมเดล/);
+});
