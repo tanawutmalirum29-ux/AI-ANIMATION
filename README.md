@@ -103,3 +103,54 @@ QA: `tests/cinematic-fx-smoke.cjs` ทดสอบ Chromium จริงร่�
 **ยังไม่ได้ทำ (v23 Phase 2–3):** ฉากเดิมยังมีชีวิตระหว่าง transition (A1), โหมด preroll/handle (A2), ต่อเนื่องข้ามตอนและปุ่มสร้างตอนถัดไป (B2 ส่วน UI), เสียงบรรยากาศต่อเนื่อง/L-cut/J-cut (B4), การหันและท่าข้ามฉาก (C1–C2), easing/กล้อง match cut (A6, C3), UI ตั้งค่า (D2), กฎ QA ใหม่ (D3), ท่านอน/สัตว์ (C4)
 
 QA: `tests/scene-transition-smoke.cjs` (ตั้ง `BASELINE=<โฟลเดอร์ v21>` เพื่อเทียบความเข้ากันได้ย้อนหลัง, `PERF_ONLY=1 ROOT=<โฟลเดอร์>` เพื่อวัดความกระตุกอย่างเดียว)
+
+## ระบบเปลี่ยนฉาก/ตอน — v24 Phase 2a (เสียง · โหมด transition · ข้ามตอน)
+
+> หมายเหตุ: ฟิลด์ใหม่ทุกตัวไม่บังคับ ถ้าไม่มี = พฤติกรรมเหมือน v23-phase1 (ยกเว้นเสียงบรรยากาศแบบ loop ดูหัวข้อ B4)
+
+- **B4 เสียงบรรยากาศต่อเนื่อง:** `audioEvents()` ต่อคลิป `loop` ที่เป็นไฟล์/trim/rate เดียวกันในฉากติดกันให้เป็นเหตุการณ์เดียว (id ผู้เล่นเดิม ไม่รีสตาร์ตที่ขอบฉาก) ทั้งพรีวิว (`syncAudioAt`) และส่งออก (`prepareExportAudio`); คลิปคนละไฟล์ cross-fade ตามความยาว transition (`sceneHeadOverlap`, ฉากแบบ cut ใช้ `FILM_FADE`); คลิปฉากมี `audioLead` (J-cut) / `audioTail` (L-cut) เป็นวินาที ปิดได้ด้วย `episode.audioLink = {link:false, xfade:false}` **เปลี่ยนผลเสียงในวิดีโอส่งออกของโปรเจกต์เก่าที่มีเสียง loop ติดกันหลายฉาก**
+- **A2 `transition.mode`:** `overlap` (เดิม) | `preroll` (ตัวละคร กล้องที่ตามตัวละคร คำบรรยาย และเสียงที่ไม่ใช่ loop ของฉากใหม่เริ่มหลัง transition จบ; ambient loop ยัง cross-fade ระหว่าง transition) | `handle` (เหมือน overlap) ตัวตรวจเตือน transition ยาวเกิน 40% ของฉาก (เดิม 80%) `transitionSpan()` เป็นนิยามเดียวของ `transitionProgress`/`sceneBlend`/เสียง
+- **B2 ข้ามตอน:** `episode.continuity = {carryFromPrevious, atmosphereClock}` (carry = นาฬิกาสภาพอากาศต่อจากท้ายตอนก่อน และฉากแรกเฟดสภาพอากาศจากฉากสุดท้ายตอนก่อน), `episode.opening = {mode: fadeblack|titlecard|recap, duration, text}` (ใช้ระบบ graphic card เดิม พรีวิว/ส่งออกเหมือนกัน), เมนู "สร้างตอนถัดไปแบบต่อเนื่อง", UI อยู่แท็บตอน
+
+QA: `tests/scene-transition-phase2-smoke.cjs` (ตั้ง `BASELINE=<โฟลเดอร์ v23-phase1>` เพื่อเทียบก่อน/หลัง)
+
+**ยังไม่ได้ทำ (ส่งต่อ):** A1, C1, C2, A5, A6, C3, D2 (UI ส่วนที่เหลือ), D3 (ที่เหลือนอกจากกฎ 40%), D1 ต่อ, C4 — ดู `PROMPT-scene-transition-phase2b.md`
+
+## ระบบเปลี่ยนฉาก/ตอน — v25 Phase 2b (เริ่ม) · Easing
+
+- เพิ่ม `scene.transition.ease` = `linear` / `ease-in` / `ease-out` / `ease-in-out` (ไม่ตั้ง = smoothstep เดิม ผลลัพธ์โปรเจกต์เก่าไม่เปลี่ยน)
+- ใช้ฟังก์ชันเดียว `easeTransition(q,scene)` ทั้งพรีวิว ส่งออก และ `sceneBlend` (เดิมฮาร์ดโค้ดแยก)
+- UI: หัวข้อ “กล้อง · บรรยากาศ · ทรานซิชัน” > “จังหวะการเปลี่ยน (Easing)” และปุ่ม “ใช้กับฉากทั้งหมด” คัดลอก `ease`
+- ตัวตรวจ JSON เตือนค่า `ease` ที่ไม่รู้จัก
+- เทสต์ใหม่: `tests/scene-transition-phase2b-smoke.cjs`
+- งานที่เหลือ: ดู `PROMPT-scene-transition-phase2b-next.md`
+
+## v26 Phase 2b — C2 ตัวตรวจ continuity + แก้อัตโนมัติ · D1 round-trip
+
+- `smartAnalyze` (หมวด `continuity`) ตรวจเพิ่ม: ตัวละครหันกลับด้านจากท้ายฉากก่อน (ไม่มี route/at/to) และพร็อพที่ถืออยู่ท้ายฉากก่อนแต่ฉากถัดไป (location เดียวกัน) ไม่มีของในมือ; ตัวตรวจ X กระโดด >30% เดิมมีปุ่มแก้ด้วย
+- ปุ่ม “แก้อัตโนมัติ” ต่อรายการ และ “แก้ความต่อเนื่องอัตโนมัติทั้งหมด” ใน Smart Director (Undo ได้) — ฟังก์ชัน `continuityExtraFindings`, `applyContinuityFix`, `smartAutoFix(All)`
+- `character-interaction.js` เปิด `window.STUDIO_INTERACTION_ACTIVE_HELD`
+- เทสต์ `scene-transition-phase2b-smoke.cjs` ครอบคลุม A6, C2, และ round-trip ของ `ease/mode/audioLead/audioTail/audioLink`
+
+## v27 Phase 2b — C1 หมุนตัวละครตอนเปลี่ยนฉาก
+
+- ฉากใหม่ที่ location เดียวกับฉากก่อน, transition ไม่ใช่ cut, ตัวละครไม่มี route/at/to/bodyYaw และอยู่มุมข้าง: ถ้าทิศหันต่างจากท้ายฉากก่อน จะหมุนผ่านด้านหน้าตั้งแต่ต้นฉาก (ไม่เกิน 0.45 วินาที, ไม่เกิน 35% ของฉาก, ไม่เกินความยาว transition) หัวนำลำตัวเล็กน้อย
+- `transition.turn=false` (UI: “หมุนตัวละครเมื่อทิศหันต่างจากฉากก่อน”) ปิดได้; `mode:'preroll'` ไม่หมุน
+- ฟังก์ชัน `sceneEntryTurn` ใช้ร่วมพรีวิว/ส่งออก; ตัวตรวจ C2 ไม่เตือนทิศหันเมื่อ C1 จัดการให้แล้ว
+- **เปลี่ยนวิดีโอส่งออกของโปรเจกต์เก่า:** ฉากติดกันที่ทิศหันกลับด้านและใช้ transition ไม่ใช่ cut จะเห็นตัวละครหมุนแทนการสลับทิศทันที
+
+## v28 Phase 2b — D2 UI เสียง · D3 ตัวตรวจ QA ตอนตัดตรง
+
+- Sound Desk: ช่อง `audioLead` (J-cut) และ `audioTail` (L-cut) ต่อคลิปเสียงฉาก; กล่อง “ความต่อเนื่องของเสียงข้ามฉาก” สวิตช์ `episode.audioLink.link/xfade` (เปิดทั้งคู่ = ลบฟิลด์ ใช้ค่าเริ่มต้น)
+- ปุ่ม “ใช้ทรานซิชันนี้กับฉากทั้งหมด” คัดลอก `turn:false` ด้วย
+- ตัวตรวจ Smart Director: ฉากติดกัน location เดียวกันที่ใช้ตัดตรงแต่สภาพอากาศ/แสง/cinematicFx เปลี่ยน → เตือน + ปุ่มแก้ (ใส่ dissolve สั้น ๆ)
+- ไม่เปลี่ยนวิดีโอส่งออกของโปรเจกต์เก่า (UI + ตัวตรวจเท่านั้น)
+
+## v29 Phase 2b — A1 ฉากเดิมมีชีวิตระหว่าง transition
+
+- ฉากเดิมไม่ค้างนิ่งตอน transition: ระบบแคชเฟรมของฉากเดิมที่เวลา `duration+τ` ทุก 1/6 วินาที (สูงสุด 6 เฟรม / 1 วินาทีแรกของ transition) ตัวละครค้างท่าสุดท้ายแต่ยังหายใจ/ขยับ idle กล้องค้างปลายฉาก
+- พรีวิวกับส่งออกใช้เฟรมชุดเดียวกัน (`liveIndex`, `liveFrame`, `captureLiveFrame`); ส่งออกแคชตาม `ฉาก:k` จึงเรนเดอร์ฉากเดิมเพิ่มสูงสุด K ครั้งต่อ transition
+- `transition.live`: ไม่ตั้ง = อัตโนมัติ (เปิดกับ dissolve/fade/fadeblack/blur/zoom ปิดกับ cut/push/wipe/slide/iris/flash), `true` เปิดเสมอ, `false` ปิด; UI “ฉากเดิมยังขยับ…”
+- ฉากเดิมที่ใช้ route: เวลา idle เดินต่อหลังจบ route (เฉพาะเฟรม live)
+- เทสต์: `scene-transition-phase2b-smoke.cjs` (เฟรม live ต่างจากเฟรมค้าง, ส่งออก deterministic, นอก transition เหมือนเดิมทุกพิกเซล, perf) และ `scene-transition-contact-sheet.cjs` (สร้าง `contact-sheet-A1.png`)
+- **เปลี่ยนวิดีโอส่งออกของโปรเจกต์เก่า:** transition ชนิด dissolve/fade/fadeblack/blur/zoom ฉากเดิมจะมีการขยับเล็กน้อยแทนภาพนิ่ง ปิดได้ด้วย `transition.live=false`

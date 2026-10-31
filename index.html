@@ -662,7 +662,7 @@ function openProjectDB(){return new Promise(resolve=>{if(!('indexedDB'in window)
  }catch(e){STORAGE_READY=true;save();resolve()}};
  })}
 
-function fix(){S.project=merge(blank().project,isObj(S.project)?S.project:{});ensureSmartConfig(S);S.characters||=[];S.locations||=[];locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)});S.rules||=[];ensureVoiceProfiles(S);S.episodes.forEach(E=>E.scenes.forEach(s=>{s.duration=Number(s.duration)||4;s.camera||={type:'static',from:1,to:1};s.transition||={type:'dissolve',duration:.55};s.subtitle||=[];if(typeof s.imagePrompt!=='string')s.imagePrompt='';s.characters||=[];s.clueIds||=[];s.actors||=[];s.props||=[];s.audioClips||=[];s.subtitleCues=Array.isArray(s.subtitleCues)?s.subtitleCues:[];s.graphicCards=Array.isArray(s.graphicCards)?s.graphicCards:[];if(s.audio&&!s.audioClips.some(x=>x.legacy)){s.audioClips.push({id:'clip'+uid(),kind:'voice',name:'เสียงพากย์เดิม',data:s.audio,at:0,trimStart:0,trimEnd:0,volume:1,fadeIn:0,fadeOut:0,rate:1,legacy:true});s.audio=null};s.voiceDirection||={speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''}}));S.episodes.forEach(E=>{E.musicClips||=[];if(E.bgm&&!E.musicClips.some(x=>x.legacy)){E.musicClips.push({id:'clip'+uid(),kind:'music',name:'เพลงเดิม',data:E.bgm,at:0,trimStart:0,trimEnd:0,volume:E.bgmVol??.3,fadeIn:0,fadeOut:0,rate:1,legacy:true,loop:true});E.bgm=null}});for(const E of S.episodes)for(const scene of E.scenes)for(const c of scene.audioClips||[])if(c.kind==='voice'&&!c.voiceProfileId)assignVoiceClipFromAI(scene,c);if(selEp>=S.episodes.length)selEp=0;if(sel>=ep().scenes.length)sel=Math.max(0,ep().scenes.length-1)}
+function fix(){S.project=merge(blank().project,isObj(S.project)?S.project:{});ensureSmartConfig(S);S.characters||=[];S.locations||=[];locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)});S.rules||=[];ensureVoiceProfiles(S);S.episodes.forEach(E=>{if(E.opening&&!['fadeblack','titlecard','recap'].includes(E.opening.mode))delete E.opening;if(E.continuity&&typeof E.continuity!=='object')delete E.continuity});S.episodes.forEach(E=>E.scenes.forEach(s=>{s.duration=Number(s.duration)||4;s.camera||={type:'static',from:1,to:1};s.transition||={type:'dissolve',duration:.55};if(s.transition.mode!==undefined&&!['overlap','preroll','handle'].includes(s.transition.mode))delete s.transition.mode;s.subtitle||=[];if(typeof s.imagePrompt!=='string')s.imagePrompt='';s.characters||=[];s.clueIds||=[];s.actors||=[];s.props||=[];s.audioClips||=[];s.subtitleCues=Array.isArray(s.subtitleCues)?s.subtitleCues:[];s.graphicCards=Array.isArray(s.graphicCards)?s.graphicCards:[];if(s.audio&&!s.audioClips.some(x=>x.legacy)){s.audioClips.push({id:'clip'+uid(),kind:'voice',name:'เสียงพากย์เดิม',data:s.audio,at:0,trimStart:0,trimEnd:0,volume:1,fadeIn:0,fadeOut:0,rate:1,legacy:true});s.audio=null};s.voiceDirection||={speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''}}));S.episodes.forEach(E=>{E.musicClips||=[];if(E.bgm&&!E.musicClips.some(x=>x.legacy)){E.musicClips.push({id:'clip'+uid(),kind:'music',name:'เพลงเดิม',data:E.bgm,at:0,trimStart:0,trimEnd:0,volume:E.bgmVol??.3,fadeIn:0,fadeOut:0,rate:1,legacy:true,loop:true});E.bgm=null}});for(const E of S.episodes)for(const scene of E.scenes)for(const c of scene.audioClips||[])if(c.kind==='voice'&&!c.voiceProfileId)assignVoiceClipFromAI(scene,c);if(selEp>=S.episodes.length)selEp=0;if(sel>=ep().scenes.length)sel=Math.max(0,ep().scenes.length-1)}
 function commit(fn){const before=ep()?.scenes?.[sel],beforeId=before?.id,oldStarts=starts(),oldLocal=clampN(T-(oldStarts[sel]||0),0,before?.duration||0);past.push(JSON.stringify(S));if(past.length>100)past.shift();future=[];fn(S);fix();const current=ep()?.scenes?.[sel];if(current){const newStarts=starts();if(current.id!==beforeId){T=newStarts[sel]||0;playing=false}else{T=(newStarts[sel]||0)+clampN(oldLocal,0,Math.max(0,current.duration-.001))}}save();render()}
 function undo(){if(!past.length)return;future.push(JSON.stringify(S));S=JSON.parse(past.pop());fix();save();render()}
 function redo(){if(!future.length)return;past.push(JSON.stringify(S));S=JSON.parse(future.pop());fix();save();render()}
@@ -819,10 +819,25 @@ function frontCostumeSVG(type,color,k){if(!type||type==='basic')return'';
 /* ทั้งฉาก: x,y เป็น % ของเฟรม (y = เส้นพื้นที่เท้าแตะ), toX/toY = เคลื่อนที่ตลอดฉาก */
 /* Each route includes its starting point. Route wins over at/to when present.
    Waypoint travel durations are relative weights; hold is real seconds at that anchor. */
+// v27 C1: ฉากใหม่ (location เดียวกัน, transition ไม่ใช่ cut) ที่ตัวละครหันตรงข้ามท้ายฉากก่อน -> หมุนผ่านมุมหน้าตั้งแต่ต้นฉาก หัวนำลำตัวเล็กน้อย ปิดได้ด้วย transition.turn=false
+let C1_BUSY=false;
+function sceneEntryTurn(a,scn,local,face){
+ if(C1_BUSY||!scn||!a)return null;const tr=scn.transition;
+ if(!tr||(tr.type||'cut')==='cut'||tr.turn===false||tr.mode==='preroll')return null;
+ if(a.at||a.to||Number.isFinite(a.bodyYaw)||Number.isFinite(a.toBodyYaw)||(a.view&&a.view!=='side'))return null;
+ const td=Math.min(.45,cleanNum(scn.duration)*.35,transitionSpan(scn));if(!(td>.06)||!(local<td))return null;
+ if(face!=='left'&&face!=='right')return null;
+ const E=ep(),i=E?E.scenes.indexOf(scn):-1;if(i<=0)return null;
+ const prev=E.scenes[i-1];if(!prev||!prev.location||prev.location!==scn.location)return null;
+ const old=(prev.actors||[]).find(x=>x&&x.char===a.char);if(!old)return null;
+ let last=null;C1_BUSY=true;try{last=endFrameActor(old,prev)}catch(e){last=null}finally{C1_BUSY=false}
+ if(!last||(last.facing!=='left'&&last.facing!=='right')||last.facing===face)return null;
+ const u=clampN(local/td,0,1),fy=v=>v<.5?90*(1-(v*2)*(v*2)):90*((v-.5)*2)*((v-.5)*2),yaw=fy(u),hu=u<.5?Math.min(u+.12,.5):Math.min(u+.12,1);
+ return{facing:u<.5?last.facing:face,bodyYaw:yaw,headYaw:clampN(fy(hu)-yaw,-80,80)}}
 function actorAtTimeBase(source,scn,local,dur){
  const a=resolveActor(source,scn),nodes=Array.isArray(a.route)?a.route:[];
  if(nodes.length<2){const pr=dur>0?clampN(local/dur,0,1):0,x0=nm(a.x,50),y0=nm(a.y,90),x1=nm(a.toX,x0),y1=nm(a.toY,y0);
- return Object.assign({},a,{x:x0+(x1-x0)*pr,y:y0+(y1-y0)*pr,_pr:pr,_phaseTime:local,_phaseLen:dur,facing:a.facing==='auto'?(x1<x0?'left':'right'):(a.facing||'right')})}
+ const res=Object.assign({},a,{x:x0+(x1-x0)*pr,y:y0+(y1-y0)*pr,_pr:pr,_phaseTime:local,_phaseLen:dur,facing:a.facing==='auto'?(x1<x0?'left':'right'):(a.facing||'right')});const tn=sceneEntryTurn(a,scn,local,res.facing);if(tn){res.facing=tn.facing;res.bodyYaw=tn.bodyYaw;res.headYaw=tn.headYaw;res.toHeadYaw=tn.headYaw}return res}
  const set=locSet(S,scn.location),q=nodes.map(n=>typeof n==='string'?{at:n}:n).map(n=>{
  const at=n.at?anchorOf(set,n.at):null;
  return Object.assign({},n,{x:n.x===undefined?nm(at&&at.x,nm(a.x,50)):n.x,y:n.y===undefined?nm(at&&at.y,nm(a.y,90)):n.y,
@@ -838,7 +853,7 @@ function actorAtTimeBase(source,scn,local,dur){
  beginning=from.pose||a.pose||'walk',ending=to.pose||a.endPose||beginning,
  fromPose=phase.kind==='move'?(from.travelPose||'walk'):beginning,
  easing=phase.kind==='move'?clampN((k-.72)/.28,0,1):1;
- const result=Object.assign({},a,{x,y,pose:fromPose,endPose:ending,_pr:easing,_phaseTime:t,_phaseLen:phase.d,
+ const result=Object.assign({},a,{x,y,pose:fromPose,endPose:ending,_pr:easing,_phaseTime:t+Math.max(0,local-dur),_phaseLen:phase.d,
  facing:to.facing||a.facing||'auto',view:to.view||from.view||a.view||'side'});
  if(result.facing==='auto')result.facing=to.x<from.x?'left':'right';
  if(phase.kind==='move'&&(from.facing==='left'||from.facing==='right')&&(result.facing==='left'||result.facing==='right')&&from.facing!==result.facing&&!Number.isFinite(a.bodyYaw)&&!Number.isFinite(a.toBodyYaw)&&result.view==='side'){
@@ -1578,6 +1593,7 @@ $('#menu').replaceChildren(
  grp('โปรเจกต์และตอน',
  M('โปรเจกต์ว่าง',()=>{if(confirm('เริ่มโปรเจกต์ว่าง? งานปัจจุบันจะหาย (Undo ได้)'))commit(()=>{S=blank();selEp=0;sel=0;T=0})},'＋'),
  M('เพิ่มตอนใหม่',()=>commit(()=>{S.episodes.push(newEp(S.episodes.length+1));selEp=S.episodes.length-1;sel=0;T=0}),'＋'),
+ M('สร้างตอนถัดไปแบบต่อเนื่อง',()=>commit(()=>nextEpisodeContinuing()),'⏭'),
  M('ลบตอนนี้',()=>{if(S.episodes.length>1&&confirm('ลบตอนนี้?'))commit(()=>{S.episodes.splice(selEp,1);selEp=0;sel=0;T=0})},'×','danger'),
  M('เปิดไฟล์ JSON',()=>$('#file').click(),'↥'),
  M('บันทึก JSON',()=>dl('project.json',JSON.stringify(S,null,1),'application/json'),'↓')),
@@ -1705,7 +1721,13 @@ box.append(h('button',{className:'add',onclick:()=>commit(()=>S.characters.push(
 if(tab==='st'){box.append(fld('ต่อท้ายพรอมต์ (styleSuffix)',S.project.styleSuffix,v=>S.project.styleSuffix=v,'area'),sel_('สัดส่วน',[['9:16','9:16'],['16:9','16:9'],['1:1','1:1']],S.project.aspect,v=>S.project.aspect=v),fld('ซับสูงสุดต่อบรรทัด (ตัวอักษร)',S.project.subMax||28,v=>S.project.subMax=Math.max(5,v),'number'),fld('FPS',S.project.fps||30,v=>S.project.fps=v,'number'),sel_('ตำแหน่งกล่อง UI',[['top','บน'],['middle','กลาง'],['bottom','ล่าง']],S.project.uiBoxStyle.position,v=>S.project.uiBoxStyle.position=v),fld('ฟอนต์กล่อง UI',S.project.uiBoxStyle.font||'system-ui',v=>S.project.uiBoxStyle.font=v),fld('สีกล่อง UI (พื้น)',S.project.uiBoxStyle.bg,v=>S.project.uiBoxStyle.bg=v),fld('สีกล่อง UI (ตัวอักษร)',S.project.uiBoxStyle.color,v=>S.project.uiBoxStyle.color=v))}
 if(tab==='lo'){S.locations.forEach((c,i)=>box.append(det('lo:'+c.id,c.name||'(ไม่มีชื่อ)',fld('ชื่อ',c.name,v=>c.name=v),fld('พรอมต์',c.promptBlock,v=>c.promptBlock=v,'area'),sel_('ใช้ผังสำเร็จรูป (คัดลอกมาให้แก้ต่อได้)',[['','— เลือก —'],...Object.keys(SETS).map(k=>[k,k])],'',v=>{if(v)c.set=clone(SETS[v])}),fld('ผังฉาก JSON (anchors / props / bg / floor / light)',JSON.stringify(c.set||SETS[c.id]||{}),v=>{try{const o=JSON.parse(v.trim()||'{}');if(!isObj(o))throw 0;if(Object.keys(o).length)c.set=o;else c.set=false}catch(e){alert('ผังต้องเป็น JSON object')}},'area'),del('locations',i))));box.append(h('button',{onclick:()=>commit(()=>S.locations.push({id:'l'+Date.now(),name:'ใหม่',promptBlock:''}))},'+ สถานที่'),' ',h('button',{onclick:()=>commit(()=>locs().forEach(l=>{if(!S.locations.some(x=>x.id===l.id))S.locations.push(l)}))},'+ ชุดสถานที่สำเร็จรูป'))}
 if(tab==='ru'){S.rules.forEach((c,i)=>box.append(h('div',{className:'item'},fld('กฎ',c.text,v=>c.text=v),del('rules',i))));box.append(h('button',{onclick:()=>commit(()=>S.rules.push({id:'r'+Date.now(),text:'กฎใหม่'}))},'+ กฎ'))}
-if(tab==='ep'){const E=ep();box.append(fld('ชื่อตอน',E.title,v=>E.title=v),fld('เป้าความยาว (วินาที, 0 = ไม่จำกัด)',E.targetSeconds,v=>E.targetSeconds=v,'number'),fld('บันทึกของตอน',E.hiddenMistake||'',v=>E.hiddenMistake=v,'area'),fld('ข้อความท้ายคลิป',E.cliffhanger||'',v=>E.cliffhanger=v),h('h3',{},'Marker / จุดใบ้ (ตั้งชื่อเอง)'));
+if(tab==='ep'){const E=ep();box.append(
+ sel_('ความต่อเนื่องข้ามตอน',[['no','เริ่มใหม่ (ค่าเริ่มต้น)'],['yes','ต่อเนื่องจากตอนก่อน (สภาพอากาศ/แสง)']],E.continuity&&E.continuity.carryFromPrevious?'yes':'no',v=>{E.continuity=E.continuity||{};if(v==='yes')E.continuity.carryFromPrevious=true;else delete E.continuity.carryFromPrevious}),
+ fld('นาฬิกาสภาพอากาศเริ่มที่ (วินาที, ใช้เมื่อไม่ต่อเนื่อง)',nm(E.continuity&&E.continuity.atmosphereClock,0),v=>{E.continuity=E.continuity||{};E.continuity.atmosphereClock=Math.max(0,v)},'number'),
+ sel_('การเปิดตอน',[['cut','ตัดตรง (ค่าเริ่มต้น)'],['fadeblack','Fade จากดำ'],['titlecard','การ์ดชื่อตอน'],['recap','Recap ตอนที่แล้ว']],(E.opening&&E.opening.mode)||'cut',v=>{if(v==='cut')delete E.opening;else E.opening=Object.assign(E.opening||{},{mode:v})}),
+ fld('ข้อความ Recap / บรรทัดย่อยการ์ดชื่อตอน',(E.opening&&E.opening.text)||'',v=>{if(E.opening)E.opening.text=v},'area'),
+ fld('ความยาวการเปิดตอน (วินาที, 0 = อัตโนมัติ)',(E.opening&&E.opening.duration)||0,v=>{if(E.opening){if(v>0)E.opening.duration=v;else delete E.opening.duration}},'number'),
+ fld('ชื่อตอน',E.title,v=>E.title=v),fld('เป้าความยาว (วินาที, 0 = ไม่จำกัด)',E.targetSeconds,v=>E.targetSeconds=v,'number'),fld('บันทึกของตอน',E.hiddenMistake||'',v=>E.hiddenMistake=v,'area'),fld('ข้อความท้ายคลิป',E.cliffhanger||'',v=>E.cliffhanger=v),h('h3',{},'Marker / จุดใบ้ (ตั้งชื่อเอง)'));
 E.clues.forEach((c,i)=>box.append(h('div',{className:'item'},fld('ชื่อ marker',c.label,v=>c.label=v),h('button',{onclick:()=>commit(()=>{E.scenes.forEach(s=>s.clueIds=s.clueIds.filter(x=>x!==c.id));E.clues.splice(i,1)}),'aria-label':'ลบ'},'✕'))));
 box.append(h('button',{onclick:()=>commit(()=>E.clues.push({id:'c'+uid(),label:'marker ใหม่',sceneId:''}))},'+ marker'))}
 p.replaceChildren(h('div',{className:'tabs'},tabs.map(([k,t])=>h('button',{className:tab===k?'on':'',onclick:()=>{tab=k;lib()}},t))),box)}
@@ -1787,6 +1809,9 @@ function endFrameActor(actor,scene){
  const end=actorAtTime(actor,scene,Math.max(0,scene.duration-.001),scene.duration);
  return {char:end.char,pose:end.endPose||end.pose||'stand',view:end.view||'front',facing:end.facing==='auto'?'right':(end.facing||'right'),x:f2(nm(end.x,50)),y:f2(nm(end.y,90)),scale:nm(end.scale,1),face:end.face||undefined};
 }
+function nextEpisodeContinuing(){const E=ep(),last=E.scenes[E.scenes.length-1];if(!last)return;const n=newEp(S.episodes.length+1),f=followScene(last,true);
+ if(last.cinematicFx)f.cinematicFx=clone(last.cinematicFx);n.scenes=[f];n.continuity={carryFromPrevious:true};
+ S.episodes.splice(selEp+1,0,n);selEp++;sel=0;T=0;playing=false}
 function followScene(previous,copyActors=true){
  const n=newScene();n.location=previous.location;n.art=previous.art||'';n.atmosphere=previous.atmosphere||'none';
  n.light=clone(previous.light||'');n.lighting=clone(previous.lighting||n.lighting);
@@ -2003,7 +2028,22 @@ const AUDIO_PLAYERS=new Map(), AUDIO_PLAYER_GRAPHS=new Map();
 let PREVIEW_AUDIO_CTX=null;
 const cleanNum=(n,d=0)=>Number.isFinite(+n)?+n:d;
 const safeClipDuration=c=>Math.max(0,(c.duration||0)-cleanNum(c.trimStart)-cleanNum(c.trimEnd))/effectiveClipRate(c);
-function audioEvents(){const E=ep(),st=starts(),out=[];E.scenes.forEach((s,i)=>(s.audioClips||[]).forEach(c=>{const at=st[i]+cleanNum(c.at),span=safeClipDuration(c),end=st[i]+cleanNum(s.duration);if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'scene',scene:i,cycle:j,limit:end})}else out.push({c,start:at,scope:'scene',scene:i,cycle:0,limit:total()})}));(E.musicClips||[]).forEach(c=>{const at=cleanNum(c.at),span=safeClipDuration(c),end=total();if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'music',scene:-1,cycle:j,limit:end})}else out.push({c,start:at,scope:'music',scene:-1,cycle:0,limit:end})});return out}
+const AUDIO_KEY_CACHE=new WeakMap();
+function audioClipKey(c){const d=c.data;if(!d)return '';let k=AUDIO_KEY_CACHE.get(c);if(!k||k.d!==d){k={d,key:d.length+':'+d.slice(0,96)+':'+d.slice(-48)};AUDIO_KEY_CACHE.set(c,k)}return k.key+'|'+cleanNum(c.trimStart)+'|'+cleanNum(c.trimEnd)+'|'+cleanNum(c.rate,1)+'|'+(c.voiceProfileId||'')}
+// v24: episode.audioLink = {link:true,xfade:true} (ค่าเริ่มต้นเปิดทั้งคู่; ตั้ง false เพื่อกลับไปตัดเสียงที่ขอบฉากแบบ v23)
+function audioLinkOpts(E){const o=E&&E.audioLink;return{link:!(o&&o.link===false),xfade:!(o&&o.xfade===false)}}
+function sceneHeadOverlap(E,i){const s=E.scenes[i];if(!s||i<=0)return 0;const tr=s.transition||{},dur=cleanNum(s.duration);return Math.max(0,tr.type==='cut'?Math.min(FILM_FADE,dur):transitionSpan(s))}
+function eventXGain(ev,t){let g=1;if(ev.xin>0)g*=clampN((t-ev.chainStart)/ev.xin,0,1);if(ev.xout>0&&isFinite(ev.limit))g*=clampN((ev.limit-t)/ev.xout,0,1);return g}
+function audioEvents(){const E=ep(),st=starts(),out=[],opt=audioLinkOpts(E),n=E.scenes.length,skip=new Set(),dur=i=>cleanNum(E.scenes[i].duration);
+ E.scenes.forEach((s,i)=>(s.audioClips||[]).forEach(c=>{if(skip.has(c))return;
+  const lead=Math.max(0,cleanNum(c.audioLead)),tail=Math.max(0,cleanNum(c.audioTail)),raw=st[i]+(c.loop?0:prerollSpan(E,i,s))+cleanNum(c.at),at=lead>0?Math.max(0,raw-lead):raw,span=safeClipDuration(c);
+  if(c.loop&&span>0){let end=st[i]+dur(i),last=i;
+   if(opt.link){const key=audioClipKey(c);for(let k=i+1;k<n;k++){const nx=(E.scenes[k].audioClips||[]).find(d=>d.loop&&!skip.has(d)&&cleanNum(d.at)<=.05&&!cleanNum(d.audioLead)&&audioClipKey(d)===key);if(!nx)break;skip.add(nx);end=st[k]+dur(k);last=k}}
+   const ov=opt.xfade&&last<n-1?sceneHeadOverlap(E,last+1):0,ext=Math.max(ov,tail);end=Math.min(end+ext,total());
+   const xin=opt.xfade&&i>0&&cleanNum(c.at)<=.05?Math.max(sceneHeadOverlap(E,i),lead):0,xout=ext>0?ext:0;
+   for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'scene',scene:i,cycle:j,limit:end,chainStart:at,xin,xout})
+  }else out.push({c,start:at,scope:'scene',scene:i,cycle:0,limit:total(),chainStart:at,xin:0,xout:0})}));
+ (E.musicClips||[]).forEach(c=>{const at=cleanNum(c.at),span=safeClipDuration(c),end=total();if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'music',scene:-1,cycle:j,limit:end,chainStart:at,xin:0,xout:0})}else out.push({c,start:at,scope:'music',scene:-1,cycle:0,limit:end,chainStart:at,xin:0,xout:0})});return out}
 function clipGain(c,at,duration=safeClipDuration(c)){let vol=c.mute?0:clampN(cleanNum(c.volume,1),0,1),elapsed=at;
  if(c.fadeIn>0)vol*=clampN(elapsed/c.fadeIn,0,1);
  if(c.fadeOut>0)vol*=clampN((duration-elapsed)/c.fadeOut,0,1);
@@ -2020,10 +2060,10 @@ function applyFxNodes(n,c){const p=voiceProfileForClip(c),x=p?.fx||{};n.bass.gai
  if(n.pan.pan)n.pan.pan.value=clampN(cleanNum(x.pan),-1,1);n.echo.gain.value=clampN(cleanNum(x.echo),0,.55);n.gain.gain.value=1;}
 function pauseAudioPlayers(){for(const [,a] of AUDIO_PLAYERS){a.pause()}$('#vo').pause();$('#bgm').pause()}
 function syncAudioAt(t,play){if(VOICE_RECORDER?.state==='recording'&&STUDIO_CURRENT_TOOL==='record'&&STUDIO_DUB_AUTOPLAY){pauseAudioPlayers();return}if(!play){pauseAudioPlayers();return}
- const active=new Set();for(const {c,start,cycle=0,limit=Infinity} of audioEvents()){if(!c.data||!c.id||!c.duration)continue;
+ const active=new Set();for(const ev of audioEvents()){const {c,start,cycle=0,limit=Infinity}=ev;if(!c.data||!c.id||!c.duration)continue;
  const len=Math.min(safeClipDuration(c),limit-start),part=t-start;if(part<0||part>=len||!len)continue;
  const id=c.id+':'+cycle;active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';AUDIO_PLAYERS.set(id,a)}
- let n=AUDIO_PLAYER_GRAPHS.get(id);try{const ctx=previewContext();if(!n){n=createFxNodes(ctx,ctx.createMediaElementSource(a),ctx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}applyFxNodes(n,c);n.gain.gain.value=clipGain(c,part,len)*voiceGainFactor(c)*clipAutoGainFactor(c);a.volume=1}catch(err){a.volume=clipGain(c,part,len)}
+ let n=AUDIO_PLAYER_GRAPHS.get(id);try{const ctx=previewContext();if(!n){n=createFxNodes(ctx,ctx.createMediaElementSource(a),ctx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}applyFxNodes(n,c);n.gain.gain.value=clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c);a.volume=1}catch(err){a.volume=clipGain(c,part,len)*eventXGain(ev,t)}
  const rate=effectiveClipRate(c),desired=cleanNum(c.trimStart)+part*rate;
  a.preservesPitch=false;if('mozPreservesPitch' in a)a.mozPreservesPitch=false;
  a.playbackRate=rate;if(Math.abs((a.currentTime||0)-desired)>.35){try{a.currentTime=desired}catch(e){}}
@@ -2041,13 +2081,13 @@ function hydrateAudioDurations(){if(!S||!S.episodes)return;for(const E of S.epis
 function openAudioDesk(){AUDIO_DESK_SCENE=sel;AUDIO_DESK_TAB='scene';renderAudioDesk();if(STUDIO_WORKSPACE_READY){switchStudioTool('audio');if(!$('#audioDesk').open)$('#audioDesk').show()}else $('#audioDesk').showModal()}
 function openAudioForScene(i){AUDIO_DESK_SCENE=i;AUDIO_DESK_TAB='scene';renderAudioDesk();$('#audioDesk').showModal()}
 function audioNumField(c,key,label,min,max,step){const value=cleanNum(c[key],key==='rate'||key==='volume'?1:0);return h('label',{},label,h('input',{type:'number',min,max,step,value:Math.round(value*100)/100,onchange:e=>{const v=clampN(cleanNum(e.target.value),min,max);setTimeout(()=>{commit(()=>{c[key]=v;adjustAudioClip(c,key)});renderAudioDesk()},0)}}))}
-function adjustAudioClip(c,key){c.trimStart=clampN(cleanNum(c.trimStart),0,Math.max(0,cleanNum(c.duration)-.05));c.trimEnd=clampN(cleanNum(c.trimEnd),0,Math.max(0,cleanNum(c.duration)-c.trimStart-.05));c.at=Math.max(0,cleanNum(c.at));c.rate=clampN(cleanNum(c.rate,1),.25,3);c.volume=clampN(cleanNum(c.volume,1),0,1);c.fadeIn=Math.max(0,cleanNum(c.fadeIn));c.fadeOut=Math.max(0,cleanNum(c.fadeOut));}
+function adjustAudioClip(c,key){c.trimStart=clampN(cleanNum(c.trimStart),0,Math.max(0,cleanNum(c.duration)-.05));c.trimEnd=clampN(cleanNum(c.trimEnd),0,Math.max(0,cleanNum(c.duration)-c.trimStart-.05));c.at=Math.max(0,cleanNum(c.at));c.rate=clampN(cleanNum(c.rate,1),.25,3);c.volume=clampN(cleanNum(c.volume,1),0,1);c.fadeIn=Math.max(0,cleanNum(c.fadeIn));c.fadeOut=Math.max(0,cleanNum(c.fadeOut));if(c.audioLead!==undefined)c.audioLead=clampN(cleanNum(c.audioLead),0,10);if(c.audioTail!==undefined)c.audioTail=clampN(cleanNum(c.audioTail),0,10);}
 function clipCard(c,scope,index){const row=h('article',{className:'audio-clip'}),len=safeClipDuration(c),max=cleanNum(c.duration),st=scope==='scene'?starts()[AUDIO_DESK_SCENE]:0;
  const wave=h('div',{className:'wave',innerHTML:audioWaveSVG(c)}),left=max?100*c.trimStart/max:0,right=max?100*c.trimEnd/max:0;
  if(left)wave.append(h('div',{className:'trim-region',style:`left:0;width:${left}%`}));if(right)wave.append(h('div',{className:'trim-region',style:`right:0;width:${right}%`}));
  const setClip=(key,v)=>{commit(()=>{c[key]=v;adjustAudioClip(c,key)});renderAudioDesk()};
  row.append(h('h3',{},h('span',{},c.kind==='voice'?'พากย์ · ':c.kind==='music'?'เพลง · ':'เอฟเฟกต์ · ',c.name||`คลิป ${index+1}`),h('span',{className:'sum'},`${len.toFixed(2)} วินาที`)),wave,
- h('div',{className:'audio-fields'},audioNumField(c,'at','วางเริ่มที่ (วินาที'+(scope==='scene'?'ในฉาก':'ในตอน')+')',0,1800,.1),audioNumField(c,'trimStart','ตัดหัว (วินาที)',0,Math.max(.01,max),.1),audioNumField(c,'trimEnd','ตัดท้าย (วินาที)',0,Math.max(.01,max),.1),audioNumField(c,'volume','ความดัง 0–1',0,1,.05),audioNumField(c,'rate','ความเร็ว 0.25–3',.25,3,.05),audioNumField(c,'fadeIn','เฟดเข้า (วินาที)',0,120,.1),audioNumField(c,'fadeOut','เฟดออก (วินาที)',0,120,.1)),
+ h('div',{className:'audio-fields'},audioNumField(c,'at','วางเริ่มที่ (วินาที'+(scope==='scene'?'ในฉาก':'ในตอน')+')',0,1800,.1),audioNumField(c,'trimStart','ตัดหัว (วินาที)',0,Math.max(.01,max),.1),audioNumField(c,'trimEnd','ตัดท้าย (วินาที)',0,Math.max(.01,max),.1),audioNumField(c,'volume','ความดัง 0–1',0,1,.05),audioNumField(c,'rate','ความเร็ว 0.25–3',.25,3,.05),audioNumField(c,'fadeIn','เฟดเข้า (วินาที)',0,120,.1),audioNumField(c,'fadeOut','เฟดออก (วินาที)',0,120,.1),...(scope==='scene'?[audioNumField(c,'audioLead','J-cut: เสียงเริ่มก่อนขอบฉาก (วินาที)',0,10,.1),audioNumField(c,'audioTail','L-cut: เสียงต่อเกินปลายฉาก (วินาที)',0,10,.1)]:[])),
  h('div',{className:'audio-foot'},`ช่วงไฟล์ ${c.trimStart.toFixed(2)}–${(max-c.trimEnd).toFixed(2)}s · เริ่มบนไทม์ไลน์ตอน ${((scope==='scene'?st:0)+c.at).toFixed(2)}s · ความยาวที่เล่นจริง ${len.toFixed(2)}s${c.at+len>(scope==='scene'?ep().scenes[AUDIO_DESK_SCENE].duration:total())?' · ยาวเกินช่วง (เสียงเล่นข้ามฉากได้)':''}`),
  h('div',{className:'voice-clip-select'},h('label',{},'โปรไฟล์ปรับเสียงของคลิป (ใช้ทั้งตอนฟังและ Export)'),h('select',{value:c.voiceProfileId||'',onchange:e=>{commit(()=>{c.voiceProfileId=e.target.value;c.voiceProfileLocked=!!e.target.value});renderAudioDesk()}},...voiceProfileOptions(c.voiceProfileId||'').map(([id,name])=>h('option',{value:id,selected:(c.voiceProfileId||'')===id},name))),
  ...(c.kind==='voice'&&scope==='scene'?[h('div',{className:'voice-clip-grid'},
@@ -2088,6 +2128,8 @@ function renderAudioDesk(){const b=$('#audioDeskBody');if(!b)return;const E=ep()
  h('button',{onclick:openVoiceStudio},'◈ Auto Dubbing / ออกแบบเสียง'),
  h('button',{onclick:()=>{playing=!playing;last=performance.now();ctl();draw()}},playing?'⏸ หยุด':'▶ เล่นพรีวิว')),
  h('p',{className:'audio-time-note'},choose?'เพลงใช้เวลาอ้างอิงจากต้นตอนทั้งหมด สามารถเฟดและเริ่มช้าได้':'เสียงเริ่มจากฉากที่เลือก แต่เล่นข้ามไปฉากถัดไปได้หากคลิปยาว'),
+ h('div',{className:'transition-quick audio-link-box'},h('strong',{},'ความต่อเนื่องของเสียงข้ามฉาก (ทั้งตอน)'),
+  ...[['link','เสียง loop ไฟล์เดียวกันต่อเนื่องข้ามฉาก (ไม่รีสตาร์ตที่ขอบฉาก)'],['xfade','เสียง loop ต่างไฟล์ cross-fade ระหว่าง transition']].map(([k,label])=>h('label',{className:'chip',style:'display:flex;gap:6px;align-items:center'},h('input',{type:'checkbox',checked:audioLinkOpts(E)[k],onchange:e=>{const on=e.target.checked;commit(()=>{const X=ep();const o=Object.assign({link:true,xfade:true},X.audioLink||{});o[k]=on;if(o.link&&o.xfade)delete X.audioLink;else X.audioLink=o});renderAudioDesk()}}),label))),
  h('div',{className:'audio-tracks'},...(clips.length?clips.map((c,i)=>clipCard(c,AUDIO_DESK_TAB,i)):[h('p',{className:'gallery-note'},'ยังไม่มีคลิป กดปุ่มเพิ่มเสียงด้านบน')])));
 }
 $('#soundQuick').onclick=openAudioDesk;
@@ -2340,9 +2382,14 @@ function captionsEditor(scene){const all=effectiveSubtitleCues(scene),root=h('di
  h('div',{className:'cue-tools'},h('button',{onclick:()=>{T=starts()[sel]+Math.max(0,c.start||0);playing=false;draw()}},'▶ ดูจังหวะ'),h('button',{onclick:()=>commit(()=>scene.subtitleCues.splice(scene.subtitleCues.indexOf(c),1))},'ลบช่วง'))))});
  return root}
 const GRAPHIC_TYPES=[['title','หัวเรื่อง'],['card','แถบข้อมูล'],['question','คำถาม'],['emphasis','คำเน้น']];
-function activeGraphicCards(scene,local){return (scene.graphicCards||[]).filter(g=>g&&local>=+g.start&&local<+g.end&&g.text)}
-function updateSceneGraphics(scene,local){const container=$('#storyGraphics');if(!container)return;const cards=activeGraphicCards(scene,local);container.replaceChildren(...cards.map(g=>h('div',{className:'scene-graphic g-'+(GRAPHIC_TYPES.some(t=>t[0]===g.type)?g.type:'card')+' g-'+(['top','center','bottom'].includes(g.position)?g.position:'top')},g.kicker?h('div',{className:'graphic-kicker'},safeShortText(g.kicker,45)):'',h('div',{className:'graphic-main'},safeShortText(g.text,90)),g.note?h('div',{className:'graphic-note'},safeShortText(g.note,110)):'')))}
-function drawGraphicCards(ctx,scene,local,w,h){const list=activeGraphicCards(scene,local);if(!list.length)return;
+function openingSpec(scene){const E=ep();if(!E||E.scenes[0]!==scene||!E.opening||!E.opening.mode||E.opening.mode==='cut')return null;const m=E.opening.mode,d=clampN(nm(E.opening.duration,m==='fadeblack'?.9:m==='recap'?4:2.5),.2,Math.max(.2,scene.duration));return{mode:m,d,E}}
+function openingFade(scene,local){const o=openingSpec(scene);if(!o||local<0||local>=o.d)return 0;if(o.mode==='fadeblack'){const r=clampN(local/o.d,0,1);return 1-r*r*(3-2*r)}const tail=Math.min(.5,o.d/2);return clampN((o.d-local)/tail,0,1)}
+function openingCards(scene,local){const o=openingSpec(scene);if(!o||o.mode==='fadeblack'||local<0||local>=o.d)return[];const k=S.episodes.indexOf(o.E)+1;
+ if(o.mode==='titlecard')return o.E.title?[{type:'title',kicker:'ตอนที่ '+k,text:o.E.title,note:o.E.opening.text||'',position:'center',start:0,end:o.d}]:[];
+ return o.E.opening.text?[{type:'card',kicker:'ตอนที่แล้ว',text:o.E.opening.text,note:'',position:'center',start:0,end:o.d}]:[]}
+function activeGraphicCards(scene,local){return (scene.graphicCards||[]).filter(g=>g&&local>=+g.start&&local<+g.end&&g.text).concat(openingCards(scene,local))}
+function updateSceneGraphics(scene,local){const container=$('#storyGraphics');if(!container)return;const cards=activeGraphicCards(scene,local),fa=openingFade(scene,local);container.replaceChildren(...(fa>.003?[h('div',{className:'opening-fade',style:`position:absolute;inset:0;background:#000;opacity:${fa.toFixed(3)}`})]:[]),...cards.map(g=>h('div',{className:'scene-graphic g-'+(GRAPHIC_TYPES.some(t=>t[0]===g.type)?g.type:'card')+' g-'+(['top','center','bottom'].includes(g.position)?g.position:'top')},g.kicker?h('div',{className:'graphic-kicker'},safeShortText(g.kicker,45)):'',h('div',{className:'graphic-main'},safeShortText(g.text,90)),g.note?h('div',{className:'graphic-note'},safeShortText(g.note,110)):'')))}
+function drawGraphicCards(ctx,scene,local,w,h){const fa=openingFade(scene,local);if(fa>.003){ctx.save();ctx.globalAlpha=fa;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);ctx.restore()}const list=activeGraphicCards(scene,local);if(!list.length)return;
  ctx.save();const font=Math.max(18,Math.round(h*.037)),subFont=Math.max(12,Math.round(h*.022)),small=Math.max(11,Math.round(h*.017));
  for(const g of list){const pos=g.position||'top',y=pos==='bottom'?h*.66:pos==='center'?h*.39:h*.13,main=safeShortText(g.text,90),kicker=safeShortText(g.kicker,45),note=safeShortText(g.note,110);ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#000e';ctx.shadowBlur=7;
  const maxw=w*.88;ctx.font=`800 ${g.type==='title'?font*1.24:font}px system-ui,sans-serif`;
@@ -2441,8 +2488,12 @@ det('lighting','ออกแบบแสงและความต่อเน�
  sel_('บรรยากาศ',[['none','ไม่มี'],['rain','ฝนตก'],['storm','พายุฝน'],['snow','หิมะ'],['fog','หมอก'],['wind','ลมพัด'],['dust','ฝุ่นลอย'],['fireflies','หิ่งห้อย'],['stars','ประกายดาว']],s.atmosphere||'none',v=>s.atmosphere=v),
  sel_('เอฟเฟกต์เปลี่ยนฉาก (เข้าสู่ฉากนี้)',[['cut','ตัดตรง'],['dissolve','Cross Dissolve · ละลายภาพ'],['fade','Fade · ค่อย ๆ เปลี่ยน'],['fadeblack','Fade Through Black · ดับจอ'],['wipe-left','Wipe ซ้าย'],['wipe-right','Wipe ขวา'],['wipe-up','Wipe ขึ้น'],['wipe-down','Wipe ลง'],['flash','Flash · แสงวาบ'],['iris','Iris · รูม่านตา'],['slide','Slide · เลื่อนฉาก'],['push-left','Push ซ้าย · ผลักเฟรม'],['push-right','Push ขวา · ผลักเฟรม'],['zoom','Zoom Transition · ซูม'],['blur','Blur Transition · เบลอเปลี่ยนภาพ']],s.transition.type,v=>s.transition.type=v),
  fld('ระยะเวลาเปลี่ยนฉาก (วินาที)',s.transition.duration??.55,v=>s.transition.duration=clampN(v,.05,Math.max(.1,s.duration)),'number'),
- h('div',{className:'quick-cam'},...[['นุ่มนวล',()=>{s.transition={type:'dissolve',duration:.65}}],['แบบภาพยนตร์',()=>{s.transition={type:'fadeblack',duration:.8}}],['แอ็กชัน',()=>{s.transition={type:'push-left',duration:.38}}]].map(([label,fn])=>h('button',{onclick:()=>commit(fn)},label))),
- h('button',{className:'add',onclick:()=>commit(()=>{E.scenes.slice(1).forEach(x=>x.transition={type:s.transition.type,duration:s.transition.duration})})},'ใช้ทรานซิชันนี้กับฉากทั้งหมด'),
+ sel_('จังหวะการเปลี่ยน (Easing)',[['','นุ่มนวล (ค่าเริ่มต้น)'],['linear','เส้นตรง'],['ease-in','เริ่มช้า'],['ease-out','จบช้า'],['ease-in-out','ช้าหัว-ท้าย']],s.transition.ease||'',v=>{if(v)s.transition.ease=v;else delete s.transition.ease}),
+ sel_('ฉากเดิมยังขยับ (หายใจ/กะพริบ) ระหว่างเปลี่ยนฉาก',[['auto','อัตโนมัติ (เปิดกับ ละลาย/Fade/ดับจอ/เบลอ/ซูม)'],['on','เปิดเสมอ'],['off','ปิด (ภาพฉากเดิมค้างนิ่ง)']],s.transition.live===true?'on':s.transition.live===false?'off':'auto',v=>{if(v==='on')s.transition.live=true;else if(v==='off')s.transition.live=false;else delete s.transition.live}),
+ sel_('หมุนตัวละครเมื่อทิศหันต่างจากฉากก่อน',[['on','หมุนผ่านด้านหน้า (ค่าเริ่มต้น)'],['off','ไม่หมุน (สลับทิศทันที)']],s.transition.turn===false?'off':'on',v=>{if(v==='off')s.transition.turn=false;else delete s.transition.turn}),
+ sel_('การเริ่มฉากใหม่ระหว่าง Transition',[['overlap','เริ่มทันที (ซ้อนกัน)'],['preroll','รอ Transition จบก่อน (ตัวละคร/เสียง/คำบรรยายเริ่มหลังจบ)'],['handle','ซ้อนกัน + ตรวจความยาวเข้มงวด']],s.transition.mode||'overlap',v=>{if(v==='overlap')delete s.transition.mode;else s.transition.mode=v}),
+ h('div',{className:'quick-cam'},...[['นุ่มนวล',()=>{Object.assign(s.transition,{type:'dissolve',duration:.65})}],['แบบภาพยนตร์',()=>{Object.assign(s.transition,{type:'fadeblack',duration:.8})}],['แอ็กชัน',()=>{Object.assign(s.transition,{type:'push-left',duration:.38})}]].map(([label,fn])=>h('button',{onclick:()=>commit(fn)},label))),
+ h('button',{className:'add',onclick:()=>commit(()=>{E.scenes.slice(1).forEach(x=>{x.transition={type:s.transition.type,duration:s.transition.duration};if(s.transition.mode)x.transition.mode=s.transition.mode;if(s.transition.ease)x.transition.ease=s.transition.ease;if(s.transition.turn===false)x.transition.turn=false;if(s.transition.live!==undefined)x.transition.live=s.transition.live})})},'ใช้ทรานซิชันนี้กับฉากทั้งหมด'),
  h('button',{className:'add',onclick:()=>commit(()=>{E.scenes.slice(1).filter(x=>!x.transition||x.transition.type==='cut').forEach(x=>x.transition={type:'dissolve',duration:.6})})},'แก้ฉากตัดตรงทั้งหมด → ละลายภาพ'),
  h('div',{className:'gallery-note'},'หมุน 2.5D เป็นการจำลองมุมกล้องบนภาพ SVG แบบเลเยอร์ ไม่ใช่โมเดล 3D จริง')),
 det('k','Marker / จุดใบ้',E.clues.length?E.clues.map(c=>h('label',{className:'chip',style:'display:flex'},h('input',{type:'checkbox',checked:c.sceneId===s.id,onchange:e=>commit(()=>{c.sceneId=e.target.checked?s.id:'';s.clueIds=E.clues.filter(x=>x.sceneId===s.id).map(x=>x.id)})}),c.label)):[h('span',{className:'sum'},'ยังไม่มี marker — เพิ่มที่ไลบรารี > ตอน/marker')]),
@@ -2457,7 +2508,8 @@ $('#tl').replaceChildren(h('div',{style:'margin-bottom:4px;opacity:.8'},`ไท�
 
 /* ===== seamless, two-frame scene transitions ===== */
 let prevSnapshotIndex=-1, prevSnapshotData=null, drawingPreviousFrame=false, EXPORT_FRAME=false;
-function resetTransitionCache(){prevSnapshotIndex=-1;prevSnapshotData=null;const n=$('#transitionPrevious');if(n){n.style.display='none';n.replaceChildren()}}
+let PRIOR_TAU=0, prevLive=[], prevLiveIndex=-1;const LIVE_STEP=1/6;
+function resetTransitionCache(){prevSnapshotIndex=-1;prevSnapshotData=null;prevLive=[];prevLiveIndex=-1;const n=$('#transitionPrevious');if(n){n.style.display='none';n.replaceChildren()}}
 function uniquePriorIds(root){
  /* the frozen copy of the old scene must not share SVG ids (gradients, clip paths) with the live scene, otherwise url(#id) resolves to the NEW scene's definition */
  const map=new Map(),tops=new Set([...root.children]);
@@ -2476,20 +2528,38 @@ function ensurePreviousFrame(index){
   const source=$('#world'),clone=source.cloneNode(true);clone.id='priorWorld';clone.setAttribute('aria-hidden','true');uniquePriorIds(clone);
   const old=$('#transitionPrevious');old.replaceChildren(clone);
   prevSnapshotData={svg:clone,scene:ep().scenes[index-1],time:Math.max(0,ep().scenes[index-1].duration-.001)};
-  prevSnapshotIndex=index;
+  prevSnapshotIndex=index;prevLive=[];prevLiveIndex=index;
  }finally{T=keepT;playing=keepPlaying;drawingPreviousFrame=false}
 }
-function transitionProgress(scene,loc,index){if(!index)return 1;const duration=clampN(nm(scene.transition?.duration,.55),.05,Math.max(.05,scene.duration));return clampN(loc/duration,0,1)}
-function easeTransition(q){return q*q*(3-2*q)}
+// v29 A1: ฉากเดิมมีชีวิตระหว่าง transition — แคชเฟรมทุก 1/6 วินาที (สูงสุด 6 เฟรม/1 วินาที) ที่เวลา duration+τ ของฉากเดิม; พรีวิวกับส่งออกใช้เฟรมชุดเดียวกัน
+function liveEnabled(scene,index){if(!(index>0)||!scene)return false;const tr=scene.transition||{},type=tr.type||'cut';if(type==='cut'||tr.live===false)return false;if(tr.live===true)return true;return ['dissolve','fade','fadeblack','blur','zoom'].includes(type)}
+function liveK(scene){return Math.max(0,Math.min(6,Math.floor(Math.min(transitionSpan(scene),1)/LIVE_STEP+1e-9)))}
+function liveIndex(scene,loc){return Math.min(Math.floor(loc/LIVE_STEP+1e-9),liveK(scene))}
+function captureLiveFrame(index,tau){
+ const keepT=T,keepPlaying=playing;
+ try{drawingPreviousFrame=true;playing=false;T=starts()[index]-.001;PRIOR_TAU=tau;draw();
+  const clone=$('#world').cloneNode(true);clone.id='priorWorld';clone.setAttribute('aria-hidden','true');uniquePriorIds(clone);return clone}
+ finally{PRIOR_TAU=0;T=keepT;playing=keepPlaying;drawingPreviousFrame=false}
+}
+function liveFrame(index,k){if(k<=0)return prevSnapshotData&&prevSnapshotData.svg;if(prevLiveIndex!==index){prevLive=[];prevLiveIndex=index}if(!prevLive[k-1])prevLive[k-1]=captureLiveFrame(index,k*LIVE_STEP);return prevLive[k-1]}
+
+function transitionSpan(scene){return clampN(nm(scene.transition?.duration,.55),.05,Math.max(.05,scene.duration))}
+function transitionProgress(scene,loc,index){if(!index)return 1;return clampN(loc/transitionSpan(scene),0,1)}
+// v24 A2: transition.mode = 'overlap' (ค่าเริ่มต้น) | 'preroll' (ตัวละคร/เสียง/คำบรรยายฉากใหม่เริ่มหลัง transition จบ) | 'handle' (เหมือน overlap แต่ตัวตรวจเข้มงวด)
+function prerollSpan(E,i,scene){const tr=scene&&scene.transition;if(!(i>0)||!tr||tr.mode!=='preroll'||(tr.type||'cut')==='cut')return 0;return Math.min(transitionSpan(scene),Math.max(0,cleanNum(scene.duration)-.1))}
+function sceneAnimLoc(scene,loc){const E=ep(),i=E.scenes.indexOf(scene),pre=prerollSpan(E,i,scene);return pre>0?Math.max(0,loc-pre):loc}
+function easeTransition(q,scene){const m=scene&&scene.transition&&scene.transition.ease;if(m==='linear')return q;if(m==='ease-in')return q*q;if(m==='ease-out')return q*(2-q);if(m==='ease-in-out')return q<.5?2*q*q:1-2*(1-q)*(1-q);return q*q*(3-2*q)}
 function applyPreviewTransition(scene,loc,index,world,extent){
  world.style.opacity=1;
  if(drawingPreviousFrame||EXPORT_FRAME)return;
- const tr=scene.transition||{},type=tr.type||'cut',raw=transitionProgress(scene,loc,index),q=easeTransition(raw),old=$('#transitionPrevious'),cover=$('#transitionOverlay');
+ const tr=scene.transition||{},type=tr.type||'cut',raw=transitionProgress(scene,loc,index),q=easeTransition(raw,scene),old=$('#transitionPrevious'),cover=$('#transitionOverlay');
  old.style.display='none';old.style.opacity=1;old.style.transform='none';old.style.clipPath='none';old.style.filter='none';
  cover.style.background='#080a13';cover.style.opacity=0;cover.style.clipPath='none';
  if(!index||type==='cut'||raw>=1)return;
  if(prevSnapshotIndex!==index){ensurePreviousFrame(index);draw();return}
- old.style.display='block';const from=old.firstElementChild;
+ old.style.display='block';
+ if(liveEnabled(scene,index)){const kk=liveIndex(scene,loc);if(kk>0&&!prevLive[kk-1]){liveFrame(index,kk);draw();return}const want=kk>0?prevLive[kk-1]:prevSnapshotData.svg;if(want&&old.firstElementChild!==want)old.replaceChildren(want)}
+ const from=old.firstElementChild;
  old.style.opacity=1-q;
  if(type==='fade')world.style.opacity=q;
  if(type==='wipe-left'||type==='wipe-right'||type==='wipe-up'||type==='wipe-down'||type==='iris'){
@@ -2655,7 +2725,7 @@ function go(d){const n=Math.min(ep().scenes.length-1,Math.max(0,sel+d));sel=n;T=
 function draw(){
  const E=ep(),st=starts();let i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration);if(i<0)i=E.scenes.length-1;
  if(i!==sel&&(playing||document.activeElement===$('#ctl input'))){sel=i;if(playing&&!drawingPreviousFrame)deferSceneUi();else{inspector();timeline()}}
- const s=E.scenes[i];if(!s)return;if(THEATER_ACTIVE)updateTheaterTitle(i);const loc=clampN(T-st[i],0,s.duration),p=clampN(loc/Math.max(.1,s.duration),0,1),c=s.camera||{},world=$('#world');
+ const s=E.scenes[i];if(!s)return;if(THEATER_ACTIVE)updateTheaterTitle(i);const loc=(drawingPreviousFrame&&PRIOR_TAU>0)?s.duration+PRIOR_TAU:clampN(T-st[i],0,s.duration),pre=prerollSpan(E,i,s),aloc=Math.max(0,loc-pre),adur=Math.max(.1,s.duration-pre),p=clampN(loc/Math.max(.1,s.duration),0,1),c=s.camera||{},world=$('#world');
  const extent=clampN(nm(c.world,1),1,3.5),ease=p*p*(3-2*p),kind=c.type||'static';
  let zoom=nm(c.from,1)+(nm(c.to,1)-nm(c.from,1))*ease,dx=0,dy=0,ry=0,rz=0;
  if(kind==='static')zoom=nm(c.from,1);
@@ -2669,9 +2739,9 @@ function draw(){
  if(kind==='orbit'){ry=-14+28*ease;dx=3-6*ease;zoom=Math.max(1.08,zoom)}
  if(kind==='rotate')rz=nm(c.rotation,12)*(ease-.5);
  if(kind==='shake'||kind==='handheld'){dx=Math.sin(loc*17)*.55+Math.sin(loc*31)*.24;dy=Math.cos(loc*21)*.42;rz=Math.sin(loc*9)*.65;zoom=Math.max(zoom,1.025)}
- if(kind==='follow'&&(s.actors||[]).length){const a=actorAtTime(s.actors[0],s,loc,s.duration);dx=clampN(50-nm(a.x,50),-15,15)*.5}
+ if(kind==='follow'&&(s.actors||[]).length){const a=actorAtTime(s.actors[0],s,aloc,adur);dx=clampN(50-nm(a.x,50),-15,15)*.5}
  let track=(nm(c.startX,0)+(nm(c.endX,100)-nm(c.startX,0))*ease)/100;
- if(kind==='panorama'&&c.subjectLock&&extent>1.001&&(s.actors||[]).length){const subject=actorAtTime(s.actors[0],s,loc,s.duration);track=clampN((nm(subject.x,50)/100*extent-.5)/(extent-1),0,1)}
+ if(kind==='panorama'&&c.subjectLock&&extent>1.001&&(s.actors||[]).length){const subject=actorAtTime(s.actors[0],s,aloc,adur);track=clampN((nm(subject.x,50)/100*extent-.5)/(extent-1),0,1)}
  const panoShift=(extent-1)*clampN(track,0,1)*100/extent;
  if(kind==='panorama'&&extent<=1.001)dx=7-14*ease;
  world.style.width=(extent*100)+'%';
@@ -2691,13 +2761,13 @@ function draw(){
  fx.style.opacity=f2(LA.glow*(1-.4*pulse));
  const vig=$('#vignetteFx');if(vig){vig.style.background='radial-gradient(ellipse at 50% 45%,transparent 30%,#000d 100%)';vig.style.opacity=f2(LA.vig)}
 
- if(acts.length)rig.innerHTML=rigScene(acts,loc,s.duration,s);else if(rig.firstChild)rig.innerHTML='';
+ if(acts.length)rig.innerHTML=rigScene(acts,aloc,adur,s);else if(rig.firstChild)rig.innerHTML='';
  updateMotionOverlay(s,loc);
  $('#ph').textContent=(s.image||k||acts.length||setOn)?'':`ฉาก ${i+1}\nยังไม่มีฉากประกอบ`;
  if(!drawingPreviousFrame)paintWeatherPreview(s,loc,i);
  applyPreviewTransition(s,loc,i,world,extent);
  updateSceneGraphics(s,loc);
- const sub=$('#sub');sub.textContent=PREVIEW_SHOW_CAPTIONS?captionAt(s,loc):'';sub.style.opacity=sub.textContent?1:0;
+ const sub=$('#sub');sub.textContent=PREVIEW_SHOW_CAPTIONS?captionAt(s,aloc):'';sub.style.opacity=sub.textContent?1:0;
  const u=$('#ui'),us=S.project.uiBoxStyle||{};
  if(s.uiBox&&PREVIEW_SHOW_LABELS){u.textContent=String(s.uiBox).trim();u.title=s.uiBox;u.style.display='block';u.style.fontFamily=us.font||'system-ui'}else u.style.display='none';
  const clock=$('#clock');if(clock)clock.textContent=`${T.toFixed(1)} / ${total().toFixed(1)}s`;const r=$('#ctl input[type=range]');if(r)r.value=T*100
@@ -2709,7 +2779,7 @@ function deferSceneUi(){/* playback: cheap highlight now, full Inspector/Timelin
  const again=()=>{sceneUiTimer=0;if(playing){sceneUiTimer=setTimeout(again,500);return}if(ep()&&sel<ep().scenes.length){inspector();timeline()}};sceneUiTimer=setTimeout(again,300)}
 function prefetchTransition(){
  if(!playing||drawingPreviousFrame)return;const E=ep(),st=starts(),i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration),n=i+1,nx=E.scenes[n];
- if(i<0||!nx||(nx.transition?.type||'cut')==='cut'||T<st[n]-.7||prevSnapshotIndex===n)return;ensurePreviousFrame(n)}
+ if(i<0||!nx||(nx.transition?.type||'cut')==='cut'||T<st[n]-.7)return;if(prevSnapshotIndex!==n){ensurePreviousFrame(n);return}if(liveEnabled(nx,n)){const K=liveK(nx);for(let k=1;k<=K;k++)if(!prevLive[k-1]){liveFrame(n,k);break}}}
 function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl()}else prefetchTransition();draw()}last=now;requestAnimationFrame(loop)}
 
 /* ===== Director v8: actual browser-side video encoding ===== */
@@ -2770,15 +2840,19 @@ function applyCameraCanvas(ctx,im,world,scene,w,h){
 }
 /* ===== v22/v23 — continuous atmosphere + light blending (shared by preview and export) ===== */
 const FILM_FADE=.25;
-function atmoClock(){return T+nm(ep()?.continuity?.atmosphereClock,0)}
+// v24 B2: episode.continuity={atmosphereClock,carryFromPrevious}; episode.opening={mode:'cut'|'fadeblack'|'titlecard'|'recap',duration,text}
+function episodeLength(E){return (E&&E.scenes||[]).reduce((a,s)=>a+Math.max(0,nm(s.duration,0)),0)}
+function atmoOffset(E,depth=0){if(!E)return 0;const k=S.episodes.indexOf(E);if(E.continuity&&E.continuity.carryFromPrevious&&k>0&&depth<50){const prev=S.episodes[k-1];return atmoOffset(prev,depth+1)+episodeLength(prev)}return nm(E.continuity&&E.continuity.atmosphereClock,0)}
+function prevSceneOf(E,index){if(index>0)return E.scenes[index-1]||null;const k=S.episodes.indexOf(E);if(k>0&&E.continuity&&E.continuity.carryFromPrevious){const prev=S.episodes[k-1];return prev&&prev.scenes&&prev.scenes.length?prev.scenes[prev.scenes.length-1]:null}return null}
+function atmoClock(){return T+atmoOffset(ep())}
 function afRand(n){const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
 function afWrap(v){return v-Math.floor(v)}
 function sceneBlend(scene,loc,index,minFade){
- const E=ep(),prev=index>0?E.scenes[index-1]:null;if(!prev)return null;
+ const E=ep(),prev=prevSceneOf(E,index);if(!prev)return null;
  const type=scene.transition?.type||'cut';
- const dur=type==='cut'?(minFade||0):clampN(nm(scene.transition?.duration,.55),.05,Math.max(.05,scene.duration));
+ const dur=(type==='cut'||index===0)?(minFade||0):transitionSpan(scene);
  if(dur<=0)return null;const raw=clampN(loc/dur,0,1);if(raw>=1)return null;
- return{prev,raw,e:raw*raw*(3-2*raw)}
+ return{prev,raw,e:easeTransition(raw,scene)}
 }
 function filmAtmosphere(ctx,type,w,h,clock,alpha){
  if(!type||type==='none'||alpha<=.003)return;
@@ -2866,7 +2940,7 @@ function drawVideoText(ctx,scene,loc,w,h,includeCaptions){
   let width=Math.min(w*.75,ctx.measureText(txt).width+font*1.1);ctx.fillStyle='#081321cb';roundedRectCanvas(ctx,w*.05,h*.045,width,font*1.8,5);ctx.fill();
   ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(txt,w*.05+font*.5,h*.045+font*.9,width-font*.75)
  }
- if(includeCaptions){const txt=captionAt(scene,loc);if(txt){const lines=txt.split('\n').slice(0,2),font=Math.round(Math.max(15,Math.min(30,h*.033))),lineH=font*1.35;
+ if(includeCaptions){const txt=captionAt(scene,sceneAnimLoc(scene,loc));if(txt){const lines=txt.split('\n').slice(0,2),font=Math.round(Math.max(15,Math.min(30,h*.033))),lineH=font*1.35;
   ctx.font=`700 ${font}px system-ui,sans-serif`;let maxWidth=Math.min(w*.86,Math.max(...lines.map(x=>ctx.measureText(x).width))+font*.9);
   const blockH=lines.length*lineH+font*.35,by=h*.95-blockH;
   ctx.fillStyle='#08101ddd';roundedRectCanvas(ctx,(w-maxWidth)/2,by,maxWidth,blockH,6);ctx.fill();
@@ -2875,7 +2949,7 @@ function drawVideoText(ctx,scene,loc,w,h,includeCaptions){
  }}ctx.restore();
 }
 function drawTransitionToCanvas(ctx,scene,loc,index,current,old,w,h){
- const type=scene.transition?.type||'cut',raw=transitionProgress(scene,loc,index),q=easeTransition(raw),paint=(img,alpha=1,dx=0,zoom=1,blur=0)=>{
+ const type=scene.transition?.type||'cut',raw=transitionProgress(scene,loc,index),q=easeTransition(raw,scene),paint=(img,alpha=1,dx=0,zoom=1,blur=0)=>{
   if(!img||alpha<=.001)return;ctx.save();ctx.globalAlpha=alpha;ctx.translate(w/2,h/2);ctx.scale(zoom,zoom);ctx.translate(-w/2+dx,-h/2);
   if(blur)ctx.filter=`blur(${blur}px)`;
   applyCameraCanvas(ctx,img,img===current?$('#world'):$('#priorWorld'),img===current?scene:prevSnapshotData.scene,w,h);ctx.restore()};
@@ -2905,9 +2979,13 @@ async function renderVideoFrame(ctx,t,info){
  T=t;exportDraw();const scene=scenes[index],loc=Math.max(0,Math.min(scene.duration,t-st[index])),w=info.w,h=info.h;
  const currentWorld=$('#world');let old=null;
  if(index>0&&transitionProgress(scene,loc,index)<1&&scene.transition?.type!=='cut'){
-  const fresh=prevSnapshotIndex!==index;ensurePreviousFrame(index);if(fresh)exportDraw();if(!info.previous.has(index)){
-   info.previous.set(index,await imageFromVector(svgFrameFromWorld($('#priorWorld'),scenes[index-1],w,h)));
-  }old=info.previous.get(index);
+  const fresh=prevSnapshotIndex!==index;ensurePreviousFrame(index);let redraw=fresh;
+  const k=liveEnabled(scene,index)?liveIndex(scene,loc):0,key=index+':'+k;
+  if(!info.previous.has(key)){
+   if(k>0){liveFrame(index,k);$('#transitionPrevious').replaceChildren(prevLive[k-1]);redraw=true}
+   if(redraw){exportDraw();redraw=false}
+   info.previous.set(key,await imageFromVector(svgFrameFromWorld($('#priorWorld'),scenes[index-1],w,h)));
+  }old=info.previous.get(key);if(redraw)exportDraw();
  }
  const im=await imageFromVector(svgFrameFromWorld(currentWorld,scene,w,h));
  drawTransitionToCanvas(ctx,scene,loc,index,im,old,w,h);
@@ -2917,10 +2995,10 @@ async function renderVideoFrame(ctx,t,info){
 }
 async function prepareExportAudio(E,format){
  const audio=new (window.AudioContext||window.webkitAudioContext)(),destination=audio.createMediaStreamDestination(),buffers=[],warnings=[],decoded=new Map();
- for(const {c,start,limit=total()} of audioEvents()){if(!c.data||c.mute)continue;try{
+ for(const ev of audioEvents()){const {c,start,limit=total()}=ev;if(!c.data||c.mute)continue;try{
   let b=decoded.get(c.data);if(!b){const resp=await fetch(c.data);b=await audio.decodeAudioData(await resp.arrayBuffer());decoded.set(c.data,b)}
   const from=clampN(cleanNum(c.trimStart),0,b.duration),end=clampN(b.duration-cleanNum(c.trimEnd),from,b.duration),playlen=(end-from)/effectiveClipRate(c);
-  if(playlen>0&&limit>start)buffers.push({buffer:b,start,sourceAt:from,sourceDuration:Math.min(end-from,(limit-start)*effectiveClipRate(c)),length:Math.min(playlen,limit-start),rate:effectiveClipRate(c),clip:c,vol:clampN(cleanNum(c.volume,1),0,1),fadeIn:cleanNum(c.fadeIn),fadeOut:cleanNum(c.fadeOut)});
+  if(playlen>0&&limit>start)buffers.push({buffer:b,start,sourceAt:from,sourceDuration:Math.min(end-from,(limit-start)*effectiveClipRate(c)),length:Math.min(playlen,limit-start),rate:effectiveClipRate(c),clip:c,vol:clampN(cleanNum(c.volume,1),0,1),fadeIn:cleanNum(c.fadeIn),fadeOut:cleanNum(c.fadeOut),ev,limit,xin:ev.xin||0,xout:ev.xout||0,chainStart:ev.chainStart});
  }catch(e){warnings.push('เสียง "'+c.name+'" อ่านไม่ได้: '+e.message)}}
  // Keep an active graph for browsers requiring audio activity.
  const oscillator=audio.createOscillator(),silent=audio.createGain();silent.gain.value=.0000001;oscillator.connect(silent).connect(destination);oscillator.start();await audio.resume();
@@ -2954,11 +3032,11 @@ async function startVideoExport(){
   await renderVideoFrame(ctx,0,info);
   rec.start(1000);vTrack.requestFrame?.();
   const began=performance.now(),nowAudio=audioData?.audio.currentTime||0;
-  if(audioData&&f.id!=='mp4video'){for(const b of audioData.buffers){const source=audioData.audio.createBufferSource();source.buffer=b.buffer;source.playbackRate.value=b.rate;const nodes=createFxNodes(audioData.audio,source,audioData.destination);applyFxNodes(nodes,b.clip);const gain=nodes.gain;
+  if(audioData&&f.id!=='mp4video'){for(const b of audioData.buffers){const source=audioData.audio.createBufferSource();source.buffer=b.buffer;source.playbackRate.value=b.rate;let feed=source,xg=null;if(b.xin>0||b.xout>0){xg=audioData.audio.createGain();source.connect(xg);feed=xg}const nodes=createFxNodes(audioData.audio,feed,audioData.destination);applyFxNodes(nodes,b.clip);const gain=nodes.gain;
    const t0=nowAudio+.045+b.start,finish=t0+b.length,fadeIn=Math.min(b.length/2,Math.max(0,b.fadeIn)),fadeOut=Math.min(b.length/2,Math.max(0,b.fadeOut));b.vol*=voiceGainFactor(b.clip)*clipAutoGainFactor(b.clip);
    const points=[[t0,fadeIn>0?0:b.vol],[t0+fadeIn,b.vol],[finish-fadeOut,b.vol],[finish,fadeOut>0?0:b.vol]].sort((a,z)=>a[0]-z[0]);
    points.forEach(([t,v],i)=>{if(i===0)gain.gain.setValueAtTime(v,t);else gain.gain.linearRampToValueAtTime(v,Math.max(t,points[i-1][0]+.0001))});
-   source.start(t0,b.sourceAt,b.sourceDuration);audioData.sources.push(source)
+   if(xg){const base=nowAudio+.045,pts=[b.start,b.chainStart+b.xin,b.limit-b.xout,b.start+b.length].filter(v=>v>=b.start-1e-6&&v<=b.start+b.length+1e-6).sort((p,q)=>p-q);pts.forEach((tt,k)=>{const v=eventXGain(b,tt);if(k===0)xg.gain.setValueAtTime(v,base+tt);else xg.gain.linearRampToValueAtTime(v,Math.max(base+tt,base+pts[k-1]+.0001))})}source.start(t0,b.sourceAt,b.sourceDuration);audioData.sources.push(source)
   }}
   let nextFrame=1,framesShown=1,lastReal=began;
   while(!job.aborted){
@@ -3065,7 +3143,7 @@ function smartActingFrame(source,base,local,dur){
  }else if(pose==='think'&&base.face===undefined)r.face='think';
  return r;
 }
-function smartAnalyze(D){const issues=[];const push=(severity,kind,ei,si,scene,msg,path,advice)=>issues.push({severity,kind,episode:ei,scene:si,sceneId:scene?.id||null,path,msg,advice});
+function smartAnalyze(D){const issues=[];const push=(severity,kind,ei,si,scene,msg,path,advice,autoFix)=>{const it={severity,kind,episode:ei,scene:si,sceneId:scene?.id||null,path,msg,advice};if(autoFix)it.autoFix=autoFix;issues.push(it)};
  if(!isObj(D)||!Array.isArray(D.episodes))return [{severity:'error',kind:'structure',episode:-1,scene:-1,sceneId:null,path:'episodes',msg:'ไม่มีข้อมูลตอนที่ตรวจได้',advice:'ให้ AI ส่ง JSON ทั้งโปรเจกต์'}];
  const bad=diagnose(D).filter(i=>i.level==='error'||i.level==='warn');for(const v of bad){let ei=-1,si=-1,scene=null;
  const m=String(v.path||'').match(/episodes\[(\d+)\](?:\.scenes\[(\d+)\])?/);if(m){ei=Number(m[1]);if(m[2]!==undefined){si=Number(m[2]);scene=D.episodes[ei]?.scenes?.[si]}}
@@ -3085,7 +3163,7 @@ function smartAnalyze(D){const issues=[];const push=(severity,kind,ei,si,scene,m
     const cues=Array.isArray(s.subtitleCues)?s.subtitleCues.filter(x=>x&&String(x.text||'').trim()):[];
     cues.forEach((c,ci)=>{if(Number.isFinite(c.end)&&Number.isFinite(c.start)&&c.end-c.start<.48&&[...String(c.text||'')].length>14)push('warn','visual',ei,si,s,'ซับยาวแต่แสดงสั้นกว่า 0.48 วินาที',`${path}.subtitleCues[${ci}]`,'ขยายช่วงหรือแบ่งข้อความ');});
     if(cues.length&&Array.isArray(s.graphicCards)&&s.graphicCards.some(c=>c?.position==='bottom'&&Number(c.end||dur)>0))push('warn','visual',ei,si,s,'กราฟิกด้านล่างอาจทับซับ',`${path}.graphicCards`,'ย้ายกราฟิกขึ้นด้านบนหรือปรับเวลา');
-    if(dur>0&&Number(s.transition?.duration)>dur*.8)push('warn','visual',ei,si,s,'เอฟเฟกต์สลับฉากยาวเกิน 80% ของฉาก',`${path}.transition.duration`,'ลดเวลา Transition');
+    if(dur>0&&si>0&&(s.transition?.type||'cut')!=='cut'&&Number(s.transition?.duration)>dur*.4)push('warn','visual',ei,si,s,'Transition ยาวเกิน 40% ของฉาก (ฉากสั้นเกินไปสำหรับเปลี่ยนภาพ)',`${path}.transition.duration`,'ลดความยาว Transition');if(dur>0&&s.transition?.mode==='preroll'&&Number(s.transition?.duration)>dur*.5)push('warn','visual',ei,si,s,'โหมดรอ Transition จบกินเวลาฉากเกินครึ่ง ตัวละครจะเหลือเวลาเล่นน้อย',`${path}.transition.mode`,'ลดความยาว Transition หรือใช้โหมดซ้อนกัน');
    }
    if(smartEnabled('audio',D)){
     if(String(s.voiceover||'').trim()&&!Array.isArray(s.audioClips)&&!s.audio)push('warn','audio',ei,si,s,'มีบทพากย์ แต่ไม่มี audioClips',`${path}.audioClips`,'อัดเสียงหรือนำเข้าจาก Sound Desk');
@@ -3094,17 +3172,60 @@ function smartAnalyze(D){const issues=[];const push=(severity,kind,ei,si,scene,m
    }
    if(smartEnabled('continuity',D)&&si>0){const prev=scenes[si-1];if(prev?.location&&s.location&&prev.location===s.location){const before=Array.isArray(prev.actors)?prev.actors:[],current=Array.isArray(s.actors)?s.actors:[];
     for(const a of current){if(!isObj(a)||a.at||!Number.isFinite(a.x))continue;const old=before.find(b=>b?.char===a.char);if(!old||old.to||Array.isArray(old.route)&&old.route.length>1)continue;
-     const from=Number.isFinite(old.toX)?old.toX:old.x;if(Number.isFinite(from)&&Math.abs(from-a.x)>30)push('warn','continuity',ei,si,s,`ตัวละคร ${a.char} กระโดดตำแหน่ง X ${Math.round(from)} → ${Math.round(a.x)}%`,`${path}.actors`,'ตรวจว่าตั้งใจตัดภาพหรือควรเชื่อมเส้นทาง')}
+     const from=Number.isFinite(old.toX)?old.toX:old.x;if(Number.isFinite(from)&&Math.abs(from-a.x)>30)push('warn','continuity',ei,si,s,`ตัวละคร ${a.char} กระโดดตำแหน่ง X ${Math.round(from)} → ${Math.round(a.x)}%`,`${path}.actors`,'ตรวจว่าตั้งใจตัดภาพหรือควรเชื่อมเส้นทาง',{kind:'jump',char:a.char})}
    }}
+   if(smartEnabled('continuity',D)&&si>0)continuityExtraFindings(scenes[si-1],s).forEach(f=>push('warn','continuity',ei,si,s,f.msg,`${path}.actors`,f.advice,f.autoFix));
   });
  });
  return issues;
 }
+// v25 C2: ตัวตรวจ continuity เพิ่มเติม (ทิศหันกลับด้าน / พร็อพที่ถืออยู่หาย) + ตัวแก้อัตโนมัติ
+function continuityActorEnd(a,prev){try{return endFrameActor(a,prev)}catch(e){return null}}
+function continuityHeldAtEnd(scene){try{return typeof window.STUDIO_INTERACTION_ACTIVE_HELD==='function'?window.STUDIO_INTERACTION_ACTIVE_HELD(scene):[]}catch(e){return[]}}
+function continuityHeldAtStart(scene){const props=Array.isArray(scene.props)?scene.props:[],out=[];(Array.isArray(scene.interactionInitialHold)?scene.interactionInitialHold:[]).forEach(it=>{const p=props[it.propIndex];if(p&&p.kind)out.push({actor:it.actor,kind:p.kind})});(Array.isArray(scene.interactions)?scene.interactions:[]).forEach(e=>{const p=props[e.propIndex];if(e&&e.type==='pickup'&&p&&p.kind)out.push({actor:e.actor,kind:p.kind})});return out}
+function continuityExtraFindings(prev,s){
+ const out=[];if(!prev||!s||!prev.location||prev.location!==s.location)return out;
+ const before=Array.isArray(prev.actors)?prev.actors:[],cur=Array.isArray(s.actors)?s.actors:[];
+ for(const a of cur){
+  if(!isObj(a)||!a.char||a.at||a.to||(Array.isArray(a.route)&&a.route.length>1))continue;
+  const old=before.find(b=>isObj(b)&&b.char===a.char);if(!old)continue;
+  const last=continuityActorEnd(old,prev);if(!last)continue;
+  const first=(a.facing==='auto'||!a.facing)?'right':a.facing;
+  const turns=s.transition&&(s.transition.type||'cut')!=='cut'&&s.transition.turn!==false&&s.transition.mode!=='preroll'&&!a.bodyYaw&&(!a.view||a.view==='side');
+  if(!turns&&(first==='left'||first==='right')&&(last.facing==='left'||last.facing==='right')&&first!==last.facing)
+   out.push({msg:`ตัวละคร ${a.char} หันกลับด้านจากฉากก่อน (${last.facing==='left'?'ซ้าย':'ขวา'} → ${first==='left'?'ซ้าย':'ขวา'}) โดยไม่มีการเดินหรือเหตุผล`,advice:'ตั้งทิศหันให้ตรงกับท้ายฉากก่อน หรือใส่ route/ทรานซิชันหมุนตัวถ้าตั้งใจ',autoFix:{kind:'facing',char:a.char}})
+ }
+ const have=continuityHeldAtStart(s);
+ for(const h of continuityHeldAtEnd(prev)){
+  if(!h||!h.actor||!h.prop)continue;
+  if(!cur.some(a=>isObj(a)&&a.char===h.actor))continue;
+  if(have.some(x=>x.actor===h.actor&&x.kind===h.prop.kind))continue;
+  out.push({msg:`${h.actor} ถือ${PROP_LABELS[h.prop.kind]||h.prop.kind}อยู่ท้ายฉากก่อน แต่ฉากนี้ไม่มีของในมือ`,advice:'ใส่พร็อพกลับเข้ามือตัวละคร หรือเพิ่ม place/วางของไว้ในฉากก่อน',autoFix:{kind:'prop',char:h.actor,prop:JSON.parse(JSON.stringify(h.prop)),hand:h.hand||'right'}})
+ }
+ if((s.transition&&s.transition.type||'cut')==='cut'){
+  const lit=v=>JSON.stringify(v||''),d=[];
+  if((prev.atmosphere||'none')!==(s.atmosphere||'none'))d.push('สภาพอากาศ');
+  if(lit(prev.light)!==lit(s.light))d.push('แสง');
+  if(JSON.stringify(prev.cinematicFx||null)!==JSON.stringify(s.cinematicFx||null))d.push('เอฟเฟกต์ภาพ');
+  if(d.length)out.push({msg:`ฉากติดกัน (สถานที่เดียวกัน) ${d.join('/')}เปลี่ยนทันทีโดยใช้ตัดตรง`,advice:'ใส่ transition (เช่นละลายภาพ) ให้ค่อย ๆ เปลี่ยน หรือคัดลอกค่าจากฉากก่อนถ้าไม่ได้ตั้งใจ',autoFix:{kind:'transition'}})
+ }
+ return out}
+function applyContinuityFix(E,si,f){
+ const s=E&&E.scenes[si],prev=E&&E.scenes[si-1];if(!s||!prev||!f)return false;
+ if(f.kind==='transition'){s.transition={type:'dissolve',duration:Math.max(.2,Math.min(.6,cleanNum(s.duration)*.3))};return true}
+ if(f.kind==='prop'){s.props=Array.isArray(s.props)?s.props:[];s.interactionInitialHold=Array.isArray(s.interactionInitialHold)?s.interactionInitialHold:[];const pi=s.props.push(JSON.parse(JSON.stringify(f.prop)))-1;s.interactionInitialHold.push({propIndex:pi,actor:f.char,hand:f.hand||'right'});return true}
+ const a=(s.actors||[]).find(x=>x&&x.char===f.char),old=(prev.actors||[]).find(x=>x&&x.char===f.char);if(!a||!old)return false;
+ const last=continuityActorEnd(old,prev);if(!last)return false;
+ if(f.kind==='facing'){a.facing=last.facing;return true}
+ if(f.kind==='jump'){a.x=last.x;a.y=last.y;a.facing=last.facing;a.pose=last.pose;delete a.at;delete a.route;return true}
+ return false}
+function smartAutoFix(item){if(!item||!item.autoFix)return;commit(()=>{applyContinuityFix(S.episodes[item.episode],item.scene,item.autoFix)});smartRenderReport()}
+function smartAutoFixAll(){const list=smartAnalyze(S).filter(x=>x.autoFix);if(!list.length)return 0;commit(()=>{list.forEach(it=>applyContinuityFix(S.episodes[it.episode],it.scene,it.autoFix))});smartRenderReport();return list.length}
 function smartManifest(){return{product:'Story Studio',version:15,offline:true,models:'2.5D SVG',schemaVersion:1,importModes:['replace','patch','ep','merge'],characterStyles:STYLES,creatureSpecies:CREATURE_SPECIES,availableCharacters:CHAR_PRESETS.map(p=>({id:p[0],name:p[1]})),availableCreatures:CREATURE_PRESETS.map(p=>({id:p[0],name:p[1],species:p[12]?.species})),poses:Object.keys(POSES),creaturePoses:typeof CREATURE_POSES!=='undefined'?CREATURE_POSES:[],locations:Object.keys(SETS),props:PROP_KINDS,cameras:CAM,transitions:TRN,atmospheres:['none','rain','storm','snow','fog','wind','dust','fireflies','stars'],voiceProfiles:(S?.voiceProfiles||[]).map(publicVoiceProfile),autoDubbing:{available:true,needsRecordedClip:true,clipSpeakerId:true,clipCueId:true,automaticVoiceProfileMatching:true,automaticPeakRmsGain:true,realisticGenderAgeVoiceConversion:false,pitchPreservesDuration:false},motionKeys:['t','x','y','scale','bodyYaw','headYaw','pose','override','easing'],subtitleCues:['id','text','start','end','speaker','emotion'],smartDirector:SMART_DEFAULT,limitations:['Browser TTS preview is not a rendered audio track','Auto Acting is bounded and does not produce voice lip-sync','Camera Assist only changes scenes with smartCamera:true or camera.helper:auto','Visual checks are heuristics, not computer vision']};}
 function smartFeedbackPack(){const issues=smartAnalyze(S);return {version:1,type:'story-studio-ai-qa-feedback',title:S.project.title,smartDirector:S.project.smartDirector,summary:{issues:issues.length,errors:issues.filter(x=>x.severity==='error').length,warnings:issues.filter(x=>x.severity==='warn').length},issues,capabilities:smartManifest(),request:'Return a JSON patch {"ops":[...]} that addresses supported, explicitly actionable issues while retaining characters, cameras, story, identity, audio and motion keys. Do not rewrite the whole project. For intentional artistic choices, explain why instead of changing.'};}
 function smartRenderReport(){const root=$('#smartIssues');if(!root)return;const result=smartAnalyze(S),errors=result.filter(x=>x.severity==='error').length,warns=result.filter(x=>x.severity==='warn').length;$('#smartStats').replaceChildren(...[[`ทั้งหมด ${result.length}`],[`ข้อผิดพลาด ${errors}`],[`คำเตือน ${warns}`]].map(([t])=>h('span',{},t)));
  if(!result.length){root.replaceChildren(h('div',{className:'ok'},'ผ่านกฎตรวจสอบอัตโนมัติที่รองรับ · ไม่ได้หมายความว่าภาพและเสียงสมบูรณ์ทุกจุด'));return}
- root.replaceChildren(...result.slice(0,180).map((item,i)=>h('div',{className:'smart-issue '+item.severity},h('strong',{},`${item.severity==='error'?'ต้องแก้':'ตรวจสอบ'} · ${item.episode>=0?`ตอน ${item.episode+1}`:'โปรเจกต์'}${item.scene>=0?` / ฉาก ${item.scene+1}`:''} · ${item.kind}`),h('div',{},item.msg),h('div',{className:'path'},item.path),h('div',{className:'smart-tip'},item.advice||''),item.scene>=0?h('button',{onclick:()=>smartGoTo(item.episode,item.scene)},'ไปตรวจฉากนี้'):'')));
+ root.replaceChildren(...(result.some(x=>x.autoFix)?[h('button',{className:'add',onclick:()=>smartAutoFixAll()},`แก้ความต่อเนื่องอัตโนมัติทั้งหมด (${result.filter(x=>x.autoFix).length})`)]:[]),...result.slice(0,180).map((item,i)=>h('div',{className:'smart-issue '+item.severity},h('strong',{},`${item.severity==='error'?'ต้องแก้':'ตรวจสอบ'} · ${item.episode>=0?`ตอน ${item.episode+1}`:'โปรเจกต์'}${item.scene>=0?` / ฉาก ${item.scene+1}`:''} · ${item.kind}`),h('div',{},item.msg),h('div',{className:'path'},item.path),h('div',{className:'smart-tip'},item.advice||''),item.autoFix?h('button',{className:'add',onclick:()=>smartAutoFix(item)},'แก้อัตโนมัติ'):'',item.scene>=0?h('button',{onclick:()=>smartGoTo(item.episode,item.scene)},'ไปตรวจฉากนี้'):'')));
  if(result.length>180)root.append(h('div',{className:'smart-tip'},`ยังมีอีก ${result.length-180} รายการ ดาวน์โหลด JSON เพื่อดูครบ`));}
 function smartGoTo(ei,si){$('#smartDialog').close();if(STUDIO_WORKSPACE_READY)switchStudioTool('scene');selEp=ei;sel=si;T=S.episodes[ei].scenes.slice(0,si).reduce((v,s)=>v+(Number(s.duration)||0),0);playing=false;render();$('#pre').scrollIntoView({behavior:'smooth',block:'start'});}
 function smartSetStatus(t){const el=$('#smartStatus');if(el)el.textContent=t}
@@ -3211,6 +3332,8 @@ else(s.characters||[]).forEach((c,j)=>{if(!cset.has(c))add('error',`${sp}.charac
 if(s.location&&!lset.has(s.location))add('error',sp+'.location','ไม่มีสถานที่ '+s.location,'เพิ่มด้วย upsertLocation หรือแก้ id');
 if(s.camera!==undefined&&(!isObj(s.camera)||!CAM.includes(s.camera.type)))add('error',sp+'.camera.type','camera.type ไม่รู้จัก: '+(s.camera&&s.camera.type),'ใช้ '+CAM.join(' / '));
 if(s.transition!==undefined&&(!isObj(s.transition)||!TRN.includes(s.transition.type)))add('error',sp+'.transition.type','transition.type ไม่รู้จัก: '+(s.transition&&s.transition.type),'ใช้ '+TRN.join(' / '));
+if(isObj(s.transition)&&s.transition.live!==undefined&&typeof s.transition.live!=='boolean')add('warn',sp+'.transition.live','transition.live ต้องเป็น true/false','ใช้ true หรือ false (ไม่ใส่ = อัตโนมัติ)');
+if(isObj(s.transition)&&s.transition.ease!==undefined&&!['linear','ease-in','ease-out','ease-in-out'].includes(s.transition.ease))add('warn',sp+'.transition.ease','transition.ease ไม่รู้จัก: '+s.transition.ease,'ใช้ linear / ease-in / ease-out / ease-in-out');
  if(isObj(s.camera)){if(s.camera.world!==undefined&&(!Number.isFinite(s.camera.world)||s.camera.world<1||s.camera.world>3.5))add('error',sp+'.camera.world','ความกว้างโลกต้องอยู่ระหว่าง 1 ถึง 3.5');if(s.camera.subjectLock!==undefined&&typeof s.camera.subjectLock!=='boolean')add('error',sp+'.camera.subjectLock','subjectLock ต้องเป็น true/false')}
  if(s.atmosphere!==undefined&&!['none','rain','storm','snow','fog','wind','dust','fireflies','stars'].includes(s.atmosphere))add('error',sp+'.atmosphere','บรรยากาศไม่รู้จัก: '+s.atmosphere);
  if(s.lighting!==undefined){const p=sp+'.lighting',a=s.lighting;if(!isObj(a))add('error',p,'lighting ต้องเป็น object');else{for(const[k,lo,hi]of [['exposure',.6,1.5],['glow',0,1],['vignette',0,1],['focusX',0,100],['focusY',0,100],['flicker',0,1]]){if(a[k]!==undefined&&(!Number.isFinite(a[k])||a[k]<lo||a[k]>hi))add('error',p+'.'+k,`ต้องเป็นตัวเลขช่วง ${lo}–${hi}`)}}}

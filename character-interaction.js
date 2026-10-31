@@ -51,6 +51,7 @@ function activeHeld(scene){
  }});
  return output;
 }
+window.STUDIO_INTERACTION_ACTIVE_HELD=activeHeld;
 function goto(index){
  sel=clamp(index,0,ep().scenes.length-1);
  T=starts()[sel];playing=false;resetTransitionCache();render();
