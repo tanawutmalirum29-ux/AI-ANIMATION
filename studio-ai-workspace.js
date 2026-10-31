@@ -22,18 +22,18 @@ const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
 let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false;
-let modelLoad={active:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
+let modelLoad={active:false,ready:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
 function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
 function updateModelLoad(patch){
  modelLoad={...modelLoad,...patch,lastUpdate:performance.now()};
  const box=rootElement?.querySelector('#aiModelLoadStatus');
  if(box){
-  box.hidden=!modelLoad.active&&!modelLoad.error;
+  box.hidden=!modelLoad.active&&!modelLoad.error&&!modelLoad.ready;
   const bar=box.querySelector('progress'),label=box.querySelector('[data-model-label]'),
    detail=box.querySelector('[data-model-detail]');
   const value=modelLoad.percent;
   if(bar){if(value===null)bar.removeAttribute('value');else bar.value=value}
-  if(label)label.textContent=modelLoad.error?'โหลดโมเดลไม่สำเร็จ':modelLoad.active?
+  if(label)label.textContent=modelLoad.error?'โหลดโมเดลไม่สำเร็จ':modelLoad.ready?'โมเดล '+modelLoad.model+' พร้อมใช้งาน':modelLoad.active?
    'กำลังโหลด '+modelLoad.model+(value===null?'':' · '+value+'%'):'โหลดโมเดลเสร็จ';
   if(detail)detail.textContent=modelLoad.error||modelLoad.stage+
    (modelLoad.started?' · ผ่านไป '+formatElapsed((performance.now()-modelLoad.started)/1000):'');
@@ -45,7 +45,7 @@ function modelLoadPanel(){
   style:'padding:12px;border:1px solid var(--line, #6b7280);border-radius:12px;margin:12px 0;'},
   e('strong',{'data-model-label':''},'กำลังเตรียม AI'),
   bar,e('small',{'data-model-detail':'',style:'display:block;overflow-wrap:anywhere'},''));
- panel.hidden=!modelLoad.active&&!modelLoad.error;
+ panel.hidden=!modelLoad.active&&!modelLoad.error&&!modelLoad.ready;
  queueMicrotask(()=>updateModelLoad({}));
  return panel;
 }
@@ -70,7 +70,7 @@ async function loadLocalModel(id){
  if(modelUnavailable)throw Error('WebGPU สูญเสียการเชื่อมต่อ กรุณาโหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง');
  if(localEngine&&loadedModel!==id)throw Error('หากต้องการเปลี่ยนโมเดล กรุณาโหลดหน้าเว็บใหม่ก่อน เพื่อคืนหน่วยความจำ GPU อย่างปลอดภัย');
  const selected=LOCAL_MODELS.find(m=>m.id===id);
- updateModelLoad({active:true,model:selected?.label||id,percent:null,stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
+ updateModelLoad({active:true,ready:false,model:selected?.label||id,percent:null,stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
  try{
   if(!(await webGpuReady()))throw Error('อุปกรณ์/เบราว์เซอร์ไม่รองรับ WebGPU');
   updateModelLoad({stage:'เตรียมไลบรารี WebLLM',percent:null});
@@ -85,11 +85,11 @@ async function loadLocalModel(id){
   }});
   localEngine=engine;loadedModel=id;
   try{const device=engine?.getDevice?.();if(device?.lost)device.lost.then(()=>{modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,error:'WebGPU device lost · โหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง',percent:null})})}catch(_){}
-  updateModelLoad({active:false,percent:100,stage:'โมเดลพร้อมใช้งาน',error:''});
+  updateModelLoad({active:false,ready:true,percent:100,stage:'โมเดลพร้อมใช้งาน · ไม่ต้องโหลดซ้ำในหน้านี้',error:''});
   return engine;
  }catch(err){
   if(/disposed|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
-  updateModelLoad({active:false,error:String(err.message||err)+(modelUnavailable?' · กรุณาโหลดหน้าเว็บใหม่และเริ่มจากโมเดล 0.5B':''),stage:'',percent:null});
+  updateModelLoad({active:false,ready:false,error:String(err.message||err)+(modelUnavailable?' · กรุณาโหลดหน้าเว็บใหม่และเริ่มจากโมเดล 0.5B':''),stage:'',percent:null});
   throw err;
  }
 }
@@ -109,7 +109,7 @@ async function benchmarkModel(applyChanges=false){
  if(busy)return;
  if(chosenModel==='standard'){previewAudit();modelReport='มาตรฐาน: ไม่ต้องดาวน์โหลดโมเดล · ไม่มีโควตา · ใช้การตรวจเวลาจริง';render();return}
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
- if(!root.confirm('โมเดล '+model.label+' ต้องดาวน์โหลดประมาณ '+model.mb+' MB และใช้หน่วยความจำเพิ่มเติม ดำเนินการบนเครื่องนี้?'))return;
+ if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!root.confirm('เตรียมโมเดล '+model.label+' (หากยังไม่มีแคชอาจต้องดาวน์โหลดประมาณ '+model.mb+' MB) ดำเนินการบนเครื่องนี้?'))return;
  busy=true;render();
  const start=performance.now();
  try{
@@ -412,7 +412,7 @@ function renderChat(container){
    e('label',{},'เครื่องมือวิเคราะห์',
     e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
      ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel},m.label)))),
-   button(busy?'กำลังทดสอบ…':'ทดสอบโมเดลบนอุปกรณ์',()=>benchmarkModel(false),{disabled:busy}),
+   button(busy?'กำลังทดสอบ…':loadedModel===chosenModel&&localEngine?'ทดสอบอีกครั้ง · โมเดลพร้อมแล้ว':'โหลดและทดสอบโมเดล',()=>benchmarkModel(false),{disabled:busy}),
    ...(chosenModel==='standard'?[]:[button('ให้ AI วิเคราะห์และปรับฉากจริง',()=>benchmarkModel(true),{disabled:busy,className:'ai-primary'})]),
    e('small',{},'มาตรฐานทำงานโดยไม่โหลดโมเดล · รุ่นอื่นต้องใช้ WebGPU และดาวน์โหลดไฟล์ · ไม่มีค่า API')),
   ...(modelReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},modelReport)]:[]),
