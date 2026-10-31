@@ -15,6 +15,8 @@ import os
 import re
 import secrets
 import time
+import urllib.error
+import urllib.request
 from collections import defaultdict
 
 import edge_tts
@@ -33,6 +35,7 @@ PITCH_RE = re.compile(r"^[+-]\d{1,2}Hz$")
 # Warm-container login throttle, best effort only (use AWS WAF for strict cross-instance limits).
 _ATTEMPTS = defaultdict(list)
 _ASSET_SUBMISSIONS = defaultdict(list)
+_AI_CALLS = defaultdict(list)
 
 
 def _resp(code, obj):
@@ -112,6 +115,58 @@ async def _synth(text, voice, rate, pitch):
     return bytes(out)
 
 
+
+def _generate_ai(body, source):
+    """Authenticated server-side OpenAI Responses gateway. Never expose the API key."""
+    key = os.environ.get("OPENAI_API_KEY", "")
+    if not key:
+        return _resp(503, {"error": "ยังไม่ได้ตั้ง OPENAI_API_KEY ใน AWS Lambda"})
+    prompt, instructions = body.get("prompt"), body.get("system")
+    if (not isinstance(prompt, str) or not 1 <= len(prompt.strip()) <= 3500 or
+            not isinstance(instructions, str) or not 1 <= len(instructions) <= 12000):
+        return _resp(400, {"error": "คำสั่งหรือบริบท AI ไม่ถูกต้องหรือยาวเกินกำหนด"})
+    now = time.time()
+    _AI_CALLS[source] = [t for t in _AI_CALLS[source] if now - t < 3600]
+    if len(_AI_CALLS[source]) >= 18:
+        return _resp(429, {"error": "ใช้ AI ออนไลน์ถึงขีดจำกัด 18 งานต่อชั่วโมงของเซิร์ฟเวอร์แล้ว"})
+    _AI_CALLS[source].append(now)
+    payload = json.dumps({
+        "model": os.environ.get("OPENAI_MODEL", "gpt-6-luna"),
+        "instructions": instructions,
+        "input": [{"role": "user", "content": prompt}],
+        "max_output_tokens": 2200,
+        "store": False,
+    }, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=payload,
+        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=23) as response:
+            data = json.loads(response.read(450000).decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # Do not return provider response bodies (may contain sensitive details).
+        if exc.code == 429:
+            return _resp(429, {"error": "ผู้ให้บริการ AI จำกัดคำขอหรือเครดิตไม่พอ"})
+        if exc.code in (401, 403):
+            return _resp(502, {"error": "OPENAI_API_KEY ไม่ถูกต้องหรือไม่มีสิทธิ์ใช้โมเดล"})
+        return _resp(502, {"error": "AI ออนไลน์ตอบกลับ HTTP %s" % exc.code})
+    except (urllib.error.URLError, TimeoutError, ValueError, UnicodeError) as exc:
+        return _resp(502, {"error": "เชื่อมต่อ AI ออนไลน์ไม่สำเร็จ (%s)" % type(exc).__name__})
+    parts = []
+    for item in data.get("output", []):
+        if isinstance(item, dict) and item.get("type") == "message":
+            for part in item.get("content", []):
+                if isinstance(part, dict) and part.get("type") == "output_text":
+                    parts.append(str(part.get("text") or ""))
+    result = "\n".join(parts).strip() or str(data.get("output_text") or "").strip()
+    if not result:
+        return _resp(502, {"error": "AI ออนไลน์ไม่ส่งข้อความกลับมา"})
+    return _resp(200, {"text": result[:18000], "model": data.get("model", "")})
+
+
 def handler(event, context):
     headers = {str(k).lower(): v for k, v in (event.get("headers") or {}).items()}
     body = _parse(event)
@@ -148,6 +203,11 @@ def handler(event, context):
         if not KEY or not hmac.compare_digest(sent, KEY.encode("utf-8")):
             return _resp(401, {"error": "รหัสลับไม่ถูกต้อง"})
 
+    if action == "aiGenerate":
+        if not secured:
+            return _resp(401, {"error": "ต้องเปิดระบบรหัสผ่านเว็บไซต์ก่อนใช้ AI ออนไลน์"})
+        source = str((event.get("requestContext") or {}).get("http", {}).get("sourceIp") or "unknown")
+        return _generate_ai(body, source)
     if action == "proposeAsset":
         if not secured:
             return _resp(401, {"error": "ต้องเปิดระบบรหัสผ่านเว็บไซต์ก่อน"})
