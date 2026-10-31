@@ -50,6 +50,11 @@ assert result(req("synthesize",{"x-dub-key":"legacy_key_should_be_rejected"},tex
 assert result(req("verify",{"Authorization":"Bearer "+token+"bad"}),401)
 assert result(req("synthesize",bearer,text=""),400)
 assert result(req("not-allowed",bearer),400)
+sample_art={"name":"เครื่องประดับฉาก","shapes":[{"type":"circle","r":12}]}
+assert result(req("proposeAsset",{"x-dub-key":"legacy_key_should_be_rejected"},asset=sample_art),401)
+assert result(req("proposeAsset",{"authorization":"Bearer invalid"},asset=sample_art),401)
+with patch.object(mod.github_assets,"propose",return_value={"number":15,"url":"https://github.com/tanawutmalirum29-ux/AI-ANIMATION/pull/15"}):
+    assert result(req("proposeAsset",bearer,asset=sample_art),200)["number"]==15
 with patch.object(mod.time,"time",return_value=auth["expiresAt"]+1):
     assert result(req("verify",bearer),401)
 print("PASS: Lambda password hashing, signed session, expiration, voice auth, legacy-key rejection")
