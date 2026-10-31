@@ -26,6 +26,14 @@
     if(!roles.some(r=>r.id===w.role))w.role='structure';
     if(typeof w.projectId!=='string'||!w.projectId)w.projectId='story'+id();
     if(typeof w.engineModel!=='string')w.engineModel='Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+    if(!w.production||typeof w.production!=='object'||Array.isArray(w.production))w.production={};
+    if(!['imported','script_ready','dub_ready','timing_review','ready','needs_attention'].includes(w.production.stage))
+      w.production.stage='imported';
+    w.production.targetSeconds=60;
+    w.production.maxSeconds=65;
+    if(typeof w.production.pendingDub!=='boolean')w.production.pendingDub=false;
+    if(!Array.isArray(w.production.handoffs))w.production.handoffs=[];
+    if(w.production.handoffs.length>40)w.production.handoffs.splice(0,w.production.handoffs.length-40);
     return w;
   }
   function historyPush(w,entry){
@@ -40,7 +48,10 @@
     const current=eps[epIndex]||eps[0],scenes=(current?.scenes||[]).slice(-6).map(s=>({
       id:s.id,location:s.location,duration:s.duration,voice:short(s.voiceover,155),subtitle:short((s.subtitle||[]).join(' '),155),notes:short(s.notes,170)
     }));
-    return {title:short(project.title,90),style:short(project.styleSuffix,180),bible:{
+    return {title:short(project.title,90),style:short(project.styleSuffix,180),production:{
+      targetSeconds:60,maxSeconds:65,stage:w.production.stage,pendingDub:w.production.pendingDub,
+      lastHandoffs:w.production.handoffs.slice(-4).map(x=>({role:x.role,summary:short(x.summary,250)}))
+    },bible:{
       premise:short(w.bible.premise,1300),world:short(w.bible.world,1300),
       characters:short(w.bible.characters,1300),timeline:short(w.bible.timeline,1300),threads:short(w.bible.threads,1300)
     },characters,episodes,currentEpisode:current?{id:current.id,title:current.title,scenes}:null};
@@ -48,8 +59,14 @@
   // Historical data compatibility; actual work is performed by the episode planner and TTS engine.
   function systemPrompt(role,state,epIndex){
     const current=roles.find(r=>r.id===role)||roles[0];
+    const rule=role==='narrative'?
+      'ปรับบทบรรยายและซับได้ตามสิทธิ์ที่ผู้ใช้เลือก แต่ห้ามเปลี่ยนเหตุการณ์หรืออัตลักษณ์ตัวละคร เมื่อแก้บทแล้วต้องให้ AI-2 พากย์ใหม่ก่อน AI-1 กำหนดเวลาจริง':
+      role==='voice'?'ใช้บทล่าสุดจาก AI-3 หรือ JSON ภายนอก สร้างไฟล์เสียงจริง แล้วส่งต่อ AI-1 ให้ตรวจเวลา':
+      'ใช้ไฟล์เสียงของ AI-2 วัดเวลาจริง จัดกลุ่มฉากจาก JSON ภายนอกเป็นตอน 60–65 วินาที โดยไม่ตัดเสียง ไม่เพิ่มความเงียบปลอม และไม่ทำให้เนื้อเรื่องหาย';
     return 'คุณเป็น '+current.name+'. '+current.instruction+
-      '. บทและฉากเป็นของผู้ใช้ ห้ามเขียน ดัดแปลง หรือลบข้อความ. '+JSON.stringify(context(state,epIndex)).slice(0,5300);
+      '. เป้าหมายเวลา 60 วินาทีต่อตอน อนุโลมเพิ่มได้สูงสุด 5 วินาที (65 วินาที). '+
+      'ต้นฉบับที่ AI ภายนอกส่งมายาวเกินได้ แต่ต้องประสานกันตามลำดับ AI-3 → AI-2 → AI-1. '+
+      rule+'. '+JSON.stringify(context(state,epIndex)).slice(0,5300);
   }
   function parseResult(text){
     const raw=String(text||'').trim();

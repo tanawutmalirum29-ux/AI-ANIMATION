@@ -1690,7 +1690,7 @@ const ART_OPTS=[['','ไม่มี'],['chaos','ไอเดียกระจ�
 /* ===== blank project ===== */
 let _u=0;const uid=()=>Date.now().toString(36)+(_u++).toString(36)+Math.floor(Math.random()*999);
 function newScene(){return{id:'s'+uid(),duration:4,characters:[],location:'',subtitle:[],subtitleCues:[],graphicCards:[],voiceover:'',imagePrompt:'',uiBox:null,camera:{type:'static',from:1,to:1,panX:0,panY:0,world:1,rotation:0,startX:0,endX:100},transition:{type:'dissolve',duration:.55},atmosphere:'none',lighting:{exposure:1,glow:0,vignette:0,focusX:50,focusY:40,flicker:0},sfx:[],clueIds:[],actors:[],props:[],light:'',art:'',image:null,video:null,audio:null,audioClips:[],voiceDirection:{speaker:'',emotion:'neutral',tone:'natural, cinematic, conversational',pace:'normal',pause:'short natural pauses',pronunciation:'',notes:''},notes:''}}
-function newEp(n){return{id:'ep'+uid(),title:'ตอนที่ '+n,targetSeconds:0,hiddenMistake:'',clues:[],scenes:[newScene()],cliffhanger:''}}
+function newEp(n){return{id:'ep'+uid(),title:'ตอนที่ '+n,targetSeconds:60,hiddenMistake:'',clues:[],scenes:[newScene()],cliffhanger:''}}
 /* ===== presets & tutorial sample ===== */
 const PL=[['bedroom','ห้องนอน','cozy bedroom interior'],['living','ห้องนั่งเล่น','living room interior with sofa'],['kitchen','ห้องครัว','home kitchen interior'],['office','ออฟฟิศ','modern office interior'],['classroom','ห้องเรียน','classroom with desks and blackboard'],['cafe','ร้านกาแฟ','small coffee shop interior'],['street','ถนนในเมือง','busy city street'],['park','สวนสาธารณะ','public park with trees and benches'],['beach','ชายหาด','sandy beach and sea'],['forest','ป่า','dense forest'],['mountain','ภูเขา','mountain landscape'],['field','ทุ่งนา/ชนบท','countryside rice fields'],['market','ตลาด','busy open-air market'],['hospital','โรงพยาบาล','hospital corridor'],['stadium','สนามกีฬา','sports stadium'],['station','สถานีรถไฟ','train station platform'],['basement','ห้องใต้ดิน','dim basement room'],['rooftop','ดาดฟ้า','building rooftop at dusk'],['space','ท้องฟ้า/อวกาศ','night sky full of stars'],['studio','สตูดิโอพื้นเรียบ','plain studio backdrop'],['abstract','ฉากนามธรรม','abstract gradient background'],
 ['library','ห้องสมุด','quiet library with bookshelves'],['alley','ตรอกกลางคืน','dark narrow alley'],['temple','ลานวัด','traditional temple courtyard'],['airport','สนามบิน','modern airport gate'],['harbor','ท่าเรือ','harbor and pier'],['tunnel','อุโมงค์','long tunnel'],['metro','สถานีรถไฟใต้ดิน','subway platform'],['police','สถานีตำรวจ','police office'],['restaurant','ร้านอาหาร','cozy restaurant'],['balcony','ระเบียง','city balcony at sunset'],['gallery','แกลเลอรี','art exhibition gallery'],['shop','ร้านขายของ','small retail shop'],['nightmarket','ตลาดกลางคืน','night market lanterns'],['carnival','สวนสนุก','amusement park'],['river','ริมแม่น้ำ','river bank'],['waterfall','น้ำตก','waterfall pool'],['desert','ทะเลทราย','desert dunes'],['snow','ทุ่งหิมะ','snowfield pine trees'],['cave','ถ้ำ','dark rocky cave'],['castle','ปราสาท','old stone castle'],['spacecraft','ยานอวกาศ','futuristic spaceship interior'],['ruins','ซากเมือง','abandoned ruins'],['greenhouse','เรือนกระจก','tropical greenhouse'],['bridge','สะพาน','bridge skyline'],['courtyard','ลานกลางแจ้ง','courtyard'],['observatory','หอดูดาว','observatory under stars']];
@@ -1703,7 +1703,7 @@ const lo=(S.locations.find(l=>l.id===s.location)||{}).promptBlock;let suf=p.styl
 if(s.uiBox)suf=suf.replace(/no text/i,'no text except the specified UI box')+`, UI box text: "${s.uiBox}"`;
 return[ch.join('; '),lo,s.imagePrompt,suf].filter(Boolean).join(', ')}
 function checks(){const E=ep(),o=[],t=total();
-o.push([!(E.targetSeconds>0)||t<=E.targetSeconds,`รวมเวลา ${t.toFixed(1)} วินาที`+(E.targetSeconds>0?` / เป้า ${E.targetSeconds}`:' (ไม่จำกัด)')]);
+o.push([t<=65,`รวมเวลา ${t.toFixed(1)} วินาที / เป้า 60–65 วินาที`+(t<60?' (ยังต่ำกว่าเป้า)':t>65?' (เกินเพดาน)':' (เข้าเป้า)')]);
 const ni=E.scenes.filter(s=>!s.image&&!s.video).length,na=E.scenes.filter(s=>!(s.audioClips||[]).length).length;
 o.push([ni===0,`ฉากที่ยังไม่มีภาพ: ${ni}`]);o.push([na===0,`ฉากที่ยังไม่มีเสียง: ${na}`]);
 const uc=E.clues.filter(c=>!E.scenes.some(s=>s.id===c.sceneId));o.push([!uc.length,`จุดใบ้ที่ยังไม่ผูกฉาก: ${uc.length}`]);
@@ -2700,7 +2700,7 @@ function productionPanel(){const problems=directorScan(),ct=ep().scenes.length;c
 function openDirector(){if(STUDIO_WORKSPACE_READY)switchStudioTool('scene');document.body.classList.remove('m-lib');document.body.classList.add('m-ins');const tabs=$('#mtabs');if(tabs)[...tabs.children].forEach((b,i)=>b.classList.toggle('on',i===0));const d=$('#directorDetails');if(d){d.open=true;open.add('director');d.scrollIntoView({behavior:'smooth',block:'start'})}}
 
 function inspector(){const p=$('#ins'),s=sc();if(!s){p.textContent='ไม่มีฉาก';return}
-const cam=s.camera,E=ep(),tt=total(),over=E.targetSeconds>0&&tt>E.targetSeconds;
+const cam=s.camera,E=ep(),tt=total(),over=tt>65;
 const ib=(t,l,f)=>h('button',{onclick:f,title:l,'aria-label':l},t);
 const mv=d=>commit(()=>{const j=sel+d;if(j<0||j>=E.scenes.length)return;const[m]=E.scenes.splice(sel,1);E.scenes.splice(j,0,m);sel=j});
 const chk=S.characters.length?S.characters.map(c=>h('label',{className:'chip',style:'margin-top:2px'},h('input',{type:'checkbox',checked:s.characters.includes(c.id),onchange:e=>commit(()=>{s.characters=e.target.checked?[...s.characters,c.id]:s.characters.filter(x=>x!==c.id)})}),c.name)):[h('span',{className:'sum'},'ยังไม่มีตัวละคร — เพิ่มที่ไลบรารี')];
@@ -2708,7 +2708,7 @@ const ap=h('textarea',{value:autoPrompt(s),readOnly:true});
 const up=h('input',{type:'file',accept:'image/*','aria-label':'อัปโหลดภาพ',onchange:e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>commit(()=>s.image=r.result);r.readAsDataURL(f)}});
 p.replaceChildren(h('h3',{style:'margin:2px 0'},`ฉาก ${sel+1} / ${E.scenes.length}`),
  det('director','กำกับภาพ · การแสดง · จังหวะ (ใหม่ v12)',directorPanel(s),h('h4',{},'ซับและบทพูดแบบกำหนดเวลา'),captionsEditor(s),h('h4',{},'ป้ายข้อความประกอบภาพ'),graphicsEditor(s),productionPanel()),
-h('div',{className:'sum '+(over?'warn':'')},`รวม ${tt.toFixed(1)} วินาที`+(E.targetSeconds>0?` / เป้า ${E.targetSeconds}`+(over?' (เกินเป้า!)':''):' (ไม่จำกัด)')),
+h('div',{className:'sum '+(over?'warn':'')},`รวม ${tt.toFixed(1)} วินาที / เป้า 60–65 วินาที`+(over?' (เกินเพดาน!)':tt<60?' (ยังไม่ถึงเป้า)':'')),
 h('div',{className:'bar2'},ib('◀','เลื่อนฉากไปก่อน',()=>mv(-1)),ib('▶','เลื่อนฉากไปถัดไป',()=>mv(1)),ib('⧉','ทำซ้ำฉาก',()=>commit(()=>{E.scenes.splice(sel+1,0,{...JSON.parse(JSON.stringify(s)),id:'s'+uid()});sel++})),ib('＋','เพิ่มฉากใหม่',()=>commit(()=>{E.scenes.splice(sel+1,0,newScene());sel++})),ib('🗑','ลบฉาก',()=>commit(()=>{if(E.scenes.length>1)E.scenes.splice(sel,1)}))),
 h('div',{className:'continuity-tools'},
  h('button',{onclick:()=>commit(()=>{E.scenes.splice(sel+1,0,followScene(s,true));sel++;T=starts()[sel];playing=false})},'＋ ต่อฉากจากช็อตนี้'),
@@ -3803,7 +3803,7 @@ function normalize(d){const B=blank();d.project=merge(B.project,isObj(d.project)
 ['characters','locations','rules'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[]});
 d.characters=d.characters.map(c=>({name:'',role:'',promptBlock:'',refImage:null,voice:'',...c}));
 d.locations=d.locations.map(l=>({name:'',promptBlock:'',...l}));d.version||=1;
-d.episodes.forEach((E,i)=>{E.title||='ตอนที่ '+(i+1);E.targetSeconds=Number(E.targetSeconds)||0;E.hiddenMistake||='';E.cliffhanger||='';if(!Array.isArray(E.clues))E.clues=[];
+d.episodes.forEach((E,i)=>{E.title||='ตอนที่ '+(i+1);E.targetSeconds=Number(E.targetSeconds)||60;E.hiddenMistake||='';E.cliffhanger||='';if(!Array.isArray(E.clues))E.clues=[];
 E.scenes=E.scenes.map(s=>{const n=merge(newScene(),s);fixCam(n,s.camera);return n})});
 reconcile(d);syncClues(d);return d}
 
@@ -3923,7 +3923,8 @@ if(s.light!==undefined&&s.light!==''&&s.light!=='none'&&!resolveLight(s.light))a
 if(!s.voiceover)add('info',sp+'.voiceover','ยังไม่มีบทพากย์');if(!s.image&&!s.video)add('info',sp+'.image','ยังไม่มีภาพ');if(!s.audio)add('info',sp+'.audio','ยังไม่มีเสียง')});
 clues.forEach((c,j)=>{const cp=`${ep}.clues[${j}]`;if(!isObj(c)||!c.id){add('error',cp,'marker ต้องมี id');return}
 if(!c.sceneId)add('warn',cp+'.sceneId',`marker ${c.id} ยังไม่ผูกฉาก`,'ตั้ง sceneId');else if(!E.scenes.some(s=>s&&s.id===c.sceneId))add('error',cp+'.sceneId','ไม่มีฉาก '+c.sceneId+' ในตอนนี้','แก้ sceneId')});
-if(E.targetSeconds>0&&tot>E.targetSeconds)add('warn',ep+'.targetSeconds',`รวม ${tot.toFixed(1)} วินาที เกินเป้า ${E.targetSeconds}`,'ลด duration หรือรวม/ลบฉาก')});
+if(tot>65)add('warn',ep+'.targetSeconds',`รวม ${tot.toFixed(1)} วินาที เกินเพดาน 65 วินาที`,'ใช้ AI-1 จัดตอนจากฉากเดิม ตรวจเสียงจริงก่อน ไม่ตัดเหตุการณ์หรือไฟล์เสียง');
+if(tot<60)add('warn',ep+'.targetSeconds',`รวม ${tot.toFixed(1)} วินาที ต่ำกว่าเป้าหมาย 60 วินาที`,'จัดเนื้อหาหรือรวมฉากอย่างระมัดระวัง ห้ามยืดภาพค้างปลอม')});
 return I}
 
 /* ===== patch ops (ทำงานบนสำเนา แล้วค่อยแทนที่; ผิดคำสั่งเดียว = ไม่เปลี่ยนอะไร) ===== */
@@ -3979,6 +3980,9 @@ for(let i=0;i<ops.length;i++){const o=ops[i];try{const f=isObj(o)&&Object.protot
 reconcile(D);return{log,errors}}
 const AI_PROMPT=`ช่วยเขียนข้อมูลโปรเจกต์อนิเมชันเนื้อเรื่องเป็น JSON ตามสคีมาด้านล่าง
 กฎการเขียน:
+- แต่ละตอนมีเป้าหมาย 60 วินาที อนุโลมได้สูงสุด 65 วินาที แต่เนื้อเรื่องและ JSON ต้นฉบับสามารถยาวกว่านี้ได้ ไม่ต้องตัดบทหรือเหตุการณ์เพื่อให้ครบเวลา
+- แบ่งฉากตามจังหวะเหตุการณ์ตามธรรมชาติ ระบุจุดตัดฉากอย่างชัดเจน ผู้ช่วยใน Story Studio จะประสาน AI-3 จัดซับ → AI-2 พากย์ → AI-1 วัดเสียงจริงและจัดแบ่งเป็นตอนใหม่ตามรอยต่อฉากที่ปลอดภัย
+- ไม่ฝืนยืดฉากค้างหรือทำเสียงพากย์เร็วเกินเพื่อให้ครบ 60 วินาที หากตอนหรือฉากใดยังจัดให้อยู่ในช่วง 60–65 ไม่ได้ ให้ผู้ช่วยแจ้งเตือนและรักษาเนื้อหาไว้
 - ตอบเป็น JSON ล้วนเท่านั้น ห้ามมีข้อความอื่นหรือ markdown
 - id ใช้ตัวอักษรอังกฤษพิมพ์เล็กและตัวเลข
 - ใส่ promptBlock ของตัวละครให้คงที่ทุกฉาก (ภาษาอังกฤษ)
@@ -3996,7 +4000,7 @@ const AI_PROMPT=`ช่วยเขียนข้อมูลโปรเจก
 "characters":[{"id":"hero","name":"","role":"","promptBlock":"","refImage":null,"voice":"Natural Thai voice with warm clear timbre, natural diction","voiceProfileId":"vp_hero","rig":{"style":"human","skin":"#f2c9a0","hair":"#6b4226","hairStyle":"short","shirt":"#2a9d8f","pants":"#3d4b6b","shoes":"#2b2b2b","accessory":"","scale":1}}],
 "locations":[{"id":"place1","name":"","promptBlock":""}],
 "rules":[{"id":"r1","text":""}],
-"episodes":[{"id":"ep1","title":"","targetSeconds":70,"hiddenMistake":"","clues":[{"id":"c1","label":"","sceneId":"s2"}],
+"episodes":[{"id":"ep1","title":"","targetSeconds":60,"hiddenMistake":"","clues":[{"id":"c1","label":"","sceneId":"s2"}],
 "scenes":[{"id":"s1","duration":4,"characters":["hero"],"location":"place1","subtitle":["..."],"voiceover":"... // ...","voiceDirection":{"speaker":"hero","voiceProfileId":"vp_hero","emotion":"mysterious","tone":"low, restrained, intimate","delivery":"gentle restrained whisper","energy":"low","pace":"slow","articulation":"clear Thai diction","pause":"pause briefly before revealing the clue","breath":"soft breaths between sentences","accent":"standard Thai","emphasis":"emphasize the final warning","pronunciation":"","recordingTips":"quiet room, microphone 15-20 cm, steady distance","notes":"Whisper at first, then gradually add tension"},"audioClips":[],"imagePrompt":"","uiBox":null,"camera":{"type":"zoom-in","from":1,"to":1.08,"panX":0,"panY":0},"transition":{"type":"fade","duration":0.3},"sfx":[],"clueIds":[],"actors":[{"char":"hero","pose":"stand","x":50,"y":90,"facing":"right","face":"neutral","override":{}}],"art":"","image":null,"video":null,"audio":null,"notes":""}],
 "cliffhanger":""}]}`;
 /* ===== importer: plan() = จำลองผลก่อน, importIt() = ทำจริงเมื่อไม่มี error ===== */
@@ -4291,7 +4295,7 @@ function autoDubJobs(scope,skipExisting){
   const cues=narrated?[{id:'narration-'+scene.id,text:narrated,start:0,end:scene.duration,speaker:''}]:
    effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):
    ((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
-  const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data);
+  const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute&&!c.staleNarration);
   const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
   if(narrated){
    // One external JSON scene can contain minutes of narration. Chunk only TTS requests;
