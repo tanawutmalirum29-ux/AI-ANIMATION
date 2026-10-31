@@ -140,7 +140,7 @@
     const penalty=sum>max?1e6+Math.pow(sum-max,2)*1000:
      sum<target?Math.pow(target-sum,2)*2+40:Math.pow(sum-target,2)*.12;
     const candidate={score:rest.score+penalty+2,groups:[scenes.slice(i,j),...rest.groups]};
-    if(!best[i]||candidate.score<best[i].score)best[i]=candidate;
+    if(!best[i]||candidate.score<=best[i].score)best[i]=candidate;
    }
   }
   return best[0]?.groups||[scenes];
