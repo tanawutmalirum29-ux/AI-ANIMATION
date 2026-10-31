@@ -13,12 +13,12 @@ let targetMinutes=5,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
 const LOCAL_MODELS=[
  {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
- {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 0.5B',mb:280},
- {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 1.5B',mb:870},
- {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 3B',mb:1750},
- {id:'Qwen2.5-7B-Instruct-q4f16_1-MLC',label:'Qwen 2.5 · 7B (อุปกรณ์แรง)',mb:4100},
  {id:'smollm2-135m-cpu',label:'CPU/WASM · SmolLM2 135M (ภาษาไทยจำกัด)',backend:'wasm',mb:185},
- {id:'qwen2.5-0.5b-cpu',label:'CPU/WASM · Qwen 2.5 0.5B (ไม่ใช้ WebGPU)',backend:'wasm',mb:790}
+ {id:'qwen2.5-0.5b-cpu',label:'CPU/WASM · Qwen 2.5 0.5B (ไม่ใช้ WebGPU)',backend:'wasm',mb:790},
+ {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 0.5B',mb:280},
+ {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 1.5B',mb:870},
+ {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 3B',mb:1750},
+ {id:'Qwen2.5-7B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 7B (อุปกรณ์แรง)',mb:4100}
 ];
 const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
@@ -656,7 +656,7 @@ function renderChat(container){
   e('div',{className:'ai-script-settings'},
    e('label',{},'เครื่องมือวิเคราะห์',
     e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
-     ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel},m.label)))),
+     ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.label)))),
    button(busy?'กำลังทดสอบ…':loadedModel===chosenModel&&localEngine?'ทดสอบอีกครั้ง · โมเดลพร้อมแล้ว':'โหลดและทดสอบโมเดล',()=>benchmarkModel(false),{disabled:busy}),
    ...(chosenModel==='standard'?[]:[button('ให้ AI วิเคราะห์และปรับฉากจริง',()=>benchmarkModel(true),{disabled:busy,className:'ai-primary'})]),
    e('small',{},(gpuCapability===false?'ไม่พบ WebGPU บนอุปกรณ์นี้ · ใช้ CPU/WASM (ทดลอง) หรือมาตรฐานได้ · GPU ใช้ไม่ได้':'มาตรฐานไม่ต้องโหลด AI · Qwen GPU ต้องมี WebGPU · CPU/WASM ไม่ต้องมี WebGPU · ไม่มีค่า API'))),
@@ -692,7 +692,7 @@ function renderChat(container){
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
   e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{if(busy)return;const next=ev.target.value;if(localEngine&&next!==loadedModel)releaseLocalModel();narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}updateModelLoad({active:false,ready:!!localEngine,error:'',percent:localEngine?100:null,stage:localEngine?'พร้อมใช้งาน':'เปลี่ยนโมเดลแล้ว · ไม่ต้องรีโหลดเว็บไซต์'});render()}},
-   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
+   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
  button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
@@ -843,7 +843,18 @@ function mount(){
  const state=w();
  if(state.tasks.some(t=>t.status==='running'))persist(s=>{for(const t of s.tasks)if(t.status==='running')t.status='interrupted'});
  render();
- webGpuReady().then(ready=>{gpuCapability=ready;render()}).catch(()=>{gpuCapability=false;render()});
+ webGpuReady().then(ready=>{
+  gpuCapability=ready;
+  if(!ready){
+   if(LOCAL_MODELS.find(m=>m.id===chosenModel)?.backend!=='wasm'&&chosenModel!=='standard')
+    chosenModel='standard';
+   if(LOCAL_MODELS.find(m=>m.id===narrativeModel)?.backend!=='wasm'&&narrativeModel!=='standard')
+    narrativeModel='standard';
+   try{localStorage.setItem(MODEL_KEY,chosenModel);localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}
+   status('อุปกรณ์นี้ไม่มี WebGPU · ใช้โมเดล CPU/WASM สำหรับทดลอง หรือใช้มาตรฐานได้');
+  }
+  render();
+ }).catch(()=>{gpuCapability=false;render()});
 }
 root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});
