@@ -1328,7 +1328,9 @@ function d6Wardrobe(ch,a,loc,noShadow=false){
  const chair=seated?`<g opacity=".94"><rect x="${f2(hipX-6.8)}" y="${f2(hipY+.7)}" width="14.5" height="1.45" rx=".6" fill="#857363"/><path d="M${f2(hipX-5.2)} ${f2(hipY+.7)}V${f2(hipY-8)}M${f2(hipX-4.8)} ${f2(hipY+2)}V0 M${f2(hipX+5.8)} ${f2(hipY+2)}V0" stroke="#68574e" stroke-width="1.7" stroke-linecap="round"/></g>`:'';
 const farArm=nearR?drawArm(2,3,4,true):drawArm(5,6,7,true),nearArm=nearR?drawArm(5,6,7,false):drawArm(2,3,4,false);
  // Ensure far limbs and accessories are underneath torso/head, and costume stays attached to projected shoulders.
- obj+=(noShadow?'':ell(0,-.55,8.7,1.4,'#0003'))+chair+(back?'':rear)+(nearR?drawLeg(8,9,10,true)+drawLeg(11,12,13,false):drawLeg(11,12,13,true)+drawLeg(8,9,10,false))+farArm+outfit+(back?rear:'')+neckSkin+neck+headPart+nearArm;
+ const legsSVG=(nearR?drawLeg(8,9,10,true)+drawLeg(11,12,13,false):drawLeg(11,12,13,true)+drawLeg(8,9,10,false)),farBehind=Math.abs(profile)>.3;
+ // แขนฝั่งไกลต้องอยู่หลังทั้งลำตัวและขา เมื่อตัวหันข้าง/เฉียง (ไม่งั้นมือโผล่ทับขาตรงรอยต่อตัว-ขาเหมือนแขนทะลุตัว)
+ obj+=(noShadow?'':ell(0,-.55,8.7,1.4,'#0003'))+chair+(back?'':rear)+(farBehind?farArm+legsSVG:legsSVG+farArm)+outfit+(back?rear:'')+neckSkin+neck+headPart+nearArm;
  return obj}
 const d6Preview=(c,v='threeQuarter')=>isObj(c&&c.rig)&&c.rig.style==='creature'?`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24 -43 48 48" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">${d6Wardrobe(c,{pose:'stand',view:v,face:'happy'},.8)}</svg>`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-23 -55 46 62" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">${d6Wardrobe(c,{pose:'stand',view:v,face:'happy'},.8)}</svg>`;
 
@@ -2193,7 +2195,28 @@ function clipGain(c,at,duration=safeClipDuration(c)){let vol=c.mute?0:clampN(cle
  if(c.fadeOut>0)vol*=clampN((duration-elapsed)/c.fadeOut,0,1);
  return vol;
 }
-function previewContext(){if(!PREVIEW_AUDIO_CTX)PREVIEW_AUDIO_CTX=new (window.AudioContext||window.webkitAudioContext)();if(PREVIEW_AUDIO_CTX.state==='suspended')PREVIEW_AUDIO_CTX.resume().catch(()=>{});return PREVIEW_AUDIO_CTX}
+function previewContext(){if(!PREVIEW_AUDIO_CTX){PREVIEW_AUDIO_CTX=new (window.AudioContext||window.webkitAudioContext)();try{PREVIEW_AUDIO_CTX.onstatechange=()=>updateAudioHint()}catch(e){}}if(PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed')PREVIEW_AUDIO_CTX.resume().then(updateAudioHint,()=>{});return PREVIEW_AUDIO_CTX}
+/* v40: เสียงพรีวิวบน iPad/Safari ต้องถูกปลดล็อกจากการแตะจริง (ไม่ใช่จาก requestAnimationFrame) และต้องตั้งโหมดเสียงเป็น playback
+   ไม่งั้น AudioContext ค้าง suspended / ถูกสวิตช์ปิดเสียงของเครื่องตัดทิ้ง ทำให้เสียงพากย์ได้ยินเฉพาะตอน export (export สร้าง AudioContext ในปุ่มกดโดยตรง) */
+function unlockPreviewAudio(){
+ try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
+ try{
+  const ctx=previewContext();
+  if(ctx.state!=='closed'){const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0)}
+ }catch(e){}
+ updateAudioHint();
+}
+function audioHintNeeded(){return !!(playing&&PREVIEW_AUDIO_CTX&&PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed'&&(()=>{try{return audioEvents().some(ev=>ev.c.data&&T>=ev.start-.55&&T<ev.start+safeClipDuration(ev.c))}catch(e){return false}})())}
+function updateAudioHint(){
+ let el=document.getElementById('audioUnlockHint');
+ if(!audioHintNeeded()){if(el)el.style.display='none';return}
+ if(!el){el=document.createElement('div');el.id='audioUnlockHint';el.setAttribute('role','status');
+  el.style.cssText='position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99999;max-width:min(92vw,420px);background:#3a2a12;color:#ffe9b8;border:1px solid #d9bd83;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.5;text-align:center;box-shadow:0 6px 24px #0008';
+  el.textContent='เสียงพรีวิวยังไม่เปิด — แตะหน้าจอหนึ่งครั้ง (และเช็กว่า iPad/มือถือไม่ได้ปิดเสียงไว้) แล้วกด ▶ ใหม่';
+  document.body.appendChild(el)}
+ el.style.display='block';
+}
+['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockPreviewAudio,{capture:true,passive:true}));
 function createFxNodes(ctx,source,destination){const bass=ctx.createBiquadFilter(),mid=ctx.createBiquadFilter(),treble=ctx.createBiquadFilter(),comp=ctx.createDynamicsCompressor(),gain=ctx.createGain(),pan=ctx.createStereoPanner?ctx.createStereoPanner():ctx.createGain(),delay=ctx.createDelay(.8),echo=ctx.createGain();
  bass.type='lowshelf';bass.frequency.value=200;mid.type='peaking';mid.frequency.value=1250;mid.Q.value=.85;treble.type='highshelf';treble.frequency.value=3600;
  source.connect(bass).connect(mid).connect(treble).connect(comp).connect(pan).connect(gain).connect(destination);
@@ -2204,7 +2227,7 @@ function applyFxNodes(n,c){const p=voiceProfileForClip(c),x=p?.fx||{};n.bass.gai
  if(n.pan.pan)n.pan.pan.value=clampN(cleanNum(x.pan),-1,1);n.echo.gain.value=clampN(cleanNum(x.echo),0,.55);n.gain.gain.value=1;}
 // v39: พากย์ในพรีวิวใช้ AudioBufferSource (Web Audio clock) แทนการ seek MP3 ทุก animation frame.
 // เก็บแคชเฉพาะเสียงพากย์ล่าสุด เพื่อไม่ให้ iPad ต้องถอดรหัสซ้ำและไม่กิน RAM ไม่จำกัด
-const VOICE_PREVIEW_BUFFERS=new Map(),VOICE_PREVIEW_PENDING=new Map(),VOICE_PREVIEW_BAD=new Set(),VOICE_PREVIEW_SOURCES=new Map();
+const VOICE_PREVIEW_BUFFERS=new Map(),VOICE_PREVIEW_PENDING=new Map(),VOICE_PREVIEW_BAD=new Set(),VOICE_PREVIEW_SOURCES=new Map(),VOICE_PREVIEW_FAILS=new Map();
 let VOICE_PREVIEW_CLOCK=null;
 function rememberVoicePreviewBuffer(data,buffer){
  if(!data||!buffer)return;
@@ -2218,7 +2241,7 @@ function primeVoicePreview(c){
   const buffer=await ctx.decodeAudioData(await res.arrayBuffer());rememberVoicePreviewBuffer(data,buffer);
  })();
  VOICE_PREVIEW_PENDING.set(data,pending);
- pending.catch(()=>{VOICE_PREVIEW_BAD.add(data)}).finally(()=>{
+ pending.catch(()=>{const n=(VOICE_PREVIEW_FAILS.get(data)||0)+1;VOICE_PREVIEW_FAILS.set(data,n);if(n>=3)VOICE_PREVIEW_BAD.add(data)}).finally(()=>{
   VOICE_PREVIEW_PENDING.delete(data);
   // ถ้ายังกดเล่นอยู่ ให้เริ่มจากตำแหน่งปัจจุบัน ไม่เล่นเสียงย้อนหลังตอนถอดรหัสเสร็จ
   if(playing)syncAudioAt(T,true);
@@ -2243,6 +2266,7 @@ function syncAudioAt(t,play){
   try{ctx=previewContext()}catch(e){}
  }
  if(ctx){
+  if(ctx.state!=='running')updateAudioHint();
   if(VOICE_PREVIEW_CLOCK&&Math.abs(t-(VOICE_PREVIEW_CLOCK.t+ctx.currentTime-VOICE_PREVIEW_CLOCK.audioTime))>.45)stopVoicePreview();
   VOICE_PREVIEW_CLOCK={t,audioTime:ctx.currentTime};
  }
