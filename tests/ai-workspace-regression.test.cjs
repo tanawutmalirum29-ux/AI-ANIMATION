@@ -268,3 +268,28 @@ test('CPU worker initializes and produces an OpenAI-compatible completion',async
  assert.equal(completed.result.choices[0].message.content,'สรุปฉากเรียบร้อย');
  assert.ok(completed.result.usage.completion_tokens>0);
 });
+
+
+test('AI-3 processes a six-scene story one scene at a time with CPU mode',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,
+  "root.__narrativeTest={set:(b,e)=>{bridge=b;localEngine=e;loadedModel='smollm2-135m-cpu';narrativeModel='smollm2-135m-cpu'},run:runNarrative,report:()=>narrativeReport};");
+ const scenes=Array.from({length:6},(_,i)=>({
+  id:'s'+i,duration:6,voiceover:'เนื้อเรื่อง '+i,subtitle:['เนื้อเรื่อง '+i],subtitleCues:[]
+ }));
+ const state={episodes:[{id:'episode1',scenes}],project:{}};
+ let count=0;
+ const engine={chat:{completions:{create:async()=>{count++;return{choices:[{message:{content:'{"changes":[]}'}}]}}}}};
+ const win={StoryAIWorkspaceCore:{}},doc={readyState:'loading',addEventListener(){}};
+ class FakeAbortController{
+  constructor(){this.signal={aborted:false,addEventListener(){},removeEventListener(){}}}
+  abort(){this.signal.aborted=true}
+ }
+ new Function('window','document','localStorage','performance','navigator','Worker','URL','AbortController',instrument)(
+  win,doc,{getItem:()=>null,setItem(){}},{now:()=>100},{},class Worker{},class URL{},FakeAbortController
+ );
+ win.__narrativeTest.set({get:()=>state,episodeIndex:()=>0},engine);
+ await win.__narrativeTest.run();
+ assert.equal(count,6);
+ assert.match(win.__narrativeTest.report(),/ไม่มีการแก้ไขใหม่/);
+});
