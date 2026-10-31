@@ -61,3 +61,122 @@ test('importer safely normalizes known camera/actor aliases, preserves unknown d
  assert.equal(scenes[2].actors[0].face,'happy');
  assert.doesNotThrow(()=>normalize({episodes:[null,{scenes:[]},{scenes:[{actors:{notAnArray:true},camera:null}]}]}));
 });
+
+test('WebLLM worker handshake falls back to direct runtime without reloading page',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const script=workspace.replace("import('https://esm.run/@mlc-ai/web-llm@0.2.80')","Promise.resolve(root.__fakeWebLLM)")
+  .replace(marker,'root.__test={loadLocalModel,state:()=>({loaded:loadedModel,backend:modelBackend,ready:modelLoad.ready,worker:!!modelWorker})};');
+ const id='Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+ let fallbackCount=0,terminated=0;
+ const engine=()=>({unload:async()=>{},chat:{completions:{create:async()=>({choices:[{message:{content:'พร้อม'}}]})}}});
+ class FailedWorker{
+  constructor(){this.listeners={};queueMicrotask(()=>this.listeners.message?.({data:{type:'story-worker-error',message:'Worker WebGPU unavailable'}}))}
+  addEventListener(name,fn){this.listeners[name]=fn}
+  removeEventListener(name){delete this.listeners[name]}
+  terminate(){terminated++}
+ }
+ const win={StoryAIWorkspaceCore:{},__fakeWebLLM:{
+  prebuiltAppConfig:{model_list:[{model_id:id}]},
+  CreateMLCEngine:async()=>{fallbackCount++;return engine()},
+  CreateWebWorkerMLCEngine:async()=>{throw Error('must not invoke worker after bootstrap fails')}
+ }};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',script)(
+  win,{readyState:'loading',addEventListener(){},baseURI:'https://test.example/'},
+  {getItem(){return null},setItem(){}},{now:()=>0},
+  {gpu:{requestAdapter:async()=>({})}},FailedWorker,class URL{}
+ );
+ await win.__test.loadLocalModel(id);
+ assert.equal(win.__test.state().backend,'main');
+ assert.equal(win.__test.state().ready,true);
+ assert.equal(win.__test.state().worker,false);
+ assert.equal(fallbackCount,1);
+ assert.equal(terminated,1);
+});
+
+test('iPad preview prioritizes direct audible media and offers diagnostics',()=>{
+ assert.match(html,/PREVIEW_DIRECT_VOICE/);
+ assert.match(html,/function checkPreviewAudio\(\)/);
+ assert.match(html,/onclick:checkPreviewAudio/);
+ assert.match(html,/if\(PREVIEW_DIRECT_VOICE\|\|c\.kind==='voice'\)/);
+ assert.match(html,/showPreviewAudioProblem/);
+ assert.match(html,/a\.play\(\)\.then/);
+});
+
+test('iPad preview plays an existing voice clip and immediately replays after data changes',async()=>{
+ const start=html.indexOf('function syncAudioAt(t,play){');
+ const end=html.indexOf('\nfunction audioWaveSVG',start);
+ assert.ok(start>=0&&end>start);
+ const source=html.slice(start,end);
+ let data='data:audio/old',now=2500;
+ const audioPlayers=new Map(),media=[],retry=new Map();
+ const voice={id:'voice1',kind:'voice',duration:5,rate:1,volume:1,data};
+ class FakeAudio{
+  constructor(src){this.src=src;this.paused=true;this.currentTime=0;media.push(this)}
+  pause(){this.paused=true}
+  load(){this.loaded=true}
+  play(){this.paused=false;this.playCount=(this.playCount||0)+1;return Promise.resolve()}
+ }
+ const scope={
+  VOICE_RECORDER:null,STUDIO_CURRENT_TOOL:'ai',STUDIO_DUB_AUTOPLAY:false,
+  pauseAudioPlayers(){},audioEvents:()=>[{c:voice,start:0,cycle:0,limit:5}],
+  PREVIEW_DIRECT_VOICE:true,safeClipDuration:c=>c.duration,
+  VOICE_PREVIEW_BAD:new Set(),previewContext(){},updateAudioHint(){},
+  VOICE_PREVIEW_CLOCK:null,stopVoicePreview(){},VOICE_PREVIEW_BUFFERS:new Map(),
+  VOICE_PREVIEW_SOURCES:new Map(),primeVoicePreview(){},
+  AUDIO_PLAYERS:audioPlayers,AUDIO_PLAYER_GRAPHS:new Map(),Audio:FakeAudio,
+  clipGain:()=>1,eventXGain:()=>1,voiceGainFactor:()=>1,clipAutoGainFactor:()=>1,
+  effectiveClipRate:()=>1,cleanNum:(x,d=0)=>Number.isFinite(Number(x))?Number(x):d,
+  PREVIEW_MEDIA_RETRY_AT:retry,performance:{now:()=>now},
+  clampN:(x,l,h)=>Math.max(l,Math.min(h,x)),showPreviewAudioProblem(){},
+  PREVIEW_MEDIA_ERROR:'',createFxNodes(){},applyFxNodes(){},$:()=>({pause(){}})
+ };
+ const fn=new Function(...Object.keys(scope),source+';return syncAudioAt;')(...Object.values(scope));
+ fn(1,true);await Promise.resolve();
+ assert.equal(media.length,1);
+ assert.equal(media[0].src,'data:audio/old');
+ assert.equal(media[0].paused,false);
+ voice.data='data:audio/new';
+ fn(2,true);await Promise.resolve();
+ assert.equal(media[0].src,'data:audio/new');
+ assert.equal(media[0].paused,false);
+ assert.equal(media[0].playCount,2);
+});
+
+
+test('iPad preview plays original and replaced narration clips without stale audio',async()=>{
+ const begin=html.indexOf('function syncAudioAt(t,play){'),end=html.indexOf('\nfunction audioWaveSVG',begin);
+ assert.ok(begin>0&&end>begin);
+ const players=[],map=new Map(),retry=new Map();
+ class MockAudio{
+  constructor(src){this._src=src;this.paused=true;this.currentTime=0;players.push(this)}
+  get src(){return this._src}set src(v){this._src=v}
+  pause(){this.paused=true}
+  load(){this.reloaded=true}
+  play(){this.paused=false;this.playCount=(this.playCount||0)+1;return Promise.resolve()}
+ }
+ const event={c:{id:'v1',kind:'voice',data:'data:audio/first',duration:5,rate:1,volume:1,at:0},start:0,cycle:0,limit:5};
+ const ctx={
+  VOICE_RECORDER:null,STUDIO_CURRENT_TOOL:'ai',STUDIO_DUB_AUTOPLAY:false,
+  pauseAudioPlayers(){},audioEvents:()=>[event],PREVIEW_DIRECT_VOICE:true,
+  safeClipDuration:c=>c.duration,VOICE_PREVIEW_BAD:new Set(),previewContext:()=>null,
+  PREVIEW_AUDIO_CTX:null,updateAudioHint(){},VOICE_PREVIEW_CLOCK:null,stopVoicePreview(){},
+  VOICE_PREVIEW_BUFFERS:new Map(),VOICE_PREVIEW_SOURCES:new Map(),primeVoicePreview(){},
+  AUDIO_PLAYERS:map,AUDIO_PLAYER_GRAPHS:new Map(),Audio:MockAudio,clipGain:()=>1,
+  eventXGain:()=>1,voiceGainFactor:()=>1,clipAutoGainFactor:()=>1,
+  effectiveClipRate:()=>1,cleanNum:(x,d=0)=>Number.isFinite(Number(x))?Number(x):d,
+  PREVIEW_MEDIA_RETRY_AT:retry,performance:{now:()=>2500},
+  clampN:(x,min,max)=>Math.max(min,Math.min(max,x)),
+  showPreviewAudioProblem(){},PREVIEW_MEDIA_ERROR:'',createFxNodes(){},applyFxNodes(){},
+  $:()=>({pause(){}})
+ };
+ const run=new Function(...Object.keys(ctx),html.slice(begin,end)+';return syncAudioAt;')(...Object.values(ctx));
+ run(1,true);await Promise.resolve();
+ assert.equal(players.length,1);
+ assert.equal(players[0].src,'data:audio/first');
+ assert.equal(players[0].playCount,1);
+ event.c.data='data:audio/replaced';
+ run(2,true);await Promise.resolve();
+ assert.equal(players[0].src,'data:audio/replaced');
+ assert.equal(players[0].reloaded,true);
+ assert.equal(players[0].playCount,2);
+});

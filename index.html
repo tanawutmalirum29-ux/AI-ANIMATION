@@ -2171,7 +2171,30 @@ if('speechSynthesis' in window){speechSynthesis.addEventListener?.('voiceschange
 /* ===== Director v9 · clip-based audio ===== */
 let AUDIO_DESK_SCENE=0, AUDIO_DESK_TAB='scene';
 const AUDIO_PLAYERS=new Map(), AUDIO_PLAYER_GRAPHS=new Map();
-let PREVIEW_AUDIO_CTX=null;
+let PREVIEW_AUDIO_CTX=null,PREVIEW_MEDIA_ERROR='';
+const PREVIEW_DIRECT_VOICE=/(iPad|iPhone|iPod)/i.test(navigator.userAgent)||
+ (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const PREVIEW_MEDIA_RETRY_AT=new Map();
+function previewVoiceClips(){return ep().scenes.flatMap(sc=>(sc.audioClips||[]).filter(c=>c.kind==='voice'&&c.data))}
+function showPreviewAudioProblem(message){PREVIEW_MEDIA_ERROR=message;updateAudioHint()}
+function checkPreviewAudio(){
+ const voices=previewVoiceClips(),usable=voices.filter(c=>!c.mute&&c.duration>0);
+ const contextState=PREVIEW_AUDIO_CTX?.state||'HTML Audio';
+ if(!voices.length){showPreviewAudioProblem('ตอนนี้ยังไม่มีไฟล์เสียงพากย์จริง · ต้องสร้าง/นำเข้าเสียงก่อนจึงจะได้ยินในพรีวิว');return}
+ if(!usable.length){showPreviewAudioProblem('มีคลิปพากย์ '+voices.length+' คลิป แต่ยังไม่มีคลิปที่มีความยาวใช้งานได้หรือถูกปิดเสียง · ตรวจ Sound Desk');return}
+ // Prefer the selected scene; use another scene's clip only if this scene has none.
+ const current=(ep().scenes[sel]?.audioClips||[]).find(c=>c.kind==='voice'&&c.data&&!c.mute&&c.duration>0);
+ const voice=current||usable[0];
+ playing=false;pauseAudioPlayers();ctl();
+ const a=new Audio(voice.data);a.preload='auto';a.volume=Math.min(1,Math.max(.15,cleanNum(voice.volume,1)));
+ const cleanup=()=>{a.pause();a.removeAttribute('src');a.load()};
+ a.onended=cleanup;
+ a.play().then(()=>{
+  showPreviewAudioProblem('ระบบเริ่มเล่นคลิปเสียงทดสอบแล้ว · พบ '+usable.length+' คลิป'+(!current?' · ฉากปัจจุบันไม่มีคลิปจึงใช้คลิปจากฉากอื่น':'')+' · '+contextState);
+  setTimeout(cleanup,4000);
+ }).catch(err=>showPreviewAudioProblem('เล่นเสียงไม่สำเร็จ: '+String(err.message||err)+' · ตรวจไฟล์เสียงหรือสิทธิ์เล่นสื่อ'));
+}
+
 const cleanNum=(n,d=0)=>Number.isFinite(+n)?+n:d;
 const safeClipDuration=c=>Math.max(0,(c.duration||0)-cleanNum(c.trimStart)-cleanNum(c.trimEnd))/effectiveClipRate(c);
 const AUDIO_KEY_CACHE=new WeakMap();
@@ -2199,6 +2222,8 @@ function previewContext(){if(!PREVIEW_AUDIO_CTX){PREVIEW_AUDIO_CTX=new (window.A
 /* v40: เสียงพรีวิวบน iPad/Safari ต้องถูกปลดล็อกจากการแตะจริง (ไม่ใช่จาก requestAnimationFrame) และต้องตั้งโหมดเสียงเป็น playback
    ไม่งั้น AudioContext ค้าง suspended / ถูกสวิตช์ปิดเสียงของเครื่องตัดทิ้ง ทำให้เสียงพากย์ได้ยินเฉพาะตอน export (export สร้าง AudioContext ในปุ่มกดโดยตรง) */
 function unlockPreviewAudio(){
+ PREVIEW_MEDIA_ERROR='';
+ if(PREVIEW_DIRECT_VOICE){updateAudioHint();return}
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
  try{
   const ctx=previewContext();
@@ -2209,11 +2234,11 @@ function unlockPreviewAudio(){
 function audioHintNeeded(){return !!(playing&&PREVIEW_AUDIO_CTX&&PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed'&&(()=>{try{return audioEvents().some(ev=>ev.c.data&&T>=ev.start-.55&&T<ev.start+safeClipDuration(ev.c))}catch(e){return false}})())}
 function updateAudioHint(){
  let el=document.getElementById('audioUnlockHint');
- if(!audioHintNeeded()){if(el)el.style.display='none';return}
+ if(!audioHintNeeded()&&!PREVIEW_MEDIA_ERROR){if(el)el.style.display='none';return}
  if(!el){el=document.createElement('div');el.id='audioUnlockHint';el.setAttribute('role','status');
   el.style.cssText='position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99999;max-width:min(92vw,420px);background:#3a2a12;color:#ffe9b8;border:1px solid #d9bd83;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.5;text-align:center;box-shadow:0 6px 24px #0008';
-  el.textContent='เสียงพรีวิวยังไม่เปิด — แตะหน้าจอหนึ่งครั้ง (และเช็กว่า iPad/มือถือไม่ได้ปิดเสียงไว้) แล้วกด ▶ ใหม่';
   document.body.appendChild(el)}
+ el.textContent=PREVIEW_MEDIA_ERROR||'เสียงพรีวิวยังไม่เปิด — แตะหน้าจออีกครั้ง แล้วกด ▶ ใหม่';
  el.style.display='block';
 }
 ['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockPreviewAudio,{capture:true,passive:true}));
@@ -2262,11 +2287,13 @@ function syncAudioAt(t,play){
  const events=audioEvents(),active=new Set(),voiceActive=new Set();
  // เวลาเสียงเป็นอิสระจากการวาด SVG/เอฟเฟกต์: หน้าจอหน่วงไม่ทำให้ตำแหน่ง MP3 กระโดด
  let ctx=null;
- if(events.some(ev=>ev.c.kind==='voice'&&ev.c.data&&t>=ev.start-.55&&t<ev.start+safeClipDuration(ev.c))){
+ if(!PREVIEW_DIRECT_VOICE&&events.some(ev=>ev.c.kind==='voice'&&ev.c.data&&t>=ev.start-.55&&t<ev.start+safeClipDuration(ev.c))){
   try{ctx=previewContext()}catch(e){}
  }
  if(ctx){
-  if(ctx.state!=='running')updateAudioHint();
+  if(ctx.state!=='running'){updateAudioHint();ctx=null}
+ }
+ if(ctx){
   if(VOICE_PREVIEW_CLOCK&&Math.abs(t-(VOICE_PREVIEW_CLOCK.t+ctx.currentTime-VOICE_PREVIEW_CLOCK.audioTime))>.45)stopVoicePreview();
   VOICE_PREVIEW_CLOCK={t,audioTime:ctx.currentTime};
  }
@@ -2304,15 +2331,27 @@ function syncAudioAt(t,play){
   }
   // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
   if(part<0||part>=len)continue;
-  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';AUDIO_PLAYERS.set(id,a)}
+  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a.load();PREVIEW_MEDIA_RETRY_AT.delete(id)}
   let n=AUDIO_PLAYER_GRAPHS.get(id);
-  try{const cx=ctx||previewContext();if(!n){n=createFxNodes(cx,cx.createMediaElementSource(a),cx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}
-   applyFxNodes(n,c);n.gain.gain.value=clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c);a.volume=1
-  }catch(err){a.volume=clipGain(c,part,len)*eventXGain(ev,t)}
+  if(PREVIEW_DIRECT_VOICE||c.kind==='voice'){
+   // A suspended WebAudio graph can silently swallow audio on iPad Safari.
+   // Use the HTML media element directly, with volume and timeline sync.
+   a.muted=!!c.mute;
+   a.volume=clampN(clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c),0,1);
+  }else{
+   try{const cx=ctx||previewContext();if(!n){n=createFxNodes(cx,cx.createMediaElementSource(a),cx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}
+    applyFxNodes(n,c);n.gain.gain.value=clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c);a.volume=1;
+   }catch(err){a.volume=clipGain(c,part,len)*eventXGain(ev,t)}
+  }
   const rate=effectiveClipRate(c),desired=cleanNum(c.trimStart)+part*rate;
   a.preservesPitch=false;if('mozPreservesPitch' in a)a.mozPreservesPitch=false;
   a.playbackRate=rate;if(Math.abs((a.currentTime||0)-desired)>.35){try{a.currentTime=desired}catch(e){}}
-  if(a.paused)a.play().catch(()=>{});
+  if(a.paused&&performance.now()-(PREVIEW_MEDIA_RETRY_AT.get(id)||-2000)>1300){
+   PREVIEW_MEDIA_RETRY_AT.set(id,performance.now());
+   a.play().then(()=>{if(c.kind==='voice'&&PREVIEW_MEDIA_ERROR){PREVIEW_MEDIA_ERROR='';updateAudioHint()}}).catch(err=>{
+    if(c.kind==='voice')showPreviewAudioProblem('พรีวิวเล่นเสียงไม่สำเร็จ: '+String(err.message||err)+' · กดตรวจเสียงหรือกด ▶ อีกครั้ง');
+   });
+  }
  }
  for(const [id,entry] of VOICE_PREVIEW_SOURCES)if(!voiceActive.has(id)){try{entry.source.stop()}catch(e){}VOICE_PREVIEW_SOURCES.delete(id)}
  for(const [id,a] of AUDIO_PLAYERS)if(!active.has(id)){a.pause();if(AUDIO_PLAYERS.size>80){a.src='';AUDIO_PLAYERS.delete(id);AUDIO_PLAYER_GRAPHS.delete(id)}}
@@ -2969,8 +3008,8 @@ function endMotionDrag(e){const d=MOTION_DRAG;if(!d||(e.pointerId!==undefined&&e
 }
 function ctl(){const tt=total();$('#ctl').replaceChildren(
 h('button',{onclick:()=>go(-1),'aria-label':'ฉากก่อน'},'⏮'),h('button',{id:'pp',onclick:toggle,'aria-label':'เล่น/หยุด'},playing?'⏸':'▶'),h('button',{onclick:()=>go(1),'aria-label':'ฉากถัดไป'},'⏭'),
-h('input',{type:'range',min:0,max:tt*100,value:T*100,'aria-label':'เวลา',oninput:e=>{T=e.target.value/100;playing=false;draw();if(MOTION_ACTIVE)renderMotionBar()}}),h('span',{id:'clock'},''))}
-function toggle(){if(T>=total())T=0;playing=!playing;last=performance.now();ctl();draw()}
+h('input',{type:'range',min:0,max:tt*100,value:T*100,'aria-label':'เวลา',oninput:e=>{T=e.target.value/100;playing=false;draw();if(MOTION_ACTIVE)renderMotionBar()}}),h('span',{id:'clock'},''),h('button',{type:'button',title:'ตรวจและทดลองฟังไฟล์พากย์จริง',onclick:checkPreviewAudio,'aria-label':'ตรวจเสียงพากย์'},'🔊'))}
+function toggle(){if(T>=total())T=0;playing=!playing;last=performance.now();ctl();draw();if(playing&&!previewVoiceClips().length)showPreviewAudioProblem('ยังไม่มีไฟล์พากย์จริงในตอนนี้ · ต้องเพิ่มเสียงใน Sound Desk หรือสร้างเสียงด้วย AI-2')}
 function go(d){const n=Math.min(ep().scenes.length-1,Math.max(0,sel+d));sel=n;T=starts()[n];playing=false;render()}
 // v34 C3: คำนวณท่ากล้องของฉาก (ใช้ร่วมพรีวิว+ส่งออก) / cameraPoseAt เพิ่ม match cut: กล้องไหลต่อจากเฟรมสุดท้ายของฉากก่อน
 function cameraPose(s,loc,aloc,adur){
@@ -3042,7 +3081,7 @@ function deferSceneUi(){/* playback: cheap highlight now, full Inspector/Timelin
 function prefetchTransition(){
  if(!playing||drawingPreviousFrame)return;const E=ep(),st=starts(),i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration),n=i+1,nx=E.scenes[n];
  if(i<0||!nx||(nx.transition?.type||'cut')==='cut'||T<st[n]-.7)return;if(prevSnapshotIndex!==n){ensurePreviousFrame(n);return}if(liveEnabled(nx,n)){const K=liveK(nx);for(let k=1;k<=K;k++)if(!prevLive[k-1]){liveFrame(n,k);break}}}
-function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl()}else prefetchTransition();draw()}last=now;requestAnimationFrame(loop)}
+function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl();pauseAudioPlayers()}else prefetchTransition();draw()}last=now;requestAnimationFrame(loop)}
 
 /* ===== Director v8: actual browser-side video encoding ===== */
 const VIDEO_FORMATS=[

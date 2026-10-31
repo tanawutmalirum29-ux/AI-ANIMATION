@@ -21,7 +21,7 @@ const LOCAL_MODELS=[
 const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
-let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false,modelWorker=null,modelAbortController=null;
+let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false,modelWorker=null,modelAbortController=null,modelBackend='',modelCleanup=Promise.resolve();
 let modelLoad={active:false,ready:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
 function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
 function updateModelLoad(patch){
@@ -78,10 +78,11 @@ function confirmModelAction(message){
  });
 }
 function releaseLocalModel(){
- // Never reuse a disposed WASM Tokenizer or GPU object. The worker is disposable,
- // the editing page (and its unsaved current state) must not be reloaded.
+ // A terminated worker releases its own tokenizer. For Safari compatibility mode,
+ // await the direct engine's unload before allocating another GPU engine.
  if(modelWorker){try{modelWorker.terminate()}catch(_){}modelWorker=null}
- localEngine=null;loadedModel='';modelUnavailable=false;
+ else if(localEngine?.unload){try{modelCleanup=Promise.resolve(localEngine.unload()).catch(()=>{})}catch(_){}}
+ localEngine=null;loadedModel='';modelUnavailable=false;modelBackend='';
 }
 function cancelLocalTask(){
  if(!modelAbortController)return;
@@ -122,48 +123,84 @@ function invalidateModelOnFailure(err){
  updateModelLoad({active:false,ready:false,percent:null,
   error:'Tokenizer/WebGPU ของโมเดลนี้ใช้งานไม่ได้ · เลือกโมเดลอื่นหรือกดทดสอบใหม่ได้โดยไม่ต้องรีโหลดเว็บไซต์'});
 }
+async function waitWorkerBootstrap(worker){
+ return new Promise((resolve,reject)=>{
+  let finished=false;
+  const clean=()=>{
+   worker.removeEventListener('message',onMessage);
+   worker.removeEventListener('error',onError);
+   clearTimeout(timeout);
+  };
+  const done=(error)=>{
+   if(finished)return;finished=true;clean();
+   if(error)reject(error);else resolve();
+  };
+  const onMessage=event=>{
+   if(event.data?.type==='story-worker-ready')done();
+   if(event.data?.type==='story-worker-error')done(Error(event.data.message||'WebLLM Worker เริ่มไม่ได้'));
+  };
+  const onError=event=>{event.preventDefault();done(Error('Worker ไม่สามารถโหลด module ได้ (Safari/CDN/CSP)'))};
+  const timeout=setTimeout(()=>done(Error('WebLLM Worker ตอบกลับช้าเกิน 25 วินาที')),25000);
+  worker.addEventListener('message',onMessage);
+  worker.addEventListener('error',onError);
+ });
+}
 async function loadLocalModel(id){
  if(localEngine&&loadedModel===id&&!modelUnavailable)return localEngine;
  if(!LOCAL_MODELS.some(m=>m.id===id&&m.id!=='standard'))throw Error('โมเดลไม่ถูกต้อง');
- if(modelWorker)releaseLocalModel();
+ if(localEngine||modelWorker)releaseLocalModel();
  const selected=LOCAL_MODELS.find(m=>m.id===id);
  updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
   stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
- let worker=null;
+ let worker=null,engine=null,backend='worker',warning='',workerBooted=false;
  try{
-  if(!(await webGpuReady()))throw Error('เบราว์เซอร์นี้ไม่รองรับ WebGPU');
-  updateModelLoad({stage:'เตรียม WebLLM และตัวประมวลผลแบบแยก Worker',percent:null});
-  const webllm=await abortableModelWork(import('https://esm.sh/@mlc-ai/web-llm@0.2.80'));
+  await abortableModelWork(modelCleanup);
+  if(!(await webGpuReady()))throw Error('เบราว์เซอร์ไม่รองรับ WebGPU');
+  updateModelLoad({stage:'โหลด WebLLM จาก CDN',percent:null});
+  const webllm=await abortableModelWork(import('https://esm.run/@mlc-ai/web-llm@0.2.80').catch(()=>import('https://esm.sh/@mlc-ai/web-llm@0.2.80')));
   if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))
    throw Error('WebLLM รุ่นนี้ไม่มีโมเดล '+selected.label);
-  worker=new Worker(new URL('./studio-ai-model-worker.js',document.baseURI),{type:'module'});
-  modelWorker=worker;
-  const workerFailure=new Promise((_,reject)=>{
-   worker.addEventListener('error',e=>{e.preventDefault();reject(Error('เริ่ม WebLLM Worker ไม่สำเร็จ · ตรวจการรองรับ module worker และการโหลด CDN'))},{once:true});
-   worker.addEventListener('messageerror',()=>reject(Error('WebLLM Worker ส่งข้อมูลกลับไม่ได้')),{once:true});
-  });
-  updateModelLoad({stage:'ดาวน์โหลด/โหลดโมเดลใน Worker',percent:0});
-  const engine=await abortableModelWork(Promise.race([
-   webllm.CreateWebWorkerMLCEngine(worker,id,{initProgressCallback:p=>{
-    if(modelWorker!==worker)return;
-    const n=Number(p.progress);
-    updateModelLoad({percent:Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null,
-     stage:String(p.text||'กำลังโหลดโมเดล').slice(0,260)});
-   }}),workerFailure
-  ]));
-  updateModelLoad({active:true,ready:false,percent:100,stage:'ตรวจสอบ Tokenizer โดยให้ AI สร้างข้อความจริง'});
+  const onProgress=p=>{
+   const n=Number(p.progress);
+   updateModelLoad({percent:Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n*100))):null,
+    stage:String(p.text||'กำลังโหลดโมเดล').slice(0,260)});
+  };
+  try{
+   updateModelLoad({stage:'ตรวจสอบ Web Worker ใน Safari',percent:null});
+   worker=new Worker(new URL('./studio-ai-model-worker.js',document.baseURI),{type:'module'});
+   modelWorker=worker;
+   await abortableModelWork(waitWorkerBootstrap(worker));
+   workerBooted=true;
+   updateModelLoad({stage:'โหลดโมเดลใน Web Worker',percent:0});
+   engine=await abortableModelWork(webllm.CreateWebWorkerMLCEngine(worker,id,{initProgressCallback:onProgress}));
+  }catch(workerError){
+   if(modelAbortController?.signal.aborted||workerBooted)throw workerError;
+   // Only fall back when Safari cannot *start* the worker. Never launch a second
+   // large model immediately after a failed GPU allocation/OOM in a live worker.
+   if(worker){worker.terminate();worker=null;modelWorker=null}
+   backend='main';
+   warning='Web Worker ใช้งานไม่ได้: '+String(workerError?.message||workerError).slice(0,170);
+   updateModelLoad({stage:'โหมดเข้ากันได้กับ iPad · ประมวลผลโดยตรงในหน้าเว็บ',percent:null,error:''});
+   engine=await abortableModelWork(webllm.CreateMLCEngine(id,{initProgressCallback:onProgress}));
+  }
+  updateModelLoad({active:true,ready:false,percent:100,
+   stage:'ทดสอบ Tokenizer และการสร้างข้อความจริง',error:''});
   await abortableModelWork(engine.chat.completions.create({
-   messages:[{role:'user',content:'ตอบคำเดียวว่า พร้อม'}],max_tokens:12,temperature:0
+   messages:[{role:'user',content:'ตอบคำว่า พร้อม'}],max_tokens:12,temperature:0
   }));
-  if(modelWorker!==worker)throw Error('โมเดลถูกยกเลิกก่อนพร้อมใช้งาน');
-  localEngine=engine;loadedModel=id;modelUnavailable=false;
+  if(modelAbortController?.signal.aborted)throw Error('ยกเลิกงาน AI แล้ว');
+  localEngine=engine;loadedModel=id;modelUnavailable=false;modelBackend=backend;
   updateModelLoad({active:false,ready:true,percent:100,error:'',
-   stage:'ผ่านการทดสอบ Tokenizer · เปลี่ยนรุ่นได้ในหน้านี้ ไม่ต้องรีโหลดเว็บ'});
+   stage:'AI พร้อมใช้งาน · '+(backend==='worker'?'Web Worker':'โหมดเข้ากันได้กับ iPad')+
+    (warning?' · '+warning:'')});
   return engine;
  }catch(err){
-  if(modelWorker===worker)releaseLocalModel();
-  updateModelLoad({active:false,ready:false,percent:null,error:String(err?.message||err),
-   stage:'โหลดหรือทดสอบ AI ไม่สำเร็จ'});
+  if(worker){try{worker.terminate()}catch(_){}}
+  if(modelWorker===worker)modelWorker=null;
+  if(engine&&backend==='main'){try{await engine.unload?.()}catch(_){}}
+  localEngine=null;loadedModel='';modelBackend='';
+  updateModelLoad({active:false,ready:false,percent:null,
+   error:String(err?.message||err),stage:'โหลดหรือทดสอบ AI ไม่สำเร็จ'});
   throw err;
  }
 }
