@@ -36,7 +36,8 @@ function updateModelLoad(patch){
   const bar=box.querySelector('progress'),label=box.querySelector('[data-model-label]'),
    detail=box.querySelector('[data-model-detail]');
   const value=modelLoad.percent;
-  if(bar){if(value===null)bar.removeAttribute('value');else bar.value=value}
+  if(bar){bar.hidden=!!modelLoad.error&&!modelLoad.active;
+   if(value===null)bar.removeAttribute('value');else bar.value=value}
   if(label)label.textContent=modelLoad.error?'โหลดโมเดลไม่สำเร็จ':modelLoad.ready?'โมเดล '+modelLoad.model+' พร้อมใช้งาน':modelLoad.active?
    'กำลังโหลด '+modelLoad.model+(value===null?'':' · '+value+'%'):'โหลดโมเดลเสร็จ';
   if(detail)detail.textContent=modelLoad.error||modelLoad.stage+
@@ -223,7 +224,7 @@ async function loadCpuModel(id,selected){
   if(modelWorker===worker)modelWorker=null;
   localEngine=null;loadedModel='';modelBackend='';
   updateModelLoad({active:false,ready:false,percent:null,
-   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ตรวจสอบระยะที่ล้มเหลวด้านบน · หากแอปปิดเองอาจเป็นข้อจำกัดหน่วยความจำของ iPad'});
+   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ลองใช้รุ่นเข้ากันได้ LaMini 77M แทน หรือกลับไปใช้มาตรฐาน · ข้อจำกัดของเบราว์เซอร์/หน่วยความจำยังต้องตรวจบนเครื่องจริง'});
   throw err;
  }
 }
