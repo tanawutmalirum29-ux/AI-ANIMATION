@@ -436,14 +436,26 @@ async function runNarrative(){
    const rules=narrativeMode==='preserve'?'Keep voiceover EXACTLY unchanged. Only improve subtitle segmentation.':
     narrativeMode==='polish'?'Polish voiceover language and subtitles without changing events, identities, or plot.':
     'You may creatively rewrite narration and add small lines for atmosphere, but do not invent plot events or change identities.';
-   const response=await abortableModelWork(engine.chat.completions.create({messages:[
-    {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only scenes that need edits.'},
-    {role:'user',content:JSON.stringify(scenes).slice(0,11000)}
-   ],temperature:.25,max_tokens:1300}));
-   const raw=String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
-   const parsed=JSON.parse(raw);
-   if(!Array.isArray(parsed.changes))throw Error('โมเดลไม่ได้ส่ง changes JSON');
-   changes=parsed.changes;
+   const batchSize=LOCAL_MODELS.find(m=>m.id===narrativeModel)?.backend==='wasm'?1:3;
+   const allChanges=[];
+   for(let offset=0;offset<scenes.length;offset+=batchSize){
+    const batch=scenes.slice(offset,offset+batchSize);
+    updateModelLoad({active:true,ready:false,percent:null,
+     stage:'AI-3 วิเคราะห์ฉาก '+(offset+1)+'–'+(offset+batch.length)+' จาก '+scenes.length});
+    const response=await abortableModelWork(engine.chat.completions.create({messages:[
+     {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only supplied scene IDs.'},
+     {role:'user',content:JSON.stringify(batch).slice(0,6000)}
+    ],temperature:.2,max_tokens:batchSize===1?520:1050}));
+    const raw=String(response.choices?.[0]?.message?.content||'').trim()
+     .replace(/^```(?:json)?\\s*/i,'').replace(/```$/,'').trim();
+    let parsed;
+    try{parsed=JSON.parse(raw)}
+    catch(err){throw Error('AI-3 สร้าง JSON ไม่สมบูรณ์ ที่ฉาก '+(offset+1)+': '+String(err.message||err))}
+    if(!Array.isArray(parsed.changes))throw Error('AI-3 ไม่ส่ง changes[] ที่ฉาก '+(offset+1));
+    allChanges.push(...parsed.changes);
+   }
+   updateModelLoad({active:false,ready:true,percent:100,stage:'วิเคราะห์บทครบ '+scenes.length+' ฉาก'});
+   changes=allChanges;
   }
   const byId=new Map(scenes.map(x=>[x.id,x])),ops=[],summary=[];
   for(const item of changes.slice(0,12)){
