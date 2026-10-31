@@ -561,7 +561,7 @@ async function runNarrative(config={}){
    (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
     ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'')+
    (advisories.length?'\n\nข้อเสนอจากโมเดล (ยังไม่แก้โปรเจกต์ เพราะผลลัพธ์ไม่ผ่าน JSON):\n'+advisories.slice(0,5).join('\n'):'');
-  if(typeof bridge.persist==='function')recordHandoff('AI-3','script_ready',narrativeReport,{pendingDub:ops.some(o=>o.patch.voiceover!==byId.get(o.id)?.voiceover)});
+  if(!coordinated&&typeof bridge.persist==='function')recordHandoff('AI-3','script_ready',narrativeReport,{pendingDub:ops.some(o=>o.patch.voiceover!==byId.get(o.id)?.voiceover)});
   status(narrativeReport);
   return {edits:ops.length,report:narrativeReport};
  }catch(err){
@@ -659,6 +659,7 @@ async function applyTiming(scope,minutes,includeSplits){
  try{await backupBeforeEdit()}catch(err){throw Error('ไม่แก้โปรเจกต์ เพราะสำรองข้อมูลไม่ได้: '+err.message)}
  const applied=editor.apply(ops);
  if(!applied.applied)throw Error('ไม่สามารถใช้แผนจัดจังหวะกับโปรเจกต์');
+ lastAudit=evaluate(includeSplits?'all':scope,1);
  return {audit,split,changes:ops.length};
 }
 
