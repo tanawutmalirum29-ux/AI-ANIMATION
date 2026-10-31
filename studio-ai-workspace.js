@@ -157,7 +157,7 @@ async function loadLocalModel(id){
   await abortableModelWork(modelCleanup);
   if(!(await webGpuReady()))throw Error('เบราว์เซอร์ไม่รองรับ WebGPU');
   updateModelLoad({stage:'โหลด WebLLM จาก CDN',percent:null});
-  const webllm=await abortableModelWork(import('https://esm.run/@mlc-ai/web-llm@0.2.80'));
+  const webllm=await abortableModelWork(import('https://esm.run/@mlc-ai/web-llm@0.2.80').catch(()=>import('https://esm.sh/@mlc-ai/web-llm@0.2.80')));
   if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))
    throw Error('WebLLM รุ่นนี้ไม่มีโมเดล '+selected.label);
   const onProgress=p=>{
