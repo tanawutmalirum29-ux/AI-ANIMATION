@@ -25,6 +25,7 @@ os.environ["SITE_PASSWORD_HASH"]=hashlib.pbkdf2_hmac("sha256",password.encode(),
 os.environ["SESSION_SECRET"]="test_session_secret_for_offline_testing_only"
 os.environ["DUB_KEY"]="legacy_key_should_be_rejected"
 path=pathlib.Path(__file__).resolve().parent.parent/"autodub"/"handler.py"
+sys.path.insert(0,str(path.parent))
 spec=importlib.util.spec_from_file_location("autodub_handler",path)
 mod=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
