@@ -2331,7 +2331,7 @@ function syncAudioAt(t,play){
   }
   // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
   if(part<0||part>=len)continue;
-  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a.load()}
+  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a.load();PREVIEW_MEDIA_RETRY_AT.delete(id)}
   let n=AUDIO_PLAYER_GRAPHS.get(id);
   if(PREVIEW_DIRECT_VOICE||c.kind==='voice'){
    // A suspended WebAudio graph can silently swallow audio on iPad Safari.
