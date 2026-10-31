@@ -1,38 +1,63 @@
-name: "ส่งวิดีโอให้ตรวจ (เลือกไฟล์)"
-description: "ส่งคลิปจาก iPad หรือโทรศัพท์ให้ตรวจง่าย ๆ"
+name: "ส่งวิดีโอหลายคลิปให้ตรวจ"
+description: "แนบคลิปจาก iPad ได้หลายคลิปใน Issue เดียว"
 title: "ส่งวิดีโอให้ตรวจ"
 body:
   - type: markdown
     attributes:
       value: |
-        ### ส่งคลิปจาก iPad
-        1. กด **เลือกไฟล์ / Browse files** ที่ช่องด้านล่าง
-        2. เลือกวิดีโอจาก **คลังรูปภาพ** หรือ **ไฟล์** ของเครื่อง (ตามตัวเลือกที่ Safari แสดง)
-        3. รอให้ไฟล์แนบเสร็จ แล้วกด **Submit new issue** ด้านล่าง
-        4. คัดลอกลิงก์ Issue ที่เปิดขึ้นมา ส่งลิงก์นั้นในแชตเพื่อให้ตรวจคลิปได้
+        ### ส่งคลิปหลายคลิปในครั้งเดียวจาก iPad
+        1. แตะ **Browse files / เลือกไฟล์** ในช่องคลิปที่ 1 แล้วเลือกวิดีโอจาก **รูปภาพ** หรือ **ไฟล์**
+        2. ถ้ามีคลิปเพิ่ม ให้เลือกที่ช่องคลิปที่ 2, 3 หรือ 4 ได้เลย (ใช้เฉพาะช่องที่ต้องการ)
+        3. รอแต่ละคลิปอัปโหลดเสร็จ จากนั้นกด **Submit new issue** เพียงครั้งเดียว
+        4. จะส่งคลิปเพิ่มภายหลัง ให้เปิด Issue เดิม แล้วแนบไฟล์ในช่อง **Comment** ได้โดยไม่ต้องสร้าง Issue ใหม่
+        5. คัดลอกลิงก์ Issue มาส่งในแชต เพื่อให้เปิดตรวจทุกคลิปในที่เดียว
 
-        รองรับ .mp4, .mov, .webm; ขนาดไฟล์อาจถูกจำกัดตามประเภทบัญชี GitHub (แผนฟรีทั่วไป 10 MB ต่อวิดีโอ)
-        **ระวัง:** Repository เป็นสาธารณะ คลิปที่แนบจะเปิดดูได้โดยคนทั่วไป อย่าแนบข้อมูลลับ
-        ถ้าไฟล์ใหญ่หรือแนบไม่สำเร็จ ให้วางลิงก์ที่เปิดดูได้ในช่องสำรอง
+        ไฟล์วิดีโอรองรับ .mp4, .mov, .webm
+        ข้อจำกัดไฟล์แนบ GitHub: บัญชีแผนฟรี 10 MB ต่อคลิป และบางแผนเสียเงินสูงสุด 100 MB ต่อคลิป
+        **คลิปบน Repository สาธารณะเปิดดูได้โดยคนทั่วไป** อย่าแนบข้อมูลส่วนตัวหรือความลับ
+        หากคลิปใหญ่กว่าข้อจำกัด ให้ใช้ช่องลิงก์วิดีโอด้านล่างแทน
   - type: upload
-    id: video-file
+    id: video-1
     attributes:
-      label: "1. เลือกไฟล์วิดีโอจากเครื่อง"
-      description: "แตะเพื่อเลือกไฟล์ MP4, MOV หรือ WEBM (ไม่ต้องเขียนโค้ด)"
+      label: "คลิปที่ 1"
+      description: "แตะเลือกวิดีโอ MP4, MOV หรือ WEBM"
     validations:
       required: false
       accept: ".mp4,.mov,.webm"
-  - type: input
-    id: video-link
+  - type: upload
+    id: video-2
     attributes:
-      label: "2. ลิงก์วิดีโอ (สำรอง ถ้าแนบไฟล์ไม่ได้)"
+      label: "คลิปที่ 2 (ถ้ามี)"
+      description: "เลือกคลิปที่สองโดยไม่ต้องเปิด Issue ใหม่"
+    validations:
+      required: false
+      accept: ".mp4,.mov,.webm"
+  - type: upload
+    id: video-3
+    attributes:
+      label: "คลิปที่ 3 (ถ้ามี)"
+    validations:
+      required: false
+      accept: ".mp4,.mov,.webm"
+  - type: upload
+    id: video-4
+    attributes:
+      label: "คลิปที่ 4 (ถ้ามี)"
+    validations:
+      required: false
+      accept: ".mp4,.mov,.webm"
+  - type: textarea
+    id: video-links
+    attributes:
+      label: "ลิงก์คลิปเพิ่มเติม (ถ้ามี)"
+      description: "ใส่ได้หลายลิงก์ แยกบรรทัด สำหรับคลิปที่ใหญ่เกินข้อจำกัด"
       placeholder: "https://..."
     validations:
       required: false
   - type: textarea
     id: notes
     attributes:
-      label: "3. อยากให้ตรวจอะไร (ไม่จำเป็นต้องกรอก)"
-      placeholder: "เช่น เสียงพากย์ไม่ได้ / วิดีโอกระตุก / อยากให้ดูทั้งคลิป"
+      label: "อยากให้ตรวจอะไร (ไม่จำเป็นต้องกรอก)"
+      placeholder: "เช่น คลิปที่ 2 เสียงพากย์เบา / คลิปที่ 3 ภาพกระตุก"
     validations:
       required: false
