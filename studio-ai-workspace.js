@@ -118,7 +118,7 @@ async function loadLocalModel(id){
   updateModelLoad({active:false,ready:true,percent:100,stage:'โมเดลพร้อมใช้งาน · ไม่ต้องโหลดซ้ำในหน้านี้',error:''});
   return engine;
  }catch(err){
-  if(/disposed|deleted object|tokenizer\\*|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
+  if(/disposed|deleted object|tokenizer\*|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
   updateModelLoad({active:false,ready:false,error:String(err.message||err)+(modelUnavailable?' · โมเดลไม่พร้อมใช้งาน กรุณาโหลดหน้าเว็บใหม่และลอง 0.5B':''),stage:'',percent:null});
   throw err;
  }
@@ -201,7 +201,7 @@ async function benchmarkModel(applyChanges=false){
    modelReport+='\n\nAI ปรับระยะเวลาจริง '+ops.length+' ฉาก (สำรองก่อนแก้):\n'+(reasons.join('\n')||'ไม่มีฉากที่ AI เสนอแก้ภายใต้ข้อจำกัดความปลอดภัย');
   }
   status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
- }catch(err){if(/disposed|deleted object|tokenizer\\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
+ }catch(err){if(/disposed|deleted object|tokenizer\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
  finally{busy=false;render()}
 }
 
@@ -224,8 +224,8 @@ function narrativeScenes(){
 function standardNarrative(sc){
  const source=String(sc.voiceover||sc.subtitle.join(' ')).trim();
  if(!source)return null;
- const chunks=source.match(/.{1,28}(?:\\s|$)|.{1,28}/gu)||[source];
- const text=chunks.map(x=>x.trim()).filter(Boolean).slice(0,12);
+ const chunks=source.match(/.{1,28}(?:\s|$)|.{1,28}/gu)||[source];
+ const text=chunks.map(x=>x.trim()).filter(Boolean).slice(0,3);
  return {id:sc.id,voiceover:sc.voiceover,subtitle:text};
 }
 async function runNarrative(){
@@ -243,10 +243,10 @@ async function runNarrative(){
     narrativeMode==='polish'?'Polish voiceover language and subtitles without changing events, identities, or plot.':
     'You may creatively rewrite narration and add small lines for atmosphere, but do not invent plot events or change identities.';
    const response=await engine.chat.completions.create({messages:[
-    {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, no more than 12 lines per scene. Do not change scene order or other fields. Keep story faithful. Output only scenes that need edits.'},
+    {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only scenes that need edits.'},
     {role:'user',content:JSON.stringify(scenes).slice(0,11000)}
    ],temperature:.25,max_tokens:1300});
-   const raw=String(response.choices?.[0]?.message?.content||'').trim().replace(/^\\x60\\x60\\x60(?:json)?/i,'').replace(/\\x60\\x60\\x60$/,'').trim();
+   const raw=String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
    const parsed=JSON.parse(raw);
    if(!Array.isArray(parsed.changes))throw Error('โมเดลไม่ได้ส่ง changes JSON');
    changes=parsed.changes;
@@ -254,9 +254,10 @@ async function runNarrative(){
   const byId=new Map(scenes.map(x=>[x.id,x])),ops=[],summary=[];
   for(const item of changes.slice(0,12)){
    const old=byId.get(item.id);
-   if(!old||!Array.isArray(item.subtitle)||item.subtitle.length>12)continue;
+   if(!old||!Array.isArray(item.subtitle)||item.subtitle.length>3)continue;
    const subtitle=item.subtitle.map(x=>String(x||'').trim());
-   if(subtitle.some(x=>x.length>28))continue;
+   if(subtitle.some(x=>!x))continue;
+   if(subtitle.some(x=>[...x].length>28))continue;
    const voiceover=narrativeMode==='preserve'||narrativeModel==='standard'?old.voiceover:String(item.voiceover||old.voiceover).slice(0,1500);
    if(!voiceover&&!subtitle.some(Boolean))continue;
    const patch={voiceover,subtitle};
@@ -271,15 +272,15 @@ async function runNarrative(){
    const editor=root.StudioAPI;
    if(!editor?.apply)throw Error('StudioAPI ไม่พร้อม');
    const dry=editor.apply(ops,{dryRun:true});
-   if(!dry.ok)throw Error('ตรวจรูปแบบการแก้ไขไม่ผ่าน');
+   if(!dry.ok)throw Error('ตรวจรูปแบบการแก้ไขไม่ผ่าน: '+JSON.stringify((dry.errors||[]).slice(0,3))+' · '+JSON.stringify((dry.issues||[]).filter(x=>x.level==='error').slice(0,3)));
    await backupBeforeEdit();
    const result=editor.apply(ops);
-   if(!result.applied)throw Error('ไม่สามารถใช้แผน AI-3');
+   if(!result.applied)throw Error('ไม่สามารถใช้แผน AI-3: '+JSON.stringify((result.errors||[]).slice(0,3)));
   }
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
    (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
   status(narrativeReport);
- }catch(err){if(/disposed|deleted object|tokenizer\\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
+ }catch(err){if(/disposed|deleted object|tokenizer\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;render()}
 }
 const e=(tag,props={},...children)=>{
