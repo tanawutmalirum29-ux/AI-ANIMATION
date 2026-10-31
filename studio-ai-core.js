@@ -6,11 +6,11 @@
   if(root)root.StoryAIWorkspaceCore=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
   'use strict';
-  // Exactly two assistants. Writing, storyboarding, motion, QA and asset creation
-  // are manual editor responsibilities, not separate AI agents.
+  // Exactly TWO operators: script/episode-duration planning, then dubbing.
+  // Sound effects, art, camera, writing and QA remain editor tools, not AI teams.
   const roles=Object.freeze([
-    {id:'voice',name:'AI-1 พากย์เสียง',instruction:'อ่านบทพากย์หรือซับที่ผู้ใช้เขียนเอง สร้างเสียงผ่านระบบพากย์ที่เชื่อมต่อไว้ โดยไม่เขียนบทใหม่'},
-    {id:'sound',name:'AI-2 จัดเสียงตามเหตุการณ์',instruction:'เลือกเสียงจากคลังเสียงสังเคราะห์ให้ตรงกับเหตุการณ์ จัดเวลาจากซับและบรรยากาศ ลดเสียงไม่ให้กลบพากย์ ไม่แก้บทหรือภาพ'}
+    {id:'structure',name:'AI-1 จัดบท แบ่งวรรคและตอน',instruction:'จัดรูปแบบบทที่ผู้ใช้ให้ แบ่งเป็นฉากและตอนตามระยะเวลาโดยไม่เขียนเพิ่มหรือเปลี่ยนเนื้อเรื่อง; ประมาณเวลาบรรยายและแบ่งซับให้อ่านง่าย'},
+    {id:'voice',name:'AI-2 พากย์เสียง',instruction:'อ่านบทพากย์หรือซับเดิมที่ผู้ใช้เขียนไว้ สร้างเสียงพากย์ตามตอนที่จัดไว้ โดยไม่เขียนบทใหม่'}
   ]);
   const LIMIT=180;
   const short=(x,n)=>String(x??'').trim().slice(0,n);
@@ -22,7 +22,7 @@
     if(!Array.isArray(w.tasks))w.tasks=[];
     if(!w.bible||typeof w.bible!=='object'||Array.isArray(w.bible))w.bible={};
     if(!w.summaries||typeof w.summaries!=='object'||Array.isArray(w.summaries))w.summaries={};
-    if(!roles.some(r=>r.id===w.role))w.role='voice';
+    if(!roles.some(r=>r.id===w.role))w.role='structure';
     if(typeof w.projectId!=='string'||!w.projectId)w.projectId='story'+id();
     if(typeof w.engineModel!=='string')w.engineModel='Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
     return w;
@@ -44,8 +44,7 @@
       characters:short(w.bible.characters,1300),timeline:short(w.bible.timeline,1300),threads:short(w.bible.threads,1300)
     },characters,episodes,currentEpisode:current?{id:current.id,title:current.title,scenes}:null};
   }
-  // Retained for reading historical project data; audio operations are intentionally
-  // deterministic and call the existing TTS/sound engines directly.
+  // Historical data compatibility; actual work is performed by the episode planner and TTS engine.
   function systemPrompt(role,state,epIndex){
     const current=roles.find(r=>r.id===role)||roles[0];
     return 'คุณเป็น '+current.name+'. '+current.instruction+
