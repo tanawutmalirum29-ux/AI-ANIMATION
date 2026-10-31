@@ -249,6 +249,7 @@ summary{font-size:13px}details{background:#192943;border-color:#ffffff1e}details
 }
 @media(min-width:1200px){.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){#weather{animation:none!important}}
+#weatherCv{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
 
 /* ===== Director v5: workflow-first clean canvas and responsive controls ===== */
 .continuity-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 8px}
@@ -618,7 +619,7 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 
 </style><link rel="stylesheet" href="./animated-map.css"><link rel="stylesheet" href="./cinematic-fx.css"><link rel="stylesheet" href="./character-interaction.css"></head><body>
 <header id="top"></header><aside id="lib"></aside>
-<main id="pre"><section id="welcome" aria-label="เริ่มต้นใช้งานสตูดิโอ"></section><div class="preview-toolbar"><span class="preview-label">พรีวิวฉาก</span><div class="preview-actions"><span class="preview-context" id="previewContext"></span><button type="button" id="motionQuick" title="แก้ท่าทางโดยแตะบนพรีวิว" aria-label="เปิดตัวแก้ไขท่าทาง" aria-pressed="false">✥ Motion</button><button type="button" id="smartQuick" title="Smart Director ตรวจงานทั้งโปรเจกต์" aria-label="เปิด Smart Director">✦ Smart</button><button type="button" id="directorQuick" title="กำกับฉาก" aria-label="กำกับฉาก">กำกับฉาก</button><button type="button" id="capToggle" aria-label="เปิดหรือปิดซับไตเติล" title="เปิดหรือปิดซับ">CC</button><button type="button" id="labelToggle" aria-label="เปิดหรือปิดป้ายข้อความ" title="เปิดหรือปิดป้ายข้อความ">ป้าย</button><button type="button" id="previewFullscreenQuick" class="fullscreen-quick" aria-label="ดูพรีวิวแบบเต็มจอ" title="พรีวิวเต็มจอ">⛶ เต็มจอ</button><button type="button" id="voiceQuick" aria-label="ตั้งค่าเสียงพากย์และโปรไฟล์เสียง">Voice Studio</button><button type="button" id="soundQuick" aria-label="เปิดโต๊ะตัดต่อเสียง">เสียง / ตัดต่อ</button><button type="button" id="videoQuick" class="video-quick" aria-label="ส่งออกวิดีโอ">Export วิดีโอ</button></div></div><div id="stageWrap"><div id="stage"><div id="world"><div id="bg"></div><div id="set"></div><div id="art"></div><div id="rig"></div><div id="setf"></div><div id="motionOverlay" aria-label="ตัวควบคุมท่าและตำแหน่งตัวละคร"></div></div><div id="lt"></div><div id="lightFx"></div><div id="vignetteFx"></div><div id="weather" aria-hidden="true"></div><div id="transitionPrevious" aria-hidden="true"></div><div id="transitionOverlay" aria-hidden="true"></div><div id="ph"></div><div id="storyGraphics" aria-hidden="true"></div><div id="ui"></div><div id="sub" role="status" aria-live="off"></div></div></div>
+<main id="pre"><section id="welcome" aria-label="เริ่มต้นใช้งานสตูดิโอ"></section><div class="preview-toolbar"><span class="preview-label">พรีวิวฉาก</span><div class="preview-actions"><span class="preview-context" id="previewContext"></span><button type="button" id="motionQuick" title="แก้ท่าทางโดยแตะบนพรีวิว" aria-label="เปิดตัวแก้ไขท่าทาง" aria-pressed="false">✥ Motion</button><button type="button" id="smartQuick" title="Smart Director ตรวจงานทั้งโปรเจกต์" aria-label="เปิด Smart Director">✦ Smart</button><button type="button" id="directorQuick" title="กำกับฉาก" aria-label="กำกับฉาก">กำกับฉาก</button><button type="button" id="capToggle" aria-label="เปิดหรือปิดซับไตเติล" title="เปิดหรือปิดซับ">CC</button><button type="button" id="labelToggle" aria-label="เปิดหรือปิดป้ายข้อความ" title="เปิดหรือปิดป้ายข้อความ">ป้าย</button><button type="button" id="previewFullscreenQuick" class="fullscreen-quick" aria-label="ดูพรีวิวแบบเต็มจอ" title="พรีวิวเต็มจอ">⛶ เต็มจอ</button><button type="button" id="voiceQuick" aria-label="ตั้งค่าเสียงพากย์และโปรไฟล์เสียง">Voice Studio</button><button type="button" id="soundQuick" aria-label="เปิดโต๊ะตัดต่อเสียง">เสียง / ตัดต่อ</button><button type="button" id="videoQuick" class="video-quick" aria-label="ส่งออกวิดีโอ">Export วิดีโอ</button></div></div><div id="stageWrap"><div id="stage"><div id="world"><div id="bg"></div><div id="set"></div><div id="art"></div><div id="rig"></div><div id="setf"></div><div id="motionOverlay" aria-label="ตัวควบคุมท่าและตำแหน่งตัวละคร"></div></div><div id="lt"></div><div id="lightFx"></div><div id="vignetteFx"></div><div id="weather" aria-hidden="true"></div><canvas id="weatherCv" aria-hidden="true"></canvas><div id="transitionPrevious" aria-hidden="true"></div><div id="transitionOverlay" aria-hidden="true"></div><div id="ph"></div><div id="storyGraphics" aria-hidden="true"></div><div id="ui"></div><div id="sub" role="status" aria-live="off"></div></div></div>
 <div id="ctl"></div><div id="motionBar" aria-label="เครื่องมือตัดต่อคีย์เฟรม"></div></main>
 <aside id="ins"></aside><section id="studioWorkspace" aria-label="เครื่องมือสตูดิโอ"><nav id="studioToolNav" aria-label="เลือกเครื่องมือ"></nav><div id="studioToolTitle">เลือกเครื่องมือสำหรับฉากปัจจุบัน</div><div id="studioToolBody"></div></section><footer id="tl"></footer>
 <audio id="vo"></audio><audio id="bgm" loop></audio><div id="menubackdrop" hidden></div><div id="menu" hidden role="dialog" aria-label="เครื่องมือโปรเจกต์" aria-modal="false"></div><nav id="mtabs"></nav>
@@ -840,6 +841,10 @@ function actorAtTimeBase(source,scn,local,dur){
  const result=Object.assign({},a,{x,y,pose:fromPose,endPose:ending,_pr:easing,_phaseTime:t,_phaseLen:phase.d,
  facing:to.facing||a.facing||'auto',view:to.view||from.view||a.view||'side'});
  if(result.facing==='auto')result.facing=to.x<from.x?'left':'right';
+ if(phase.kind==='move'&&(from.facing==='left'||from.facing==='right')&&(result.facing==='left'||result.facing==='right')&&from.facing!==result.facing&&!Number.isFinite(a.bodyYaw)&&!Number.isFinite(a.toBodyYaw)&&result.view==='side'){
+  const td=Math.min(.45,phase.d*.35);
+  if(td>.06&&t<td){const u=clampN(t/td,0,1),yaw=u<.5?90*(1-(u*2)*(u*2)):90*((u-.5)*2)*((u-.5)*2); /* side -> front -> side on the new facing, then continue the walk */
+   result.facing=u<.5?from.facing:result.facing;result.bodyYaw=yaw;result.headYaw=0}}
  if(phase.kind==='hold'){result.pose=to.pose||a.endPose||a.pose||'stand';delete result.endPose;result._pr=0}
  return result
 }
@@ -920,7 +925,7 @@ function d6Keys(ch,a,loc){
  // Separate the legs very slightly in a side standing silhouette; during gait
  // retain articulated stride without forcing one limb directly over another.
  if(side>.82 && ['stand','sad','think','talk','phone','read','carry'].includes(pose)){
-   for(const idx of [11,12,13])out[idx][0]=f2(out[idx][0]-0.95*side);
+   for(const idx of [11,12,13])out[idx][0]=f2(out[idx][0]-1.9*side);
  }
  // Translate the head landmarks coherently when the neck rotates independently.
  const hd=Math.sin(d6HeadYaw(a)*RAD)*2.25;
@@ -1107,9 +1112,9 @@ function d7HeadSVG(r, a, loc, headX, headY, pitch, yaw, robot){
    const profileStrength=Math.pow(Math.abs(turn),1.55)*Math.min(1,Math.max(0,(135-angle)/35));
    // Append an actual silhouette nose; unlike a flat dot it reads clearly in profile.
    if(!robot&&profileStrength>.03){
-     const bx=xray(cheek-.55),tip=xray(cheek+2.20*profileStrength),under=xray(cheek+1.05*profileStrength);
-     out+=path(`M${bx} -.9 Q${xray(cheek+.15*profileStrength)} -.15 ${tip} .18 Q${xray(cheek+2.25*profileStrength)} 1.05 ${under} 1.4 L${bx} 1.6Z`,skin);
-     out+=path(`M${tip} .25 Q${xray(cheek+2.2*profileStrength)} 1.05 ${under} 1.3`,'none',dark(skin),.43);
+     const bx=xray(cheek-.55),tip=xray(cheek+1.45*profileStrength),under=xray(cheek+.7*profileStrength);
+     out+=path(`M${bx} -.9 Q${xray(cheek+.15*profileStrength)} -.15 ${tip} .18 Q${xray(cheek+1.5*profileStrength)} 1.05 ${under} 1.4 L${bx} 1.6Z`,skin);
+     out+=path(`M${tip} .25 Q${xray(cheek+1.45*profileStrength)} 1.05 ${under} 1.3`,'none',dark(skin),.43);
    }
    // Project the complete facial plane, NOT just the skull dimensions.
    const faceShift=dir*2.75*Math.pow(Math.abs(turn),1.30);
@@ -1225,12 +1230,12 @@ function d6Wardrobe(ch,a,loc,noShadow=false){
   const col=far?dr(pants):pants,shoe=far?dr(shoes):shoes;
   let o=line(hip,knee,4.4,col,true)+joint(knee,1.9,col)+line(knee,ankle,3.6,col,true);
   const ankleName=ankle===10?'ankleR':'ankleL',ankleAngle=jointsNow[ankleName]*RAD;
-  const dir=profile*.6+.12,footX=k[ankle][0]+dir*3.7+1.4*Math.sin(ankleAngle),footY=k[ankle][1]+.3+Math.max(-1,Math.min(1,Math.sin(ankleAngle)));
-  o+=path(`M${xy(ankle)}Q${f2(footX+1.1)} ${f2(footY-1.8)} ${f2(footX+1.5)} ${f2(footY+.8)}L${f2(k[ankle][0]-1.7)} ${f2(footY+1.15)}Z`,shoe);
+  const pf=Math.abs(profile),len=2.1+2.9*pf,ax=k[ankle][0],ay=k[ankle][1],deg=f2(jointsNow[ankleName]*.8);
+  o+=`<g transform="translate(${f2(ax)} ${f2(ay)}) rotate(${deg})"><path d="M-1.9 -.5Q-2.3 .6 -1.9 1.7L${f2(len-.2)} 1.7Q${f2(len+.5)} 1.7 ${f2(len+.5)} .8Q${f2(len+.3)} -.1 ${f2(len-.9)} -.3Q${f2(len*.45)} -.6 ${f2(len*.3)} -1.1Z" fill="${shoe}" stroke="${dr(shoe)}" stroke-width=".35" stroke-linejoin="round"/><path d="M-1.9 1.45L${f2(len+.3)} 1.45" stroke="${hi(shoe)}" stroke-opacity=".55" stroke-width=".45" stroke-linecap="round"/></g>`;
   return o;
  };
  const sleeveColor=shirt;const shoulder=(k[2][0]+k[5][0])/2,shoulderY=(k[2][1]+k[5][1])/2,hipX=(k[8][0]+k[11][0])/2,hipY=(k[8][1]+k[11][1])/2;
- const hw=Math.max(1.65,Math.abs(k[2][0]-k[5][0])/2+.55),waistW=Math.max(1.55,hw*.76),torsoD=`M${f2(shoulder-hw)} ${f2(shoulderY)}Q${f2(shoulder)} ${f2(shoulderY-2)} ${f2(shoulder+hw)} ${f2(shoulderY)}L${f2(hipX+waistW)} ${f2(hipY+1)}Q${f2(hipX)} ${f2(hipY+2)} ${f2(hipX-waistW)} ${f2(hipY+1)}Z`;
+ const hw=Math.max(2.65,Math.abs(k[2][0]-k[5][0])/2+.55),waistW=Math.max(2.15,hw*.78),torsoD=`M${f2(shoulder-hw)} ${f2(shoulderY)}Q${f2(shoulder)} ${f2(shoulderY-2)} ${f2(shoulder+hw)} ${f2(shoulderY)}L${f2(hipX+waistW)} ${f2(hipY+1)}Q${f2(hipX)} ${f2(hipY+2)} ${f2(hipX-waistW)} ${f2(hipY+1)}Z`;
  const nx=(k[1][0]+shoulder)/2,ny=k[1][1];const hx=k[0][0]-profile*5.2,hy=k[0][1]-.7;
  let outfit=path(torsoD,shirt,dr(shirt),.5);
  if(['dress','robe','royal','fantasy','winter'].includes(r.costume))outfit+=path(`M${f2(hipX-waistW)} ${f2(hipY-2)}Q${f2(hipX-7)} ${f2(hipY+3)} ${f2(hipX-9)} ${f2(hipY+10)}Q${f2(hipX)} ${f2(hipY+11)} ${f2(hipX+9)} ${f2(hipY+10)}Q${f2(hipX+7)} ${f2(hipY+2)} ${f2(hipX+waistW)} ${f2(hipY-2)}Z`,dr(shirt));
@@ -1254,12 +1259,13 @@ function d6Wardrobe(ch,a,loc,noShadow=false){
  if(r.neckwear==='necklace')s+=path(`M${f2(nx-2.5)} ${f2(ny+2)}Q${f2(nx)} ${f2(ny+9)} ${f2(nx+2.5)} ${f2(ny+2)}`,'none',trim,.7)+ell(nx,ny+6.4,.95,1.2,trim);
  if(r.neckwear==='collar')s+=path(`M${f2(nx-4)} ${f2(ny+2)}L${f2(nx)} ${f2(ny+5)}L${f2(nx+4)} ${f2(ny+2)}`,'none',hi(shirt),1.6);return s};
  const headPart=d7HeadSVG(r,a,loc,hx,hy,-rigAngles(a,loc).head*.65,rawHeadAngle,robot);
- let rear=shoulderSlot(),neck=chest();let obj='';const nearR=yaw>=90;
+ let rear=shoulderSlot(),neck=chest();let obj='';const nearR=yaw>105;
+ const neckSkin=back&&!robot?'':path(`M${f2(nx)} ${f2(ny+1.5)}L${f2(hx*.7+nx*.3)} ${f2(hy+4.6)}`,'none',dr(skin),3.5)+path(`M${f2(nx)} ${f2(ny+1.5)}L${f2(hx*.7+nx*.3)} ${f2(hy+4.6)}`,'none',robot?dr(skin):skin,2.9);
  const seated=['sit','typing'].includes(a.pose)&&a.chair!==false;
  const chair=seated?`<g opacity=".94"><rect x="${f2(hipX-6.8)}" y="${f2(hipY+.7)}" width="14.5" height="1.45" rx=".6" fill="#857363"/><path d="M${f2(hipX-5.2)} ${f2(hipY+.7)}V${f2(hipY-8)}M${f2(hipX-4.8)} ${f2(hipY+2)}V0 M${f2(hipX+5.8)} ${f2(hipY+2)}V0" stroke="#68574e" stroke-width="1.7" stroke-linecap="round"/></g>`:'';
 const farArm=nearR?drawArm(2,3,4,true):drawArm(5,6,7,true),nearArm=nearR?drawArm(5,6,7,false):drawArm(2,3,4,false);
  // Ensure far limbs and accessories are underneath torso/head, and costume stays attached to projected shoulders.
- obj+=(noShadow?'':ell(0,-.55,8.7,1.4,'#0003'))+chair+(back?'':rear)+drawLeg(11,12,13,true)+drawLeg(8,9,10,false)+farArm+outfit+(back?rear:'')+neck+headPart+nearArm;
+ obj+=(noShadow?'':ell(0,-.55,8.7,1.4,'#0003'))+chair+(back?'':rear)+(nearR?drawLeg(8,9,10,true)+drawLeg(11,12,13,false):drawLeg(11,12,13,true)+drawLeg(8,9,10,false))+farArm+outfit+(back?rear:'')+neckSkin+neck+headPart+nearArm;
  return obj}
 const d6Preview=(c,v='threeQuarter')=>isObj(c&&c.rig)&&c.rig.style==='creature'?`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24 -43 48 48" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">${d6Wardrobe(c,{pose:'stand',view:v,face:'happy'},.8)}</svg>`:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-23 -55 46 62" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">${d6Wardrobe(c,{pose:'stand',view:v,face:'happy'},.8)}</svg>`;
 
@@ -1441,14 +1447,16 @@ function frontRigKeys(ch,a,loc){
   // For a frontal walk/run the arms swing mostly toward/away from the camera.
   // Foreshorten their depth component; otherwise the old 2D arm projection
   // incorrectly flares both fists straight out to the sides during a run.
-  const gait=a.pose==='walk'||a.pose==='run'||a.pose==='sneak';
+  const gait=a.pose==='walk'||a.pose==='run'||a.pose==='sneak'||['sit','typing','carry','read','phone','think','clap','kneel','crouch','bow','sleep'].includes(a.pose);
   const p1=sh*RAD,p2=(sh+el)*RAD;
-  const elbow=gait?[start[0]+sign*.46*B.upperArm*S_(p1),start[1]+.85*B.upperArm*C_(p1)]:[start[0]+sign*B.upperArm*S_(Math.abs(p1)),start[1]+B.upperArm*C_(p1)];
-  const wrist=gait?[elbow[0]+sign*.33*B.foreArm*S_(p2),elbow[1]+.84*B.foreArm*C_(p2)]:[elbow[0]+sign*B.foreArm*S_(Math.abs(p2)),elbow[1]+B.foreArm*C_(p2)];
+  const fwdPose=gait&&a.pose!=='walk'&&a.pose!=='run'&&a.pose!=='sneak';
+  const elbow=fwdPose?[start[0]+sign*(.3*B.upperArm*AB_(S_(p1))+.4),start[1]+.85*B.upperArm*C_(p1)]:gait?[start[0]+sign*.46*B.upperArm*S_(p1),start[1]+.85*B.upperArm*C_(p1)]:[start[0]+sign*B.upperArm*S_(Math.abs(p1)),start[1]+B.upperArm*C_(p1)];
+  const wrist=fwdPose?[elbow[0]+sign*.22*B.foreArm*S_(p2),elbow[1]+.84*B.foreArm*C_(p2)]:gait?[elbow[0]+sign*.33*B.foreArm*S_(p2),elbow[1]+.84*B.foreArm*C_(p2)]:[elbow[0]+sign*B.foreArm*S_(Math.abs(p2)),elbow[1]+B.foreArm*C_(p2)];
   return[elbow,wrist]
  };
+ const spread=['sit','typing','sleep','walk','run','sneak'].includes(a.pose)?.22:['crouch','kneel'].includes(a.pose)?.55:.8,spreadS=spread<.5?.12:.45;
  const leg=(sign,h,k)=>{const a0=h*RAD,a1=(h+k)*RAD,root=[sign*2.3,hipY];
- const knee=[root[0]+sign*.8*B.thigh*S_(AB_(a0)),hipY+B.thigh*C_(a0)],foot=[knee[0]+sign*.45*B.shin*S_(AB_(a1)),knee[1]+B.shin*C_(a1)];return[root,knee,foot]};
+ const knee=[root[0]+sign*spread*B.thigh*S_(AB_(a0))+(spread<.5&&AB_(h)>60?sign*.9:0),hipY+B.thigh*C_(a0)],foot=[knee[0]+sign*spreadS*B.shin*S_(AB_(a1)),knee[1]+B.shin*C_(a1)];return[root,knee,foot]};
  const r=arm(rs,g.shoulderR,g.elbowR,1),l=arm(ls,g.shoulderL,g.elbowL,-1),rl=leg(1,g.hipR,g.kneeR),ll=leg(-1,g.hipL,g.kneeL);
  return[[0,headY],[0,side[1][1]],rs,...r,ls,...l,...rl,...ll,[2.2,headY-1.6],[-2.2,headY-1.6],[5.1,headY],[-5.1,headY]]
 }
@@ -2448,15 +2456,24 @@ if(E.clues.some(c=>c.sceneId===s.id))b.append(h('span',{className:'dot',title:'�
 $('#tl').replaceChildren(h('div',{style:'margin-bottom:4px;opacity:.8'},`ไทม์ไลน์ — ลากการ์ดเพื่อสลับลำดับ · แถบแดง = จุดใบ้ · ${E.title}`),box,motionKeyLane(),h('button',{className:'audio-open-inline',onclick:openAudioDesk},'จัดการเสียง / ตัดคลิป'),audioTrackOverview());const sb=box.querySelector('.sel');if(sb)box.scrollLeft=sb.offsetLeft-box.clientWidth/2+sb.offsetWidth/2}
 
 /* ===== seamless, two-frame scene transitions ===== */
-let prevSnapshotIndex=-1, prevSnapshotData=null, drawingPreviousFrame=false;
+let prevSnapshotIndex=-1, prevSnapshotData=null, drawingPreviousFrame=false, EXPORT_FRAME=false;
 function resetTransitionCache(){prevSnapshotIndex=-1;prevSnapshotData=null;const n=$('#transitionPrevious');if(n){n.style.display='none';n.replaceChildren()}}
+function uniquePriorIds(root){
+ /* the frozen copy of the old scene must not share SVG ids (gradients, clip paths) with the live scene, otherwise url(#id) resolves to the NEW scene's definition */
+ const map=new Map(),tops=new Set([...root.children]);
+ root.querySelectorAll('[id]').forEach(el=>{if(tops.has(el))return;const n=el.id+'-prior';map.set(el.id,n);el.id=n});
+ if(!map.size)return;
+ root.querySelectorAll('*').forEach(el=>{for(const a of [...el.attributes]){const v=a.value;if(v.indexOf('#')<0)continue;
+  const nv=v.replace(/url\(\s*['"]?#([^)'"]+)['"]?\s*\)/g,(m,id)=>map.has(id)?'url(#'+map.get(id)+')':m).replace(/^#(.+)$/,(m,id)=>map.has(id)?'#'+map.get(id):m);
+  if(nv!==v)el.setAttribute(a.name,nv)}})
+}
 function ensurePreviousFrame(index){
  if(prevSnapshotIndex===index&&prevSnapshotData)return;
  const keepT=T, keepPlaying=playing;
  try{
   drawingPreviousFrame=true;playing=false;T=starts()[index]-.001;
   draw();
-  const source=$('#world'),clone=source.cloneNode(true);clone.id='priorWorld';clone.setAttribute('aria-hidden','true');
+  const source=$('#world'),clone=source.cloneNode(true);clone.id='priorWorld';clone.setAttribute('aria-hidden','true');uniquePriorIds(clone);
   const old=$('#transitionPrevious');old.replaceChildren(clone);
   prevSnapshotData={svg:clone,scene:ep().scenes[index-1],time:Math.max(0,ep().scenes[index-1].duration-.001)};
   prevSnapshotIndex=index;
@@ -2466,7 +2483,7 @@ function transitionProgress(scene,loc,index){if(!index)return 1;const duration=c
 function easeTransition(q){return q*q*(3-2*q)}
 function applyPreviewTransition(scene,loc,index,world,extent){
  world.style.opacity=1;
- if(drawingPreviousFrame)return;
+ if(drawingPreviousFrame||EXPORT_FRAME)return;
  const tr=scene.transition||{},type=tr.type||'cut',raw=transitionProgress(scene,loc,index),q=easeTransition(raw),old=$('#transitionPrevious'),cover=$('#transitionOverlay');
  old.style.display='none';old.style.opacity=1;old.style.transform='none';old.style.clipPath='none';old.style.filter='none';
  cover.style.background='#080a13';cover.style.opacity=0;cover.style.clipPath='none';
@@ -2637,7 +2654,7 @@ function toggle(){if(T>=total())T=0;playing=!playing;last=performance.now();ctl(
 function go(d){const n=Math.min(ep().scenes.length-1,Math.max(0,sel+d));sel=n;T=starts()[n];playing=false;render()}
 function draw(){
  const E=ep(),st=starts();let i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration);if(i<0)i=E.scenes.length-1;
- if(i!==sel&&(playing||document.activeElement===$('#ctl input'))){sel=i;inspector();timeline()}
+ if(i!==sel&&(playing||document.activeElement===$('#ctl input'))){sel=i;if(playing&&!drawingPreviousFrame)deferSceneUi();else{inspector();timeline()}}
  const s=E.scenes[i];if(!s)return;if(THEATER_ACTIVE)updateTheaterTitle(i);const loc=clampN(T-st[i],0,s.duration),p=clampN(loc/Math.max(.1,s.duration),0,1),c=s.camera||{},world=$('#world');
  const extent=clampN(nm(c.world,1),1,3.5),ease=p*p*(3-2*p),kind=c.type||'static';
  let zoom=nm(c.from,1)+(nm(c.to,1)-nm(c.from,1))*ease,dx=0,dy=0,ry=0,rz=0;
@@ -2660,24 +2677,24 @@ function draw(){
  world.style.width=(extent*100)+'%';
  world.style.transform=`translateX(calc(${-panoShift}% + ${dx/extent}%)) translateY(${dy}%) perspective(850px) rotateY(${ry}deg) rotate(${rz}deg) scale(${Math.max(.55,zoom)})`;
  const bg=$('#bg');bg.style.backgroundImage=s.image?`url(${s.image})`:'';
- syncAudioAt(T,playing&&!drawingPreviousFrame);
+ if(!drawingPreviousFrame)syncAudioAt(T,playing);
  const art=$('#art'),k=(!s.image&&s.art&&ART[s.art]&&s.art!=='room')?s.art:'',rig=$('#rig'),acts=Array.isArray(s.actors)?s.actors:[];
  if(art.dataset.k!==k){art.dataset.k=k;art.innerHTML=k?ART[k]():''}
  art.style.setProperty('--t',loc.toFixed(2)+'s');
  const sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0),sb=setOn?setSVG(s,'back'):'',sf=sk?setSVG(s,'front'):'',se=$('#set'),sg=$('#setf');
  if(se._h!==sb){se._h=sb;se.innerHTML=sb}if(sg._h!==sf){sg._h=sf;sg.innerHTML=sf}
- const LG=resolveLight(s.light||(setOn&&locSet(S,s.location)?locSet(S,s.location).light:'')),lt=$('#lt');lt.style.background=LG?LG[0]:'transparent';lt.style.opacity=LG?LG[1]:0;
+ const lt=$('#lt'),LGi=lightLayer(s,loc,i);lt.style.background=LGi.c;lt.style.opacity=LGi.o;
  const L=isObj(s.lighting)?s.lighting:{},fx=$('#lightFx'),bright=clampN(nm(L.exposure,1),.6,1.5),glow=clampN(nm(L.glow,0),0,1),flicker=clampN(nm(L.flicker,0),0,1);
  const pulse=flicker*(.5+.5*Math.sin(loc*19)+.12*Math.sin(loc*37));world.style.filter=`brightness(${f2(bright-pulse*.27)})`;
- const fX=clampN(nm(L.focusX,50),0,100),fY=clampN(nm(L.focusY,40),0,100);
+ const LA=lightAt(s,loc,i),fX=LA.fX,fY=LA.fY;
  fx.style.background=`radial-gradient(circle at ${fX}% ${fY}%,rgba(255,233,177,.72),transparent 58%)`;
- fx.style.opacity=f2(glow*(1-.4*pulse));
- const vig=$('#vignetteFx');if(vig){vig.style.background='radial-gradient(ellipse at 50% 45%,transparent 30%,#000d 100%)';vig.style.opacity=f2(clampN(nm(L.vignette,0),0,1))}
+ fx.style.opacity=f2(LA.glow*(1-.4*pulse));
+ const vig=$('#vignetteFx');if(vig){vig.style.background='radial-gradient(ellipse at 50% 45%,transparent 30%,#000d 100%)';vig.style.opacity=f2(LA.vig)}
 
  if(acts.length)rig.innerHTML=rigScene(acts,loc,s.duration,s);else if(rig.firstChild)rig.innerHTML='';
  updateMotionOverlay(s,loc);
  $('#ph').textContent=(s.image||k||acts.length||setOn)?'':`ฉาก ${i+1}\nยังไม่มีฉากประกอบ`;
- const weather=$('#weather'),atmo=s.atmosphere||'none';if(weather.dataset.type!==atmo){weather.className=atmo==='none'?'':atmo;weather.dataset.type=atmo}
+ if(!drawingPreviousFrame)paintWeatherPreview(s,loc,i);
  applyPreviewTransition(s,loc,i,world,extent);
  updateSceneGraphics(s,loc);
  const sub=$('#sub');sub.textContent=PREVIEW_SHOW_CAPTIONS?captionAt(s,loc):'';sub.style.opacity=sub.textContent?1:0;
@@ -2685,7 +2702,15 @@ function draw(){
  if(s.uiBox&&PREVIEW_SHOW_LABELS){u.textContent=String(s.uiBox).trim();u.title=s.uiBox;u.style.display='block';u.style.fontFamily=us.font||'system-ui'}else u.style.display='none';
  const clock=$('#clock');if(clock)clock.textContent=`${T.toFixed(1)} / ${total().toFixed(1)}s`;const r=$('#ctl input[type=range]');if(r)r.value=T*100
 }
-function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl()}draw()}last=now;requestAnimationFrame(loop)}
+let sceneUiTimer=0;
+function fastSelectTimeline(){document.querySelectorAll('#blocks .blk').forEach((b,k)=>b.classList.toggle('sel',k===sel));const sb=document.querySelector('#blocks .blk.sel'),box=document.getElementById('blocks');if(sb&&box)box.scrollLeft=sb.offsetLeft-box.clientWidth/2+sb.offsetWidth/2}
+function deferSceneUi(){/* playback: cheap highlight now, full Inspector/Timeline rebuild only once playback pauses */
+ fastSelectTimeline();clearTimeout(sceneUiTimer);
+ const again=()=>{sceneUiTimer=0;if(playing){sceneUiTimer=setTimeout(again,500);return}if(ep()&&sel<ep().scenes.length){inspector();timeline()}};sceneUiTimer=setTimeout(again,300)}
+function prefetchTransition(){
+ if(!playing||drawingPreviousFrame)return;const E=ep(),st=starts(),i=E.scenes.findIndex((s,k)=>T<st[k]+s.duration),n=i+1,nx=E.scenes[n];
+ if(i<0||!nx||(nx.transition?.type||'cut')==='cut'||T<st[n]-.7||prevSnapshotIndex===n)return;ensurePreviousFrame(n)}
+function loop(now){if(playing){T+=(now-last)/1000;if(T>=total()){T=total();playing=false;ctl()}else prefetchTransition();draw()}last=now;requestAnimationFrame(loop)}
 
 /* ===== Director v8: actual browser-side video encoding ===== */
 const VIDEO_FORMATS=[
@@ -2743,18 +2768,96 @@ function applyCameraCanvas(ctx,im,world,scene,w,h){
  const L=scene.lighting||{};ctx.filter=`brightness(${clampN(nm(L.exposure,1),.6,1.5)})`;
  ctx.drawImage(im,0,0,wide,h);ctx.restore();
 }
+/* ===== v22/v23 — continuous atmosphere + light blending (shared by preview and export) ===== */
+const FILM_FADE=.25;
+function atmoClock(){return T+nm(ep()?.continuity?.atmosphereClock,0)}
+function afRand(n){const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+function afWrap(v){return v-Math.floor(v)}
+function sceneBlend(scene,loc,index,minFade){
+ const E=ep(),prev=index>0?E.scenes[index-1]:null;if(!prev)return null;
+ const type=scene.transition?.type||'cut';
+ const dur=type==='cut'?(minFade||0):clampN(nm(scene.transition?.duration,.55),.05,Math.max(.05,scene.duration));
+ if(dur<=0)return null;const raw=clampN(loc/dur,0,1);if(raw>=1)return null;
+ return{prev,raw,e:raw*raw*(3-2*raw)}
+}
+function filmAtmosphere(ctx,type,w,h,clock,alpha){
+ if(!type||type==='none'||alpha<=.003)return;
+ const s=h/360;ctx.save();
+ if(type==='rain'||type==='storm'){
+  const storm=type==='storm',n=storm?150:95,len=(storm?20:15)*s,slope=storm?.22:.16;
+  ctx.globalAlpha=alpha*(storm?.34:.26);ctx.strokeStyle='rgb(214,232,255)';ctx.lineWidth=Math.max(1,s*1.1);ctx.beginPath();
+  for(let i=0;i<n;i++){const sp=1.25+afRand(i*7+1)*.75,prog=afWrap(afRand(i*3+2)+clock*sp),y=prog*(h+len)-len*.2,x=(afRand(i*5+3)*1.3-.15-slope*prog)*w;
+   ctx.moveTo(x,y);ctx.lineTo(x+len*slope,y-len)}
+  ctx.stroke();
+  if(storm){const ph=clock%9.1;if(ph<.22){ctx.globalAlpha=alpha*.2*(1-ph/.22)*(ph>.1&&ph<.13?.4:1);ctx.fillStyle='#eaf3ff';ctx.fillRect(0,0,w,h)}}
+ }else if(type==='snow'){
+  ctx.globalAlpha=alpha*.78;ctx.fillStyle='#fafdff';ctx.beginPath();
+  for(let i=0;i<70;i++){const sp=.05+afRand(i*7+1)*.08,y=afWrap(afRand(i*3+2)+clock*sp)*(h+8*s)-4*s,x=(afRand(i*5+3)+Math.sin(clock*.6+i)*.02)*w,r=(1+afRand(i*13+4)*2.2)*s;ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,Math.PI*2)}
+  ctx.fill();
+ }else if(type==='fog'){
+  ctx.globalAlpha=alpha;ctx.fillStyle='rgba(205,218,220,.07)';ctx.fillRect(0,0,w,h);
+  for(let i=0;i<7;i++){const cx=(afWrap(afRand(i*3+1)+clock*(.006+afRand(i*11+5)*.01))*1.5-.25)*w,cy=h*(.35+afRand(i*5+2)*.6),r=w*(.28+afRand(i*7+3)*.2);
+   const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,'rgba(224,234,236,.17)');g.addColorStop(1,'rgba(224,234,236,0)');ctx.fillStyle=g;ctx.fillRect(cx-r,cy-r,r*2,r*2)}
+ }else if(type==='wind'){
+  ctx.globalAlpha=alpha*.2;ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(1,s);ctx.beginPath();
+  for(let i=0;i<26;i++){const r=afRand(i*3+1),x=(afWrap(afRand(i*5+2)+clock*(.35+r*.4))*1.4-.2)*w,y=afRand(i*7+3)*h+Math.sin(clock*1.3+i)*4*s,l=w*(.08+.1*r);
+   ctx.moveTo(x,y);ctx.quadraticCurveTo(x+l*.5,y-3*s,x+l,y)}
+  ctx.stroke();
+ }else if(type==='dust'){
+  ctx.fillStyle='#fde4ad';
+  for(let i=0;i<52;i++){const r=afRand(i*3+1),x=(afWrap(afRand(i*5+2)+clock*(.01+r*.02))+Math.sin(clock*.5+i)*.01)*w,y=afWrap(afRand(i*7+3)-clock*(.006+r*.012))*h;
+   ctx.globalAlpha=alpha*(.18+.3*afRand(i*11+4))*(.7+.3*Math.sin(clock*.9+i));ctx.beginPath();ctx.arc(x,y,(.8+r*1.6)*s,0,Math.PI*2);ctx.fill()}
+ }else if(type==='fireflies'){
+  for(let i=0;i<28;i++){const r=afRand(i*3+1),x=(afRand(i*5+2)+Math.sin(clock*(.2+r*.3)+i*3)*.04)*w,y=(.3+afRand(i*7+3)*.65+Math.cos(clock*(.25+r*.3)+i)*.03)*h,pulse=.5+.5*Math.sin(clock*(1.4+r)+i*2.1);
+   ctx.fillStyle='#f8d56e';ctx.globalAlpha=alpha*.14*pulse;ctx.beginPath();ctx.arc(x,y,6*s,0,Math.PI*2);ctx.fill();
+   ctx.globalAlpha=alpha*.9*pulse;ctx.beginPath();ctx.arc(x,y,1.6*s,0,Math.PI*2);ctx.fill()}
+ }else if(type==='stars'){
+  ctx.fillStyle='#fff';
+  for(let i=0;i<70;i++){const r=afRand(i*3+1),tw=.55+.45*Math.sin(clock*(.8+r*2)+i*5.3);ctx.globalAlpha=alpha*.85*tw;ctx.beginPath();ctx.arc(afRand(i*5+2)*w,afRand(i*7+3)*h*.62,(.5+r*1.1)*s,0,Math.PI*2);ctx.fill()}
+ }
+ ctx.restore()
+}
+function paintSceneAtmosphere(ctx,scene,loc,index,w,h){
+ const cur=scene.atmosphere||'none',b=sceneBlend(scene,loc,index,FILM_FADE),prev=b?(b.prev.atmosphere||'none'):cur,clock=atmoClock();
+ if(b&&prev!==cur){filmAtmosphere(ctx,prev,w,h,clock,1-b.e);filmAtmosphere(ctx,cur,w,h,clock,b.e);return true}
+ filmAtmosphere(ctx,cur,w,h,clock,1);return cur!=='none'
+}
+function paintWeatherPreview(s,loc,i){
+ const cv=$('#weatherCv'),weather=$('#weather'),stg=$('#stage');if(!cv||!stg)return;
+ const atmo=s.atmosphere||'none';
+ if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches){cv.style.display='none';if(weather.dataset.type!==atmo){weather.className=atmo==='none'?'':atmo;weather.dataset.type=atmo}return}
+ cv.style.display='';if(weather.dataset.type){weather.className='';weather.dataset.type=''}
+ const w=stg.clientWidth,hh=stg.clientHeight;if(w<2||hh<2)return;
+ const dpr=Math.min(1.5,window.devicePixelRatio||1),cw=Math.round(w*dpr),ch=Math.round(hh*dpr);
+ const blending=!!sceneBlend(s,loc,i,FILM_FADE);
+ if(atmo==='none'&&!blending&&cv._blank&&cv.width===cw&&cv.height===ch)return;
+ if(cv.width!==cw||cv.height!==ch){cv.width=cw;cv.height=ch}
+ const ctx=cv.getContext('2d');ctx.clearRect(0,0,cw,ch);
+ cv._blank=!paintSceneAtmosphere(ctx,s,loc,i,cw,ch)
+}
+function lightVals(sc){const L=isObj(sc.lighting)?sc.lighting:{};return{glow:clampN(nm(L.glow,0),0,1),vig:clampN(nm(L.vignette,0),0,1),fX:clampN(nm(L.focusX,50),0,100),fY:clampN(nm(L.focusY,40),0,100)}}
+function lightAt(scene,loc,index){
+ const c=lightVals(scene),b=sceneBlend(scene,loc,index,0);if(!b)return c;
+ const p=lightVals(b.prev),m=(x,y)=>x+(y-x)*b.e;return{glow:m(p.glow,c.glow),vig:m(p.vig,c.vig),fX:m(p.fX,c.fX),fY:m(p.fY,c.fY)}
+}
+function sceneLightOf(s){
+ const k=(!s.image&&s.art&&ART[s.art]&&s.art!=='room')?s.art:'',sk=(!s.image&&!k),setOn=sk&&(!!locSet(S,s.location)||(s.props||[]).length>0);
+ return resolveLight(s.light||(setOn&&locSet(S,s.location)?locSet(S,s.location).light:''))
+}
+function lightLayer(scene,loc,index){
+ const cur=sceneLightOf(scene),b=sceneBlend(scene,loc,index,0),none={c:'transparent',o:0};
+ if(!b)return cur?{c:cur[0],o:cur[1]}:none;
+ const p=sceneLightOf(b.prev);if(!p&&!cur)return none;if(!p)return{c:cur[0],o:cur[1]*b.e};if(!cur)return{c:p[0],o:p[1]*(1-b.e)};
+ if(p[0]===cur[0])return{c:cur[0],o:p[1]+(cur[1]-p[1])*b.e};
+ return b.e<.5?{c:p[0],o:p[1]*(1-b.e*2)}:{c:cur[0],o:cur[1]*(b.e*2-1)}
+}
 function filmSceneLight(ctx,scene,w,h,local){
- const L=scene.lighting||{},glow=clampN(nm(L.glow,0),0,1),v=clampN(nm(L.vignette,0),0,1);
- if(glow){ctx.save();const fx=w*clampN(nm(L.focusX,50),0,100)/100,fy=h*clampN(nm(L.focusY,40),0,100)/100;
+ const index=ep().scenes.indexOf(scene),LA=lightAt(scene,local,index),glow=LA.glow,v=LA.vig,LG=lightLayer(scene,local,index);
+ if(LG.o>.003&&LG.c!=='transparent'){ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=LG.o;ctx.fillStyle=LG.c;ctx.fillRect(0,0,w,h);ctx.restore()}
+ if(glow){ctx.save();const fx=w*LA.fX/100,fy=h*LA.fY/100;
   let g=ctx.createRadialGradient(fx,fy,1,fx,fy,w*.72);g.addColorStop(0,`rgba(255,233,177,${glow*.25})`);g.addColorStop(1,'rgba(255,233,177,0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);ctx.restore()}
  if(v){ctx.save();let g=ctx.createRadialGradient(w/2,h*.45,Math.min(w,h)*.12,w/2,h*.45,Math.max(w,h)*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${v*.7})`);ctx.fillStyle=g;ctx.fillRect(0,0,w,h);ctx.restore()}
- const at=scene.atmosphere||'none';if(at==='rain'||at==='storm'||at==='snow'||at==='stars'||at==='fireflies'){
-  ctx.save();const n=at==='rain'||at==='storm'?75:at==='snow'?46:34;
-  ctx.strokeStyle=at==='rain'||at==='storm'?'rgba(210,230,255,.23)':'rgba(255,255,255,.55)';ctx.fillStyle=at==='fireflies'?'#f8d56e':'rgba(250,253,255,.65)';
-  for(let i=0;i<n;i++){let x=(i*71.73+(at==='rain'?local*125:local*12))%w,y=(i*167.9+local*(at==='rain'?185:at==='snow'?31:1))%h;
-   if(at==='rain'||at==='storm'){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-4,y+15);ctx.stroke()}else{ctx.beginPath();ctx.arc(x,y,(i%3+1)*h/650,0,Math.PI*2);ctx.fill()}
-  }ctx.restore();
- }
+ paintSceneAtmosphere(ctx,scene,local,index,w,h)
 }
 function roundedRectCanvas(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
 function drawVideoText(ctx,scene,loc,w,h,includeCaptions){
@@ -2787,20 +2890,22 @@ function drawTransitionToCanvas(ctx,scene,loc,index,current,old,w,h){
   if(type==='wipe-right')ctx.rect(0,0,(1-q)*w,h);
   if(type==='wipe-up')ctx.rect(0,q*h,w,(1-q)*h);
   if(type==='wipe-down')ctx.rect(0,0,w,(1-q)*h);
-  if(type==='iris'){ctx.arc(w/2,h/2,Math.max(0,(1-q)*Math.hypot(w,h)*.57),0,Math.PI*2)}
+  if(type==='iris'){ctx.arc(w/2,h/2,Math.max(0,(1-q)*Math.hypot(w,h)*.509),0,Math.PI*2)}
   ctx.clip();paint(old);ctx.restore();
  }else if(type==='fadeblack'||type==='flash'){
   paint(current);paint(old,1-q);ctx.save();ctx.fillStyle=type==='flash'?'#fff7ee':'#050810';ctx.globalAlpha=(1-Math.abs(2*q-1))*(type==='flash'?.92:1);ctx.fillRect(0,0,w,h);ctx.restore();
  }else if(type==='zoom'){paint(current,1,0,.92+.08*q);paint(old,1-q,0,1+.14*q,2*q)}
  else if(type==='blur'){paint(current);paint(old,1-q,0,1,10*q)}
+ else if(type==='fade'){paint(current,q);paint(old,1-q)}
  else {paint(current);paint(old,1-q)}
 }
+function exportDraw(){EXPORT_FRAME=true;try{draw()}finally{EXPORT_FRAME=false}}
 async function renderVideoFrame(ctx,t,info){
  const scenes=ep().scenes,st=starts();let index=scenes.findIndex((s,i)=>t<st[i]+s.duration);if(index<0)index=scenes.length-1;
- T=t;draw();const scene=scenes[index],loc=Math.max(0,Math.min(scene.duration,t-st[index])),w=info.w,h=info.h;
+ T=t;exportDraw();const scene=scenes[index],loc=Math.max(0,Math.min(scene.duration,t-st[index])),w=info.w,h=info.h;
  const currentWorld=$('#world');let old=null;
  if(index>0&&transitionProgress(scene,loc,index)<1&&scene.transition?.type!=='cut'){
-  ensurePreviousFrame(index);if(!info.previous.has(index)){
+  const fresh=prevSnapshotIndex!==index;ensurePreviousFrame(index);if(fresh)exportDraw();if(!info.previous.has(index)){
    info.previous.set(index,await imageFromVector(svgFrameFromWorld($('#priorWorld'),scenes[index-1],w,h)));
   }old=info.previous.get(index);
  }

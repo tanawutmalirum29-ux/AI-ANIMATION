@@ -24,7 +24,8 @@ function initialScene(scene,name){
   start:0,end:d,easing:'smooth',keyframes:[{t:0,...frame},{t:d,...frame}]};
 }
 function cfg(scene){const f=scene&&scene.cinematicFx;return f&&typeof f==='object'?f:null}
-function active(scene,local){
+function sameFx(a,b){const x=cfg(a),y=cfg(b);return !!(x&&y&&x.enabled&&y.enabled&&x.preset===y.preset&&x.kind===y.kind)}
+function active(scene,local,mul){
  const f=cfg(scene);if(!f||!f.enabled)return null;
  const dur=Math.max(.1,Number(scene.duration)||4),start=clamp(f.start,0,dur),end=clamp(f.end??dur,start,dur);
  if(local<start||local>end)return null;
@@ -37,9 +38,12 @@ function active(scene,local){
  else{left=p[here-1];right=p[here];alpha=clamp((local-left.t)/Math.max(.001,right.t-left.t),0,1)}
  if(f.easing==='smooth')alpha=alpha*alpha*(3-2*alpha);
  for(const [key] of FIELDS){const a=clamp(left[key]??fallback[key]??0,0,1),b=clamp(right[key]??fallback[key]??0,0,1);at[key]=mix(a,b,alpha)}
- const fadeIn=clamp(f.fadeIn||0,0,dur),fadeOut=clamp(f.fadeOut||0,0,dur);
+ const sc=ep().scenes,ix=sc.indexOf(scene);
+ const contIn=ix>0&&start<=.01&&sameFx(sc[ix-1],scene)&&clamp(cfg(sc[ix-1]).end??sc[ix-1].duration,0,sc[ix-1].duration)>=sc[ix-1].duration-.01;
+ const contOut=ix>=0&&ix<sc.length-1&&end>=dur-.01&&sameFx(sc[ix+1],scene)&&clamp(cfg(sc[ix+1]).start,0,sc[ix+1].duration)<=.01;
+ const fadeIn=contIn?0:clamp(f.fadeIn||0,0,dur),fadeOut=contOut?0:clamp(f.fadeOut||0,0,dur);
  at.gate=Math.min(1,fadeIn>0?(local-start)/fadeIn:1,fadeOut>0?(end-local)/fadeOut:1);
- at.gate=clamp(at.gate,0,1);
+ at.gate=clamp(at.gate,0,1)*(mul===undefined?1:mul);
  return {fx:f,v:at};
 }
 function hexRGB(hex){
@@ -62,6 +66,11 @@ function layerOffsets(scene,local,w,h){
  return {art:[-m.x*w*.022,-m.y*h*.012],set:[-m.x*w*.012,-m.y*h*.007],
   setf:[m.x*w*.032,m.y*h*.02]};
 }
+function paintCross(ctx,scene,local,w,h){
+ const E=ep().scenes,ix=E.indexOf(scene);
+ if(ix>0&&typeof sceneBlend==='function'){const b=sceneBlend(scene,local,ix,0);
+  if(b&&cfg(b.prev)&&!sameFx(b.prev,scene))paint(ctx,b.prev,Math.max(0,b.prev.duration-.001),w,h,1-b.e)}
+ return paint(ctx,scene,local,w,h)}
 function sceneLocal(scene){
  const index=ep().scenes.indexOf(scene);
  return index>=0?clamp(T-starts()[index],0,scene.duration):Math.max(0,scene.duration||0);
@@ -79,8 +88,9 @@ function applyLayerTransforms(scene,local){
   el.style.transform=(Math.abs(x)+Math.abs(y)>.001)?'translate('+x+'%,'+y+'%)':'none';
  }
 }
-function paint(ctx,scene,local,w,h){
- const a=active(scene,local);if(!a||a.v.gate<=0||w<2||h<2)return false;
+function paint(ctx,scene,local,w,h,mul){
+ const a=active(scene,local,mul);if(!a||a.v.gate<=0||w<2||h<2)return false;
+ const clk=(typeof atmoClock==='function'&&ep().scenes.indexOf(scene)>=0)?atmoClock():local;
  const {fx:f,v}=a,g=v.gate,lightX=clamp(f.lightX??68,0,100)/100*w,lightY=clamp(f.lightY??27,0,100)/100*h,
  [cr,cg,cb]=hexRGB(f.tint);
  const kind=['moon','sun','flashlight','torch'].includes(f.kind)?f.kind:'moon';
@@ -97,13 +107,13 @@ function paint(ctx,scene,local,w,h){
  if(v.fog>.001){
   const layers=[{h:.33,depth:.18,alpha:.13},{h:.64,depth:.55,alpha:.18},{h:.86,depth:1.0,alpha:.23}];
   for(let k=0;k<layers.length;k++){
-   const layer=layers[k],py=h*layer.h,offset=(cam.x*layer.depth+Math.sin(local*(.22+.11*k)+k)*.24)*w*.1;
+   const layer=layers[k],py=h*layer.h,offset=(cam.x*layer.depth+Math.sin(clk*(.22+.11*k)+k)*.24)*w*.1;
    const gradient=ctx.createRadialGradient(w*.5+offset,py,short*.035,w*.5+offset,py,w*.88);
    gradient.addColorStop(0,'rgba(199,221,221,'+(v.fog*g*layer.alpha*1.7)+')');
    gradient.addColorStop(1,'rgba(175,209,219,0)');
    ctx.fillStyle=gradient;ctx.fillRect(0,py-h*.25,w,h*.55);
    for(let i=0;i<5;i++){
-    const x=((rand(i+78*k)*1.5-.25)*w+offset+Math.sin(local*.1+i)*short*.017),y=py+Math.sin(i*2.3+local*.3)*short*.025;
+    const x=((rand(i+78*k)*1.5-.25)*w+offset+Math.sin(clk*.1+i)*short*.017),y=py+Math.sin(i*2.3+clk*.3)*short*.025;
     const fog=ctx.createRadialGradient(x,y,1,x,y,short*(.16+.09*(i%3)));
     fog.addColorStop(0,'rgba(193,221,225,'+(v.fog*g*layer.alpha*.5)+')');fog.addColorStop(1,'rgba(193,221,225,0)');
     ctx.fillStyle=fog;ctx.fillRect(x-short*.3,y-short*.23,short*.65,short*.46);
@@ -144,8 +154,8 @@ function paint(ctx,scene,local,w,h){
   const count=28;
   for(let i=0;i<count;i++){
    const depth=.3+rand(i*3+5)*.7;
-   const px=((rand(i*17+2)*1.15+Math.sin(local*(.16+depth*.3)+i)*.026-cam.x*depth*.035)%1.15)*w;
-   const py=((rand(i*19+7)+(local*(.015+depth*.018)))%1)*h;
+   const px=((rand(i*17+2)*1.15+Math.sin(clk*(.16+depth*.3)+i)*.026-cam.x*depth*.035)%1.15)*w;
+   const py=((rand(i*19+7)+(clk*(.015+depth*.018)))%1)*h;
    ctx.globalAlpha=v.dust*g*(.12+.32*rand(i*5+9));
    ctx.beginPath();ctx.arc(px,py,Math.max(.45,short*(.0008+.0014*depth)),0,Math.PI*2);ctx.fill();
   }ctx.restore();
@@ -158,11 +168,11 @@ function paint(ctx,scene,local,w,h){
   sheen.addColorStop(0,'rgba(132,194,213,'+(power*.18)+')');sheen.addColorStop(1,'rgba(26,102,138,'+(power*.12)+')');
   ctx.fillStyle=sheen;ctx.fillRect(0,y,w,h-y);
   for(let i=0;i<20;i++){
-   const yy=y+(i+.45)*(h-y)/21,drift=Math.sin(local*1.9+i*.6)*short*.012,
+   const yy=y+(i+.45)*(h-y)/21,drift=Math.sin(clk*1.9+i*.6)*short*.012,
     center=lightX+drift+cam.x*w*.035,s=short*(.065+rand(i+4)*.21);
    ctx.strokeStyle='rgba(190,231,245,'+(power*(.09+.24*rand(i*13+2)))+')';
    ctx.lineWidth=Math.max(.7,short*.0018);
-   ctx.beginPath();ctx.moveTo(center-s/2,yy);ctx.quadraticCurveTo(center,yy+short*.005*Math.sin(local+i),center+s/2,yy);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(center-s/2,yy);ctx.quadraticCurveTo(center,yy+short*.005*Math.sin(clk+i),center+s/2,yy);ctx.stroke();
   }
   ctx.restore();
  }
@@ -173,7 +183,7 @@ function paint(ctx,scene,local,w,h){
    const depth=.5+rand(i+99)*.5;
    const x=(rand(i*13+9)*1.16-.08)*w+cam.x*short*.09*depth;
    const length=short*(.06+.09*rand(i+12));
-   const lean=Math.sin(local*(.4+depth*.4)+i*.9)*short*.016;
+   const lean=Math.sin(clk*(.4+depth*.4)+i*.9)*short*.016;
    ctx.strokeStyle='rgba(15,39,42,'+(g*(v.parallax*.13+v.shadow*.16)*depth)+')';
    ctx.lineWidth=Math.max(.7,short*(.002+rand(i+13)*.003));
    ctx.beginPath();ctx.moveTo(x,h);ctx.quadraticCurveTo(x+lean*.7,h-length*.6,x+lean+short*.028*(rand(i+15)-.5),h-length);ctx.stroke();
@@ -181,7 +191,7 @@ function paint(ctx,scene,local,w,h){
   if(v.shadow>.01){
    const Y=h*.78;
    ctx.fillStyle='rgba(7,21,32,'+(v.shadow*g*.16)+')';
-   ctx.save();ctx.translate(w*.44+Math.sin(local*.8)*short*.03,Y);ctx.rotate(Math.sin(local*.4)*.1);
+   ctx.save();ctx.translate(w*.44+Math.sin(clk*.8)*short*.03,Y);ctx.rotate(Math.sin(clk*.4)*.1);
    ctx.beginPath();ctx.ellipse(0,0,w*.25,short*.032,0,0,Math.PI*2);ctx.fill();ctx.restore();
   }
   ctx.restore();
@@ -203,12 +213,12 @@ function preview(){
  const loc=clamp(T-startsList[idx],0,s.duration);
  overlay.style.mixBlendMode=cfg(s)?.blend==='screen'?'screen':cfg(s)?.blend==='lighter'?'plus-lighter':'normal';
  applyLayerTransforms(s,loc);
- ctx.save();ctx.scale(dpr,dpr);paint(ctx,s,loc,w,h);ctx.restore();
+ ctx.save();ctx.scale(dpr,dpr);paintCross(ctx,s,loc,w,h);ctx.restore();
 }
 const previousDraw=draw;
 draw=function(){const result=previousDraw.apply(this,arguments);preview();return result};
 const previousLight=filmSceneLight;
-filmSceneLight=function(ctx,scene,w,h,local){const r=previousLight.apply(this,arguments);paint(ctx,scene,local,w,h);return r};
+filmSceneLight=function(ctx,scene,w,h,local){const r=previousLight.apply(this,arguments);paintCross(ctx,scene,local,w,h);return r};
 const make=(tag,txt,attrs)=>{const node=document.createElement(tag);if(txt!==undefined)node.textContent=txt;
  if(attrs)for(const [k,v] of Object.entries(attrs)){if(k==='class')node.className=v;else node.setAttribute(k,String(v))}
  return node};
