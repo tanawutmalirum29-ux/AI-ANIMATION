@@ -1,5 +1,7 @@
 # AI-ANIMATION · Story Studio Director
 
+**เว็บไซต์ Story Studio Director:** [เปิดใช้งานบน AWS Amplify](https://main.d1wc6w01kiwpnk.amplifyapp.com/)
+
 เว็บตัดต่อ Story Studio Director พร้อม **คลังเสียงบรรยากาศ เอฟเฟกต์ และเพลงสังเคราะห์สำเร็จรูป 49 รายการ** บน GitHub (ตัวแอปเป็น HTML/JavaScript แบบ static)
 
 ## เปิดเว็บและ Deploy บน AWS Amplify
