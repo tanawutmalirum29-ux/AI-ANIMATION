@@ -62,7 +62,7 @@ let server=http.createServer((req,res)=>{
  assert.ok(movement.transform!=='none','Preview needs CSS layer transform');
  // New scene with at least one SVG set layer to validate export transform markup.
  await page.evaluate(()=>{
-  const s=sc();s.art='tree';T=starts()[sel]+s.duration*.6;draw();
+  const s=sc();s.image=null;s.art='chaos';T=starts()[sel]+s.duration*.6;draw();
  });
  const exportParallax=await page.evaluate(()=>{
   const s=sc(),out=svgFrameFromWorld(document.getElementById('world'),s,640,360);
