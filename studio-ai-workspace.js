@@ -245,7 +245,7 @@ async function benchmarkModel(applyChanges=false){
   }
   status((applyChanges?'AI วิเคราะห์และปรับโปรเจกต์เสร็จ':'ทดสอบสำเร็จ')+' · '+model.label);
  }catch(err){invalidateModelOnFailure(err);modelReport='ทดสอบไม่สำเร็จ: '+String(err.message||err);status(modelReport,true)}
- finally{busy=false;render()}
+ finally{busy=false;modelAbortController=null;render()}
 }
 
 
@@ -323,7 +323,7 @@ async function runNarrative(){
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
    (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
   status(narrativeReport);
- }catch(err){if(/disposed|deleted object|tokenizer\*|device lost/i.test(String(err.message||err))){modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,ready:false,error:'Tokenizer/WebGPU ใช้งานไม่ได้ · กรุณาโหลดหน้าเว็บใหม่',percent:null})}narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
+ }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;modelAbortController=null;render()}
 }
 const e=(tag,props={},...children)=>{
