@@ -8,7 +8,7 @@ if (typeof S==='undefined' || typeof draw!=='function' || typeof drawGraphicCard
 const limit=(v,a,b)=>Math.max(a,Math.min(b,Number.isFinite(+v)?+v:a));
 const defaultRoute=()=>[{x:12,y:82},{x:28,y:58},{x:54,y:66},{x:70,y:38},{x:88,y:17}];
 function preset(theme){
- return {enabled:true,mode:'full',theme:theme||'field',title:'แผนที่เส้นทาง',start:0,end:6,timerSeconds:120,showTimer:true,marker:'route',points:defaultRoute(),startLabel:'เริ่ม',endLabel:'เป้าหมาย'};
+ return {enabled:true,mode:'full',theme:theme||'field',title:'แผนที่เส้นทาง',start:0,end:Math.max(.1,Number(sc()?.duration)||6),timerSeconds:120,showTimer:true,marker:'route',points:defaultRoute(),startLabel:'เริ่ม',endLabel:'เป้าหมาย'};
 }
 function sceneMap(scene){return scene&&scene.animatedMap&&typeof scene.animatedMap==='object'?scene.animatedMap:null}
 function normalizePoints(map){
