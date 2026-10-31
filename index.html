@@ -650,6 +650,7 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 <dialog id="audioDesk" aria-labelledby="audioDeskTitle"><div class="audio-head"><h2 id="audioDeskTitle">Sound Desk — ตัดต่อเสียง</h2><button type="button" id="audioDeskClose">ปิด ✕</button></div><div id="audioDeskBody"></div></dialog>
 <div id="previewTheater" hidden role="dialog" aria-modal="true" aria-label="พรีวิววิดีโอเต็มจอ"><div class="theater-head"><span id="theaterTitle" class="theater-title">พรีวิวตอน</span><div class="theater-btns"><button type="button" id="theaterCaptions" aria-label="แสดงหรือซ่อนซับ">CC</button><button type="button" id="theaterLabels" aria-label="แสดงหรือซ่อนป้าย">ป้าย</button><button type="button" id="theaterClose">✕ ปิดเต็มจอ</button></div></div></div><button type="button" id="jumpTop" hidden aria-label="กลับไปส่วนบนสุดของหน้า">↑ กลับบนสุด</button>
 <dialog id="voiceStudio" aria-labelledby="voiceStudioTitle"><div class="voice-head"><h2 id="voiceStudioTitle">Voice Studio · ออกแบบและพากย์เสียง</h2><button type="button" id="voiceStudioClose">ปิด ✕</button></div><div id="voiceStudioBody"></div></dialog>
+<script src="./narration-director.js"></script>
 <script>
 /* ===== state & history ===== */
 const LS='storyStudio.v6'; const PREVIOUS_LS='storyStudio.v5';
@@ -2320,12 +2321,12 @@ function audioTrackOverview(){const all=audioEvents(),tt=Math.max(1,total());con
  piece.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;piece.classList.remove('dragging');if(moved){const movedTo=c.at;c.at=dragOrig;commit(()=>{c.at=movedTo;adjustAudioClip(c)});renderAudioDesk()}else{AUDIO_DESK_SCENE=item.scene>=0?item.scene:AUDIO_DESK_SCENE;AUDIO_DESK_TAB=item.scope;renderAudioDesk()}});piece.addEventListener('pointercancel',()=>{drag=null;piece.classList.remove('dragging')});bar.append(piece)}
  container.append(h('div',{className:'audio-trackline'},h('div',{className:'audio-trackname'},title),bar))});return container}
 async function addAudioFile(file,kind,meta={}){if(!file)return;const targetScene=AUDIO_DESK_SCENE;const data=await new Promise((resolve,reject)=>{const f=new FileReader();f.onload=()=>resolve(f.result);f.onerror=reject;f.readAsDataURL(file)});
- const ctx=new (window.AudioContext||window.webkitAudioContext)();let duration=0,wave=[],audioStats=null;
- try{const b=await ctx.decodeAudioData(await file.arrayBuffer());if(kind==='voice')rememberVoicePreviewBuffer(data,b);duration=b.duration;audioStats=volumeFromAudioAnalysis(b);const ch=b.getChannelData(0),step=Math.max(1,Math.ceil(ch.length/96));for(let i=0;i<96;i++){let peak=0;const from=i*step,to=Math.min(ch.length,from+step);for(let j=from;j<to;j+=Math.max(1,Math.floor(step/50)))peak=Math.max(peak,Math.abs(ch[j]));wave.push(+Math.max(.07,Math.min(1,peak)).toFixed(2))}}catch(err){duration=await new Promise(resolve=>{const a=new Audio(data);a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>resolve(0);setTimeout(()=>resolve(0),3500)})}finally{ctx.close().catch(()=>{})}
+ const ctx=new (window.AudioContext||window.webkitAudioContext)();let duration=0,wave=[],audioStats=null,silence={start:0,end:0};
+ try{const b=await ctx.decodeAudioData(await file.arrayBuffer());if(kind==='voice')rememberVoicePreviewBuffer(data,b);duration=b.duration;audioStats=volumeFromAudioAnalysis(b);if(meta.smartTrim&&window.StoryNarrationDirector)silence=window.StoryNarrationDirector.silenceTrim(b);const ch=b.getChannelData(0),step=Math.max(1,Math.ceil(ch.length/96));for(let i=0;i<96;i++){let peak=0;const from=i*step,to=Math.min(ch.length,from+step);for(let j=from;j<to;j+=Math.max(1,Math.floor(step/50)))peak=Math.max(peak,Math.abs(ch[j]));wave.push(+Math.max(.07,Math.min(1,peak)).toFixed(2))}}catch(err){duration=await new Promise(resolve=>{const a=new Audio(data);a.onloadedmetadata=()=>resolve(a.duration);a.onerror=()=>resolve(0);setTimeout(()=>resolve(0),3500)})}finally{ctx.close().catch(()=>{})}
  if(!(duration>0)){alert('อ่านความยาวไฟล์เสียงไม่ได้ หรือรูปแบบเสียงนี้ไม่รองรับ');return}
  const chosenScene=ep().scenes[targetScene],speakerId=String(meta.speakerId??chosenScene?.voiceDirection?.speaker??''),cue=(chosenScene?.subtitleCues||[]).find(q=>q.id===meta.cueId);
  const vprof=kind==='voice'?speakerVoiceProfileId(chosenScene,speakerId):'';
- const clip={id:'clip'+uid(),kind,name:file.name,data,duration:+duration.toFixed(3),wave,at:cue?clampN(+cue.start||0,0,chosenScene.duration):0,cueId:cue?.id||'',trimStart:0,trimEnd:0,volume:kind==='music'?.3:1,fadeIn:0,fadeOut:0,rate:1,mute:false,voiceProfileId:vprof,speakerId:kind==='voice'?speakerId:'',speakerAssigned:kind==='voice',autoGain:kind==='voice'?(audioStats?.gain||1):1,audioStats};
+ const clip={id:'clip'+uid(),kind,name:file.name,data,duration:+duration.toFixed(3),wave,at:cue?clampN(+cue.start||0,0,chosenScene.duration):0,cueId:cue?.id||'',trimStart:meta.smartTrim?silence.start:0,trimEnd:meta.smartTrim?silence.end:0,volume:kind==='music'?.3:1,fadeIn:0,fadeOut:0,rate:1,mute:false,voiceProfileId:vprof,speakerId:kind==='voice'?speakerId:'',speakerAssigned:kind==='voice',autoGain:kind==='voice'?(audioStats?.gain||1):1,audioStats};
  commit(()=>{if(kind==='music')ep().musicClips.push(clip);else chosenScene.audioClips.push(clip)});renderAudioDesk();
 }
 function renderAudioDesk(){const b=$('#audioDeskBody');if(!b)return;const E=ep(),scene=E.scenes[AUDIO_DESK_SCENE]||E.scenes[0],clips=AUDIO_DESK_TAB==='music'?(E.musicClips||[]):(scene.audioClips||[]),choose=AUDIO_DESK_TAB==='music';
@@ -3970,14 +3971,14 @@ function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_T
  if(innerWidth<=820){const body=$('#studioToolBody');const y=body.getBoundingClientRect().top;if(y>innerHeight*.85)window.scrollTo({top:Math.max(0,scrollY+y-innerHeight*.58),behavior:'smooth'})}
 }
 /* ===== Auto Dub: พากย์อัตโนมัติฟรี (Lambda + Edge TTS) ===== */
-let AUTODUB_RUNNING=false,AUTODUB_CANCEL=false,AUTODUB_SCOPE='scene',AUTODUB_SKIP=true;
+let AUTODUB_RUNNING=false,AUTODUB_CANCEL=false,AUTODUB_SCOPE='scene',AUTODUB_SKIP=true,AUTODUB_SMART=true,AUTODUB_GAP=.16;
 const AUTODUB_LS={url:'storyStudio.autodub.url',key:'storyStudio.autodub.key'};
 const AUTODUB_MALE_TYPES=['male','deep','senior','villain'];
 function autoDubCfg(){let url='',key='';try{url=localStorage.getItem(AUTODUB_LS.url)||'';key=localStorage.getItem(AUTODUB_LS.key)||''}catch(e){}return{url:url.trim(),key:key.trim()}}
 function autoDubSave(url,key){try{localStorage.setItem(AUTODUB_LS.url,String(url||'').trim());localStorage.setItem(AUTODUB_LS.key,String(key||'').trim())}catch(e){}}
 function autoDubVoiceFor(scene,speaker){const id=speakerVoiceProfileId(scene,speaker)||sceneVoiceProfileId(scene),p=getVoiceProfile(id);return AUTODUB_MALE_TYPES.includes(p?.type)?'th-TH-NiwatNeural':'th-TH-PremwadeeNeural'}
-async function autoDubFetch(cfg,text,voice){
- const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice})});
+async function autoDubFetch(cfg,text,voice,options={}){
+ const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice,...(options.rate?{rate:options.rate}:{})})});
  let j=null;try{j=await r.json()}catch(e){}
  if(!r.ok||!j?.audio)throw new Error((j&&j.error)||('HTTP '+r.status));
  const bin=atob(j.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
