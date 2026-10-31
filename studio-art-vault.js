@@ -89,6 +89,26 @@ function renderEditor(container){
  input.addEventListener('input',paint);paint();
  container.append(el('div',{className:'ai-art-edit-grid'},left,right));
 }
+function renderCurrent(container){
+ const scene=bridge?.scene?.(),list=Array.isArray(scene?.customAssets)?scene.customAssets:[];
+ const panel=el('section',{className:'ai-art-current'},el('h4',{},'ของที่ใช้ในฉากนี้ ('+list.length+')'));
+ if(!list.length)panel.append(el('p',{className:'ai-help'},'เลือก “ใช้ในฉาก” จากคลังเพื่อเริ่มวางรูป'));
+ list.forEach((item,index)=>{
+  let safe;try{safe=core.asset(item.asset)}catch(e){return}
+  const control=(key,label,min,max,step)=>el('label',{},label,el('input',{
+   type:'number',min,max,step,value:Number(item[key]??(key==='scale'?1:50)).toFixed(key==='scale'?1:0),
+   onchange:ev=>bridge.updateAsset(index,{[key]:Number(ev.target.value)})
+  }));
+  panel.append(el('article',{className:'ai-art-placement'},preview(safe),
+   el('div',{className:'ai-art-placement-fields'},el('strong',{},safe.name),
+    el('div',{className:'ai-art-number-row'},control('x','ตำแหน่ง X',0,100,1),
+      control('y','ตำแหน่ง Y',0,100,1),control('scale','ขนาด',.1,3,.1)),
+    el('label',{},el('input',{type:'checkbox',...(item.front?{checked:'checked'}:{}),
+       onchange:ev=>bridge.updateAsset(index,{front:ev.target.checked})}),' วาดหน้าตัวละคร'),
+    btn('ลบจากฉาก',()=>bridge.removeAsset(index)))));
+ });
+ container.append(panel);
+}
 function render(){
  if(!host)return;
  host.replaceChildren(el('div',{className:'ai-section-head'},el('h3',{},'Art Vault · คลังของสำเร็จรูปจาก GitHub'),
@@ -99,6 +119,7 @@ function render(){
   el('p',{className:'ai-help'},'AI ในเครื่องเสนอรูปทรง JSON ได้ แต่จะไม่เข้าถึง GitHub Token และไม่มีสิทธิ์แก้โค้ดเอง การส่ง PR ต้องมีการยืนยันก่อนทุกครั้ง'));
  const area=el('div');
  host.append(area);
+ renderCurrent(area);
  if(view==='catalog')renderGallery(area);else renderEditor(area);
 }
 function mount(target,newBridge){host=target;bridge=newBridge;load().then(render);render()}
