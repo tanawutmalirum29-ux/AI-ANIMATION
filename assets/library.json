@@ -2005,6 +2005,91 @@
           "fill": "#8c694c"
         }
       ]
+    },
+    {
+      "version": 1,
+      "id": "vault-wallclock-2026",
+      "name": "นาฬิกาแขวนผนัง",
+      "category": "prop",
+      "description": "นาฬิกาวินเทจสำหรับห้องเรียน ห้องสมุด และฉากบ้าน",
+      "shapes": [
+        {
+          "type": "circle",
+          "fill": "#8b6545",
+          "stroke": "#4e382f",
+          "strokeWidth": 3,
+          "opacity": 1,
+          "cx": 50,
+          "cy": 49,
+          "r": 35
+        },
+        {
+          "type": "circle",
+          "fill": "#eadac2",
+          "stroke": "#b69b71",
+          "strokeWidth": 2,
+          "opacity": 1,
+          "cx": 50,
+          "cy": 49,
+          "r": 29
+        },
+        {
+          "type": "line",
+          "fill": "#eadac2",
+          "stroke": "#57483b",
+          "strokeWidth": 3,
+          "opacity": 1,
+          "x1": 50,
+          "y1": 49,
+          "x2": 50,
+          "y2": 29
+        },
+        {
+          "type": "line",
+          "fill": "#eadac2",
+          "stroke": "#57483b",
+          "strokeWidth": 3,
+          "opacity": 1,
+          "x1": 50,
+          "y1": 49,
+          "x2": 68,
+          "y2": 55
+        },
+        {
+          "type": "circle",
+          "fill": "#72543e",
+          "stroke": "none",
+          "strokeWidth": 0,
+          "opacity": 1,
+          "cx": 50,
+          "cy": 49,
+          "r": 3
+        },
+        {
+          "type": "rect",
+          "fill": "#ad8b60",
+          "stroke": "none",
+          "strokeWidth": 0,
+          "opacity": 1,
+          "x": 48,
+          "y": 8,
+          "w": 4,
+          "h": 7,
+          "rx": 1
+        },
+        {
+          "type": "rect",
+          "fill": "#ad8b60",
+          "stroke": "none",
+          "strokeWidth": 0,
+          "opacity": 1,
+          "x": 47,
+          "y": 79,
+          "w": 6,
+          "h": 5,
+          "rx": 1
+        }
+      ]
     }
   ]
 }
