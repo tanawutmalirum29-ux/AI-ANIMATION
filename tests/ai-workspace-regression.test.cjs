@@ -104,7 +104,7 @@ test('iPad preview prioritizes direct audible media and offers diagnostics',()=>
 
 test('iPad preview plays an existing voice clip and immediately replays after data changes',async()=>{
  const start=html.indexOf('function syncAudioAt(t,play){');
- const end=html.indexOf('\\nfunction audioWaveSVG',start);
+ const end=html.indexOf('\nfunction audioWaveSVG',start);
  assert.ok(start>=0&&end>start);
  const source=html.slice(start,end);
  let data='data:audio/old',now=2500;
