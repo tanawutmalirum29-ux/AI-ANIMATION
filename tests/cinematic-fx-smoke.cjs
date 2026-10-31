@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const http=require('node:http');
 const assert=require('node:assert/strict');
 
-const names=['index.html','animated-map.js','animated-map.css','cinematic-fx.js','cinematic-fx.css'];
+const names=['index.html','animated-map.js','animated-map.css','cinematic-fx.js','cinematic-fx.css','character-interaction.js','character-interaction.css'];
 const html=fs.readFileSync('index.html','utf8');
 for(const js of [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]))new Script(js);
 new Script(fs.readFileSync('animated-map.js','utf8'));
