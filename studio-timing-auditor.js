@@ -35,7 +35,7 @@
      typeof a.at==='number'&&a.at>0))||
    (scene.graphicCards||[]).some(timed)||(scene.sfx||[]).some(timed)||
    (scene.cinematicFx&&timed(scene.cinematicFx))||
-   /\\[(?:HOLD|PAUSE|ค้างภาพ)\\]/i.test(String(scene.notes||'')));
+   /\[(?:HOLD|PAUSE|ค้างภาพ)\]/i.test(String(scene.notes||'')));
  }
  // Leave a modest visual beat after narration. Long un-timed walks and camera
  // pans play at scene-relative speed, so a 36s imported duration must not force
@@ -71,7 +71,7 @@
      const required=Math.max(1.2,last+.35);
      if(required>old+.12){updated=rounded(required);kind='extend';extended+=updated-old}
      else if(old-last>1.3){
-      if(hasEvents)kind='review';
+      if(hasEvents||bounds.other>bounds.voice+.25)kind='review';
       else {
        // Measure the end of ALL non-looping audio, not the imported subtitle
        // timestamps (which may have inherited the bad 36-second duration).
