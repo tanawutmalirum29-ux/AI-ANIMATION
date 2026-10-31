@@ -9,7 +9,8 @@ const core=root.StoryAIWorkspaceCore;
 if(!core)return;
 const DB='storyStudio.projectLibrary.v1',STORE='snapshots';
 let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',lastError='',db=null,dbPromise=null;
-let targetMinutes=5,splitEpisodes=true,lastAudit=null;
+const EPISODE_TARGET_SECONDS=60,EPISODE_GRACE_SECONDS=5;
+let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
 const LOCAL_MODELS=[
  {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
@@ -588,6 +589,20 @@ function persist(mutator){
 }
 function status(message,fail=false){progress=message;lastError=fail?message:'';const node=rootElement?.querySelector('#aiWorkspaceStatus');if(node){node.textContent=message;node.dataset.error=String(!!fail)}}
 function setView(id){view=id;render()}
+function recordHandoff(role,stage,summary,extra={}){
+ persist(w=>{
+  const p=w.production;
+  p.stage=stage;
+  p.targetSeconds=EPISODE_TARGET_SECONDS;
+  p.maxSeconds=EPISODE_TARGET_SECONDS+EPISODE_GRACE_SECONDS;
+  if(typeof extra.pendingDub==='boolean')p.pendingDub=extra.pendingDub;
+  p.updatedAt=now();
+  p.lastRole=role;
+  p.lastSummary=String(summary||'').slice(0,850);
+  p.handoffs.push({role,stage,summary:p.lastSummary,createdAt:p.updatedAt});
+  if(p.handoffs.length>40)p.handoffs.splice(0,p.handoffs.length-40);
+ });
+}
 function createTask(role,scope){
  if(!['voice','structure'].includes(role))throw Error('รองรับแค่ AI ตรวจจังหวะและ AI พากย์');
  if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตไม่ถูกต้อง');
@@ -606,7 +621,7 @@ function queueWork(role){
 }
 function evaluate(scope=audioScope,minutes=targetMinutes){
  if(!bridge?.auditTiming)throw Error('ระบบตรวจเวลาจริงยังไม่พร้อม');
- return bridge.auditTiming(scope,{targetMinutes:minutes});
+ return bridge.auditTiming(scope,{targetMinutes:1});
 }
 function previewAudit(){
  try{
@@ -620,7 +635,7 @@ function previewAudit(){
 async function applyTiming(scope,minutes,includeSplits){
  const audit=evaluate(scope,minutes);
  const split=includeSplits&&scope!=='scene'?root.StoryTimingAuditor?.planEpisodeSplits(
-  bridge.get(),audit,{scope,episodeIndex:bridge.episodeIndex(),targetMinutes:minutes}):null;
+  bridge.get(),audit,{scope,episodeIndex:bridge.episodeIndex(),targetMinutes:1}):null;
  const ops=[...(split?.ops||[]),...audit.ops];
  lastAudit=audit;
  if(!ops.length)return {audit,split,changes:0};
@@ -669,8 +684,9 @@ async function runTask(taskId){
    reply='พากย์เสร็จ '+result.made+' คลิป'+(result.failed?' · ผิดพลาด '+result.failed+' คลิป':'');
    if(result.made){
     try{
-     const fixed=await applyTiming(task.scope,task.targetMinutes,false);
-     reply+=' · ตรวจความยาวเสียงจริงและปรับเวลาฉาก '+fixed.changes+' จุด';
+     const fixed=await applyTiming(task.scope,1,true);
+     reply+=' · ตรวจเสียงและจัดตอน 60–65 วินาที '+fixed.changes+' จุด'+(fixed.split?.created?' · แยกเพิ่ม '+fixed.split.created+' ตอน':'');
+     if(fixed.split?.warnings?.length)reply+=' · ยังมีจุดที่ต้องตรวจ '+fixed.split.warnings.length+' จุด';
      summary=fixed.audit.stats;
     }catch(err){reply+=' · ยังปรับเวลาอัตโนมัติไม่ได้: '+err.message}
    }
@@ -682,11 +698,13 @@ async function runTask(taskId){
    reply='ตรวจ '+stats.inspected+' ฉากจาก JSON เดิม · เสียงจริง '+stats.withVoice+
     ' ฉาก · ปรับเวลา '+fixed.audit.ops.length+' ฉาก'+
     (fixed.split?.created?' · แบ่งเพิ่ม '+fixed.split.created+' ตอน':'')+
-    ' · เป้าหมาย '+task.targetMinutes+' นาที/ตอน'+
+    ' · เป้าหมาย '+EPISODE_TARGET_SECONDS+'–'+(EPISODE_TARGET_SECONDS+EPISODE_GRACE_SECONDS)+' วินาที/ตอน'+
     (stats.withoutVoice?' · ยังไม่มีคลิปเสียง '+stats.withoutVoice+' ฉาก':'')+
     (summary.warnings?.length?' · ตอนที่มีเพลง/เหตุการณ์ต่อเนื่องยังไม่ย้ายฉากเอง':'')+
     ' · ไม่เขียนเรื่องหรือสร้างฉากปลอม';
   }
+  recordHandoff(task.role==='voice'?'AI-2':'AI-1',task.role==='voice'?'dub_ready':'timing_review',reply,
+   {pendingDub:task.role==='voice'?false:undefined});
   setJob(taskId,{status:'done',response:reply,ops:[],planSummary:summary});
   persist(s=>core.historyPush(s,{speaker:'assistant',role:task.role,text:reply,taskId}));
   status(reply);
