@@ -377,12 +377,46 @@ function narrativeScenes(){
   subtitleCues:Array.isArray(scene.subtitleCues)?scene.subtitleCues:[],
   notes:String(scene.notes||'').slice(0,250)}))).slice(0,12);
 }
+function narrativeChunks(source,limit=24){
+ const value=String(source||'').replace(/\s+/g,' ').trim();
+ if(!value)return [];
+ const units=typeof Intl!=='undefined'&&Intl.Segmenter?
+  [...new Intl.Segmenter('th',{granularity:'word'}).segment(value)].map(x=>x.segment):[...value];
+ const chunks=[];let current='';
+ const push=()=>{if(current.trim())chunks.push(current.trim());current=''};
+ for(const unit of units){
+  const pieces=[...unit];
+  for(const piece of pieces){
+   if([...current].length>=limit)push();
+   current+=piece;
+  }
+ }
+ push();return chunks;
+}
 function standardNarrative(sc){
- const source=String(sc.voiceover||sc.subtitle.join(' ')).trim();
+ const source=String(sc.voiceover||(sc.subtitle||[]).join(' ')).trim();
  if(!source)return null;
- const chunks=source.match(/.{1,28}(?:\s|$)|.{1,28}/gu)||[source];
- const text=chunks.map(x=>x.trim()).filter(Boolean).slice(0,3);
- return {id:sc.id,voiceover:sc.voiceover,subtitle:text};
+ // Never discard text after 3 lines. One subtitle page can contain 1-2 lines,
+ // but many timed cues may be needed to cover the complete original narration.
+ const chunks=narrativeChunks(source,24);
+ const current=Array.isArray(sc.subtitle)?sc.subtitle:[];
+ const subtitle=current.length>0&&current.length<=3&&current.every(x=>[...x].length<=28)?
+  current:chunks.slice(0,3);
+ let subtitleCues=null;
+ if(!sc.subtitleCues?.length){
+  const cueText=[];
+  for(let i=0;i<chunks.length;i+=2)cueText.push(chunks.slice(i,i+2).join('\n'));
+  const weights=cueText.map(x=>Math.max(2,[...x].length));
+  const sum=weights.reduce((v,n)=>v+n,0)||1;
+  const duration=Math.max(.2,Number(sc.duration)||4);
+  let elapsed=0;
+  subtitleCues=cueText.map((text,i)=>{
+   const end=i===cueText.length-1?duration:Math.min(duration,elapsed+duration*weights[i]/sum);
+   const cue={id:'ai3'+sc.id+'c'+i,text,start:+elapsed.toFixed(2),end:+end.toFixed(2)};
+   elapsed=end;return cue;
+  });
+ }
+ return {id:sc.id,voiceover:sc.voiceover,subtitle,subtitleCues};
 }
 async function runNarrative(){
  if(busy)return;
@@ -417,12 +451,16 @@ async function runNarrative(){
    const voiceover=narrativeMode==='preserve'||narrativeModel==='standard'?old.voiceover:String(item.voiceover||old.voiceover).slice(0,1500);
    if(!voiceover&&!subtitle.some(Boolean))continue;
    const patch={voiceover,subtitle};
-   // Existing subtitleCues may be tied to previously generated audio. Clear only
-   // when narration changes, so the voice director can rebuild timing afterward.
+   // Keep explicitly authored subtitle timings. Estimated cues are created only
+   // for the standard mode when the scene previously had no timed captions.
    if(voiceover!==old.voiceover)patch.subtitleCues=[];
-   if(voiceover===old.voiceover&&JSON.stringify(subtitle)===JSON.stringify(old.subtitle))continue;
+   else if(narrativeModel==='standard'&&Array.isArray(item.subtitleCues)&&
+    item.subtitleCues.length&&!(old.subtitleCues||[]).length)patch.subtitleCues=item.subtitleCues;
+   const changedCues=Object.prototype.hasOwnProperty.call(patch,'subtitleCues');
+   if(voiceover===old.voiceover&&JSON.stringify(subtitle)===JSON.stringify(old.subtitle)&&!changedCues)continue;
    ops.push({op:'updateScene',id:old.id,patch});
-   summary.push(old.id+': '+(voiceover!==old.voiceover?'ปรับบทบรรยายและซับ':'จัดซับใหม่'));
+   summary.push(old.id+': '+(voiceover!==old.voiceover?'ปรับบทบรรยายและซับ':
+    changedCues?'จัดช่วงเวลาซับโดยประมาณ':'จัดซับใหม่'));
   }
   if(ops.length){
    const editor=root.StudioAPI;
@@ -433,8 +471,11 @@ async function runNarrative(){
    const result=editor.apply(ops);
    if(!result.applied)throw Error('ไม่สามารถใช้แผน AI-3: '+JSON.stringify((result.errors||[]).slice(0,3)));
   }
-  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก\n'+summary.join('\n')+
-   (ops.some(o=>o.patch.subtitleCues)?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2 เพื่อจัดเวลาซับตามเสียงจริง':'');
+  const changedVoice=ops.some(o=>o.patch.subtitleCues?.length===0&&o.patch.voiceover);
+  narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก'+
+   (ops.length?'\n'+summary.join('\n'):'\nไม่มีการแก้ไขใหม่ที่ผ่านเกณฑ์ หรือทุกฉากมีบทและซับเหมาะสมอยู่แล้ว')+
+   (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
+    ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'');
   status(narrativeReport);
  }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;modelAbortController=null;render()}
