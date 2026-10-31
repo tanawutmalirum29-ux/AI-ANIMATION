@@ -1,0 +1,53 @@
+name: "ส่งวิดีโอให้ตรวจ / Video Review"
+description: "แนบคลิปเพื่อให้ตรวจภาพ เสียง การเคลื่อนไหว หรือบั๊กของ Story Studio"
+title: "[Video Review] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ส่งคลิปวิดีโอ
+        **คลิปที่แนบกับ Issue ใน Repository สาธารณะอาจเปิดดูได้โดยคนทั่วไป** อย่าแนบข้อมูลส่วนตัวหรือความลับ
+        กดที่ช่องด้านล่าง แล้วเลือกคลิป .mp4, .mov หรือ .webm หรือวางลิงก์วิดีโอได้
+        วิดีโอใน GitHub Issues ของ Repository แผนฟรีมีข้อจำกัดขนาด (โดยทั่วไป 10 MB ต่อคลิป; แผนที่รองรับสูงสุด 100 MB)
+        หากคลิปใหญ่กว่านั้น ให้ใช้ GitHub Releases หรือที่เก็บวิดีโอที่เปิดลิงก์ให้ตรวจได้ แล้ววางลิงก์ด้านล่าง
+  - type: input
+    id: project
+    attributes:
+      label: "โปรเจกต์ / ตอน / ฉาก"
+      placeholder: "เช่น ตอนที่ 1 ฉากที่ 4"
+    validations:
+      required: true
+  - type: dropdown
+    id: review-type
+    attributes:
+      label: "ต้องการให้ตรวจอะไร"
+      options:
+        - "ภาพและแอนิเมชัน"
+        - "เสียงพากย์และไมโครโฟน"
+        - "เพลงหรือเสียงบรรยากาศ"
+        - "วิดีโอส่งออก / Export"
+        - "ตรวจทั้งหมด"
+    validations:
+      required: true
+  - type: textarea
+    id: video
+    attributes:
+      label: "แนบวิดีโอ / วางลิงก์"
+      description: "คลิกหรือแตะในช่อง แล้วลากวางไฟล์วิดีโอ หรือวาง URL ของวิดีโอที่เปิดดูได้"
+      placeholder: "แนบคลิป .mp4 / .mov / .webm หรือวางลิงก์ตรงนี้"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "จุดที่อยากให้ดู / ผลลัพธ์ที่คาดหวัง"
+      placeholder: "เช่น เสียงพากย์ไม่ตรงปาก / เพลงดังเกิน / แอนิเมชันกระตุกที่วินาที 00:12"
+    validations:
+      required: false
+  - type: input
+    id: timecode
+    attributes:
+      label: "ช่วงเวลาที่พบปัญหา (ถ้ามี)"
+      placeholder: "00:12-00:20"
+    validations:
+      required: false
