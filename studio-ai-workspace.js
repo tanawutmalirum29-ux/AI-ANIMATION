@@ -71,7 +71,7 @@ async function applyTiming(scope,minutes,includeSplits){
  const audit=evaluate(scope,minutes);
  const split=includeSplits&&scope!=='scene'?root.StoryTimingAuditor?.planEpisodeSplits(
   bridge.get(),audit,{scope,episodeIndex:bridge.episodeIndex(),targetMinutes:minutes}):null;
- const ops=[...audit.ops,...(split?.ops||[])];
+ const ops=[...(split?.ops||[]),...audit.ops];
  lastAudit=audit;
  if(!ops.length)return {audit,split,changes:0};
  const editor=root.StudioAPI;
