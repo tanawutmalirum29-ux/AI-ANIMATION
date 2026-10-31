@@ -617,9 +617,20 @@ html.preview-active,body.preview-active{overflow:hidden!important;overscroll-beh
 .sound-library .preset-actions{display:flex;gap:5px;flex:none}.sound-library .preset-actions button{min-height:35px;font-size:12px}.sound-library .preset-actions .primary{background:#d9bd83;color:#18243a;font-weight:750}
 @media(max-width:700px){.sound-library{max-height:calc(100dvh - 12px);padding:10px;width:calc(100vw - 12px);max-width:calc(100vw - 12px)}.sound-library .preset-head{top:-10px}.sound-library .preset-grid{grid-template-columns:1fr}.sound-library .preset-config{grid-template-columns:1fr 1fr}.sound-library .preset-config label:first-child{grid-column:1/-1}}
 
+
+/* iPad/mobile: avoid nested vertical scroll traps while keeping the preview sticky. */
+#previewScrollTop{display:none}
+#previewScrollTop[hidden]{display:none!important}
+@media(max-width:820px){
+  #pre{overflow:clip;touch-action:pan-y}
+  #tl{max-height:none;overflow:visible;overscroll-behavior-y:auto}
+  #pre #motionBar{overscroll-behavior-y:auto}
+  #previewScrollTop:not([hidden]){display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:30px;padding:3px 8px;border:1px solid #637c9a;border-radius:8px;background:#253d59;color:#f5e7cc;font-size:11px;touch-action:manipulation}
+  #top{scroll-margin-top:0}
+}
 </style><link rel="stylesheet" href="./animated-map.css"><link rel="stylesheet" href="./cinematic-fx.css"><link rel="stylesheet" href="./character-interaction.css"></head><body>
 <header id="top"></header><aside id="lib"></aside>
-<main id="pre"><section id="welcome" aria-label="เริ่มต้นใช้งานสตูดิโอ"></section><div class="preview-toolbar"><span class="preview-label">พรีวิวฉาก</span><div class="preview-actions"><span class="preview-context" id="previewContext"></span><button type="button" id="motionQuick" title="แก้ท่าทางโดยแตะบนพรีวิว" aria-label="เปิดตัวแก้ไขท่าทาง" aria-pressed="false">✥ Motion</button><button type="button" id="smartQuick" title="Smart Director ตรวจงานทั้งโปรเจกต์" aria-label="เปิด Smart Director">✦ Smart</button><button type="button" id="directorQuick" title="กำกับฉาก" aria-label="กำกับฉาก">กำกับฉาก</button><button type="button" id="capToggle" aria-label="เปิดหรือปิดซับไตเติล" title="เปิดหรือปิดซับ">CC</button><button type="button" id="labelToggle" aria-label="เปิดหรือปิดป้ายข้อความ" title="เปิดหรือปิดป้ายข้อความ">ป้าย</button><button type="button" id="previewFullscreenQuick" class="fullscreen-quick" aria-label="ดูพรีวิวแบบเต็มจอ" title="พรีวิวเต็มจอ">⛶ เต็มจอ</button><button type="button" id="voiceQuick" aria-label="ตั้งค่าเสียงพากย์และโปรไฟล์เสียง">Voice Studio</button><button type="button" id="soundQuick" aria-label="เปิดโต๊ะตัดต่อเสียง">เสียง / ตัดต่อ</button><button type="button" id="videoQuick" class="video-quick" aria-label="ส่งออกวิดีโอ">Export วิดีโอ</button></div></div><div id="stageWrap"><div id="stage"><div id="world"><div id="bg"></div><div id="set"></div><div id="art"></div><div id="rig"></div><div id="setf"></div><div id="motionOverlay" aria-label="ตัวควบคุมท่าและตำแหน่งตัวละคร"></div></div><div id="lt"></div><div id="lightFx"></div><div id="vignetteFx"></div><div id="weather" aria-hidden="true"></div><canvas id="weatherCv" aria-hidden="true"></canvas><div id="transitionPrevious" aria-hidden="true"></div><div id="transitionOverlay" aria-hidden="true"></div><div id="ph"></div><div id="storyGraphics" aria-hidden="true"></div><div id="ui"></div><div id="sub" role="status" aria-live="off"></div></div></div>
+<main id="pre"><section id="welcome" aria-label="เริ่มต้นใช้งานสตูดิโอ"></section><div class="preview-toolbar"><span class="preview-label">พรีวิวฉาก</span><button type="button" id="previewScrollTop" hidden aria-label="เลื่อนขึ้นไปส่วนบนสุดของหน้า">↑ บนสุด</button><div class="preview-actions"><span class="preview-context" id="previewContext"></span><button type="button" id="motionQuick" title="แก้ท่าทางโดยแตะบนพรีวิว" aria-label="เปิดตัวแก้ไขท่าทาง" aria-pressed="false">✥ Motion</button><button type="button" id="smartQuick" title="Smart Director ตรวจงานทั้งโปรเจกต์" aria-label="เปิด Smart Director">✦ Smart</button><button type="button" id="directorQuick" title="กำกับฉาก" aria-label="กำกับฉาก">กำกับฉาก</button><button type="button" id="capToggle" aria-label="เปิดหรือปิดซับไตเติล" title="เปิดหรือปิดซับ">CC</button><button type="button" id="labelToggle" aria-label="เปิดหรือปิดป้ายข้อความ" title="เปิดหรือปิดป้ายข้อความ">ป้าย</button><button type="button" id="previewFullscreenQuick" class="fullscreen-quick" aria-label="ดูพรีวิวแบบเต็มจอ" title="พรีวิวเต็มจอ">⛶ เต็มจอ</button><button type="button" id="voiceQuick" aria-label="ตั้งค่าเสียงพากย์และโปรไฟล์เสียง">Voice Studio</button><button type="button" id="soundQuick" aria-label="เปิดโต๊ะตัดต่อเสียง">เสียง / ตัดต่อ</button><button type="button" id="videoQuick" class="video-quick" aria-label="ส่งออกวิดีโอ">Export วิดีโอ</button></div></div><div id="stageWrap"><div id="stage"><div id="world"><div id="bg"></div><div id="set"></div><div id="art"></div><div id="rig"></div><div id="setf"></div><div id="motionOverlay" aria-label="ตัวควบคุมท่าและตำแหน่งตัวละคร"></div></div><div id="lt"></div><div id="lightFx"></div><div id="vignetteFx"></div><div id="weather" aria-hidden="true"></div><canvas id="weatherCv" aria-hidden="true"></canvas><div id="transitionPrevious" aria-hidden="true"></div><div id="transitionOverlay" aria-hidden="true"></div><div id="ph"></div><div id="storyGraphics" aria-hidden="true"></div><div id="ui"></div><div id="sub" role="status" aria-live="off"></div></div></div>
 <div id="ctl"></div><div id="motionBar" aria-label="เครื่องมือตัดต่อคีย์เฟรม"></div></main>
 <aside id="ins"></aside><section id="studioWorkspace" aria-label="เครื่องมือสตูดิโอ"><nav id="studioToolNav" aria-label="เลือกเครื่องมือ"></nav><div id="studioToolTitle">เลือกเครื่องมือสำหรับฉากปัจจุบัน</div><div id="studioToolBody"></div></section><footer id="tl"></footer>
 <audio id="vo"></audio><audio id="bgm" loop></audio><div id="menubackdrop" hidden></div><div id="menu" hidden role="dialog" aria-label="เครื่องมือโปรเจกต์" aria-modal="false"></div><nav id="mtabs"></nav>
@@ -3676,12 +3687,14 @@ function closePreviewTheater(){
  fit();draw();
  requestAnimationFrame(()=>{window.scrollTo({top:THEATER_SCROLL,behavior:'instant'});if(THEATER_FOCUS?.isConnected&&THEATER_FOCUS.focus)THEATER_FOCUS.focus({preventScroll:true})});
 }
-function syncJumpTop(){const b=$('#jumpTop');if(b)b.hidden=THEATER_ACTIVE||window.innerWidth>820||(window.scrollY||document.scrollingElement?.scrollTop||0)<180}
+function scrollEditorToTop(){const root=document.scrollingElement||document.documentElement;const opts={top:0,behavior:"smooth"};root.scrollTo(opts);window.scrollTo(opts)}
+function syncJumpTop(){const current=window.scrollY||document.scrollingElement?.scrollTop||0;const hidden=THEATER_ACTIVE||window.innerWidth>820||current<150;const b=$('#jumpTop');if(b)b.hidden=hidden;const quick=$('#previewScrollTop');if(quick)quick.hidden=hidden}
 $('#previewFullscreenQuick').addEventListener('click',openPreviewTheater);
 $('#theaterClose').addEventListener('click',closePreviewTheater);
 $('#theaterCaptions').addEventListener('click',()=>{$('#capToggle').click();updateTheaterCaptionButtons()});
 $('#theaterLabels').addEventListener('click',()=>{$('#labelToggle').click();updateTheaterCaptionButtons()});
-$('#jumpTop').addEventListener('click',()=>{const root=document.scrollingElement; if(root)root.scrollTo({top:0,behavior:'smooth'});window.scrollTo({top:0,behavior:'smooth'})});
+$('#jumpTop').addEventListener('click',scrollEditorToTop);
+$('#previewScrollTop').addEventListener('click',scrollEditorToTop);
 window.addEventListener('scroll',syncJumpTop,{passive:true});
 window.addEventListener('resize',()=>{syncJumpTop();if(THEATER_ACTIVE)requestAnimationFrame(fit)},{passive:true});
 if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{if(THEATER_ACTIVE)requestAnimationFrame(fit)},{passive:true});
@@ -3705,7 +3718,7 @@ function setupStudioWorkspace(){
  const dst=$('#studioToolBody');if(!dst)return;
  for(const id of ['ins','lib','audioDesk','voiceStudio','smartDialog','videoDialog'])dst.append($('#'+id));
  const d=h('section',{id:'dubPanel',role:'region','aria-label':'ห้องพากย์เสียงทันที'});dst.append(d);
- const nav=$('#studioToolNav');nav.replaceChildren(...STUDIO_TOOLS.map(([id,name])=>h('button',{type:'button','data-tool':id,onclick:()=>{if(id==='audio')openAudioDesk();else if(id==='voices')openVoiceStudio();else if(id==='smart')openSmartDirector();else if(id==='export')openVideoExport();else switchStudioTool(id)}},name)),h('button',{id:'workspaceJumpTop',type:'button',onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},'↑ บนสุด'));
+ const nav=$('#studioToolNav');nav.replaceChildren(...STUDIO_TOOLS.map(([id,name])=>h('button',{type:'button','data-tool':id,onclick:()=>{if(id==='audio')openAudioDesk();else if(id==='voices')openVoiceStudio();else if(id==='smart')openSmartDirector();else if(id==='export')openVideoExport();else switchStudioTool(id)}},name)),h('button',{id:'workspaceJumpTop',type:'button',onclick:scrollEditorToTop},'↑ บนสุด'));
  STUDIO_WORKSPACE_READY=true;switchStudioTool('scene');
 }
 function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_TOOL=id;document.body.classList.remove('m-ins','m-lib');
