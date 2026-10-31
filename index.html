@@ -2182,11 +2182,17 @@ function checkPreviewAudio(){
  const contextState=PREVIEW_AUDIO_CTX?.state||'HTML Audio';
  if(!voices.length){showPreviewAudioProblem('ตอนนี้ยังไม่มีไฟล์เสียงพากย์จริง · ต้องสร้าง/นำเข้าเสียงก่อนจึงจะได้ยินในพรีวิว');return}
  if(!usable.length){showPreviewAudioProblem('มีคลิปพากย์ '+voices.length+' คลิป แต่ยังไม่มีคลิปที่มีความยาวใช้งานได้หรือถูกปิดเสียง · ตรวจ Sound Desk');return}
- const voice=usable[0];
- const a=new Audio(voice.data);a.volume=Math.min(1,Math.max(.15,cleanNum(voice.volume,1)));
- a.onended=()=>{a.src=''};
- a.play().then(()=>showPreviewAudioProblem('ทดสอบไฟล์เสียงสำเร็จ · พบ '+usable.length+' คลิป · '+contextState)).catch(err=>
-  showPreviewAudioProblem('เล่นเสียงไม่สำเร็จ: '+String(err.message||err)+' · ตรวจรูปแบบไฟล์หรือสิทธิ์เล่นสื่อ'));
+ // Prefer the selected scene; use another scene's clip only if this scene has none.
+ const current=(ep().scenes[sel]?.audioClips||[]).find(c=>c.kind==='voice'&&c.data&&!c.mute&&c.duration>0);
+ const voice=current||usable[0];
+ playing=false;pauseAudioPlayers();ctl();
+ const a=new Audio(voice.data);a.preload='auto';a.volume=Math.min(1,Math.max(.15,cleanNum(voice.volume,1)));
+ const cleanup=()=>{a.pause();a.removeAttribute('src');a.load()};
+ a.onended=cleanup;
+ a.play().then(()=>{
+  showPreviewAudioProblem('ระบบเริ่มเล่นคลิปเสียงทดสอบแล้ว · พบ '+usable.length+' คลิป'+(!current?' · ฉากปัจจุบันไม่มีคลิปจึงใช้คลิปจากฉากอื่น':'')+' · '+contextState);
+  setTimeout(cleanup,4000);
+ }).catch(err=>showPreviewAudioProblem('เล่นเสียงไม่สำเร็จ: '+String(err.message||err)+' · ตรวจไฟล์เสียงหรือสิทธิ์เล่นสื่อ'));
 }
 
 const cleanNum=(n,d=0)=>Number.isFinite(+n)?+n:d;
@@ -2325,7 +2331,7 @@ function syncAudioAt(t,play){
   }
   // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
   if(part<0||part>=len)continue;
-  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';AUDIO_PLAYERS.set(id,a)}
+  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a.load()}
   let n=AUDIO_PLAYER_GRAPHS.get(id);
   if(PREVIEW_DIRECT_VOICE||c.kind==='voice'){
    // A suspended WebAudio graph can silently swallow audio on iPad Safari.
