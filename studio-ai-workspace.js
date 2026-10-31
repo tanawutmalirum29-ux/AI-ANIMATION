@@ -692,7 +692,7 @@ function renderChat(container){
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
   e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{if(busy)return;const next=ev.target.value;if(localEngine&&next!==loadedModel)releaseLocalModel();narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}updateModelLoad({active:false,ready:!!localEngine,error:'',percent:localEngine?100:null,stage:localEngine?'พร้อมใช้งาน':'เปลี่ยนโมเดลแล้ว · ไม่ต้องรีโหลดเว็บไซต์'});render()}},
-   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.label)))),
+   ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.id==='standard'?'มาตรฐาน · จัดบทและเวลาซับ':m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
  button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
