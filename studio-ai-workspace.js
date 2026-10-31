@@ -21,7 +21,7 @@ const LOCAL_MODELS=[
 const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
-let localEngine=null,loadedModel='',modelReport='';
+let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false;
 let modelLoad={active:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
 function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
 function updateModelLoad(patch){
@@ -52,6 +52,11 @@ function modelLoadPanel(){
 
 function chooseModel(id){
  if(busy)return;
+ if(localEngine&&id!==loadedModel){
+  if(!root.confirm('การเปลี่ยนโมเดลที่โหลดอยู่ต้องรีโหลดหน้าเว็บเพื่อป้องกัน WebGPU ถูก dispose ต้องการเปลี่ยนและรีโหลดหรือไม่?'))return;
+  try{localStorage.setItem(MODEL_KEY,id)}catch(_){}
+  root.location.reload();return;
+ }
  chosenModel=LOCAL_MODELS.some(m=>m.id===id)?id:'standard';
  try{localStorage.setItem(MODEL_KEY,chosenModel)}catch(_){}
  modelReport='';render();
@@ -61,7 +66,9 @@ async function webGpuReady(){
  try{return !!(await navigator.gpu.requestAdapter())}catch(_){return false}
 }
 async function loadLocalModel(id){
- if(localEngine&&loadedModel===id)return localEngine;
+ if(localEngine&&loadedModel===id&&!modelUnavailable)return localEngine;
+ if(modelUnavailable)throw Error('WebGPU สูญเสียการเชื่อมต่อ กรุณาโหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง');
+ if(localEngine&&loadedModel!==id)throw Error('หากต้องการเปลี่ยนโมเดล กรุณาโหลดหน้าเว็บใหม่ก่อน เพื่อคืนหน่วยความจำ GPU อย่างปลอดภัย');
  const selected=LOCAL_MODELS.find(m=>m.id===id);
  updateModelLoad({active:true,model:selected?.label||id,percent:null,stage:'ตรวจสอบ WebGPU',started:performance.now(),error:''});
  try{
@@ -69,7 +76,7 @@ async function loadLocalModel(id){
   updateModelLoad({stage:'เตรียมไลบรารี WebLLM',percent:null});
   const webllm=await import('https://esm.sh/@mlc-ai/web-llm@0.2.80');
   if(!webllm.prebuiltAppConfig.model_list.some(m=>m.model_id===id))throw Error('WebLLM รุ่นนี้ไม่มีโมเดลที่เลือก');
-  if(localEngine){try{await localEngine.unload()}catch(_){}localEngine=null;loadedModel=''}
+  // Never unload an active WebGPU engine and immediately reuse the device on iPad Safari.
   updateModelLoad({stage:'ดาวน์โหลดและเตรียมน้ำหนักโมเดล',percent:0});
   const engine=await webllm.CreateMLCEngine(id,{initProgressCallback:p=>{
    const n=Number(p.progress);
@@ -77,10 +84,12 @@ async function loadLocalModel(id){
    updateModelLoad({percent,stage:String(p.text||'กำลังเตรียมโมเดล').slice(0,260)});
   }});
   localEngine=engine;loadedModel=id;
+  try{const device=engine?.getDevice?.();if(device?.lost)device.lost.then(()=>{modelUnavailable=true;localEngine=null;loadedModel='';updateModelLoad({active:false,error:'WebGPU device lost · โหลดหน้าเว็บใหม่ก่อนทดลองอีกครั้ง',percent:null})})}catch(_){}
   updateModelLoad({active:false,percent:100,stage:'โมเดลพร้อมใช้งาน',error:''});
   return engine;
  }catch(err){
-  updateModelLoad({active:false,error:String(err.message||err),stage:'',percent:null});
+  if(/disposed|device lost|out of memory/i.test(String(err.message||err)))modelUnavailable=true;
+  updateModelLoad({active:false,error:String(err.message||err)+(modelUnavailable?' · กรุณาโหลดหน้าเว็บใหม่และเริ่มจากโมเดล 0.5B':''),stage:'',percent:null});
   throw err;
  }
 }
@@ -437,7 +446,7 @@ function renderChat(container){
  e('h4',{},'AI-3 · ผู้กำกับบทบรรยายและซับไตเติล'),
  e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · ปรับคำบรรยายและการแบ่งซับ · สำรองก่อนแก้ · เมื่อเปลี่ยนบทต้องพากย์ใหม่'),
  e('div',{className:'ai-script-settings'},
-  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{narrativeModel=ev.target.value;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
+  e('label',{},'โมเดล AI-3 (เลือกแยกจาก AI-1)',e('select',{onchange:ev=>{const next=ev.target.value;if(localEngine&&next!==loadedModel){if(!root.confirm('ต้องโหลดหน้าเว็บใหม่ก่อนเปลี่ยนโมเดล AI-3 เพื่อป้องกัน WebGPU เสียหาย ต้องการดำเนินการหรือไม่?')){render();return}try{localStorage.setItem(NARRATIVE_MODEL_KEY,next)}catch(_){}root.location.reload();return}narrativeModel=next;try{localStorage.setItem(NARRATIVE_MODEL_KEY,narrativeModel)}catch(_){}render()}},
    ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===narrativeModel},m.label)))),
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
