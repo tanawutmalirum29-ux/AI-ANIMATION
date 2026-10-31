@@ -13,8 +13,9 @@ let targetMinutes=5,splitEpisodes=true,lastAudit=null;
 const MAX_TASKS=130;
 const LOCAL_MODELS=[
  {id:'standard',label:'มาตรฐาน · Timing Engine (ค่าเริ่มต้น)',mb:0},
- {id:'smollm2-135m-cpu',label:'CPU/WASM · SmolLM2 135M (ภาษาไทยจำกัด)',backend:'wasm',mb:185},
- {id:'qwen2.5-0.5b-cpu',label:'CPU/WASM · Qwen 2.5 0.5B (ไม่ใช้ WebGPU)',backend:'wasm',mb:790},
+ {id:'lamini-77m-cpu',label:'CPU รุ่นเข้ากันได้ · LaMini 77M (ทดสอบเท่านั้น)',backend:'wasm',mb:160},
+ {id:'smollm2-135m-cpu',label:'CPU ทดลอง · SmolLM2 135M (ภาษาไทยจำกัด)',backend:'wasm',mb:185},
+ {id:'qwen2.5-0.5b-cpu',label:'CPU ทดลอง · Qwen 2.5 0.5B (ใช้ RAM สูง)',backend:'wasm',mb:790},
  {id:'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 0.5B',mb:280},
  {id:'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 1.5B',mb:870},
  {id:'Qwen2.5-3B-Instruct-q4f16_1-MLC',label:'WebGPU · Qwen 2.5 3B',mb:1750},
@@ -24,7 +25,7 @@ const MODEL_KEY='storyStudio.aiAnalysisModel.v1';
 let chosenModel=(()=>{try{return localStorage.getItem(MODEL_KEY)||'standard'}catch(_){return 'standard'}})();
 if(!LOCAL_MODELS.some(m=>m.id===chosenModel))chosenModel='standard';
 let localEngine=null,loadedModel='',modelReport='',modelUnavailable=false,modelWorker=null,modelAbortController=null,modelBackend='',modelCleanup=Promise.resolve();
-let gpuCapability=null;
+let gpuCapability=null,runtimeProbeReport='';
 let modelLoad={active:false,ready:false,model:'',percent:null,stage:'',started:0,lastUpdate:0,rate:0,error:''};
 function formatElapsed(seconds){const n=Math.max(0,Math.floor(seconds));return n>=60?Math.floor(n/60)+' นาที '+n%60+' วินาที':n+' วินาที'}
 function updateModelLoad(patch){
@@ -35,7 +36,8 @@ function updateModelLoad(patch){
   const bar=box.querySelector('progress'),label=box.querySelector('[data-model-label]'),
    detail=box.querySelector('[data-model-detail]');
   const value=modelLoad.percent;
-  if(bar){if(value===null)bar.removeAttribute('value');else bar.value=value}
+  if(bar){bar.hidden=!!modelLoad.error&&!modelLoad.active;
+   if(value===null)bar.removeAttribute('value');else bar.value=value}
   if(label)label.textContent=modelLoad.error?'โหลดโมเดลไม่สำเร็จ':modelLoad.ready?'โมเดล '+modelLoad.model+' พร้อมใช้งาน':modelLoad.active?
    'กำลังโหลด '+modelLoad.model+(value===null?'':' · '+value+'%'):'โหลดโมเดลเสร็จ';
   if(detail)detail.textContent=modelLoad.error||modelLoad.stage+
@@ -105,41 +107,94 @@ function abortableModelWork(promise){
  });
 }
 
+async function probeLocalRuntime(){
+ if(busy)return;
+ runtimeProbeReport='กำลังตรวจระบบ CPU/WASM โดยไม่ดาวน์โหลดโมเดล…';render();
+ const webGpu=await webGpuReady();
+ const wasm=typeof WebAssembly==='object'&&typeof WebAssembly.validate==='function'&&
+  WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0]));
+ let result='กำลังตรวจโมดูล Worker',worker=null;
+ try{
+  worker=new Worker(new URL('./studio-ai-cpu-worker.js',document.baseURI),{type:'module'});
+  result=await new Promise(resolve=>{
+   let settled=false;
+   const finish=text=>{
+    if(settled)return;settled=true;clearTimeout(timeout);resolve(text);
+   };
+   worker.addEventListener('message',ev=>{
+    if(ev.data?.channel==='story-cpu'&&ev.data.type==='boot')
+     finish('Worker เริ่มทำงานได้');
+   });
+   worker.addEventListener('error',ev=>
+    finish('Worker เริ่มไม่ได้: '+String(ev.message||'JavaScript/CSP/เบราว์เซอร์ไม่อนุญาต')));
+   const timeout=setTimeout(()=>finish('Worker ไม่ตอบกลับภายใน 12 วินาที'),12000);
+  });
+ }catch(err){result='สร้าง Worker ไม่ได้: '+String(err?.message||err)}
+ finally{try{worker?.terminate()}catch(_){}}
+ runtimeProbeReport='WebGPU: '+(webGpu?'มี (ยังไม่ยืนยัน WebLLM)':'ไม่มี')+
+  '\nWebAssembly: '+(wasm?'รองรับ':'ไม่รองรับ')+'\nModule Worker: '+result+
+  '\nหมายเหตุ: ผ่านการตรวจนี้ยังไม่ได้ยืนยันว่าโมเดลขนาดใหญ่จะโหลดหรือรันสำเร็จ';
+ render();
+}
 function createCpuModelClient(worker,callback){
- let requestNumber=0;
+ let requestNumber=0,booted=false,lastPhase='รอ Web Worker เปิดทำงาน';
  const pending=new Map();
+ const notify=stage=>callback?.({percent:null,stage});
  const onMessage=ev=>{
   const m=ev.data;
   if(m?.channel!=='story-cpu')return;
-  if(m.type==='progress'){callback?.(m);return}
+  if(m.type==='boot'){
+   booted=true;lastPhase='Web Worker เริ่มทำงานแล้ว';
+   notify(lastPhase);
+   return;
+  }
+  if(m.phase)lastPhase=String(m.phase).slice(0,240);
+  if(m.type==='progress'){
+   callback?.(m);return;
+  }
   const item=pending.get(m.requestId);
   if(!item)return;
   pending.delete(m.requestId);
-  if(m.type==='error')item.reject(Error(String(m.message||'CPU model failure')));
+  if(m.type==='error'||m.type==='fatal')
+   item.reject(Error('CPU/WASM · '+lastPhase+': '+String(m.message||'unknown error')));
   else if(m.type==='complete')item.resolve(m.result);
+ };
+ const failAll=err=>{
+  for(const item of pending.values())item.reject(err);
+  pending.clear();
  };
  const onError=ev=>{
   ev.preventDefault?.();
-  for(const p of pending.values())p.reject(Error('CPU Worker ทำงานล้มเหลว'));
-  pending.clear();
+  const location=[ev.filename?.split('/').pop(),ev.lineno?':'+ev.lineno:''].join('');
+  const detail=String(ev.message||'Worker ถูกปิดโดยเบราว์เซอร์หรือมีปัญหาการโหลด');
+  const diagnosis=/memory|allocation|out of memory/i.test(detail)?
+   ' (อาจมีหน่วยความจำไม่พอ)':(!booted?' (Worker ยังไม่เริ่ม; ตรวจโมดูล/เบราว์เซอร์)':'');
+  failAll(Error('CPU Worker ล้มเหลวระหว่าง '+lastPhase+' · '+detail+
+   (location?' @'+location:'')+diagnosis));
  };
+ const onMessageError=()=>failAll(Error('CPU Worker ส่งข้อมูลกลับไม่ได้ · ขั้นตอน '+lastPhase));
  worker.addEventListener('message',onMessage);
  worker.addEventListener('error',onError);
+ worker.addEventListener('messageerror',onMessageError);
  const send=(type,payload={})=>new Promise((resolve,reject)=>{
   const requestId='cpu'+(++requestNumber);
   pending.set(requestId,{resolve,reject});
   try{worker.postMessage({channel:'story-cpu',type,requestId,...payload})}
-  catch(err){pending.delete(requestId);reject(err)}
+  catch(err){pending.delete(requestId);reject(Error('ส่งงานให้ Worker ไม่สำเร็จ: '+String(err?.message||err)))}
  });
- return {init:id=>send('init',{model:id}),chat:{completions:{create:options=>send('generate',{
-  messages:options.messages,max_tokens:options.max_tokens,temperature:options.temperature
- })}},unload:async()=>{
-  for(const p of pending.values())p.reject(Error('CPU โมเดลถูกปิด'));
-  pending.clear();
-  worker.removeEventListener('message',onMessage);
-  worker.removeEventListener('error',onError);
-  worker.terminate();
- }};
+ return {
+  init:id=>send('init',{model:id}),
+  chat:{completions:{create:options=>send('generate',{
+   messages:options.messages,max_tokens:options.max_tokens,temperature:options.temperature
+  })}},
+  unload:async()=>{
+   failAll(Error('ผู้ใช้ปิดโมเดล CPU'));
+   worker.removeEventListener('message',onMessage);
+   worker.removeEventListener('error',onError);
+   worker.removeEventListener('messageerror',onMessageError);
+   worker.terminate();
+  }
+ };
 }
 async function loadCpuModel(id,selected){
  updateModelLoad({active:true,ready:false,model:selected.label,percent:null,
@@ -162,14 +217,14 @@ async function loadCpuModel(id,selected){
   if(modelWorker!==worker)throw Error('ยกเลิกการโหลดโมเดลแล้ว');
   localEngine=engine;loadedModel=id;modelBackend='cpu';modelUnavailable=false;
   updateModelLoad({active:false,ready:true,percent:100,error:'',
-   stage:'CPU/WASM ผ่านการสร้างข้อความแล้ว · อาจประมวลผลช้ากว่า GPU มาก'});
+   stage:'CPU/WASM สร้างข้อความสำเร็จ · ใช้ได้บนอุปกรณ์นี้ (ความเร็วและคุณภาพขึ้นกับรุ่น)'});
   return engine;
  }catch(err){
   if(worker){try{worker.terminate()}catch(_){}}
   if(modelWorker===worker)modelWorker=null;
   localEngine=null;loadedModel='';modelBackend='';
   updateModelLoad({active:false,ready:false,percent:null,
-   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ไม่สามารถประมวลผลบนอุปกรณ์นี้'});
+   error:'CPU/WASM ไม่สำเร็จ: '+String(err?.message||err),stage:'ลองใช้รุ่นเข้ากันได้ LaMini 77M แทน หรือกลับไปใช้มาตรฐาน · ข้อจำกัดของเบราว์เซอร์/หน่วยความจำยังต้องตรวจบนเครื่องจริง'});
   throw err;
  }
 }
@@ -294,7 +349,7 @@ async function benchmarkModel(applyChanges=false){
  const model=LOCAL_MODELS.find(m=>m.id===chosenModel);
  if(model.backend!=='wasm'&&gpuCapability===false){modelReport='อุปกรณ์นี้ไม่มี WebGPU ใช้ Qwen แบบ GPU ไม่ได้ · เปลี่ยนตัวเลือกเป็น CPU/WASM หรือมาตรฐาน';render();return}
  if(!(localEngine&&loadedModel===chosenModel&&!modelUnavailable)&&!(await confirmModelAction(
-  'เตรียมโมเดล '+model.label+'\\n'+(model.backend==='wasm'?'CPU อาจช้ามากและใช้ RAM สูง ไม่มีการเรียก API':'ต้องรองรับ WebGPU')+
+  'เตรียมโมเดล '+model.label+'\\n'+(model.backend==='wasm'?'รัน CPU ในเครื่อง · iPad อาจใช้ RAM สูง และบางรุ่นรองรับภาษาไทยไม่ดี · ไม่มีค่า API':'ต้องรองรับ WebGPU')+
   '\\nหากยังไม่มีแคชต้องดาวน์โหลดประมาณ '+model.mb+' MB · ดำเนินการบนเครื่องนี้?')))return;
  busy=true;modelAbortController=new AbortController();render();
  const start=performance.now();
@@ -428,7 +483,7 @@ async function runNarrative(){
  try{
   const scenes=narrativeScenes();
   if(!scenes.length)throw Error('ไม่มีฉากให้ปรับ');
-  let changes=[];
+  let changes=[];const advisories=[];
   if(narrativeModel==='standard'){
    changes=scenes.map(standardNarrative).filter(Boolean);
   }else{
@@ -450,8 +505,14 @@ async function runNarrative(){
      .replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
     let parsed;
     try{parsed=JSON.parse(raw)}
-    catch(err){throw Error('AI-3 สร้าง JSON ไม่สมบูรณ์ ที่ฉาก '+(offset+1)+': '+String(err.message||err))}
-    if(!Array.isArray(parsed.changes))throw Error('AI-3 ไม่ส่ง changes[] ที่ฉาก '+(offset+1));
+    catch(err){
+     advisories.push('ฉาก '+(offset+1)+' · โมเดลตอบเป็นข้อความ แต่ยังไม่เป็น JSON ที่แก้โปรเจกต์ได้: '+raw.slice(0,360));
+     continue;
+    }
+    if(!Array.isArray(parsed.changes)){
+     advisories.push('ฉาก '+(offset+1)+' · ผลลัพธ์ไม่ใช่ changes[] · จึงยังไม่แก้ JSON');
+     continue;
+    }
     allChanges.push(...parsed.changes);
    }
    updateModelLoad({active:false,ready:true,percent:100,stage:'วิเคราะห์บทครบ '+scenes.length+' ฉาก'});
@@ -466,6 +527,8 @@ async function runNarrative(){
    if(subtitle.some(x=>[...x].length>28))continue;
    const voiceover=narrativeMode==='preserve'||narrativeModel==='standard'?old.voiceover:String(item.voiceover||old.voiceover).slice(0,1500);
    if(!voiceover&&!subtitle.some(Boolean))continue;
+   if(/[\u0e00-\u0e7f]/.test(old.voiceover||'')&& !/[\u0e00-\u0e7f]/.test(voiceover)||
+    /[\u0e00-\u0e7f]/.test(old.voiceover||'')&&subtitle.some(line=>!/[\u0e00-\u0e7f]/.test(line)))continue;
    const patch={voiceover,subtitle};
    // Keep explicitly authored subtitle timings. Estimated cues are created only
    // for the standard mode when the scene previously had no timed captions.
@@ -491,7 +554,8 @@ async function runNarrative(){
   narrativeReport='AI-3 ปรับ '+ops.length+' ฉาก'+
    (ops.length?'\n'+summary.join('\n'):'\nไม่มีการแก้ไขใหม่ที่ผ่านเกณฑ์ หรือทุกฉากมีบทและซับเหมาะสมอยู่แล้ว')+
    (changedVoice?'\nบทเปลี่ยนแล้ว: กรุณาพากย์ใหม่ด้วย AI-2':
-    ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'');
+    ops.some(o=>o.patch.subtitleCues?.length)?'\nเวลาซับเป็นการประมาณจากความยาวฉาก ยังไม่ใช่การจับเวลาตามเสียงพากย์จริง':'')+
+   (advisories.length?'\n\nข้อเสนอจากโมเดล (ยังไม่แก้โปรเจกต์ เพราะผลลัพธ์ไม่ผ่าน JSON):\n'+advisories.slice(0,5).join('\n'):'');
   status(narrativeReport);
  }catch(err){invalidateModelOnFailure(err);narrativeReport='AI-3 ไม่สำเร็จ: '+String(err.message||err);status(narrativeReport,true)}
  finally{busy=false;modelAbortController=null;render()}
@@ -658,6 +722,7 @@ function renderChat(container){
     e('select',{'aria-label':'เลือกโมเดล AI วิเคราะห์ฉาก',onchange:evt=>chooseModel(evt.target.value)},
      ...LOCAL_MODELS.map(m=>e('option',{value:m.id,selected:m.id===chosenModel,disabled:gpuCapability===false&&m.id!=='standard'&&m.backend!=='wasm'},m.label)))),
    button(busy?'กำลังทดสอบ…':loadedModel===chosenModel&&localEngine?'ทดสอบอีกครั้ง · โมเดลพร้อมแล้ว':'โหลดและทดสอบโมเดล',()=>benchmarkModel(false),{disabled:busy}),
+   button('ตรวจความเข้ากันได้ (ไม่ดาวน์โหลดโมเดล)',probeLocalRuntime,{disabled:busy}),
    ...(chosenModel==='standard'?[]:[button('ให้ AI วิเคราะห์และปรับฉากจริง',()=>benchmarkModel(true),{disabled:busy,className:'ai-primary'})]),
    e('small',{},(gpuCapability===false?'ไม่พบ WebGPU บนอุปกรณ์นี้ · ใช้ CPU/WASM (ทดลอง) หรือมาตรฐานได้ · GPU ใช้ไม่ได้':'มาตรฐานไม่ต้องโหลด AI · Qwen GPU ต้องมี WebGPU · CPU/WASM ไม่ต้องมี WebGPU · ไม่มีค่า API'))),
   ...(modelReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},modelReport)]:[]),
@@ -696,9 +761,10 @@ function renderChat(container){
   e('label',{},'ระดับการปรับบท',e('select',{onchange:ev=>{narrativeMode=ev.target.value}},
    ...[['preserve','รักษาบทเดิม · จัดซับ'],['polish','ปรับสำนวนให้น่าฟัง'],['creative','Creative Director · เรียบเรียงเพิ่ม']].map(([id,label])=>e('option',{value:id,selected:id===narrativeMode},label))))),
  button(busy?'กำลังทำงาน…':'ให้ AI-3 ปรับบทและซับจริง',runNarrative,{disabled:busy,className:'ai-primary'}),
+ button('ตรวจ WebAssembly / Worker ก่อนโหลด',probeLocalRuntime,{disabled:busy}),
  ...(narrativeReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},narrativeReport)]:[]));
  cards.append(structure,voice,narrative);
- pane.append(modelLoadPanel(),...(busy&&modelAbortController?[button('ยกเลิกงาน AI / โหลดโมเดล',cancelLocalTask,{className:'ai-cancel'} )]:[]),cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
+ pane.append(modelLoadPanel(),...(runtimeProbeReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},runtimeProbeReport)]:[]),...(busy&&modelAbortController?[button('ยกเลิกงาน AI / โหลดโมเดล',cancelLocalTask,{className:'ai-cancel'} )]:[]),cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
  container.append(pane);
 }
 

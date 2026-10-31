@@ -241,7 +241,7 @@ test('CPU worker initializes and produces an OpenAI-compatible completion',async
   'Promise.resolve(self.__modelLib)'
  );
  const outputs=[];
- const self={postMessage:m=>outputs.push(m)};
+ const self={postMessage:m=>outputs.push(m),WebAssembly:{}};
  let handler=null,loadCount=0;
  self.addEventListener=(type,cb)=>{if(type==='message')handler=cb};
  const generated=async()=>[{generated_text:'สรุปฉากเรียบร้อย'}];
@@ -300,4 +300,121 @@ test('narration preview has a local speech option when no actual voice clip exis
  assert.match(html,/onclick:tryPreviewReadNarration/);
  assert.match(html,/ไม่มีไฟล์เสียงพากย์จริง/);
  assert.match(html,/ไม่ใช่ไฟล์เสียงจริง และไม่รวมในวิดีโอที่ส่งออก/);
+});
+
+
+test('CPU compatibility v2 model can initialize and generate without WebGPU',async()=>{
+ const src=fs.readFileSync(path.join(root,'studio-ai-cpu-worker.js'),'utf8');
+ const mock=src.replace(
+  "import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1')",
+  'Promise.resolve(self.__oldPkg)'
+ );
+ const outputs=[],handlers={};
+ const self={postMessage:m=>outputs.push(m),WebAssembly:{}};
+ self.addEventListener=(name,cb)=>{handlers[name]=cb};
+ let load=0,generatedInput='';
+ self.__oldPkg={
+  env:{backends:{onnx:{wasm:{numThreads:4}}}},
+  pipeline:async(task,repo,opts)=>{
+   load++;
+   assert.equal(task,'text2text-generation');
+   assert.equal(repo,'Xenova/LaMini-Flan-T5-77M');
+   assert.equal(opts.quantized,true);
+   const fn=async(input,config)=>{
+    generatedInput=input;
+    assert.ok(config.max_new_tokens<=180);
+    return[{generated_text:'the scene needs shorter subtitles'}];
+   };
+   return fn;
+  }
+ };
+ new Function('self',mock)(self);
+ assert.equal(outputs[0]?.type,'boot');
+ await handlers.message({data:{channel:'story-cpu',type:'init',requestId:'i',model:'lamini-77m-cpu'}});
+ assert.equal(load,1);
+ assert.equal(outputs.find(x=>x.type==='complete'&&x.requestId==='i')?.result.ready,true);
+ assert.equal(self.__oldPkg.env.backends.onnx.wasm.numThreads,1);
+ await handlers.message({data:{channel:'story-cpu',type:'generate',requestId:'g',max_tokens:100,messages:[
+  {role:'system',content:'Inspect scene'}, {role:'user',content:'A train arrives late'}
+ ]}});
+ assert.match(generatedInput,/A train arrives late/);
+ assert.equal(outputs.find(x=>x.type==='complete'&&x.requestId==='g').result.choices[0].message.content,
+  'the scene needs shorter subtitles');
+});
+
+test('CPU worker message errors retain the actual failed stage',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const source=workspace.replace(marker,
+  'root.__test={createCpuModelClient};');
+ const win={StoryAIWorkspaceCore:{}};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',source)(
+  win,{readyState:'loading',addEventListener(){}},{getItem:()=>null,setItem(){}},
+  {now:()=>0},{},class Worker{},class URL{}
+ );
+ let handlers={};
+ const worker={
+  addEventListener:(event,callback)=>{handlers[event]=callback},
+  removeEventListener:()=>{},
+  postMessage:()=>{},
+  terminate:()=>{}
+ };
+ const engine=win.__test.createCpuModelClient(worker,()=>{});
+ const started=engine.init('lamini-77m-cpu');
+ handlers.message({data:{channel:'story-cpu',type:'progress',requestId:'cpu1',
+  phase:'ดาวน์โหลดไลบรารี v2',stage:'download',percent:null}});
+ handlers.error({message:'Script error',filename:'https://example/worker.js',lineno:9,preventDefault(){}});
+ await assert.rejects(started,/ดาวน์โหลดไลบรารี v2.*Script error/);
+});
+
+
+test('short CPU suggestions are shown without inventing JSON edits',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,
+  "root.__narrativeTest={set:(b,e)=>{bridge=b;localEngine=e;loadedModel='lamini-77m-cpu';narrativeModel='lamini-77m-cpu'},run:runNarrative,report:()=>narrativeReport};");
+ const state={episodes:[{id:'ep',scenes:[{
+  id:'scene1',duration:10,voiceover:'คืนนี้เรากำลังรอรถไฟขบวนสุดท้าย',subtitle:['คืนนี้เรากำลังรอรถไฟ'],subtitleCues:[]
+ }]}],project:{}};
+ const engine={chat:{completions:{create:async()=>({
+  choices:[{message:{content:'Shorten captions and emphasize the station mood.'}}]
+ })}}};
+ class FakeAbortController{
+  constructor(){this.signal={aborted:false,addEventListener(){},removeEventListener(){}}}
+  abort(){this.signal.aborted=true}
+ }
+ const root={StoryAIWorkspaceCore:{}};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL','AbortController',instrument)(
+  root,{readyState:'loading',addEventListener(){}},{getItem:()=>null,setItem(){}},
+  {now:()=>0},{},class Worker{},class URL{},FakeAbortController
+ );
+ root.__narrativeTest.set({get:()=>state,episodeIndex:()=>0},engine);
+ await root.__narrativeTest.run();
+ assert.match(root.__narrativeTest.report(),/ยังไม่แก้โปรเจกต์/);
+ assert.match(root.__narrativeTest.report(),/Shorten captions/);
+});
+
+test('device preflight checks the worker without downloading a model',async()=>{
+ const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const instrument=workspace.replace(marker,"root.__probeTest={run:probeLocalRuntime,result:()=>runtimeProbeReport};");
+ class FakeWorker{
+  constructor(){this.handlers={};queueMicrotask(()=>this.handlers.message?.({data:{channel:'story-cpu',type:'boot'}}))}
+  addEventListener(k,fn){this.handlers[k]=fn}
+  terminate(){}
+ }
+ const root={StoryAIWorkspaceCore:{}};
+ new Function('window','document','localStorage','performance','navigator','Worker','URL',instrument)(
+  root,{readyState:'loading',addEventListener(){},baseURI:'https://test.example'},
+  {getItem:()=>null,setItem(){}},{now:()=>0},{gpu:null},FakeWorker,class URL{}
+ );
+ await root.__probeTest.run();
+ assert.match(root.__probeTest.result(),/WebGPU: ไม่มี/);
+ assert.match(root.__probeTest.result(),/Worker เริ่มทำงานได้/);
+ assert.match(root.__probeTest.result(),/ยังไม่ได้ยืนยันว่าโมเดล/);
+});
+
+
+test('Amplify deployment includes both model workers used by the UI',()=>{
+ const amplify=fs.readFileSync(path.join(root,'amplify.yml'),'utf8');
+ assert.match(amplify,/cp index\.html[^\n]*studio-ai-model-worker\.js[^\n]*studio-ai-cpu-worker\.js[^\n]*dist\//);
+ assert.match(workspace,/new Worker\(new URL\('\.\/studio-ai-cpu-worker\.js'/);
+ assert.match(workspace,/new Worker\(new URL\('\.\/studio-ai-model-worker\.js'/);
 });

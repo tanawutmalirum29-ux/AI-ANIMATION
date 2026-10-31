@@ -21,6 +21,9 @@ on:
       - studio-github-art.js
       - studio-timing-auditor.js
       - studio-ai-workspace.js
+      - studio-ai-model-worker.js
+      - studio-ai-cpu-worker.js
+      - tests/ai-workspace-regression.test.cjs
       - studio-ai-workspace.css
       - studio-asset-core.js
       - studio-art-vault.js
@@ -61,6 +64,9 @@ on:
       - studio-github-art.js
       - studio-timing-auditor.js
       - studio-ai-workspace.js
+      - studio-ai-model-worker.js
+      - studio-ai-cpu-worker.js
+      - tests/ai-workspace-regression.test.cjs
       - studio-ai-workspace.css
       - studio-asset-core.js
       - studio-art-vault.js
@@ -113,6 +119,9 @@ jobs:
           node --check studio-ai-core.js
           node --check studio-timing-auditor.js
           node --check studio-ai-workspace.js
+          node --check studio-ai-model-worker.js
+          node --check studio-ai-cpu-worker.js
+          node --test tests/ai-workspace-regression.test.cjs
           node --check studio-asset-core.js
           node --check studio-art-vault.js
           node tests/art-vault-core-smoke.cjs
@@ -137,7 +146,7 @@ jobs:
           node --check tests/voice-preview-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist/assets
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-ai-workspace.js studio-ai-model-worker.js studio-ai-cpu-worker.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
           cp assets/library.json dist/assets/library.json
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
@@ -147,6 +156,7 @@ jobs:
           test -f dist/site-auth.js && test -f dist/runtime-config.js
           test -f dist/studio-timing-auditor.js
           test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
+          test -f dist/studio-ai-model-worker.js && test -f dist/studio-ai-cpu-worker.js
           test -f dist/studio-github-art.js
           test -f dist/studio-asset-core.js && test -f dist/studio-art-vault.js && test -f dist/studio-art-vault.css && test -f dist/assets/library.json
       - name: Install browser test dependencies
