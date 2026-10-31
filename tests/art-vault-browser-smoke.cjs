@@ -23,7 +23,7 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>StoryStudioBridge.get().episodes[0].scenes[0].customAssets.length),1);
   assert.ok(await page.evaluate(()=>{
    const sc=StoryStudioBridge.get().episodes[0].scenes[0];
-   return StoryAssetCore.sceneMarkup(sc,'back',160).includes('<g transform=');
+   return StoryAssetCore.sceneMarkup(sc,'front',160).includes('<g transform=');
   }));
   await page.getByRole('button',{name:'ออกแบบ / ส่ง PR'}).click();
   await page.locator('textarea[aria-label="JSON รูปวาด"]').fill(JSON.stringify({
