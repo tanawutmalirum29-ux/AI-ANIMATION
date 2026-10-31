@@ -7,7 +7,7 @@
 'use strict';
 const core=root.StoryAIWorkspaceCore;
 if(!core)return;
-const MODEL_CDN='https://esm.sh/@mlc-ai/web-llm@0.2.86';
+const MODEL_CDN='https://esm.run/@mlc-ai/web-llm@0.2.86';
 const MODELS=[
  ['Qwen2.5-0.5B-Instruct-q4f32_1-MLC','Qwen 0.5B · ความเข้ากันได้สูง (≈1 GB GPU)'],
  ['Qwen2.5-0.5B-Instruct-q4f16_1-MLC','Qwen 0.5B · ประหยัดหน่วยความจำ (≈950 MB GPU)'],
