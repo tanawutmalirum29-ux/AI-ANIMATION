@@ -67,7 +67,7 @@
  }
  function harbor(W,local,scene,front){
   const t=clock(local,scene.duration),leak=effect(scene,'gateLeak'),flood=effect(scene,'marketFlood');
-  const blackout=effect(scene,'blackout');
+  const blackout=effect(scene,'blackout'),sequence=effect(scene,'sequentialBlackout');
   const x=q=>W*q;
   if(front){
    // Shallow shoreline shimmer, never a solid band across actors.
@@ -97,17 +97,29 @@
    P('M'+f(x(.60))+' 65L'+f(x(.64))+' 60L'+f(x(.75))+' 61L'+f(x(.8))+' 56L'+f(W)+' 58L'+f(W)+' 82L'+f(x(.6))+' 82Z','#384953')+
    [0.64,0.77,0.9].map((v,i)=>tinyHouse(x(v),66,.58+i*.1,['#506275','#625e65','#4d6970'][i])).join('')+
    P('M'+f(x(.6))+' 82L'+f(W)+' 82L'+f(W)+' 90L'+f(x(.58))+' 90Z','#626b69')+
-   market(x(.65),79,.86,'#ac665d',!blackout)+
-   market(x(.77),79,.9,'#66918a',!blackout)+
-   market(x(.9),79,.85,'#9a7d5f',!blackout)+
+   market(x(.65),79,.86,'#ac665d',!blackout&&(!sequence||t<.5))+
+   market(x(.77),79,.9,'#66918a',!blackout&&(!sequence||t<.7))+
+   market(x(.9),79,.85,'#9a7d5f',!blackout&&(!sequence||t<.9))+
    // Distant recognizable lighthouse, not a generic tower.
    lighthouse(x(.97),60,.5,!blackout||effect(scene,'signalVisible'),'left',.8)+
    // Pier lamps with pools of amber light.
-   [0.24,0.4,0.62].map(v=>{
-    const xx=x(v);return R(xx-.4,51,.8,13,'#3a4650')+
+   [0.24,0.4,0.62].map((v,i)=>{
+    const xx=x(v),lampOn=!blackout&&(!sequence||t<(.2+i*.28));return R(xx-.4,51,.8,13,'#3a4650')+
      P('M'+f(xx-2)+' 52L'+f(xx+2)+' 52L'+f(xx+1.3)+' 49L'+f(xx-1.3)+' 49Z','#bdac88')+
-     (!blackout?C(xx,50,5,'#f7d79c',.11)+C(xx,50,.8,'#ffe9af'):'');
+     (lampOn?C(xx,50,5,'#f7d79c',.11)+C(xx,50,.8,'#ffe9af'):'');
    }).join('');
+  if(effect(scene,'evacuation')){
+   const q=clamp(t*1.1,0,1);
+   o+=[.66,.76,.85].map((v,i)=>{
+    const xx=x(v+.09*q),yy=71+(i%2)*2;
+    return '<g data-world-object="evacuating-villager" opacity="'+f(Math.max(0,1-q*.92))+'">'+
+     C(xx,yy-8,1.3,'#c29f82')+L(xx,yy-6.5,xx,yy-2,'#d2af7e',1.6)+
+     L(xx,yy-2,xx-1.7,yy+2,'#293943',1.2)+
+     L(xx,yy-2,xx+1.5,yy+2,'#293943',1.2)+
+     L(xx,yy-5,xx-2.4,yy-1,'#9c8d75',.85)+
+     L(xx,yy-5,xx+2.4,yy-2,'#9c8d75',.85)+'</g>';
+   }).join('');
+  }
   if(leak){
    const intensity=.4+.6*t;
    o+=P('M'+f(x(.54))+' 76Q'+f(x(.58))+' 73 '+f(x(.62))+' 81L'+f(x(.69))+' 90L'+f(x(.52))+' 90Z','#66a6b8',.5*intensity)+
@@ -136,7 +148,15 @@
    R(x(.5),56,8,5,'#343a45',1)+C(x(.54),56,2.4,'#b8a78e')+
    R(x(.08),45,W*.1,25,'#625c59')+
    [0,1,2].map(i=>R(x(.08),45+i*7,W*.1,1.6,'#b29976')).join('')+
-   C(x(.51),37,5,'#ffe3a4',.12);
+   C(x(.51),37,5,'#ffe3a4',.12)+
+   (effect(scene,'notebookOpen')?
+    '<g data-world-object="open-notebook">'+
+    R(x(.31),57,6+5*clock(local,scene.duration),4,'#e5d8bb',.3)+
+    R(x(.31)+6,57,6,4,'#f1ead5',.3)+
+    L(x(.31)+6,57,x(.31)+6,61,'#8b6a57',.55)+'</g>':'')+
+   (effect(scene,'signalDiagram')?
+    '<g data-world-object="three-ray-diagram">'+C(x(.39),57,1.6,'#e7c57b')+
+    [0,1,2].map(i=>L(x(.39),57,x(.39)-4+i*4,53-i%2*2,'#ad7650',.7)).join('')+'</g>':'');
  }
  function cliff(W,local,scene,front){
   const x=q=>W*q,t=clock(local,scene.duration),broken=effect(scene,'bridgeFall');
@@ -190,9 +210,11 @@
     L(x(.63)-10,25,x(.63)-10,39,'#e4d3b0',.8)+'</g>'+
    // Large gear train + manual crank assembly at left.
    R(x(.16),53,x(.45),4,'#9c8875')+R(x(.28),48,3,35,'#5e6267')+
+   '<g data-world-object="hand-crank" transform="rotate('+
+     f(effect(scene,'crankTurn')?720*t:0)+' '+f(x(.32))+' 51)">'+
    C(x(.32),51,7,'#535c62')+C(x(.32),51,4.8,'#ac9f86')+C(x(.32),51,2,'#51616a')+
    Array.from({length:8},(_,i)=>{const angle=i*Math.PI/4;return L(x(.32)+Math.cos(angle)*2.3,51+Math.sin(angle)*2.3,x(.32)+Math.cos(angle)*6,51+Math.sin(angle)*6,'#5b6067',.75)}).join('')+
-   L(x(.32),51,x(.32)+7,48,'#d0b18c',1.5)+C(x(.32)+7,48,1.8,'#674d41')+
+   L(x(.32),51,x(.32)+7,48,'#d0b18c',1.5)+C(x(.32)+7,48,1.8,'#674d41')+'</g>'+
    // Belt visibly connects two pulleys and can snap / fall.
    C(x(.46),51,4,'#5e6267')+C(x(.58),51,3,'#5e6267')+
    (snapped&&t>=.58?L(x(.46),47,x(.51),54+10*t,'#be9777',2)+L(x(.51),54+10*t,x(.58),48,'#be9777',2):
