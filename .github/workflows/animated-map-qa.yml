@@ -22,6 +22,7 @@ on:
       - studio-timing-auditor.js
       - studio-visual-qa.js
       - tests/visual-coverage-qa.test.cjs
+      - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
       - studio-ai-workspace.js
       - tests/ai-workspace-regression.test.cjs
@@ -70,6 +71,7 @@ on:
       - studio-timing-auditor.js
       - studio-visual-qa.js
       - tests/visual-coverage-qa.test.cjs
+      - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
       - studio-ai-workspace.js
       - tests/ai-workspace-regression.test.cjs
@@ -129,6 +131,7 @@ jobs:
           node --check studio-timing-auditor.js
           node --check studio-visual-qa.js
           node tests/visual-coverage-qa.test.cjs
+          node tests/indoor-weather.test.cjs
           node --check studio-ai-workspace.js
           node --test tests/ai-workspace-regression.test.cjs
           node --check studio-asset-core.js
