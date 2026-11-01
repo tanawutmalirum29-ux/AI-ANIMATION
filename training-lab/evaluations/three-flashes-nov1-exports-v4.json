@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-01",
+  "status": "evaluation-only",
+  "origin": "Three user-attached MP4 exports from the same three-episode story; no MP4, story script, names, subtitles, or speech uploaded to repository.",
+  "method": {
+    "probe": "ffprobe streams and format metadata",
+    "quiet": "ffmpeg silencedetect=noise=-35dB:d=0.35 (low-level signal, not transcript correctness)",
+    "frames": "Decoded contact-sheet sampling at 2-second intervals; evidence is not exhaustive frame-by-frame review.",
+    "compare": "Compared episode-1 and episode-2 versions to prior uploaded exports by decoded stereo PCM SHA-256; hash changed, total PCM lengths remained equal."
+  },
+  "episodes": [
+    {
+      "episode": 1,
+      "exportSuffix": "1(8)",
+      "durationSeconds": 38.149333,
+      "frame": {
+        "width": 720,
+        "height": 1280,
+        "fps": 24,
+        "codec": "h264"
+      },
+      "audio": {
+        "codec": "aac",
+        "hz": 48000,
+        "channels": 2
+      },
+      "quietRegionsSeconds": [
+        1.219146,
+        1.105167,
+        1.091417,
+        1.128771,
+        1.136875,
+        0.982479
+      ],
+      "longQuietOver4Seconds": 0,
+      "visualNotes": [
+        "Opening outdoor establishing frames remain mostly empty: deliberate actor count zero, but sequential light shutoff is not visibly obvious at sampled frames.",
+        "Indoor workshop character holds an almost unchanged reading pose across several sampled frames.",
+        "Final distant harbor establishing view remains mostly empty."
+      ]
+    },
+    {
+      "episode": 2,
+      "exportSuffix": "2(9)",
+      "durationSeconds": 37.428,
+      "frame": {
+        "width": 720,
+        "height": 1280,
+        "fps": 24,
+        "codec": "h264"
+      },
+      "audio": {
+        "codec": "aac",
+        "hz": 48000,
+        "channels": 2
+      },
+      "quietRegionsSeconds": [
+        0.426812,
+        1.127896,
+        1.1675,
+        1.130354,
+        0.367208,
+        1.090187,
+        1.157396,
+        0.988417
+      ],
+      "longQuietOver4Seconds": 0,
+      "visualNotes": [
+        "Three figures crowded and visually overlap in opening path frames; this occurs despite authored toX paths.",
+        "Bridge/toolbox animated event is now present but exact safe choreography cannot be established from sampled frames.",
+        "Two figures overlap near tower/reflector during roughly middle through end of episode."
+      ]
+    },
+    {
+      "episode": 3,
+      "exportSuffix": "3(7)",
+      "durationSeconds": 36.964,
+      "frame": {
+        "width": 720,
+        "height": 1280,
+        "fps": 24,
+        "codec": "h264"
+      },
+      "audio": {
+        "codec": "aac",
+        "hz": 48000,
+        "channels": 2
+      },
+      "quietRegionsSeconds": [
+        0.444104,
+        1.149792,
+        1.185354,
+        1.072771,
+        0.385708,
+        1.151062,
+        1.149854,
+        0.999021
+      ],
+      "longQuietOver4Seconds": 0,
+      "visualNotes": [
+        "Two figures stand extremely close during lighthouse interior and flash shots.",
+        "A yellow beacon glow appears in sampled frames; 2-second sampling cannot verify exactly three pulses.",
+        "Final hill shot places three characters close together; depth/body outlines should be reviewed in final playback."
+      ]
+    }
+  ],
+  "comparison": {
+    "previousEpisode1Seconds": 38.149333,
+    "previousEpisode2Seconds": 37.428,
+    "episode1AudioPCMEqualToPrior": false,
+    "episode2AudioPCMEqualToPrior": false,
+    "episode3HasNoPriorClipInThisLatestBatch": true
+  },
+  "training": {
+    "type": "regression-and-code-quality-evaluation",
+    "approvedHumanExamples": 0,
+    "trainedWeightUpdates": 0,
+    "modelPromoted": false,
+    "reason": "Three exported MP4s reveal problems but are not confirmed corrected numeric layout labels or independent training stories. Continue approved-data collection."
+  },
+  "engineering": {
+    "codeChange": "Modify deterministic studio-production-planner.js composition to consider portrait width and groups of 3+ actors. Preserve explicit routes, manual motion, locked positions, intentional physical contact, and the relative travel of simple toX walks.",
+    "requiresReExport": true,
+    "limitations": "Audio signal presence does not guarantee every word was narrated. Generated code changes do not prove new exports are fixed until new videos are reviewed."
+  }
+}
