@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "source": "User-supplied three_flashes_before_dawn_fixed(1).json and three exported MP4s, reviewed 2026-11-01",
+  "purpose": "Evaluation fixture for scene-timing and narration director; not model weight fine-tuning",
+  "episodes": [
+    {
+      "id": "ep1",
+      "sourcePlannedSeconds": 60,
+      "exportSeconds": 47.105,
+      "deltaSeconds": -12.895,
+      "audioStreamPresent": true,
+      "audioCodec": "aac",
+      "audioMeanDb": -19.3,
+      "audioPeakDb": -0.4,
+      "silenceRunsAtMinus35dBMinHalfSecond": [
+        2.711,
+        2.597,
+        2.582,
+        2.627,
+        2.625,
+        2.446
+      ],
+      "longSilenceSeconds": 15.588,
+      "lowLevelStartSeconds": [
+        4.970187,
+        12.652188,
+        20.197917,
+        29.054688,
+        36.747646,
+        44.660812
+      ],
+      "lowLevelEndSeconds": [
+        7.681312,
+        15.249354,
+        22.779438,
+        31.682104,
+        39.373,
+        47.106667
+      ],
+      "sceneDurationsInferredFromIntervals": [
+        7.681,
+        7.568,
+        7.53,
+        8.903,
+        7.691,
+        7.734
+      ],
+      "audioActiveUpperBoundPerScene": [
+        4.97,
+        4.971,
+        4.949,
+        6.275,
+        5.066,
+        5.288
+      ]
+    },
+    {
+      "id": "ep2",
+      "sourcePlannedSeconds": 60,
+      "exportSeconds": 46.383333,
+      "deltaSeconds": -13.617,
+      "audioStreamPresent": true,
+      "audioCodec": "aac",
+      "audioMeanDb": -19.2,
+      "audioPeakDb": -0.5,
+      "silenceRunsAtMinus35dBMinHalfSecond": [
+        2.641,
+        2.666,
+        2.669,
+        2.542,
+        2.635,
+        2.447
+      ],
+      "longSilenceSeconds": 15.6,
+      "lowLevelStartSeconds": [
+        5.579708,
+        12.614167,
+        20.486917,
+        28.4135,
+        36.091771,
+        43.938167
+      ],
+      "lowLevelEndSeconds": [
+        8.220688,
+        15.280188,
+        23.155833,
+        30.955833,
+        38.726542,
+        46.385333
+      ],
+      "sceneDurationsInferredFromIntervals": [
+        8.221,
+        7.059,
+        7.876,
+        7.8,
+        7.771,
+        7.659
+      ],
+      "audioActiveUpperBoundPerScene": [
+        5.58,
+        4.393,
+        5.207,
+        5.258,
+        5.136,
+        5.212
+      ]
+    },
+    {
+      "id": "ep3",
+      "sourcePlannedSeconds": 60,
+      "exportSeconds": 45.933333,
+      "deltaSeconds": -14.067,
+      "audioStreamPresent": true,
+      "audioCodec": "aac",
+      "audioMeanDb": -19.8,
+      "audioPeakDb": -0.6,
+      "silenceRunsAtMinus35dBMinHalfSecond": [
+        2.642,
+        2.684,
+        2.565,
+        2.66,
+        2.627,
+        2.458
+      ],
+      "longSilenceSeconds": 15.636,
+      "lowLevelStartSeconds": [
+        4.681875,
+        12.603271,
+        20.072417,
+        27.906,
+        35.445125,
+        43.469938
+      ],
+      "lowLevelEndSeconds": [
+        7.323396,
+        15.287333,
+        22.637042,
+        30.565875,
+        38.072271,
+        45.928
+      ],
+      "sceneDurationsInferredFromIntervals": [
+        7.323,
+        7.964,
+        7.35,
+        7.929,
+        7.506,
+        7.856
+      ],
+      "audioActiveUpperBoundPerScene": [
+        4.682,
+        5.28,
+        4.785,
+        5.269,
+        4.879,
+        5.398
+      ]
+    }
+  ],
+  "sourceJson": {
+    "scenes": 18,
+    "scenesPerEpisode": 6,
+    "hasEmbeddedAudioClips": false,
+    "hasVoiceoverText": true,
+    "sceneDurationsPerEpisode": [
+      [
+        9,
+        10,
+        10,
+        11,
+        10,
+        10
+      ],
+      [
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+      ],
+      [
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+      ]
+    ]
+  },
+  "labels": [
+    {
+      "issue": "repeated_silence_between_scenes",
+      "severity": "high",
+      "evidence": "~2.5–2.7 s low-level audio at every scene boundary across all three exported videos",
+      "expectedBehavior": "Avoid unintended >0.8 s silence between narration segments unless explicitly marked as intentional; preserve dramatic pauses"
+    },
+    {
+      "issue": "planned_vs_export_duration_mismatch",
+      "severity": "high",
+      "evidence": "60 s authored per episode, exports 45.93–47.11 s",
+      "expectedBehavior": "Report mismatch and align timeline to measured audio; never pad with silence merely to hit 60 seconds"
+    },
+    {
+      "issue": "source_json_has_no_audio_clips",
+      "severity": "medium",
+      "evidence": "All 18 source scenes have empty audioClips; exported MP4s do contain AAC audio",
+      "expectedBehavior": "Do not infer speech timing from JSON alone; analyze actual audio or imported clips"
+    }
+  ],
+  "limits": [
+    "Silence detection is amplitude-based and does not prove speech absence when music or effects exist",
+    "Visual animation quality and precise spoken-word alignment require further frame-by-frame review",
+    "No neural network training has been run",
+    "Silence-to-scene boundary mapping is inferred from sampled exports; no isolated per-scene audio exports were provided."
+  ],
+  "measurement": {
+    "command": "ffmpeg silencedetect=noise=-35dB:d=0.5",
+    "sampleRateHz": 48000,
+    "interpretation": "Low-level intervals are not proof of silence from a narrator specifically; scene boundaries inferred from ends of repeated low-level intervals and manual contact-sheet review.",
+    "visualSampling": "18 timestamped evenly spaced contact frames per episode; not exhaustive frame-by-frame visual QA"
+  }
+}

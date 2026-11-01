@@ -4497,22 +4497,42 @@ async function autoDubRun(){
   }
  }catch(e){lastErr=e.message;failed++}
  finally{
-  let planned=0,extended=0;
-  if(made&&AUTODUB_SMART&&window.StoryNarrationDirector){for(const [ei,si] of targets){const info=window.StoryNarrationDirector.layout(S.episodes[ei].scenes[si],{gap:AUTODUB_GAP,rateOf:effectiveClipRate});planned+=info.clips;extended+=info.extended}save()}
+  let planned=0,extended=0,tightened={edits:0,seconds:0};
+  if(made&&AUTODUB_SMART&&window.StoryNarrationDirector){
+   for(const [ei,si] of targets){const info=window.StoryNarrationDirector.layout(S.episodes[ei].scenes[si],{gap:AUTODUB_GAP,rateOf:effectiveClipRate});planned+=info.clips;extended+=info.extended}
+   tightened=autoDubTighten(targets.map(([ei,si])=>S.episodes[ei].scenes[si]));
+   save();
+  }
   selEp=Math.min(keepEp,S.episodes.length-1);sel=Math.min(keepSel,Math.max(0,ep().scenes.length-1));AUDIO_DESK_SCENE=keepScene;
   if(made){past.length=keepPast;past.push(before);if(past.length>100)past.shift();future=[]}
   AUTODUB_RUNNING=false;
   try{render()}catch(e){}
-  setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(planned?'\nผู้ช่วยจัดเฟรมเสียง '+planned+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ'+(extended?' · ขยายเวลาฉาก '+extended.toFixed(1)+' วิ':''):'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
+  setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(planned?'\nผู้ช่วยจัดเฟรมเสียง '+planned+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ'+(extended?' · ขยายเวลาฉาก '+extended.toFixed(1)+' วิ':'')+(tightened.edits?' · ลดช่วงเงียบท้ายฉาก '+tightened.seconds.toFixed(1)+' วิ / '+tightened.edits+' ฉาก':''):'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
   return {ok:made>0||failed===0,made,failed,error:lastErr,cancelled:AUTODUB_CANCEL};
  }}
+/* Retiming only applies to complete auto-generated narration. Manual takes,
+ * SFX, explicit holds and missing TTS segments are left untouched. */
+function autoDubTighten(targetScenes){
+ const auditor=window.StoryTimingAuditor,director=window.StoryNarrationDirector;
+ if(!auditor?.planAutoDubTightening||!director)return {edits:0,seconds:0};
+ const plan=auditor.planAutoDubTightening(S,targetScenes,{
+  rateOf:effectiveClipRate,splitNarration:director.splitNarration
+ });
+ const byId=new Map(targetScenes.filter(s=>s&&s.id).map(s=>[s.id,s]));
+ let edits=0;
+ for(const op of plan.ops){
+  const scene=byId.get(op.id);if(!scene)continue;
+  Object.assign(scene,op.patch);edits++;
+ }
+ return {edits,seconds:plan.shortenedSeconds,skipped:plan.skipped.length};
+}
 async function autoDubReflowExisting(){
  if(AUTODUB_RUNNING)return;
  const director=window.StoryNarrationDirector;if(!director){setVoiceStatus('โมดูลจัดเฟรมเสียงยังไม่พร้อม');return}
  const targetScenes=AUTODUB_SCOPE==='all'?S.episodes.flatMap(E=>E.scenes):AUTODUB_SCOPE==='scene'?[sc()]:ep().scenes;
  const voices=targetScenes.flatMap(scene=>(scene.audioClips||[]).filter(c=>director.isAuto(c)&&c.data));
  if(!voices.length){setVoiceStatus('ไม่พบคลิปพากย์อัตโนมัติในขอบเขตนี้');return}
- AUTODUB_RUNNING=true;let n=0,extra=0,trimmed=0;const trims=new Map();
+ AUTODUB_RUNNING=true;let n=0,extra=0,trimmed=0,tightened={edits:0,seconds:0};const trims=new Map();
  try{
   const ctx=new (window.AudioContext||window.webkitAudioContext)();
   try{
@@ -4522,8 +4542,9 @@ async function autoDubReflowExisting(){
    }
   }finally{await ctx.close().catch(()=>{})}
   commit(()=>{for(const [clip,t] of trims){clip.trimStart=t.start;clip.trimEnd=t.end}
-   for(const scene of targetScenes){const r=director.layout(scene,{gap:AUTODUB_GAP,rateOf:effectiveClipRate});n+=r.clips;extra+=r.extended}});
-  setVoiceStatus('จัดเฟรมเสียงเดิม '+n+' คลิป · ตรวจหัว/ท้าย '+trimmed+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ · ขยายฉาก '+extra.toFixed(1)+' วิ (ย้อนกลับได้)');
+   for(const scene of targetScenes){const r=director.layout(scene,{gap:AUTODUB_GAP,rateOf:effectiveClipRate});n+=r.clips;extra+=r.extended}
+   tightened=autoDubTighten(targetScenes);});
+  setVoiceStatus('จัดเฟรมเสียงเดิม '+n+' คลิป · ตรวจหัว/ท้าย '+trimmed+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ · ขยายฉาก '+extra.toFixed(1)+' วิ'+(tightened.edits?' · ลดช่วงเงียบท้ายฉาก '+tightened.seconds.toFixed(1)+' วิ / '+tightened.edits+' ฉาก':'')+' (ย้อนกลับได้)');
  }catch(e){setVoiceStatus('จัดเฟรมไม่สำเร็จ: '+e.message)}
  finally{AUTODUB_RUNNING=false}
 }
