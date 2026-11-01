@@ -36,7 +36,7 @@ const path=require('node:path');
    return {duration:s.duration,voiceover:s.voiceover,cues:s.subtitleCues,clips:s.audioClips.length};
   });
   assert.equal(outcome.voiceover,initial.text);
-  assert.ok(outcome.duration>6.4&&outcome.duration<8);
+  assert.ok(outcome.duration>=6.3&&outcome.duration<7,'short post-voice tail without truncating the 6s voice');
   assert.equal(outcome.clips,1);
   assert.ok(outcome.cues[0].end<outcome.duration);
   await page.evaluate(()=>{
