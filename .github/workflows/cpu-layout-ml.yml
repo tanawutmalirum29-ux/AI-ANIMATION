@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - studio-layout-ml.js
+      - ml-runtime/layout-handler.cjs
+      - tests/ml-runtime-layout.test.cjs
+      - training-lab/REMOTE_CPU_ML_TH.md
       - training-lab/train-layout.py
       - training-lab/prepare-layout-data.py
       - training-lab/test-layout-ml.py
@@ -39,12 +42,16 @@ jobs:
       - name: Verify schema and incremental CPU trainer (no dependencies)
         run: |
           node --check studio-layout-ml.js
+          node --check ml-runtime/layout-handler.cjs
+          node tests/ml-runtime-layout.test.cjs
           node tests/layout-ml-contract.test.cjs
           python3 training-lab/test-layout-ml.py
-      - name: Train only on explicitly dispatched mode
-        if: github.event_name == 'workflow_dispatch'
+      # Every relevant PR runs a REAL CPU weight update against synthetic data,
+      # demonstrating remote training without a user's phone or a model API.
+      # Only manually dispatched approved mode can use human-approved labels.
+      - name: Train CPU model (PR demo, or manual approved run)
         env:
-          TRAIN_MODE: ${{ inputs.mode }}
+          TRAIN_MODE: ${{ github.event_name == 'pull_request' && 'demo' || inputs.mode }}
         run: |
           mkdir -p candidate-output
           if [ "$TRAIN_MODE" = "approved" ]; then
@@ -52,10 +59,32 @@ jobs:
           else
             python3 training-lab/train-layout.py --mode demo --out candidate-output/layout-demo-only.json
           fi
-      - name: Save weights for review only (never deploy)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Check learned weights and display results
+        env:
+          TRAIN_EVENT: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import glob, json, os
+          files=glob.glob('candidate-output/*.json')
+          assert len(files)==1
+          model=json.load(open(files[0], encoding='utf8'))
+          assert model['active'] is False
+          assert len(model['weights'])==8 and any(abs(w)>1e-6 for w in model['weights'])
+          if os.getenv('TRAIN_EVENT')=='pull_request':
+              assert model['status']=='demo-only'
+              assert model['training']['mode']=='demo'
+          tr=model['training']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf8') as f:
+              f.write('## CPU ML training — remote GitHub runner\n')
+              f.write(f"Status: **{model['status']}** (never auto-deployed)  \n")
+              f.write(f"Train: {tr['examples']} rows; holdout: {tr['holdoutExamples']} rows  \n")
+              f.write(f"Holdout macro-F1: {tr['model']['macroF1']}; baseline: {tr['baseline']['macroF1']}  \n")
+              f.write('Demo data is synthetic and must not be used in production.\n')
+          print('Remote CPU weights learned; model remains inactive:',model['status'])
+          PY
+      - name: Save review artifact (never deploy)
         uses: actions/upload-artifact@v4
         with:
-          name: cpu-layout-ml-${{ inputs.mode }}
+          name: cpu-layout-ml-${{ github.event_name == 'pull_request' && 'demo-pr' || inputs.mode }}
           path: candidate-output/*.json
-          retention-days: 1
+          retention-days: 7
