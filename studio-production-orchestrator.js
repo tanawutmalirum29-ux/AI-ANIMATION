@@ -33,14 +33,35 @@
    Promise.resolve().then(()=>baseline.missingAudio.length?
     ctx.bridge.narrate('all'):{ok:true,made:0,failed:0,skipped:true})
   ]);
-  const plan=planned.status==='fulfilled'?planned.value:null;
+  let plan=planned.status==='fulfilled'?planned.value:null;
   const voice=narrated.status==='fulfilled'?narrated.value:null;
   if(!plan)issues.push('วางภาพ/SVG ล้มเหลว: '+String(planned.reason?.message||planned.reason));
   if(!voice?.ok)issues.push('เสียงพากย์ไม่สำเร็จ: '+String(voice?.error||narrated.reason?.message||'ไม่พบการเชื่อมต่อ TTS'));
   if(voice?.failed)issues.push('เสียงพากย์ล้มเหลว '+voice.failed+' คลิป');
   step('voice',voice?.ok&&!voice.failed?'done':'needs_attention',
    voice?.skipped?'เสียงเดิมครบ ไม่สร้างซ้ำ':'สร้างเสียง '+(voice?.made||0)+' คลิป · ล้มเหลว '+(voice?.failed||0));
+  // Finish audio-aware timing before writing scene-relative visual keyframes.
+  // A 12-second jump must never be left with keys past a shortened 5s scene.
+  step('timing','running');
+  info('กำลังจัดเวลาให้ตรงกับเสียงจริง ก่อนสร้างคีย์เฟรมภาพ');
+  let timing=null;
+  const pre=ctx.planner.quality(ctx.bridge.get(),ctx.visualQA,ctx.assetCore);
+  if(!pre.missingAudio.length&&voice?.ok&&!voice.failed){
+   try{
+    timing=await ctx.applyTiming();
+    step('timing','done','ปรับ '+timing.changes+' จุด · เพิ่มตอน '+(timing.split?.created||0));
+   }catch(err){
+    issues.push('จัดเวลา: '+String(err.message||err));
+    step('timing','failed',String(err.message||err));
+   }
+  }else{
+   issues.push('เสียงไม่ครบ ไม่ตัดเวลาฉากเพื่อป้องกันเนื้อหาหาย');
+   step('timing','needs_attention','เสียงพากย์ต้องครบก่อน');
+  }
+  // Rebuild visual plan against the now-final scene durations. The first
+  // pure plan overlapped TTS but was never committed, preventing races.
   if(plan){
+   plan=ctx.planner.plan(clone(ctx.bridge.get()),ctx.assetCore);
    const parts=[['composition',plan.layout],['vector',plan.svg],['animation',plan.motion]];
    const ops=parts.flatMap(([,p])=>p.ops);
    if(ops.length){
@@ -57,22 +78,6 @@
     step(id,p.skipped?.length&&!p.ops.length?'needs_attention':'done',
      'ปรับ '+p.ops.length+' ฉาก'+(p.skipped?.length?' · ข้าม '+p.skipped.length:''));
   }else for(const id of ['composition','vector','animation'])step(id,'failed','วางแผนไม่สำเร็จ');
-  step('timing','running');
-  info('กำลังจัดเวลาให้ตรงกับเสียงจริง โดยรักษาฉาก/ข้อความทั้งหมด');
-  let timing=null;
-  const pre=ctx.planner.quality(ctx.bridge.get(),ctx.visualQA,ctx.assetCore);
-  if(!pre.missingAudio.length&&voice?.ok&&!voice.failed){
-   try{
-    timing=await ctx.applyTiming();
-    step('timing','done','ปรับ '+timing.changes+' จุด · เพิ่มตอน '+(timing.split?.created||0));
-   }catch(err){
-    issues.push('จัดเวลา: '+String(err.message||err));
-    step('timing','failed',String(err.message||err));
-   }
-  }else{
-   issues.push('เสียงไม่ครบ ไม่ตัดเวลาฉากเพื่อป้องกันเนื้อหาหาย');
-   step('timing','needs_attention','เสียงพากย์ต้องครบก่อน');
-  }
   step('qa','running');
   const qa=ctx.planner.quality(ctx.bridge.get(),ctx.visualQA,ctx.assetCore);
   if(qa.issues.length)issues.push('องค์ประกอบ/เหตุการณ์ต้องตรวจ '+qa.issues.length+' จุด');
