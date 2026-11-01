@@ -4,7 +4,7 @@
 // No video frames are rendered on the user's phone.
 const fs = require('node:fs');
 const path = require('node:path');
-const {execFileSync} = require('node:child_process');
+const {execFileSync,spawnSync} = require('node:child_process');
 const {chromium} = require('playwright');
 const root = path.resolve(__dirname, '..');
 const scratch = '/tmp/story-cloud-export';
@@ -31,6 +31,11 @@ function remux(src,out,needAudio) {
  if(!streams.includes('video'))fail('Output video track missing');
  if(needAudio && !streams.includes('audio'))fail('Output audio track missing');
  if(fs.statSync(out).size<2048)fail('Output video is empty');
+ if(needAudio){
+  const check=spawnSync('ffmpeg',['-hide_banner','-i',out,'-vn','-af','volumedetect','-f','null','-'],{encoding:'utf8',timeout:65*60*1000});
+  const found=String(check.stderr||'').match(/max_volume:\s*(-?[0-9.]+) dB/);
+  if(check.status!==0||!found||Number(found[1])< -65)fail('Output audio is silent or unreadable');
+ }
 }
 async function main(){
  if(!/^[0-9a-f-]{36}$/.test(jobId)||!bucket)fail('Missing/invalid job configuration');
