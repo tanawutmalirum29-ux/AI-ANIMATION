@@ -62,4 +62,38 @@ const cramped={episodes:[{scenes:[make('portrait','สองคนยืนข�
  cramped.project.aspect='16:9';
  assert.ok(!qa.inspect(cramped).issues.some(x=>x.kind==='actor-overlap'),
   'do not assume same silhouette width on landscape frames');
+
+// Exported episode 2 had two overlapping figures even though motion existed.
+// Motions must no longer suppress a review warning for their start anchors.
+const motionScene=make('animated-contact','สองคนเดินผ่านกัน',{
+ actors:[{char:'a',x:44,y:78,motionKeys:[{t:0,x:44},{t:5,x:70}]},
+         {char:'b',x:47,y:79,pose:'walk',toX:80}],
+});
+const generated=qa.inspect({project:{aspect:'9:16'},episodes:[{scenes:[motionScene]}]});
+assert.equal(generated.byKind.actorOverlap,1,
+ 'motion must not hide cramped starting actor anchors in portrait footage');
+assert.match(generated.issues[0].message,/motion\/keyframe/,
+ 'warning must identify motion as the reason to review start frames');
+const deliberateDepth=structuredClone(motionScene);
+deliberateDepth.actors[0].depth=1;
+assert.equal(qa.inspect({project:{aspect:'9:16'},episodes:[{scenes:[deliberateDepth]}]}).byKind.actorOverlap,0,
+ 'explicit depth layering remains author controlled');
+
+// Draft props may obscure actors on portrait exports; NEVER move manual art.
+const factoryDraft={producer:'studio-production-v1',eventKind:'reflector',
+ x:64,y:70,scale:1.1,front:false};
+const draftScene=make('mirror','แผ่นสะท้อนแสง',{actors:[{char:'a',x:51,y:84}],
+ customAssets:[factoryDraft]});
+const draftReport=qa.inspect({project:{aspect:'9:16'},episodes:[{scenes:[draftScene]}]});
+assert.equal(draftReport.byKind.draftAssetClearance,1);
+assert.equal(draftReport.issues[0].confidence,'needs-visual-review');
+const artistScene=structuredClone(draftScene);
+artistScene.customAssets[0].producer='manual';
+assert.equal(qa.inspect({project:{aspect:'9:16'},episodes:[{scenes:[artistScene]}]}).byKind.draftAssetClearance,0,
+ 'manual SVG artwork must never be treated as an automatic production mistake');
+const distantScene=structuredClone(draftScene);
+distantScene.customAssets[0].x=95;
+assert.equal(qa.inspect({project:{aspect:'9:16'},episodes:[{scenes:[distantScene]}]}).byKind.draftAssetClearance,0,
+ 'distant props should not trigger clearance warnings');
+
 console.log('PASS: visual coverage preflight protects authored events, identifies overlap, and makes no changes');
