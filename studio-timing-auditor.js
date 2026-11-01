@@ -49,7 +49,7 @@
   // Measured 2026-11-01 user exports: six ~2.5–2.7s silent tails per episode.
   // Keep only a short visual breath after completed speech. Longer dramatic
   // holds must be marked explicitly ([HOLD], [PAUSE], or timed events).
-  return moving?.9:actors.length?.65:.35;
+  return moving?.9:actors.length?.65:.45;
  }
  function audit(state,options={}){
   const eps=state?.episodes;if(!Array.isArray(eps))throw Error('ไม่มี episodes จากโปรเจกต์');
