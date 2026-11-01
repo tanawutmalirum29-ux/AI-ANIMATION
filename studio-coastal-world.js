@@ -101,7 +101,7 @@
    market(x(.77),79,.9,'#66918a',!blackout)+
    market(x(.9),79,.85,'#9a7d5f',!blackout)+
    // Distant recognizable lighthouse, not a generic tower.
-   lighthouse(x(.97),60,.5,!blackout,'left',.8)+
+   lighthouse(x(.97),60,.5,!blackout||effect(scene,'signalVisible'),'left',.8)+
    // Pier lamps with pools of amber light.
    [0.24,0.4,0.62].map(v=>{
     const xx=x(v);return R(xx-.4,51,.8,13,'#3a4650')+
@@ -162,11 +162,11 @@
  }
  function lantern(W,local,scene,front){
   const x=q=>W*q,t=clock(local,scene.duration),on=effect(scene,'beaconOn'),
-   snapped=effect(scene,'beltBreak'),facing=scene.worldEffects?.beamDirection==='village'?'left':'right',
+   snapped=effect(scene,'beltBreak'),repaired=effect(scene,'beltRepair'),facing=scene.worldEffects?.beamDirection==='village'?'left':'right',
    flashes=effect(scene,'threeFlashes');
   if(front)return R(0,84,W,1.4,'#b1a292',.4,.65);
   const flashPhase=flashes?([.12,.34,.56].some(start=>t>=start&&t<start+.1)?1:0):1;
-  const lit=on?flashPhase:0;
+  const lit=on&&(!snapped||t<.58)?flashPhase:0;
   let o=R(0,12,W,64,'#344452',0,.46)+
    // Lantern room CURVED window bays + heavy steel mullions.
    Array.from({length:Math.ceil(W/23)},(_,i)=>{
@@ -195,8 +195,8 @@
    L(x(.32),51,x(.32)+7,48,'#d0b18c',1.5)+C(x(.32)+7,48,1.8,'#674d41')+
    // Belt visibly connects two pulleys and can snap / fall.
    C(x(.46),51,4,'#5e6267')+C(x(.58),51,3,'#5e6267')+
-   (snapped?L(x(.46),47,x(.51),54+10*t,'#be9777',2)+L(x(.51),54+10*t,x(.58),48,'#be9777',2):
-    L(x(.46),47,x(.58),48,'#be9777',2)+L(x(.46),55,x(.58),54,'#be9777',2))+
+   (snapped&&t>=.58?L(x(.46),47,x(.51),54+10*t,'#be9777',2)+L(x(.51),54+10*t,x(.58),48,'#be9777',2):
+    L(x(.46),47,x(.58),48,repaired?'#d6b38c':'#be9777',2)+L(x(.46),55,x(.58),54,repaired?'#d6b38c':'#be9777',2))+
    // Metal service stairs, no furniture or sofa.
    R(x(.05),67,W*.15,2,'#596b73')+
    Array.from({length:6},(_,i)=>L(x(.06+i*.021),67-i*3,x(.19+i*.021),67-i*3,'#929a9d',.75)).join('')+
