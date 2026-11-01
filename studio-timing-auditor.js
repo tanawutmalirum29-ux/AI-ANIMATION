@@ -46,7 +46,10 @@
     Array.isArray(a.route)&&a.route.length>0||a.endPose||a.motion))||
    (scene.camera&&scene.camera.type&&scene.camera.type!=='static')||
    (scene.customAssets||[]).some(a=>a?.animated)||!!scene.cinematicFx;
-  return moving?2.4:actors.length?1.25:.65;
+  // Measured 2026-11-01 user exports: six ~2.5–2.7s silent tails per episode.
+  // Keep only a short visual breath after completed speech. Longer dramatic
+  // holds must be marked explicitly ([HOLD], [PAUSE], or timed events).
+  return moving?.9:actors.length?.65:.35;
  }
  function audit(state,options={}){
   const eps=state?.episodes;if(!Array.isArray(eps))throw Error('ไม่มี episodes จากโปรเจกต์');
@@ -198,5 +201,42 @@
   });
   return {ops,created,warnings,episodes:episodePlans,targetSeconds:target,maxSeconds:max};
  }
- return Object.freeze({audit,clipSeconds,hasTimedEvents,planEpisodeSplits,packScenes,EPISODE_TARGET_SECONDS,EPISODE_MAX_SECONDS});
+ /* The Auto Dub button operates on live projects, not on exported MP4s.
+  * Return safe, undoable patches for COMPLETELY generated narration only.
+  * A partial/failed TTS run must never silently cut the remaining script.
+  * Preserve all manual takes and explicit timed cinematic actions. */
+ function planAutoDubTightening(state,targetScenes,options={}){
+  const targets=new Map((targetScenes||[]).filter(s=>s&&s.id).map(s=>[s.id,s]));
+  if(!targets.size)return {ops:[],skipped:[],shortenedSeconds:0};
+  const report=audit(state,{scope:'all',rateOf:options.rateOf});
+  const operations=report.ops.filter(op=>op.op==='updateScene'&&
+   targets.has(op.id)&&op.patch?.duration<targets.get(op.id).duration-.01);
+  const ops=[],skipped=[];let shortenedSeconds=0;
+  for(const op of operations){
+   const scene=targets.get(op.id),voices=(scene.audioClips||[]).filter(c=>
+    c?.kind==='voice'&&c.data&&!c.mute&&clipSeconds(c,options.rateOf)>.05);
+   // This action is specifically for automatic narration; never re-time manual
+   // voice recordings without explicit user review.
+   if(!voices.length||voices.some(c=>!(c.autoDub===true||
+    /^auto-e\\d+-s\\d+-/.test(String(c.name||''))))){
+    skipped.push({sceneId:scene.id,reason:'manual-or-missing-voice'});continue;
+   }
+   const narration=String(scene.voiceover||'').trim();
+   if(narration){
+    const parts=typeof options.splitNarration==='function'?
+      options.splitNarration(narration,175):[];
+    const provided=new Set(voices.flatMap(c=>[
+      c.cueId,...(Array.isArray(c.cueIds)?c.cueIds:[])
+    ].filter(Boolean)));
+    if(!parts.length||parts.some((_,i)=>!provided.has(
+      'narration-'+scene.id+'-part'+(i+1)))){
+     skipped.push({sceneId:scene.id,reason:'incomplete-narration'});continue;
+    }
+   }
+   shortenedSeconds+=scene.duration-op.patch.duration;
+   ops.push(op);
+  }
+  return {ops,skipped,shortenedSeconds:rounded(shortenedSeconds)};
+ }
+ return Object.freeze({audit,clipSeconds,hasTimedEvents,planAutoDubTightening,planEpisodeSplits,packScenes,EPISODE_TARGET_SECONDS,EPISODE_MAX_SECONDS});
 });
