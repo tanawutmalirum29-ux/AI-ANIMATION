@@ -4,11 +4,11 @@ const {Script}=require('node:vm');
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const assert=require('node:assert/strict');
 const html=fs.readFileSync('index.html','utf8');
-[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)].map(m=>m[1]).forEach(s=>new Script(s));
+[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).forEach(s=>new Script(s));
 const server=http.createServer((req,res)=>{
  const route=decodeURIComponent((req.url||'/').split('?')[0]);
  const p=path.resolve(process.cwd(),route==='/'?'index.html':route.slice(1));
- if(!p.startsWith(process.cwd()+path.sep)||!/\\.(html|js|css|json)$/.test(p)||!fs.existsSync(p)){res.writeHead(404);res.end();return}
+ if(!p.startsWith(process.cwd()+path.sep)||!/\.(html|js|css|json)$/.test(p)||!fs.existsSync(p)){res.writeHead(404);res.end();return}
  res.writeHead(200,{'Content-Type':p.endsWith('.js')?'text/javascript':p.endsWith('.css')?'text/css':'text/html; charset=utf-8'});
  res.end(fs.readFileSync(p));
 });
