@@ -27,10 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: bash -n cloud-export/deploy.sh cloud-export/repair-upload.sh
+      - run: bash -n cloud-export/deploy.sh cloud-export/repair-upload.sh cloud-export/speedup.sh
       - run: python3 -m py_compile autodub/handler.py
-      - run: python3 -m pip install --quiet boto3
+      - run: python3 -m pip install --quiet boto3 pyyaml
       - run: python3 tests/cloud-export-presign-smoke.py
+      - run: python3 -c 'import yaml; y=yaml.safe_load(open("cloud-export/buildspec.yml")); assert y["version"]==0.2; assert "install" in y["phases"]; assert "paths" in y["cache"]'
       - run: node --check cloud-export-client.js
       - run: node --check cloud-export/worker.cjs
       - run: node tests/cloud-export-contract-smoke.cjs
