@@ -76,8 +76,8 @@ else:
 with tempfile.TemporaryDirectory() as tmp:
     directory = Path(tmp)
     a, b, combined = (directory / name for name in ("a.jsonl", "b.jsonl", "combined.jsonl"))
-    a.write_text(json.dumps(human) + "\\n", encoding="utf8")
-    b.write_text(json.dumps(human) + "\\n" + json.dumps(second) + "\\n", encoding="utf8")
+    a.write_text(json.dumps(human) + "\n", encoding="utf8")
+    b.write_text(json.dumps(human) + "\n" + json.dumps(second) + "\n", encoding="utf8")
     merged, duplicate_count = prep.combine([a, b])
     assert duplicate_count == 1 and len(merged) == 2
     assert prep.readiness(merged)["ready_for_training"] is False
@@ -87,14 +87,14 @@ with tempfile.TemporaryDirectory() as tmp:
     assert generated.returncode == 0, generated.stderr
     assert len(combined.read_text(encoding="utf8").splitlines()) == 2
     assert json.loads(generated.stdout)["duplicates_removed"] == 1
-    b.write_text(json.dumps(dict(human, label="keep" if human["label"] == "separate" else "separate")) + "\\n")
+    b.write_text(json.dumps(dict(human, label="keep" if human["label"] == "separate" else "separate")) + "\n")
     try:
         prep.combine([a, b])
     except ValueError as error:
         assert "ขัดแย้ง" in str(error)
     else:
         raise AssertionError("conflicting labels accepted")
-    b.write_text(json.dumps(dict(human, voiceover="private narration")) + "\\n")
+    b.write_text(json.dumps(dict(human, voiceover="private narration")) + "\n")
     try:
         prep.combine([a, b])
     except ValueError:
