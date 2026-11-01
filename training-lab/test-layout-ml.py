@@ -52,4 +52,54 @@ with tempfile.TemporaryDirectory() as tmp:
         try: m.validate(bad)
         except (ValueError, TypeError): pass
         else: raise AssertionError("invalid row accepted")
-print("PASS: CPU SGD updates real weights, holds out entire stories, rejects unapproved and synthetic production data")
+
+# Additional collection-quality tests: distinct examples matter more than clicks.
+prep_spec = importlib.util.spec_from_file_location(
+    "layout_prepare", ROOT / "prepare-layout-data.py")
+prep = importlib.util.module_from_spec(prep_spec)
+prep_spec.loader.exec_module(prep)
+human = dict(rows[0], source="human")
+second = dict(rows[1], source="human")
+try:
+    m.reject_duplicate_examples([human, human])
+except ValueError as error:
+    assert "duplicate" in str(error)
+else:
+    raise AssertionError("identical approved samples counted twice")
+try:
+    m.reject_duplicate_examples([human, dict(human, label="keep" if human["label"] == "separate" else "separate")])
+except ValueError as error:
+    assert "conflict" in str(error)
+else:
+    raise AssertionError("conflicting ground truth not rejected")
+
+with tempfile.TemporaryDirectory() as tmp:
+    directory = Path(tmp)
+    a, b, combined = (directory / name for name in ("a.jsonl", "b.jsonl", "combined.jsonl"))
+    a.write_text(json.dumps(human) + "\\n", encoding="utf8")
+    b.write_text(json.dumps(human) + "\\n" + json.dumps(second) + "\\n", encoding="utf8")
+    merged, duplicate_count = prep.combine([a, b])
+    assert duplicate_count == 1 and len(merged) == 2
+    assert prep.readiness(merged)["ready_for_training"] is False
+    command = [sys.executable, str(ROOT / "prepare-layout-data.py"),
+               "--input", str(a), str(b), "--out", str(combined)]
+    generated = subprocess.run(command, capture_output=True, text=True)
+    assert generated.returncode == 0, generated.stderr
+    assert len(combined.read_text(encoding="utf8").splitlines()) == 2
+    assert json.loads(generated.stdout)["duplicates_removed"] == 1
+    b.write_text(json.dumps(dict(human, label="keep" if human["label"] == "separate" else "separate")) + "\\n")
+    try:
+        prep.combine([a, b])
+    except ValueError as error:
+        assert "ขัดแย้ง" in str(error)
+    else:
+        raise AssertionError("conflicting labels accepted")
+    b.write_text(json.dumps(dict(human, voiceover="private narration")) + "\\n")
+    try:
+        prep.combine([a, b])
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unapproved private fields passed numeric-only gate")
+
+print("PASS: CPU SGD updates real weights, holds out entire stories, rejects unapproved/synthetic/duplicate labels and prepares real feedback safely")
