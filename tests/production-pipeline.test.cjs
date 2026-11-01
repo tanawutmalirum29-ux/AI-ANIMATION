@@ -59,8 +59,50 @@ const timedScene=structuredClone(key);
 timedScene.audioClips=[{kind:'voice',data:'data:audio/wav;base64,AAAA',duration:2,at:0,rate:1}];
 const timedState={episodes:[{id:'timed',scenes:[timedScene]}]};
 assert.equal(timing.hasTimedEvents(timedScene),true,'asset keyframes protect visual events');
-assert.equal(timing.audit(timedState,{scope:'all'}).ops.length,0,
- 'audio-aware timing must not cut three light flashes just because narration ended early');
+const autoReflow=timing.audit(timedState,{scope:'all'});
+assert.equal(autoReflow.ops.length,1,
+ 'factory-owned relative animation should follow narration rather than adding a 5s mute tail');
+const reflowPatch=autoReflow.ops[0].patch;
+assert.ok(reflowPatch.duration>=2.3&&reflowPatch.duration<=3.1);
+assert.equal(reflowPatch.customAssets.find(x=>x.eventKind==='beacon').motionKeys.at(-1).t,
+ reflowPatch.duration,'three flashes remain within the new shortened scene');
+assert.equal(reflowPatch.customAssets.find(x=>x.eventKind==='beacon').motionKeys.filter(x=>x.opacity===1).length,
+ 6,'all three visual pulses retain their on-keyframes after re-timing');
+const compact=structuredClone(timedScene);
+Object.assign(compact,reflowPatch);
+assert.equal(timing.audit({episodes:[{id:'compact',scenes:[compact]}]},{scope:'all'}).ops.length,0,
+ 'repeat one-button production must not shorten the same clip again');
+const manualBeats=structuredClone(timedScene);
+delete manualBeats.customAssets[0].producer;
+assert.equal(timing.audit({episodes:[{id:'manual',scenes:[manualBeats]}]},{scope:'all'}).ops.length,0,
+ 'manually authored vector keyframes must protect their original timing');
+const explicitlyLocked=structuredClone(timedScene);
+explicitlyLocked.customAssets[0].productionManualLock=true;
+assert.equal(timing.audit({episodes:[{id:'lock',scenes:[explicitlyLocked]}]},{scope:'all'}).ops.length,0,
+ 'user-locked automatic vector beats cannot be retimed');
+const withHold=structuredClone(timedScene);
+withHold.notes='[HOLD] ปล่อยจังหวะหลังเสียงจบ';
+assert.equal(timing.audit({episodes:[{id:'hold',scenes:[withHold]}]},{scope:'all'}).ops.length,0,
+ 'authored cinematic holds must remain intact');
+const generatedActor={...timedScene,customAssets:[],actors:[{char:'actor',x:20,y:80,
+ motionProducer:'studio-production-v1',pose:'walk',motionKeys:[{t:0,x:20},{t:8,x:32}]}]};
+const actorOps=timing.audit({episodes:[{id:'actor',scenes:[generatedActor]}]},{scope:'all'}).ops;
+assert.equal(actorOps.length,1,'factory-created walking keyframes may follow audio');
+assert.equal(actorOps[0].patch.actors[0].motionKeys.at(-1).t,actorOps[0].patch.duration);
+const manualActor=structuredClone(generatedActor);
+delete manualActor.actors[0].motionProducer;
+assert.equal(timing.audit({episodes:[{id:'actor',scenes:[manualActor]}]},{scope:'all'}).ops.length,0,
+ 'hand-created actor animation must not be truncated');
+// Auto SVG drafts fit portrait export without resizing artist-managed library assets.
+const generatedBridge=assets.item({duration:8},'bridge');
+const autoSvg=core.sceneMarkup({customAssets:[generatedBridge]},'back',50.6,0);
+const manualSvg=core.sceneMarkup({customAssets:[{...generatedBridge,producer:'manual'}]},'back',50.6,0);
+const extractScale=svg=>Number(svg.match(/scale\\(([0-9.]+) [0-9.]+\\)/)?.[1]);
+assert.ok(extractScale(autoSvg)<extractScale(manualSvg)*.61,
+ 'AI-owned shapes must shrink to portrait frame; manual art stays same');
+assert.equal(extractScale(core.sceneMarkup({customAssets:[generatedBridge]},'back',160,0)),
+ extractScale(core.sceneMarkup({customAssets:[{...generatedBridge,producer:'manual'}]},'back',160,0)),
+ 'wide frame shape sizes are unchanged');
 const move=planner.plan(applied,'motion',assets);
 assert.equal(move.ops.length,1);
 assert.equal(move.ops[0].id,'s18');
