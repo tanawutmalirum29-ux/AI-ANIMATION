@@ -66,7 +66,7 @@ function motion(state,assetAPI){
       Number.isFinite(a.toX)||Number.isFinite(a.toY))continue;
    if(!Number.isFinite(a.x)||!Number.isFinite(a.y)||!/^(walk|run)$/i.test(String(a.pose||'')))continue;
    const end=a.x<=70?a.x+12:a.x-12;
-   a.motionKeys=[{t:0,x:a.x,y:a.y,pose:a.pose},{t:Math.min(60,Math.max(1,Number(sc.duration)||6)),x:end,y:a.y,pose:a.pose}];count++;
+   a.motionKeys=[{t:0,x:a.x,y:a.y,pose:a.pose},{t:Math.min(60,Math.max(1,Number(sc.duration)||6)),x:end,y:a.y,pose:a.pose}];a.motionProducer='studio-production-v1';count++;
   }
   if(count){ops.push({op:'updateScene',id:sc.id,patch:{actors:updated}});details.push(sc.id+': สร้างเส้นเดิน/วิ่ง '+count+' คน');}
   if(assetAPI?.events?.(sc).length&&!((sc.customAssets||[]).length||(sc.props||[]).length))
