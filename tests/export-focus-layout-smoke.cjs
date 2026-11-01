@@ -38,12 +38,18 @@ const path = require('node:path');
      workspace:rect('#studioWorkspace').toJSON(),
      body:rect('body').toJSON(),
      toolBody:{clientHeight:node('#studioToolBody').clientHeight,scrollHeight:node('#studioToolBody').scrollHeight},
-     videoStartPresent:!!node('#videoStart'),stage:rect('#stage').toJSON(),
+     videoStartPresent:!!node('#videoStart'),startButton:rect('#videoStart').toJSON(),
+     scope:rect('#videoScope').toJSON(),formTop:rect('#videoDialog').top,
+     selectedScope:node('#videoScope').value,stage:rect('#stage').toJSON(),
      isFlex:getComputedStyle(node('body')).display==='flex'
     };
    });
    assert.ok(state.timelineHidden && state.navHidden && state.motionHidden,'export must hide editing clutter');
    assert.ok(state.exportVisible && state.videoStartPresent,'export controls remain mounted');
+   assert.ok(state.startButton.top>=-1&&state.startButton.bottom<=height+2,'primary export button visible without scrolling on every device');
+   assert.ok(state.startButton.top<state.stage.bottom+130,'export action is adjacent to top of export form, not below video playback result');
+   assert.equal(state.selectedScope,'current','legacy single-episode export remains the default');
+   assert.ok(state.scope.top>=-1&&state.scope.bottom<=height+2,'mode selector is visible without scrolling');
    assert.ok(state.back.width>60 && state.back.height>=30,'visible way back to editing');
    assert.ok(state.back.top>=-1 && state.back.bottom<=height+2,'back button must be in viewport');
    assert.ok(state.toolBody.clientHeight>120,'export form must have useful viewport height');
@@ -57,6 +63,8 @@ const path = require('node:path');
    await page.waitForTimeout(70);
    const afterScroll=await page.evaluate(()=>({back:document.querySelector('#videoBack').getBoundingClientRect().toJSON(),scroll:document.querySelector('#studioToolBody').scrollTop}));
    assert.ok(afterScroll.back.top>=-1 && afterScroll.back.bottom<=height+2,'return control stays visible while scrolling');
+   const pinned=await page.locator('#videoStart').boundingBox();
+   assert.ok(pinned&&pinned.y>=-1&&pinned.y+pinned.height<=height+2,'sticky export button remains reachable while scrolling');
    if(state.toolBody.scrollHeight > state.toolBody.clientHeight+20)assert.ok(afterScroll.scroll>0,'export form scrolls independently');
    await page.locator('#videoBack').click();
    assert.ok(!(await page.evaluate(()=>document.body.classList.contains('export-focus'))),'return clears focused mode');
