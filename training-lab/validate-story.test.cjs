@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {validate}=require('./validate-story.cjs');
+const base={version:1,characters:[{id:'c'}],locations:[{id:'l'}],voiceProfiles:[{id:'v'}],episodes:[{id:'e',targetSeconds:60,scenes:[{id:'s',duration:60,location:'l',characters:['c'],actors:[{char:'c'}],voiceover:'Narration',voiceDirection:{voiceProfileId:'v'},subtitleCues:[{start:0,end:3,text:'Hi'}],audio:null,audioClips:[]}]}]};
+assert.equal(validate(base).ok,true);
+const broken=structuredClone(base);broken.episodes[0].scenes[0].location='missing';
+assert.equal(validate(broken).ok,false);
+const timing=structuredClone(base);timing.episodes[0].scenes[0].subtitleCues[0].end=61;
+assert.equal(validate(timing).ok,false);
+console.log('Training Lab validator tests passed');
