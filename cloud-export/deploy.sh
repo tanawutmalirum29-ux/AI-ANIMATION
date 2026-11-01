@@ -80,8 +80,7 @@ import json,sys
 p,b,r,a,project=sys.argv[1:]
 json.dump({"Version":"2012-10-17","Statement":[
 {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject"],"Resource":["arn:aws:s3:::"+b+"/jobs/*"]},
-{"Effect":"Allow","Action":["codebuild:StartBuild"],"Resource":["arn:aws:codebuild:"+r+":"+a+":project/"+project]},
-{"Effect":"Allow","Action":["codebuild:BatchGetBuilds","codebuild:StopBuild"],"Resource":["arn:aws:codebuild:"+r+":"+a+":build/"+project+":*"]}
+{"Effect":"Allow","Action":["codebuild:StartBuild","codebuild:BatchGetBuilds","codebuild:StopBuild"],"Resource":["arn:aws:codebuild:"+r+":"+a+":project/"+project]}
 ]},open(p,"w"))
 PY
 LROLE_ARN="$(aws lambda get-function-configuration --function-name "$FN" --query Role --output text)"
