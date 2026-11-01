@@ -3345,7 +3345,7 @@ const VIDEO_FORMATS=[
  {id:'webmauto',name:'WebM · อัตโนมัติ',mime:'video/webm',ext:'webm'},
  {id:'mp4video',name:'MP4 · ไม่มีเสียง',mime:'video/mp4;codecs="avc1.42E01E"',ext:'mp4'}
 ];
-let ACTIVE_EXPORT=null,EXPORT_BATCH_RUNNING=false,EXPORT_BATCH_ABORTED=false,EXPORT_JOB_OUTCOME=false,EXPORT_BATCH_FILES=[],EXPORT_BATCH_ZIP=null,EXPORT_COMBINED_LABEL=false;
+let ACTIVE_EXPORT=null,EXPORT_BATCH_RUNNING=false,EXPORT_BATCH_ABORTED=false,EXPORT_JOB_OUTCOME=false,EXPORT_BATCH_FILES=[],EXPORT_BATCH_ZIP=null,EXPORT_COMBINED_LABEL=false,EXPORT_BATCH_AUDIO_CTX=null;
 const FAST_FORMAT={id:'fastmp4',name:'⚡ MP4 · H.264 เร็ว (แนะนำ)',mime:'video/mp4',ext:'mp4'};
 function compatibleVideoFormats(){const out=[];if(typeof VideoEncoder!=='undefined'&&typeof VideoFrame!=='undefined')out.push(FAST_FORMAT);
  if(typeof MediaRecorder!=='undefined'&&HTMLCanvasElement.prototype.captureStream)out.push(...VIDEO_FORMATS.filter(x=>MediaRecorder.isTypeSupported(x.mime)));return out}
@@ -3593,11 +3593,11 @@ async function prepareExportAudio(E,format,existingAudio,decodeOnly){
   const from=clampN(cleanNum(c.trimStart),0,b.duration),end=clampN(b.duration-cleanNum(c.trimEnd),from,b.duration),playlen=(end-from)/effectiveClipRate(c);
   if(playlen>0&&limit>start)buffers.push({buffer:b,start,sourceAt:from,sourceDuration:Math.min(end-from,(limit-start)*effectiveClipRate(c)),length:Math.min(playlen,limit-start),rate:effectiveClipRate(c),clip:c,vol:clampN(cleanNum(c.volume,1),0,1),fadeIn:cleanNum(c.fadeIn),fadeOut:cleanNum(c.fadeOut),ev,limit,xin:ev.xin||0,xout:ev.xout||0,chainStart:ev.chainStart});
  }catch(e){warnings.push('เสียง "'+(c.name||c.id||'ไม่ทราบชื่อ')+'" อ่านไม่ได้: '+e.message)}}
- if(warnings.length||required.length&&!buffers.length){if(!decodeOnly)closeAudioCtx(audio);throw new Error(warnings[0]||'ไม่สามารถเตรียมเสียงสำหรับส่งออกได้ กรุณาตรวจไฟล์เสียงก่อน')}
+ if(warnings.length||required.length&&!buffers.length){if(!decodeOnly&&audio!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(audio);throw new Error(warnings[0]||'ไม่สามารถเตรียมเสียงสำหรับส่งออกได้ กรุณาตรวจไฟล์เสียงก่อน')}
  if(decodeOnly)return {audio,destination:null,buffers,warnings,sources:[],decodeOnly:true};
  // Keep an active graph for browsers requiring audio activity.
  const oscillator=audio.createOscillator(),silent=audio.createGain();silent.gain.value=.0000001;oscillator.connect(silent).connect(destination);oscillator.start();await audio.resume();
- if(audio.state!=='running'){closeAudioCtx(audio);throw new Error('เบราว์เซอร์ยังไม่อนุญาตให้เล่นเสียง กรุณาแตะหน้าเว็บแล้วส่งออกใหม่')}
+ if(audio.state!=='running'){if(audio!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(audio);throw new Error('เบราว์เซอร์ยังไม่อนุญาตให้เล่นเสียง กรุณาแตะหน้าเว็บแล้วส่งออกใหม่')}
  return {audio,destination,buffers,warnings,sources:[oscillator]};
 }
 /* ===== v34 Fast export (WebCodecs): เรนเดอร์ทีละเฟรมแบบกำหนดเวลาเอง ไม่ผูกกับนาฬิกาจริง =====
@@ -3733,7 +3733,7 @@ async function startFastExport(f,cfg,o){
   let audioBuf=null,mixPeak=0,mixClips=0;
   if(needAudio){
    exportStatus('เตรียมและผสมเสียง…',1);
-   const pa=await prepareExportAudio(project,f,o.audioContext,true);job.context=null;closeAudioCtx(o.audioContext);
+   const pa=await prepareExportAudio(project,f,o.audioContext,true);job.context=null;if(o.audioContext!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(o.audioContext);
    if(pa.warnings.length)warn=pa.warnings[0];
    if(!pa.buffers.length)throw new Error('มีคลิปเสียง แต่ไม่มีเสียงที่เข้ารหัสได้');
    if(pa.buffers.length){
@@ -3783,7 +3783,7 @@ async function startFastExport(f,cfg,o){
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${needAudio?'🔊 เสียงในไฟล์: '+mixClips+' คลิป · peak '+(20*Math.log10(mixPeak)).toFixed(1)+' dB · AAC '+mux.audioCount()+' แพ็กเก็ต ('+(mux.audioBytes()/1024).toFixed(0)+' KB)\n':'⚠ ไม่มีคลิปเสียงในตอนนี้ — วิดีโอจึงไม่มีเสียง\n'}${(blob.size/1048576).toFixed(2)} MB · ${duration.toFixed(1)} วินาที · ใช้เวลา ${took.toFixed(0)} วินาที (${(duration/took).toFixed(1)}× ของเวลาจริง)${warn?'\n'+warn:''}${job.hiddenDuringExport||job.audioStalled?'\n⚠ หน้าจอถูกพับ/สลับแอประหว่างส่งออก เสียงในไฟล์อาจขาดหาย — แนะนำส่งออกใหม่โดยไม่สลับหน้าจอ':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
   try{venc&&venc.state!=='closed'&&venc.close()}catch(e){}try{aenc&&aenc.state!=='closed'&&aenc.close()}catch(e){}
-  closeAudioCtx(job.context);closeAudioCtx(o.audioContext);releaseWakeLock();
+  if(job.context!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(job.context);if(o.audioContext!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(o.audioContext);releaseWakeLock();
   T=keep.T;playing=false;sel=keep.sel;resetTransitionCache();draw();ctl();
   ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
  }
@@ -3807,7 +3807,7 @@ async function exportOneEpisode(){
  const wantsAudio=audioEvents().some(ev=>ev.c.data&&!ev.c.mute&&safeClipDuration(ev.c)>0);
  if(wantsAudio&&f.id==='mp4video'){exportStatus('รูปแบบ MP4 ไม่มีเสียง ไม่สามารถใช้กับโปรเจกต์ที่มีเสียงได้ · เลือก MP4 แบบมีเสียงหรือ WebM',0);return}
  // iOS Safari: create/resume the export AudioContext synchronously inside the Export button gesture.
- const earlyAudio=wantsAudio?new (window.AudioContext||window.webkitAudioContext)():null;
+ const earlyAudio=wantsAudio?(EXPORT_BATCH_AUDIO_CTX||new (window.AudioContext||window.webkitAudioContext)()):null;
  if(earlyAudio)earlyAudio.resume().catch(()=>{});
  const requested=Number($('#videoResolution').value),fps=Number($('#videoFPS').value),aspect=S.project.aspect||'16:9';
  let [ar,br]=aspect.split(':').map(Number);if(!ar||!br){ar=16;br=9}
@@ -3818,7 +3818,7 @@ async function exportOneEpisode(){
   const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration);
   if(cfg)return startFastExport(f,cfg,{w:fw,h:fh,fps,duration,needAudio,audioContext:earlyAudio});
   const alt=supported.find(x=>x.id!=='fastmp4');
-  if(!alt){closeAudioCtx(earlyAudio);exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
+  if(!alt){if(earlyAudio!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(earlyAudio);exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
   f=alt;exportStatus('เข้ารหัสแบบเร็วใช้ไม่ได้บนเครื่องนี้ (ต้องมี H.264/AAC) · ใช้โหมดเวลาจริงแทน');
  }
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:false});
@@ -3826,11 +3826,11 @@ async function exportOneEpisode(){
  $('#videoStart').disabled=true;$('#videoCancel').disabled=false;$('#videoClose').disabled=true;$('#videoBack').disabled=true;
  const keep={T,playing,sel};playing=false;pauseAudioPlayers();
  const frames=canvas.captureStream(0),vTrack=frames.getVideoTracks()[0];
- let lastReq=0,beat=null,realFrames=1;const pushFrame=()=>{lastReq=performance.now();realFrames++;try{vTrack.requestFrame?.()}catch(e){}};
+ let lastReq=0,beat=null,realFrames=1,exportAudioData=null;const pushFrame=()=>{lastReq=performance.now();realFrames++;try{vTrack.requestFrame?.()}catch(e){}};
  try{
   exportStatus('เตรียมภาพและตรวจไฟล์เสียง…',0);
   let audioData=null;
-  if(wantsAudio){audioData=await prepareExportAudio(project,f,earlyAudio);job.context=audioData.audio;
+  if(wantsAudio){audioData=await prepareExportAudio(project,f,earlyAudio);job.context=audioData.audio;exportAudioData=audioData;
    if(!audioData.buffers.length||!audioData.destination.stream.getAudioTracks().length)throw new Error('เบราว์เซอร์สร้างแทร็กเสียงไม่ได้ จึงยกเลิกแทนการส่งออกวิดีโอเงียบ')}
   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
   const ms=new MediaStream([...frames.getVideoTracks(),...(audioData?audioData.destination.stream.getAudioTracks():[])]);
@@ -3871,7 +3871,8 @@ async function exportOneEpisode(){
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${audioData?'🔊 โหมดเวลาจริง · '+audioData.buffers.length+' คลิป · ระบบเสียง: '+audioData.audio.state+(job.audioStalled?' (เคยหยุด)':''):'⚠ ไม่มีคลิปเสียงในตอนนี้ — วิดีโอจึงไม่มีเสียง'}\n${(blob.size/1048576).toFixed(2)} MB · ${(duration).toFixed(1)} วินาที${audioData?.warnings.length?'\n'+audioData.warnings[0]:''}${job.hiddenDuringExport||job.audioStalled?'\n⚠ หน้าจอถูกพับ/สลับแอประหว่างส่งออก เสียงในไฟล์อาจขาดหาย — แนะนำส่งออกใหม่โดยไม่สลับหน้าจอ':''}${framesShown<duration*fps*0.5?'\n⚠ เครื่องเรนเดอร์ช้า ('+framesShown+' เฟรมจริงจาก '+Math.round(duration*fps)+') ภาพจะกระตุก ลองลดความละเอียด/FPS':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
   try{clearInterval(beat)}catch(e){}try{if(job.recorder?.state!=='inactive')job.recorder?.stop()}catch(e){}
-  closeAudioCtx(job.context);closeAudioCtx(earlyAudio);releaseWakeLock();try{frames.getTracks().forEach(x=>x.stop())}catch(e){}
+  for(const src of exportAudioData?.sources||[])try{src.stop()}catch(e){}
+  if(job.context!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(job.context);if(earlyAudio!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(earlyAudio);releaseWakeLock();try{frames.getTracks().forEach(x=>x.stop())}catch(e){}
   T=keep.T;playing=false;sel=keep.sel;resetTransitionCache();draw();ctl();
   ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
  }
@@ -3949,7 +3950,15 @@ async function startVideoExport(){
  if(mode==='current'){await exportOneEpisode();return}
  const episodes=S.episodes;
  if(!episodes.length||episodes.some(E=>!Array.isArray(E.scenes)||!E.scenes.length)){exportStatus('ไม่มีตอนที่ส่งออกได้',0);return}
- const saved={episodes,selEp,sel,T,playing};EXPORT_BATCH_RUNNING=true;$('#videoScope').disabled=true;
+ const saved={episodes,selEp,sel,T,playing};
+ // Keep the single audio context unlocked by this original user click
+ // throughout all queued episodes; Safari may reject a fresh context later.
+ const needsAudio=episodes.some(E=>[...(E.musicClips||[]),...E.scenes.flatMap(sc=>sc.audioClips||[])].some(c=>c?.data&&!c.mute));
+ if(needsAudio){
+  try{const C=window.AudioContext||window.webkitAudioContext;EXPORT_BATCH_AUDIO_CTX=new C();EXPORT_BATCH_AUDIO_CTX.resume().catch(()=>{})}
+  catch(e){exportStatus('ไม่สามารถปลดล็อกเสียงสำหรับส่งออกทุกตอน: '+e.message);return}
+ }
+ EXPORT_BATCH_RUNNING=true;$('#videoScope').disabled=true;
  $('#videoStart').disabled=true;$('#videoCancel').disabled=false;$('#videoClose').disabled=true;$('#videoBack').disabled=true;
  let completed=0,failed=false;
  try{
@@ -3984,6 +3993,7 @@ async function startVideoExport(){
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+String(e?.message||e));}
  finally{
   S.episodes=saved.episodes;selEp=saved.selEp;sel=saved.sel;T=saved.T;playing=false;
+  closeAudioCtx(EXPORT_BATCH_AUDIO_CTX);EXPORT_BATCH_AUDIO_CTX=null;
   EXPORT_COMBINED_LABEL=false;EXPORT_BATCH_RUNNING=false;EXPORT_BATCH_ABORTED=false;
   $('#videoScope').disabled=false;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
   resetTransitionCache();render();updateExportScopeHint();
