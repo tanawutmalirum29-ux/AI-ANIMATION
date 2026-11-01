@@ -50,6 +50,7 @@ on:
       - tests/site-auth-smoke.cjs
       - tests/site-auth-handler-smoke.py
       - tests/voice-preview-smoke.cjs
+      - tests/audio-export-integrity-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   pull_request:
     paths:
@@ -138,6 +139,7 @@ jobs:
           node --check tests/mobile-scroll-smoke.cjs
           node --check tests/auto-dub-smoke.cjs
           node --check tests/voice-preview-smoke.cjs
+          node --check tests/audio-export-integrity-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist/assets
           cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
@@ -167,3 +169,4 @@ jobs:
           node tests/local-ai-workspace-smoke.cjs
           node tests/art-vault-browser-smoke.cjs
           node tests/voice-preview-smoke.cjs
+          node tests/audio-export-integrity-smoke.cjs
