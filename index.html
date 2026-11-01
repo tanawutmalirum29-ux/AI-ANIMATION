@@ -2443,6 +2443,8 @@ function syncAudioAt(t,play){
  if(events.some(ev=>(PREVIEW_MOBILE_BUFFERED||(!PREVIEW_DIRECT_VOICE&&ev.c.kind==='voice'))&&ev.c.data&&t>=ev.start-.55&&t<ev.start+safeClipDuration(ev.c))){
   try{ctx=previewContext()}catch(e){}
  }
+ // Keep the already-unlocked context even while a scene contains silence.
+ if(PREVIEW_MOBILE_BUFFERED&&PREVIEW_AUDIO_CTX)ctx=PREVIEW_AUDIO_CTX;
  if(ctx){
   if(ctx.state!=='running'){updateAudioHint();ctx=null}
  }
