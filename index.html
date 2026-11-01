@@ -3798,7 +3798,7 @@ async function startFastExport(f,cfg,o){
   }
   exportStatus('รวมไฟล์ MP4…',99);
   const blob=mux.finish();if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า');
-  let filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.mp4';
+  let filename=exportFilePrefix()+'-'+(selEp+1)+'.mp4';
   showExportResult(blob,filename);filename=LAST_VIDEO.filename;EXPORT_JOB_OUTCOME=true;
   const took=(performance.now()-t0)/1000;
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${needAudio?'🔊 เสียงในไฟล์: '+mixClips+' คลิป · peak '+(20*Math.log10(mixPeak)).toFixed(1)+' dB · AAC '+mux.audioCount()+' แพ็กเก็ต ('+(mux.audioBytes()/1024).toFixed(0)+' KB)\n':'⚠ ไม่มีคลิปเสียงในตอนนี้ — วิดีโอจึงไม่มีเสียง\n'}${(blob.size/1048576).toFixed(2)} MB · ${duration.toFixed(1)} วินาที · ใช้เวลา ${took.toFixed(0)} วินาที (${(duration/took).toFixed(1)}× ของเวลาจริง)${warn?'\n'+warn:''}${job.hiddenDuringExport||job.audioStalled?'\n⚠ หน้าจอถูกพับ/สลับแอประหว่างส่งออก เสียงในไฟล์อาจขาดหาย — แนะนำส่งออกใหม่โดยไม่สลับหน้าจอ':''}`,100);
@@ -3887,7 +3887,7 @@ async function exportOneEpisode(){
   if(mediaError)throw mediaError;
   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
   const blob=new Blob(chunks,{type:rec.mimeType||f.mime});if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า เบราว์เซอร์อาจบล็อกการบันทึก');
-  let filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.'+f.ext;
+  let filename=exportFilePrefix()+'-'+(selEp+1)+'.'+f.ext;
   showExportResult(blob,filename);filename=LAST_VIDEO.filename;EXPORT_JOB_OUTCOME=true;
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${audioData?'🔊 โหมดเวลาจริง · '+audioData.buffers.length+' คลิป · ระบบเสียง: '+audioData.audio.state+(job.audioStalled?' (เคยหยุด)':''):'⚠ ไม่มีคลิปเสียงในตอนนี้ — วิดีโอจึงไม่มีเสียง'}\n${(blob.size/1048576).toFixed(2)} MB · ${(duration).toFixed(1)} วินาที${audioData?.warnings.length?'\n'+audioData.warnings[0]:''}${job.hiddenDuringExport||job.audioStalled?'\n⚠ หน้าจอถูกพับ/สลับแอประหว่างส่งออก เสียงในไฟล์อาจขาดหาย — แนะนำส่งออกใหม่โดยไม่สลับหน้าจอ':''}${framesShown<duration*fps*0.5?'\n⚠ เครื่องเรนเดอร์ช้า ('+framesShown+' เฟรมจริงจาก '+Math.round(duration*fps)+') ภาพจะกระตุก ลองลดความละเอียด/FPS':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
@@ -3921,7 +3921,17 @@ function buildExportCompilation(episodes){
  }
  return {id:'virtual-export',title:'รวมทุกตอน',scenes,musicClips};
 }
-function exportFilePrefix(){return (S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,50)}
+// Preserve Thai combining vowels and tone marks in downloaded MP4/ZIP names.
+// Grapheme-safe truncation avoids slicing a visible Thai syllable in half.
+function exportFilePrefix(){
+ const raw=String(S.project.title||'story-studio').normalize('NFC');
+ const cleaned=raw.replace(/[^\p{L}\p{M}\p{N}_-]+/gu,'-').replace(/^-+|-+$/g,'');
+ if(!cleaned)return 'story-studio';
+ const chars=typeof Intl.Segmenter==='function'
+  ?Array.from(new Intl.Segmenter('th',{granularity:'grapheme'}).segment(cleaned),x=>x.segment)
+  :Array.from(cleaned);
+ return chars.slice(0,50).join('')||'story-studio';
+}
 function renderExportBatchResults(){
  const root=$('#videoBatchResults');if(!root)return;
  root.hidden=!EXPORT_BATCH_FILES.length&&!EXPORT_BATCH_ZIP;if(root.hidden)return;
