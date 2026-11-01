@@ -21,8 +21,17 @@ assert.equal(planner.stages.length,6);
 assert.deepEqual(planner.stages.map(s=>s.id),['composition','assets','motion','voice','timing','qa']);
 const layout=planner.plan(src,'composition',assets);
 assert.equal(layout.ops.length,1);
-assert.equal(layout.ops[0].patch.actors[1].x,45);
+assert.equal(layout.ops[0].patch.actors[1].x,42);
 assert.equal(JSON.stringify(src),original,'composition planner is read-only');
+const walking={episodes:[{scenes:[scene('s07','นิลและตาอินวิ่งฝ่าฝน',{actors:[
+ {char:'nil',x:18,y:90,toX:57,pose:'run'},
+ {char:'ta_in',x:12,y:90,toX:48,pose:'walk'}
+]})]}]};
+const fixedWalk=planner.plan(walking,'composition',assets);
+assert.equal(fixedWalk.ops.length,1,'real source overlap can be safely corrected');
+assert.equal(fixedWalk.ops[0].patch.actors[1].x,6);
+assert.equal(fixedWalk.ops[0].patch.actors[1].toX,42,
+ 'moving the track must preserve its authored displacement');
 const applied=structuredClone(src);
 for(const op of layout.ops)Object.assign(applied.episodes[0].scenes.find(s=>s.id===op.id),op.patch);
 const drawable=planner.plan(applied,'assets',assets);
