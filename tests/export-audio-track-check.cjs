@@ -9,7 +9,7 @@ const hdlr=kind=>{const b=Buffer.alloc(32);b.writeUInt32BE(b.length,0);b.write('
  assert.equal(hasMp4Audio(voiced),true,'MP4 soun handler must be recognized');
  assert.equal(await probeAudio(new Blob([silent]),'mp4'),false,'silent MP4 has no audio track');
  assert.equal(await probeAudio(new Blob([voiced]),'mp4'),true,'MP4 with audio track passes');
- assert.equal(await probeAudio(new Blob([Buffer.from('webm A_OPUS audio')]),'webm'),true,'WebM Opus track passes');
+ assert.equal(await probeAudio(new Blob([Buffer.from('webm A_OPUS audio'),Buffer.alloc(64)]),'webm'),true,'WebM Opus track passes');
  assert.equal(hasWebmAudio(Buffer.from('webm video only')),false,'WebM video only rejected');
  // Faststart (moov at beginning) and regular MP4 (moov at end) both need coverage.
  const tail=new Blob([Buffer.alloc(2*1024*1024+10),voiced]);
