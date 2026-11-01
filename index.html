@@ -1633,9 +1633,10 @@ if(layer==='back'&&!set&&!all.length&&!custom)return'';if(layer==='front'&&!all.
 const[ar,br]=String(S.project.aspect||'16:9').split(':').map(Number),W=f2(90*(ar&&br?ar/br:16/9)*clampN(nm(scn.camera&&scn.camera.world,1),1,3.5));const propFrameScale=clampN(Math.pow(W/160,.65),.38,1.25);let o='';
 if(layer==='back'&&set){const bg=Array.isArray(set.bg)?set.bg:['#2d3b63','#1d2a4a'],fy=clampN(nm(set.floorY,78),30,95)*.9;
 o+=`<defs><linearGradient id="sgr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${colOK(bg[0],'#2d3b63')}"/><stop offset="1" stop-color="${colOK(bg[1],'#1d2a4a')}"/></linearGradient></defs>`+R_(-60,-60,W+120,fy+60,'url(#sgr)')+R_(-60,f2(fy),W+120,100,colOK(set.floor,'#3b3a35'))+R_(-60,f2(fy),W+120,.8,'#000',0,.25)}
-all.map((p,i)=>[p,i]).sort((a,b)=>nm(a[0].y,90)-nm(b[0].y,90)||a[1]-b[1]).forEach(([p])=>{const A=p.at!=null?anchorOf(set,p.at):null,x=nm(p.x,A?nm(A.x,50):50)+(p.x===undefined?nm(p.dx,0):0),y=nm(p.y,A?nm(A.y,90):90)+(p.y===undefined?nm(p.dy,0):0),sc=Math.max(.1,nm(p.scale,1))*propFrameScale;
+if(coastal)o+=window.StoryCoastalWorld.render(set,layer,W,local,scn);
+ all.map((p,i)=>[p,i]).sort((a,b)=>nm(a[0].y,90)-nm(b[0].y,90)||a[1]-b[1]).forEach(([p])=>{const A=p.at!=null?anchorOf(set,p.at):null,x=nm(p.x,A?nm(A.x,50):50)+(p.x===undefined?nm(p.dx,0):0),y=nm(p.y,A?nm(A.y,90):90)+(p.y===undefined?nm(p.dy,0):0),sc=Math.max(.1,nm(p.scale,1))*propFrameScale;
 o+=`<g transform="translate(${f2(x/100*W)} ${f2(y/100*90)}) scale(${f2((p.flip?-1:1)*sc)} ${f2(sc)}) scale(${f2(p._openScale??1)} 1)">${PROPS[p.kind](p.color?colOK(p.color,''):'')}</g>`});
-if(coastal)o+=window.StoryCoastalWorld.render(set,layer,W,local,scn);if(window.StoryAssetCore)o+=window.StoryAssetCore.sceneMarkup(scn,layer,W,local);
+if(window.StoryAssetCore)o+=window.StoryAssetCore.sceneMarkup(scn,layer,W,local);
 return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 90" preserveAspectRatio="xMidYMid meet">${o}</svg>`}
 
 const SET_DOC=`ผังสถานที่ + จุดยึด (ให้ฉากหน้าตาเหมือนเดิมทุกครั้ง): สถานที่แต่ละแห่งมี set = {"bg":["#top","#bottom"],"floor":"#hex","floorY":78,"light":"day","anchors":{"desk":{"x":62,"y":90,"facing":"left","pose":"sit"},...},"props":[{"kind":"desk","at":"desk","dx":-12,"scale":1.3,"front":true}]}
