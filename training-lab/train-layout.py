@@ -80,6 +80,33 @@ def read_rows(path):
     return rows
 
 
+
+def reject_duplicate_examples(rows):
+    """Do not let repeated clicks inflate approved training/holdout counts.
+
+    Within one story, the same eight-feature input must not have multiple
+    approvals or contradictory ground-truth labels. Use prepare-layout-data.py
+    to combine and deduplicate human-reviewed files first.
+    """
+    seen = {}
+    for line_number, row in enumerate(rows, 1):
+        key = (row["group"], tuple(row["features"][feature] for feature in FEATURES))
+        previous = seen.get(key)
+        if previous is None:
+            seen[key] = (row["label"], line_number)
+        elif previous[0] != row["label"]:
+            raise ValueError(
+                f"approved label conflict at row {line_number} and {previous[1]} "
+                "(same story and layout features)"
+            )
+        else:
+            raise ValueError(
+                f"duplicate approved example at row {line_number} and {previous[1]}; "
+                "run prepare-layout-data.py to collapse repeated exports"
+            )
+    return rows
+
+
 def split_groups(rows):
     group_names = sorted({r["group"] for r in rows},
                          key=lambda g: hashlib.sha256(g.encode()).hexdigest())
@@ -146,6 +173,8 @@ def main():
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     rows = demo_data() if args.mode == "demo" else read_rows(Path(args.data))
+    if args.mode == "approved":
+        reject_duplicate_examples(rows)
     train, test, groups = split_groups(rows)
     learned = train_sgd(train)
     def learned_classifier(row):

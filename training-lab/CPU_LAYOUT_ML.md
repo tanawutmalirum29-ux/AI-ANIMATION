@@ -38,3 +38,21 @@ python3 training-lab/train-layout.py --mode approved \
 - **Evaluation:** never randomly split rows from the same story between train and holdout. Record model/baseline performance from unseen story groups, not just training accuracy.
 - **Release:** no model is promoted because an Action completes. Maintain explicit human approval, deterministic fallback and rollback. Do not silently relabel demo examples as real.
 - **Cost:** GitHub standard runner on a PUBLIC repository can run this CPU job under the GitHub usage policy. Avoid GitHub GPU larger runners, hosted LLM inference and new AWS compute.
+
+
+### Continue the same training program: combine reviewed feedback (no LLM)
+
+The website downloads **one numeric JSONL file per explicit approval**. Keep these files private until you have inspected them. From your own computer or a private checkout, combine multiple files and get a readiness report:
+
+```sh
+python3 training-lab/prepare-layout-data.py \
+  --input feedback-a.jsonl feedback-b.jsonl feedback-c.jsonl \
+  --out /tmp/layout-spacing-reviewed.jsonl
+```
+
+- This checks the same seven-field privacy/approval schema as the trainer. Extra content (scripts, voiceovers, story titles, audio, images, etc.) is rejected.
+- Repeated clicks on **the same story and identical eight layout features** collapse into one row. Opposing labels on the same story/features abort the operation and require manual review.
+- The command prints the **unique sample count, number of story groups, label balance, duplicates removed and whether the minimum holdout gates are met**. Not ready yet is a normal result; no synthetic labels are generated to fill gaps.
+- Nothing uploads automatically. Only after explicit consent may you place the reviewed, combined numeric file at `training-lab/datasets/approved/layout-spacing.jsonl`; note that this repository is PUBLIC.
+- `train-layout.py --mode approved` now independently rejects duplicate and contradictory same-story examples, even if somebody bypasses the preparation step.
+- A passing readiness check does **not** establish that examples reflect correct animation; human review, genuine variety, independent-video QA, candidate comparison and explicit deployment approval remain mandatory.
