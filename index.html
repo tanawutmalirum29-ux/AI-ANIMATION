@@ -2400,7 +2400,7 @@ let VOICE_LOOKAHEAD_AT=0;
 function prefetchVoiceAhead(t,events,span=20){
  const now=performance.now();if(now-VOICE_LOOKAHEAD_AT<250)return;VOICE_LOOKAHEAD_AT=now;
  let n=0;for(const ev of events){const c=ev.c;if(c.kind!=='voice'||!c.data||!c.duration)continue;
-  if(ev.start+safeClipDuration(c)<t||ev.start>t+span)continue;primeVoicePreview(c);if(++n>=6)break}
+  if(ev.start+safeClipDuration(c)<t||ev.start>t+span)continue;primeVoicePreview(c).catch(()=>{});if(++n>=6)break}
 }
 function stopVoicePreview(){
  for(const entry of VOICE_PREVIEW_SOURCES.values()){try{entry.source.stop()}catch(e){}try{entry.source.disconnect()}catch(e){}}
@@ -2410,6 +2410,26 @@ function pauseAudioPlayers(){
  stopVoicePreview();PREVIEW_MEDIA_RETRY_AT.clear();PREVIEW_MEDIA_PLAY_PENDING.clear();
  for(const [,a] of AUDIO_PLAYERS){a.pause();a._storyPositioned=false}
  $('#vo').pause();$('#bgm').pause();
+}
+function releasePreviewMedia(id,a){
+ try{a.pause();a.removeAttribute('src');a.load()}catch(e){}
+ const nodes=AUDIO_PLAYER_GRAPHS.get(id);
+ if(nodes)for(const node of Object.values(nodes))try{node.disconnect()}catch(e){}
+ AUDIO_PLAYER_GRAPHS.delete(id);AUDIO_PLAYERS.delete(id);PREVIEW_MEDIA_RETRY_AT.delete(id);PREVIEW_MEDIA_PLAY_PENDING.delete(id);
+}
+function previewMediaFailed(id,c,reason){
+ if(!playing||!AUDIO_PLAYERS.has(id))return;
+ if(c.kind==='voice'){playing=false;PREVIEW_START_GENERATION++;pauseAudioPlayers();ctl()}
+ showPreviewAudioProblem('เสียง'+(c.kind==='voice'?'พากย์':'ประกอบ')+'เล่นไม่สำเร็จ: '+String(reason||'โหลดไฟล์เสียงไม่ได้')+' · กด ▶ อีกครั้ง หรือใช้ 🔊 ตรวจเสียง');
+}
+function prewarmNativePreview(t){
+ if(!PREVIEW_DIRECT_VOICE)return;
+ let n=0;for(const ev of audioEvents()){
+  const c=ev.c,id=c?.id+':'+(ev.cycle||0);
+  if(!c?.data||!c.id||c.kind!=='voice'||ev.start<t-.1||ev.start>t+8)continue;
+  if(!AUDIO_PLAYERS.has(id)){const a=new Audio(c.data);a.preload='auto';a._storyData=c.data;a._storyPositioned=false;AUDIO_PLAYERS.set(id,a)}
+  if(++n>=4)break;
+ }
 }
 function syncAudioAt(t,play){
  if(VOICE_RECORDER?.state==='recording'&&STUDIO_CURRENT_TOOL==='record'&&STUDIO_DUB_AUTOPLAY){pauseAudioPlayers();return}
@@ -2467,7 +2487,9 @@ function syncAudioAt(t,play){
   }
   // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
   if(part<0||part>=len)continue;
-  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a.load();PREVIEW_MEDIA_RETRY_AT.delete(id)}
+  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;a._storyPositioned=false;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a._storyPositioned=false;a.load();PREVIEW_MEDIA_RETRY_AT.delete(id)}
+   a._storyInUse=true;
+   if(!a._storyErrorHooked){a._storyErrorHooked=true;a.addEventListener('error',()=>{if(a._storyInUse&&AUDIO_PLAYERS.get(id)===a)previewMediaFailed(id,c,a.error?.message||'ไฟล์เสียงเสียหายหรือโหลดไม่ได้')})}
   let n=AUDIO_PLAYER_GRAPHS.get(id);
   if(PREVIEW_DIRECT_VOICE||c.kind==='voice'){
    // A suspended WebAudio graph can silently swallow audio on iPad Safari.
@@ -2477,20 +2499,36 @@ function syncAudioAt(t,play){
   }else{
    try{const cx=ctx||previewContext();if(!n&&cx.state!=='running')throw 0;if(!n){n=createFxNodes(cx,cx.createMediaElementSource(a),cx.destination);AUDIO_PLAYER_GRAPHS.set(id,n)}
     applyFxNodes(n,c);setSmoothGain(n,cx,clipGain(c,part,len)*eventXGain(ev,t)*voiceGainFactor(c)*clipAutoGainFactor(c));a.volume=1;
-   }catch(err){a.volume=clampN(clipGain(c,part,len)*eventXGain(ev,t),0,1)}
+   }catch(err){
+    // A media element routed into a suspended AudioContext stays silent.
+    // Replace it with an unconnected native media element.
+    if(n){releasePreviewMedia(id,a);a=new Audio(c.data);a.preload='auto';a._storyData=c.data;a._storyPositioned=false;AUDIO_PLAYERS.set(id,a)}
+    a.volume=clampN(clipGain(c,part,len)*eventXGain(ev,t),0,1);
+   }
   }
   const rate=effectiveClipRate(c),desired=cleanNum(c.trimStart)+part*rate;
   a.preservesPitch=false;if('mozPreservesPitch' in a)a.mozPreservesPitch=false;
-  a.playbackRate=rate;if(Math.abs((a.currentTime||0)-desired)>.35){try{a.currentTime=desired}catch(e){}}
-  if(a.paused&&performance.now()-(PREVIEW_MEDIA_RETRY_AT.get(id)||-2000)>1300){
-   PREVIEW_MEDIA_RETRY_AT.set(id,performance.now());
-   a.play().then(()=>{if(c.kind==='voice'&&PREVIEW_MEDIA_ERROR){PREVIEW_MEDIA_ERROR='';updateAudioHint()}}).catch(err=>{
-    if(c.kind==='voice')showPreviewAudioProblem('พรีวิวเล่นเสียงไม่สำเร็จ: '+String(err.message||err)+' · กดตรวจเสียงหรือกด ▶ อีกครั้ง');
-   });
+  a.playbackRate=rate;
+  // Do not repeatedly seek MP3 whenever the image rendering lags.
+  const drift=Math.abs((a.currentTime||0)-desired),now=performance.now();
+  if(!a._storyPositioned||(!a.paused&&drift>2&&now-(a._storyLastSeek||0)>6000)){
+   try{a.currentTime=desired;a._storyPositioned=true;a._storyLastSeek=now}catch(e){}
+  }
+  if(a.paused&&!PREVIEW_MEDIA_PLAY_PENDING.has(id)&&now-(PREVIEW_MEDIA_RETRY_AT.get(id)||-2000)>800){
+   PREVIEW_MEDIA_RETRY_AT.set(id,now);PREVIEW_MEDIA_PLAY_PENDING.add(id);
+   try{Promise.resolve(a.play()).then(()=>{
+    if(c.kind==='voice'&&PREVIEW_MEDIA_ERROR&&AUDIO_PLAYERS.get(id)===a){PREVIEW_MEDIA_ERROR='';updateAudioHint()}
+   }).catch(err=>{if(AUDIO_PLAYERS.get(id)===a)previewMediaFailed(id,c,err?.message||err)})
+    .finally(()=>PREVIEW_MEDIA_PLAY_PENDING.delete(id));
+   }catch(err){PREVIEW_MEDIA_PLAY_PENDING.delete(id);previewMediaFailed(id,c,err?.message||err)}
   }
  }
  for(const [id,entry] of VOICE_PREVIEW_SOURCES)if(!voiceActive.has(id)){try{entry.source.stop()}catch(e){}VOICE_PREVIEW_SOURCES.delete(id)}
- for(const [id,a] of AUDIO_PLAYERS)if(!active.has(id)){a.pause();if(AUDIO_PLAYERS.size>80){a.src='';AUDIO_PLAYERS.delete(id);AUDIO_PLAYER_GRAPHS.delete(id)}}
+ const cacheLimit=PREVIEW_DIRECT_VOICE?10:20;
+ for(const [id,a] of AUDIO_PLAYERS)if(!active.has(id)){
+  a._storyInUse=false;if(!a.paused){a.pause();a._storyPositioned=false}
+  if(AUDIO_PLAYERS.size>cacheLimit)releasePreviewMedia(id,a);
+ }
 }
 function audioWaveSVG(c){const vals=Array.isArray(c.wave)&&c.wave.length?c.wave:Array.from({length:72},(_,i)=>.25+.23*Math.sin(i*1.8)**2);
  return '<svg viewBox="0 0 720 60" preserveAspectRatio="none" aria-hidden="true">'+vals.map((v,i)=>{const x=i*720/vals.length,y=30-v*25;return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(720/vals.length*.73).toFixed(1)}" height="${(v*50).toFixed(1)}" rx="1" fill="${c.kind==='voice'?'#9cd9a1':c.kind==='music'?'#dcba82':'#81bedb'}"/>`}).join('')+'</svg>'}
@@ -3157,6 +3195,7 @@ function toggle(){
  if(playing){PREVIEW_START_GENERATION++;playing=false;ctl();draw();return}
  if(T>=total())T=0;
  unlockPreviewAudio();
+ prewarmNativePreview(T);PREVIEW_MEDIA_RETRY_AT.clear();
  const generation=++PREVIEW_START_GENERATION,start=T;
  const first=audioEvents().filter(ev=>ev.c.kind==='voice'&&ev.c.data&&!ev.c.mute&&ev.start<=start+2&&ev.start+safeClipDuration(ev.c)>start).slice(0,6);
  const begin=()=>{if(generation!==PREVIEW_START_GENERATION)return;playing=true;last=performance.now();ctl();draw();
