@@ -36,6 +36,8 @@ on:
       - tests/art-vault-backend-smoke.py
       - tests/art-vault-browser-smoke.cjs
       - tests/studio-timing-auditor-smoke.cjs
+      - tests/three-flashes-pacing-regression.test.cjs
+      - training-lab/evaluations/three-flashes-export-audit.json
       - tests/local-ai-core-smoke.cjs
       - tests/studio-sound-assistant-smoke.cjs
       - tests/local-ai-workspace-smoke.cjs
@@ -79,6 +81,8 @@ on:
       - tests/art-vault-backend-smoke.py
       - tests/art-vault-browser-smoke.cjs
       - tests/studio-timing-auditor-smoke.cjs
+      - tests/three-flashes-pacing-regression.test.cjs
+      - training-lab/evaluations/three-flashes-export-audit.json
       - tests/local-ai-core-smoke.cjs
       - tests/local-ai-workspace-smoke.cjs
       - autodub/handler.py
@@ -129,6 +133,7 @@ jobs:
           bash -n autodub/enable-github.sh
           node tests/local-ai-core-smoke.cjs
           node tests/studio-timing-auditor-smoke.cjs
+          node tests/three-flashes-pacing-regression.test.cjs
           node tests/studio-sound-assistant-smoke.cjs
           python3 -m py_compile autodub/handler.py
           python3 tests/site-auth-handler-smoke.py
