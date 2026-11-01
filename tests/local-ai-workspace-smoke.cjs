@@ -14,7 +14,7 @@ const path=require('node:path');
   assert.equal(await panel.getByRole('heading',{name:'AI Production · 6 ผู้ช่วย'}).count(),1);
   assert.equal(await panel.getByRole('heading',{name:/AI-5 · ตรวจจังหวะฉาก/}).count(),1);
   assert.equal(await panel.getByRole('heading',{name:/AI-4 · พากย์เสียง/}).count(),1);
-  assert.equal(await panel.getByRole('heading',{name:/AI-1 / AI-2 / AI-3 / AI-6 · งานภาพและ QA/}).count(),1);
+  assert.equal(await panel.getByRole('heading',{name:'AI-1 / AI-2 / AI-3 / AI-6 · งานภาพและ QA'}).count(),1);
   assert.deepEqual(await page.evaluate(()=>StoryAIWorkspaceCore.roles.map(x=>x.id)),['composition','assets','motion','voice','structure','qa']);
   assert.equal(await panel.locator('textarea[aria-label="วางบทสำหรับแบ่งตอน"]').count(),0);
   const initial=await page.evaluate(()=>{
