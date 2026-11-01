@@ -307,6 +307,26 @@ function decorateNav(){
  const nav=document.getElementById('studioToolNav');if(!nav)return;
  nav.querySelectorAll('button[data-tool]').forEach(b=>{if(b.dataset.pro)return;const txt=b.textContent.trim(),d=NAV_LABEL[b.dataset.tool]||[txt,b.dataset.tool==='cinema'?'wand':'grid'];b.title=txt;b.innerHTML=ic(d[1])+'<span>'+d[0]+'</span>';b.dataset.pro='1'});
 }
+/* Put the navigation in the actual mobile flex stack. display:contents on the
+   workspace is unreliable in iOS Safari when an inner panel scrolls. Keep the
+   original desktop sidebar structure, and move the same buttons (and listeners)
+   back when leaving the compact breakpoint. */
+const MOBILE_DOCK_QUERY=matchMedia('(max-width:820px), (orientation:portrait) and (max-width:1100px)');
+function syncProToolNavDock(){
+ const nav=document.getElementById('studioToolNav');
+ const workspace=document.getElementById('studioWorkspace');
+ const timeline=document.getElementById('tl');
+ if(!nav||!workspace||!timeline)return;
+ if(MOBILE_DOCK_QUERY.matches){
+  if(nav.parentElement!==document.body)document.body.insertBefore(nav,timeline);
+ }else if(nav.parentElement!==workspace){
+  workspace.insertBefore(nav,workspace.firstChild);
+ }
+}
+if(typeof MOBILE_DOCK_QUERY.addEventListener==='function')MOBILE_DOCK_QUERY.addEventListener('change',syncProToolNavDock);
+else if(typeof MOBILE_DOCK_QUERY.addListener==='function')MOBILE_DOCK_QUERY.addListener(syncProToolNavDock);
+syncProToolNavDock();
+
 /* ---------- keyboard ---------- */
 addEventListener('keydown',e=>{
  const t=e.target;if(t&&(/INPUT|TEXTAREA|SELECT/.test(t.tagName)||t.isContentEditable))return;
