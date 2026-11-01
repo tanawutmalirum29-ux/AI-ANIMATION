@@ -100,3 +100,13 @@ travel (start gaps keep priority) and warns on crossing paths. See
 `training-lab/evaluations/three-flashes-nov1-arrival-gap-fix.json`. s07 of the
 uploaded story still needs human review (Moss stands on the run path). No ML
 training was possible: zero approved labels.
+
+## 2026-11-01 video review (compiled 720x1280 export)
+
+See `training-lab/evaluations/three-flashes-nov1-video-review.json`. Three findings
+became deterministic preflight rules in `studio-visual-qa.js` (caption wrap that
+counts Thai combining marks as width, chapter titles that repeat the card's
+'ตอนที่ N' kicker, and a portrait actor-gap threshold raised from 18 to 24), with
+`tests/video-review-nov1.test.cjs`. The chapter-card text offset is inferred from
+code (index.html ~3609 vs the caption workaround ~3555) and is NOT fixed yet; it
+needs a Chromium pixel test. No ML labels were created and no weights changed.

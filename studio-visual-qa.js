@@ -38,6 +38,55 @@
   (typeof a.to==='number'&&a.to>0)||
   (typeof a.end==='number'&&a.end>0)
  ));
+
+ // Export review 2026-11-01 (720x1280 MP4): 6 of 18 caption cues wrapped to a
+ // second line holding only a word fragment ("...สิบสอง / ปี"). The renderer
+ // counts Unicode code points, and Thai vowel/tone marks are code points that
+ // take no horizontal space, so a 17-cluster caption "exceeds" a 19-char limit.
+ // These helpers mirror the renderer's wrap so the preflight can predict it.
+ const THAI_MARKS=/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g;
+ const clusterLen=text=>[...String(text||'').replace(THAI_MARKS,'')].length;
+ const cpLen=text=>[...String(text||'')].length;
+ function captionLimit(project){
+  const sub=Number(project?.subMax)||28;
+  return Math.max(12,Math.min(sub,project?.aspect==='9:16'?19:30));
+ }
+ function wrapLikeRenderer(line,max){
+  line=String(line);
+  if(cpLen(line)<=max)return[line];
+  const seg=(typeof Intl!=='undefined'&&Intl.Segmenter)
+   ?[...new Intl.Segmenter('th',{granularity:'word'}).segment(line)].map(x=>x.segment)
+   :line.split(/(?<=\s)/);
+  const out=[];let cur='';
+  for(const w of seg){
+   if(cur.trim()&&cpLen(cur+w)>max){out.push(cur.trim());cur=w.trimStart()}else cur+=w;
+  }
+  if(cur.trim())out.push(cur.trim());
+  return out;
+ }
+ function captionTexts(scene){
+  const out=[];
+  for(const c of Array.isArray(scene?.subtitleCues)?scene.subtitleCues:[])
+   if(isObject(c)&&typeof c.text==='string'&&c.text.trim())out.push(c.text);
+  for(const l of Array.isArray(scene?.subtitle)?scene.subtitle:[])
+   if(typeof l==='string'&&l.trim())out.push(l);
+  return out;
+ }
+ // Returns a finding when the renderer would break a caption that visually fits
+ // on one line, or leave a tiny orphan fragment on the last line.
+ function captionWrapFinding(text,max){
+  const flat=String(text).split('\n').map(x=>x.trim()).filter(Boolean);
+  if(flat.length!==1)return null;
+  const lines=wrapLikeRenderer(flat[0],max);
+  if(lines.length<2)return null;
+  const clusters=clusterLen(flat[0]),tail=clusterLen(lines[lines.length-1]);
+  const falseWrap=clusters<=max;
+  const orphan=tail<=3;
+  if(!falseWrap&&!orphan)return null;
+  return {text:flat[0],codePoints:cpLen(flat[0]),clusters,limit:max,lines,
+   tailClusters:tail,reason:falseWrap?'counted-combining-marks':'orphan-tail'};
+ }
+ const CHAPTER_PREFIX=/^\s*ตอนที่\s*[0-9๐-๙]+/;
  function coverage(scene){
   const propList=Array.isArray(scene.props)?scene.props:[],
    assets=Array.isArray(scene.customAssets)?scene.customAssets:[],
@@ -59,11 +108,23 @@
   const scope=options.scope||'all',episodeIndex=Math.max(0,Number(options.episodeIndex)||0),
    sceneId=options.sceneId;
   const aspect=String(state?.project?.aspect||'16:9').split(':').map(Number);
-  // Portrait rigs use a greater share of screen width; 14% separation can
-  // still visibly overlap arms/torso even if old 10% threshold passed.
-  const actorGap=aspect[0]>0&&aspect[1]>0&&aspect[0]<aspect[1]?18:10;
+  // Portrait rigs use a greater share of screen width. Sampled 720x1280 export
+  // (2026-11-01): pairs 12-20 units apart overlapped torsos/faces, 18 units
+  // still overlapped at 1:20 and 1:52; pairs 25-27 apart touched but read as
+  // two figures. 24 is a review threshold from one video, not a proven constant.
+  const actorGap=aspect[0]>0&&aspect[1]>0&&aspect[0]<aspect[1]?24:10;
+  const capMax=captionLimit(state?.project);
   episodes.forEach((ep,ei)=>{
    if(scope!=='all'&&ei!==episodeIndex)return;
+   // The chapter card draws its own 'ตอนที่ N' kicker above the title; a title
+   // that already starts with it renders the number twice (seen at 0:38, 1:18).
+   if(scope!=='scene'&&CHAPTER_PREFIX.test(String(ep?.title||''))){
+    issues.push({kind:'chapter-title-duplicate',event:'chapter-title-duplicate',
+     title:'ชื่อตอนซ้ำเลขตอนบนการ์ดคั่น',episode:ei+1,scene:1,
+     sceneId:(ep.scenes&&ep.scenes[0]&&ep.scenes[0].id)||'',
+     message:'การ์ดคั่นตอนพิมพ์ "ตอนที่ '+(ei+1)+'" เหนือชื่อตอนอยู่แล้ว แต่ชื่อตอนขึ้นต้นด้วยเลขตอนซ้ำ — ตัดคำนำหน้าออกจากชื่อ หรือให้ตัวส่งออกตัดให้',
+     source:'chapter-title',confidence:'high'});
+   }
    (ep.scenes||[]).forEach((scene,si)=>{
     if(scope==='scene'&&sceneId&&scene.id!==sceneId)return;
     const data=coverage(scene),narration=String(scene.voiceover||''),
@@ -102,6 +163,18 @@
        source:'actor-position',confidence:'needs-visual-review'});
      }
     }
+    // Caption wrap preview: same limit and wrap as the renderer.
+    for(const text of captionTexts(scene)){
+     const hit=captionWrapFinding(text,capMax);
+     if(!hit)continue;
+     sceneIssues.push({kind:'caption-wrap',event:'caption-wrap',
+      title:hit.reason==='counted-combining-marks'?'ซับขึ้นบรรทัดใหม่ทั้งที่ยังพอดีบรรทัดเดียว':'ซับบรรทัดท้ายเหลือเศษคำ',
+      episode:ei+1,scene:si+1,sceneId:scene.id,
+      message:'"'+hit.text+'" นับได้ '+hit.codePoints+' อักขระ (วรรณยุกต์/สระลอยนับด้วย) แต่กว้างจริงราว '+
+       hit.clusters+' ตัว เทียบเพดาน '+hit.limit+' → บรรทัดท้าย "'+hit.lines[hit.lines.length-1]+
+       '"; ตรวจเฟรมจริง แล้วนับความกว้างแบบไม่รวมสระ/วรรณยุกต์ หรือสมดุลสองบรรทัด',
+      detail:hit,source:'caption-text',confidence:'high'});
+    }
     // Production-owned SVG drafts can obscure nearby actors in portrait
     // exports (oversized toolbox/reflector seen in sampled MP4 frames).
     // Position is an approximation, not a pixel-level collision test.
@@ -127,8 +200,10 @@
   return {inspected:scenes.length,issues,scenes,byKind:{
    unverifiedEvents:issues.filter(i=>i.kind==='unverified-event').length,
    actorOverlap:issues.filter(i=>i.kind==='actor-overlap').length,
-   draftAssetClearance:issues.filter(i=>i.kind==='draft-asset-clearance').length
+   draftAssetClearance:issues.filter(i=>i.kind==='draft-asset-clearance').length,
+   captionWrap:issues.filter(i=>i.kind==='caption-wrap').length,
+   chapterTitleDuplicate:issues.filter(i=>i.kind==='chapter-title-duplicate').length
   },limits:'Static JSON preflight; sampled/exported frames must still be reviewed. No automatic visual changes.'};
  }
- return Object.freeze({inspect,coverage,EVENTS});
+ return Object.freeze({inspect,coverage,EVENTS,captionLimit,captionWrapFinding,clusterLen});
 });

@@ -33,6 +33,7 @@ on:
       - training-lab/evaluations/three-flashes-v3-factory-export.json
       - tests/production-browser-smoke.cjs
       - tests/visual-coverage-qa.test.cjs
+      - tests/video-review-nov1.test.cjs
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
       - studio-ai-workspace.js
@@ -94,6 +95,7 @@ on:
       - training-lab/evaluations/three-flashes-v3-factory-export.json
       - tests/production-browser-smoke.cjs
       - tests/visual-coverage-qa.test.cjs
+      - tests/video-review-nov1.test.cjs
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
       - studio-ai-workspace.js
@@ -161,6 +163,7 @@ jobs:
           node tests/production-pipeline.test.cjs
           node tests/latest-export-feedback.test.cjs
           node tests/visual-coverage-qa.test.cjs
+          node tests/video-review-nov1.test.cjs
           node tests/indoor-weather.test.cjs
           node --check studio-ai-workspace.js
           node --test tests/ai-workspace-regression.test.cjs

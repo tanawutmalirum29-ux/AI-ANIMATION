@@ -1,0 +1,80 @@
+{
+  "status": "evaluation-only",
+  "reviewedOn": "2026-11-01",
+  "source": {
+    "kind": "user-attached compiled MP4 (not committed to the repository)",
+    "durationSeconds": 117.4,
+    "frame": { "width": 720, "height": 1280, "fps": 24 },
+    "audioCodec": "aac",
+    "method": "contact sheets at 1 frame / 2 s plus targeted frames, reviewed by eye; audio checked only with silence detection, not listened to",
+    "storyJson": "three_flashes_before_dawn_fixed.json (3 episodes x 6 scenes)"
+  },
+  "findings": [
+    {
+      "id": "caption-false-wrap",
+      "seenAtSeconds": [4, 24, 44, 50, 108, 114],
+      "observed": "Six captions break onto a second line holding only a word fragment, e.g. a lone two-letter word, although each fits on one line.",
+      "rootCause": "Renderer limit for 9:16 is 19 counted characters and counts Unicode code points. Thai vowel and tone marks take no width, so captions of 16-19 visible characters measure 20-23.",
+      "evidenceFromJson": "6 of 18 subtitleCues exceed 19 code points; all six measure 16-19 without combining marks. The preflight's simulated wrap reproduces all six observed breaks.",
+      "detectableFromJson": true,
+      "qaRule": "caption-wrap (studio-visual-qa.js)",
+      "rendererFixApplied": false
+    },
+    {
+      "id": "chapter-card-offset",
+      "seenAtSeconds": [38, 78],
+      "observed": "Chapter card text starts at the horizontal centre and runs off the right edge; the third title is clipped.",
+      "rootCause": "Likely the Thai canvas textAlign='center' glyph offset already documented near index.html line 3555 and worked around for captions. The chapter card still draws with textAlign='center' (about line 3609). Inferred from code reading, not reproduced in a browser.",
+      "detectableFromJson": false,
+      "qaRule": null,
+      "rendererFixApplied": false,
+      "needs": "pixel test like tests/thai-subtitle-safe-area-smoke.cjs, run in Chromium"
+    },
+    {
+      "id": "chapter-title-duplicate",
+      "seenAtSeconds": [38, 78],
+      "observed": "Card shows 'ตอนที่ N' as a small kicker and again at the start of the title.",
+      "rootCause": "Episode titles in the JSON already begin with 'ตอนที่ N —' and the card adds its own kicker.",
+      "evidenceFromJson": "3 of 3 episode titles",
+      "detectableFromJson": true,
+      "qaRule": "chapter-title-duplicate (studio-visual-qa.js)",
+      "rendererFixApplied": false
+    },
+    {
+      "id": "actor-crowding",
+      "seenAtSeconds": [12, 14, 16, 40, 42, 44, 46, 60, 64, 80, 82, 112, 116],
+      "observed": "Two or three figures overlap torso and face; one figure looks semi-transparent where it crosses a building.",
+      "evidenceFromJson": "Starting x gaps in 9:16: 20 and 18 overlapped, 12-14 overlapped heavily, 25 and 27 touched but stayed readable. Previous threshold was 18 (strictly less than), so gaps of 18 and 20 passed.",
+      "calibration": "portrait review threshold raised 18 -> 24. One video, gaps judged by eye; treat as a review trigger, not a proven constant.",
+      "detectableFromJson": true,
+      "qaRule": "actor-overlap (studio-visual-qa.js, recalibrated)",
+      "rendererFixApplied": false
+    },
+    {
+      "id": "generated-prop-readability",
+      "seenAtSeconds": [66, 68, 70, 72, 74, 76, 94],
+      "observed": "Reflector reads as a prohibition sign beside the characters; beacon is a flat yellow disc over the window rather than a lamp.",
+      "detectableFromJson": false,
+      "note": "The attached JSON contains no customAssets, so these shapes cannot be traced to authored data. Visual review only; no rule added."
+    },
+    {
+      "id": "location-art-reuse",
+      "seenAtSeconds": [60, 62, 64, 66, 68, 70, 72, 74, 76],
+      "observed": "A railing from the harbor set stays in the foreground of indoor scenes; path and tower scenes look like the workshop room; harbor has no visible boats.",
+      "detectableFromJson": false,
+      "note": "Layer carry-over cannot be confirmed from JSON alone. Visual review only; no rule added."
+    },
+    {
+      "id": "audio-pacing",
+      "observed": "Quiet gaps are about 1.1 s between sentences. The two gaps near 3.6 s sit on the 2.5 s chapter cards, which the existing compiled-export evaluation treats as intentional.",
+      "verdict": "no dead-air defect found",
+      "limits": "silence detection only; narration content and voice quality were not assessed"
+    }
+  ],
+  "training": {
+    "approvedTrainingLabels": 0,
+    "modelWeightsUpdated": false,
+    "modelPromoted": false,
+    "note": "Findings became deterministic preflight rules and regression tests. Nothing here is a human-approved ML label, and one video is not independent evidence for statistical training."
+  }
+}
