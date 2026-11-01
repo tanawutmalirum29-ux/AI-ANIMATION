@@ -4,6 +4,7 @@ const planner=require('../studio-production-planner.js');
 const assets=require('../studio-production-assets.js');
 const core=require('../studio-asset-core.js');
 const qa=require('../studio-visual-qa.js');
+const timing=require('../studio-timing-auditor.js');
 const scene=(id,voiceover,other={})=>({id,duration:8,voiceover,subtitleCues:[],
  actors:[],props:[],customAssets:[],...other});
 const src={project:{title:'สามแสงก่อนรุ่งสาง'},episodes:[{id:'ep1',scenes:[
@@ -45,6 +46,12 @@ const on=core.sceneMarkup(key,'back',60,time[2].t);
 assert.match(off,/opacity="0.000"/);
 assert.match(on,/opacity="1.000"/,'preview and export must reveal the light on a timed beat');
 assert.notEqual(off,on,'SVG animation must respond to real scene time');
+const timedScene=structuredClone(key);
+timedScene.audioClips=[{kind:'voice',data:'data:audio/wav;base64,AAAA',duration:2,at:0,rate:1}];
+const timedState={episodes:[{id:'timed',scenes:[timedScene]}]};
+assert.equal(timing.hasTimedEvents(timedScene),true,'asset keyframes protect visual events');
+assert.equal(timing.audit(timedState,{scope:'all'}).ops.length,0,
+ 'audio-aware timing must not cut three light flashes just because narration ended early');
 const move=planner.plan(applied,'motion',assets);
 assert.equal(move.ops.length,1);
 assert.equal(move.ops[0].id,'s18');
