@@ -202,8 +202,11 @@ function previewAudit(){
  try{
   lastAudit=evaluate();
   const m=lastAudit.stats;
+  const visual=root.StoryVisualQA?.inspect(bridge.get(),{scope:audioScope,episodeIndex:bridge.episodeIndex(),sceneId:bridge.scene()?.id});
   status('ตรวจจาก JSON จริง '+m.inspected+' ฉาก · มีเสียง '+m.withVoice+
-   ' ฉาก · ต้องแก้เวลา '+m.edits+' ฉาก · ตอนยาวเกิน '+m.overlongEpisodes+' ตอน');
+   ' ฉาก · ต้องแก้เวลา '+m.edits+' ฉาก · ตอนยาวเกิน '+m.overlongEpisodes+' ตอน'+
+   (visual?.issues.length?' · จุดเสี่ยงภาพ/การซ้อน '+visual.issues.length+' จุด':''));
+
  }catch(err){status('ตรวจโครงงานไม่สำเร็จ: '+err.message,true)}
  render();
 }
@@ -278,6 +281,13 @@ async function runTask(taskId){
     (stats.withoutVoice?' · ยังไม่มีคลิปเสียง '+stats.withoutVoice+' ฉาก':'')+
     (summary.warnings?.length?' · ตอนที่มีเพลง/เหตุการณ์ต่อเนื่องยังไม่ย้ายฉากเอง':'')+
     ' · ไม่เขียนเรื่องหรือสร้างฉากปลอม';
+   const visual=root.StoryVisualQA?.inspect(bridge.get(),{
+    scope:task.scope||'episode',episodeIndex:bridge.episodeIndex(),sceneId:bridge.scene()?.id
+   });
+   if(visual?.issues.length){
+    reply+=' · QA ภาพต้องตรวจ '+visual.issues.length+' จุด (ตรวจจาก JSON เท่านั้น)';
+    summary.visualIssues=visual.issues.slice(0,30);
+   }
   }
   recordHandoff(task.role==='voice'?'AI-2':'AI-1',task.role==='voice'?'dub_ready':'timing_review',reply,
    {pendingDub:task.role==='voice'?false:undefined});
@@ -392,6 +402,15 @@ function renderChat(container){
    'ตอน '+issue.episode+' ฉาก '+issue.scene+' · '+({shorten:'ภาพค้างหลังพากย์',extend:'เสียงยาวเกินฉาก',
     review:'ต้องตรวจเหตุการณ์ประกอบ', 'needs-dub':'ยังไม่มีไฟล์เสียง'}[issue.kind]||'ตรวจเพิ่มเติม')+
    (issue.kind==='shorten'||issue.kind==='extend'?' ('+issue.old+' → '+issue.suggested+' วินาที)':'')));
+  const visual=root.StoryVisualQA?.inspect(bridge.get(),{
+   scope:audioScope,episodeIndex:bridge.episodeIndex(),sceneId:bridge.scene()?.id
+  });
+  if(visual?.issues.length){
+   report.append(e('strong',{},'QA ภาพ: ต้องตรวจ '+visual.issues.length+' จุด (ตรวจจาก JSON ไม่ใช่ตรวจวิดีโอจริง)'));
+   for(const issue of visual.issues.slice(0,14))report.append(e('small',{},
+    'ตอน '+issue.episode+' ฉาก '+issue.scene+' · '+issue.title+' — '+issue.message));
+   if(visual.issues.length>14)report.append(e('small',{},'อีก '+(visual.issues.length-14)+' จุดที่ยังไม่แสดง'));
+  }
   structure.append(report);
  }
  const voice=e('article',{className:'ai-audio-agent'},
