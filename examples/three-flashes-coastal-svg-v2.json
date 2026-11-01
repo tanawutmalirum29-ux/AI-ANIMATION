@@ -1,0 +1,1931 @@
+{
+  "version": 1,
+  "project": {
+    "title": "สามแสงก่อนรุ่งสาง",
+    "aspect": "9:16",
+    "fps": 30,
+    "subMax": 28,
+    "styleSuffix": "Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Authored SVG panoramas with visible floodgate, market and lighthouse.",
+    "uiBoxStyle": {
+      "bg": "#0e2438",
+      "color": "#fff4df",
+      "position": "bottom",
+      "font": "system-ui"
+    }
+  },
+  "voiceProfiles": [
+    {
+      "id": "narrator",
+      "name": "ผู้บรรยายหลัก",
+      "type": "male",
+      "description": "ผู้บรรยายชายภาษาไทยคนเดียว เสียงทุ้มเป็นธรรมชาติ ไม่มีการแยกเสียงตัวละคร",
+      "ttsVoice": "",
+      "rate": 1.03,
+      "fx": {
+        "loudness": 0,
+        "pitch": -1,
+        "bass": 1,
+        "mid": 0,
+        "treble": 1,
+        "compress": 0.14,
+        "echo": 0,
+        "pan": 0
+      }
+    }
+  ],
+  "characters": [
+    {
+      "id": "nil",
+      "name": "นิล",
+      "role": "ช่างไฟฟ้าหญิงวัยยี่สิบหก กลับบ้านเพื่อขายประภาคารของพ่อ",
+      "voice": "Non-speaking. Narrator describes her actions and reads written notes.",
+      "rig": {
+        "style": "human",
+        "skin": "#d7a078",
+        "hair": "#242533",
+        "hairStyle": "ponytail",
+        "shirt": "#e2a448",
+        "pants": "#34475c",
+        "shoes": "#303540",
+        "scale": 1
+      },
+      "promptBlock": "Nil, Thai woman age 26, tan skin, dark hair in a low ponytail, mustard-yellow waterproof jacket, dark slate trousers, navy work boots. Carries a compact black cross-body satchel. Practical focused expression. Never alter her face, hairstyle, clothes or body proportions."
+    },
+    {
+      "id": "ta_in",
+      "name": "ตาอิน",
+      "role": "ช่างดูแลประภาคารเก่า อายุราวเจ็ดสิบปี เป็นเพื่อนร่วมงานของพ่อนิล",
+      "voice": "Silent character; narration only.",
+      "rig": {
+        "style": "human",
+        "skin": "#bb8b6b",
+        "hair": "#bec0bf",
+        "hairStyle": "sidepart",
+        "shirt": "#53747b",
+        "pants": "#384354",
+        "shoes": "#2b3037",
+        "scale": 1.04
+      },
+      "promptBlock": "Ta In, Thai retired lighthouse mechanic, around 70, silver side-parted short hair, weathered face, muted sea-green raincoat over a pale shirt, charcoal trousers and sturdy boots. Calm deliberate gestures. Keep the same costume and proportions."
+    },
+    {
+      "id": "moss",
+      "name": "มอส",
+      "role": "ช่างซ่อมเรือวัยสิบแปด คอยนำคนออกจากพื้นที่น้ำท่วม",
+      "voice": "Silent character; narration only.",
+      "rig": {
+        "style": "human",
+        "skin": "#b98560",
+        "hair": "#23212a",
+        "hairStyle": "short",
+        "shirt": "#83546b",
+        "pants": "#2e4452",
+        "shoes": "#293540",
+        "scale": 0.95
+      },
+      "promptBlock": "Moss, Thai young man age 18, short tousled black hair, brick-purple t-shirt beneath a dark sleeveless rain vest, blue-grey rolled work pants and rubber boots. Lean agile build. Keep the character rig consistent."
+    }
+  ],
+  "locations": [
+    {
+      "id": "harbor",
+      "name": "ท่าเรือและตลาดอ่าวคราม",
+      "promptBlock": "Small Thai coastal harbor at stormy night, old low quay, waterfront shops and wooden moorings, waves below the pavement, amber dock lamps, wet cobblestones, consistent geography; uphill road on frame right. Wide 3.2x procedural SVG panorama with story-specific landscape and smooth camera pan.",
+      "set": {
+        "bg": [
+          "#20354b",
+          "#081726"
+        ],
+        "floor": "#3d4958",
+        "floorY": 81,
+        "light": "night",
+        "anchors": {
+          "quay": {
+            "x": 22,
+            "y": 89
+          },
+          "floodgate": {
+            "x": 78,
+            "y": 89
+          },
+          "road": {
+            "x": 92,
+            "y": 90
+          }
+        },
+        "props": [],
+        "worldArt": "coastal-harbor"
+      }
+    },
+    {
+      "id": "workshop",
+      "name": "ห้องซ่อมของพ่อ",
+      "promptBlock": "Modest coastal repair workshop, wooden tool desk, weathered emergency notebooks, old signal diagram, dusty window streaked with rain, soft warm desk lamp, same fixed layout each visit. Wide 3.2x procedural SVG panorama with story-specific landscape and smooth camera pan.",
+      "set": {
+        "bg": [
+          "#4a4c5c",
+          "#1c2736"
+        ],
+        "floor": "#514b49",
+        "floorY": 81,
+        "light": "dim",
+        "anchors": {
+          "door": {
+            "x": 16,
+            "y": 90
+          },
+          "desk": {
+            "x": 51,
+            "y": 90
+          },
+          "window": {
+            "x": 83,
+            "y": 90
+          }
+        },
+        "props": [],
+        "worldArt": "coastal-workshop"
+      }
+    },
+    {
+      "id": "path",
+      "name": "ทางหินขึ้นประภาคาร",
+      "promptBlock": "Wet, narrow cliffside stone path leading to an old Thai lighthouse, sea visible far below, short damaged wooden footbridge, rock slope and safety railing, rain whipping from left to right. Wide 3.2x procedural SVG panorama with story-specific landscape and smooth camera pan.",
+      "set": {
+        "bg": [
+          "#283849",
+          "#0b1727"
+        ],
+        "floor": "#515964",
+        "floorY": 82,
+        "light": "night",
+        "anchors": {
+          "low": {
+            "x": 16,
+            "y": 90
+          },
+          "bridge": {
+            "x": 53,
+            "y": 90
+          },
+          "high": {
+            "x": 85,
+            "y": 90
+          }
+        },
+        "props": [],
+        "worldArt": "coastal-cliff"
+      }
+    },
+    {
+      "id": "tower",
+      "name": "ห้องโคมไฟบนยอดประภาคาร",
+      "promptBlock": "Interior of coastal lighthouse lantern room, huge rotating glass lens, simple manual crank beneath it, rusted reflector lock and pulley, narrow stair exit frame left, storm through windows, amber signal beam. Wide 3.2x procedural SVG panorama with story-specific landscape and smooth camera pan.",
+      "set": {
+        "bg": [
+          "#324154",
+          "#152033"
+        ],
+        "floor": "#56545b",
+        "floorY": 82,
+        "light": "dim",
+        "anchors": {
+          "door": {
+            "x": 15,
+            "y": 90
+          },
+          "crank": {
+            "x": 45,
+            "y": 89
+          },
+          "lens": {
+            "x": 76,
+            "y": 89
+          }
+        },
+        "props": [],
+        "worldArt": "lighthouse-lantern"
+      }
+    },
+    {
+      "id": "hill",
+      "name": "เนินสูงเหนือหมู่บ้าน",
+      "promptBlock": "Safe hill above a small Thai coastal village at dawn, distant lighthouse and flooded empty waterfront, rain clouds opening to pale gold sunrise, villagers regrouping as silhouettes, quiet relief. Wide 3.2x procedural SVG panorama with story-specific landscape and smooth camera pan.",
+      "set": {
+        "bg": [
+          "#728994",
+          "#c4bbc0"
+        ],
+        "floor": "#667b64",
+        "floorY": 81,
+        "light": "day",
+        "anchors": {
+          "left": {
+            "x": 18,
+            "y": 90
+          },
+          "center": {
+            "x": 50,
+            "y": 90
+          },
+          "right": {
+            "x": 82,
+            "y": 90
+          }
+        },
+        "props": [],
+        "worldArt": "coastal-hill"
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "narrationrule",
+      "text": "บทพูดทั้งหมดอยู่ใน voiceover ให้ผู้บรรยายชายเพียงคนเดียวอ่าน แม้ข้อความที่เป็นบันทึกก็ไม่มีเสียงตัวละครแยก"
+    },
+    {
+      "id": "continuityrule",
+      "text": "ชุดตัวละครไม่เปลี่ยน; นิลถือประแจตั้งแต่ ep2 s09, กล่องเครื่องมือสูญหาย s08 ไม่กลับมา; เข็มขัดผ้าใบถูกนำไปเป็นสายพาน s13"
+    },
+    {
+      "id": "lightcode",
+      "text": "หนึ่งชุดของสัญญาณฉุกเฉินเท่ากับแสงสามวาบ หอไฟต้องชี้หมู่บ้านก่อนจึงมองเห็น; ก่อน s14 ต้องไม่เห็นการส่งสัญญาณถึงหมู่บ้าน"
+    },
+    {
+      "id": "storyworld",
+      "text": "ท่าเรือเป็นพื้นที่ต่ำ ทางขึ้นเนินอยู่ทางขวาของเฟรม; น้ำท่วมจากท่าเรือเข้าตลาด ไม่ท่วมบนเนิน"
+    }
+  ],
+  "episodes": [
+    {
+      "id": "ep1",
+      "title": "สัญญาณที่ถูกลืม",
+      "targetSeconds": 60,
+      "hiddenMistake": "",
+      "cliffhanger": "เมื่อทั้งหมู่บ้านมืดลง หอไฟเก่ากลายเป็นโอกาสสุดท้าย",
+      "scenes": [
+        {
+          "id": "s01",
+          "duration": 9,
+          "characters": [],
+          "location": "harbor",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue01",
+              "text": "ไซเรนเงียบมาสิบสองปี",
+              "start": 4.4,
+              "end": 7.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ที่อ่าวคราม ไซเรนเตือนน้ำไม่เคยดังมาสิบสองปี คืนนี้พายุทำให้ไฟท่าเรือดับทีละดวง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "mysterious",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "medium",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Wide rainy harbor at night. Dockside streetlamps go dark one after another; tiny boats rock against posts. No human foreground. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 0,
+            "endX": 43,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "fadeblack",
+            "duration": 0.55
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.75,
+            "glow": 0.18,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Establish quay at screen left and uphill road at right. Rain blows from left to right; lighting sequentially fades, not a static background. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s02",
+          "duration": 10,
+          "characters": [
+            "nil"
+          ],
+          "location": "harbor",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue02",
+              "text": "รอยน้ำสูงขึ้นอีก",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "นิลกลับมาเพื่อขายประภาคารของพ่อ แต่รอยน้ำใหม่บนเสาท่าเรือ สูงกว่าเมื่อวานจนน่าตกใจ",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "mysterious",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "medium",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Nil in mustard raincoat walks across wet quay, stops beside a fresh high tide mark on a concrete post, crouches to examine it. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 1,
+            "endX": 46,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.2,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 17,
+              "y": 90,
+              "pose": "walk",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think",
+              "toX": 42,
+              "endPose": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Nil arrives from left, reaches the mark at x42 and stops; carry the same jacket and satchel into all following scenes. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s03",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "harbor",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue03",
+              "text": "ประตูน้ำปิดไม่สนิท",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ตาอินชี้ให้เห็นประตูระบายน้ำที่ติดสนิม บานเหล็กไม่ยอมปิด และน้ำทะเลกำลังไหลย้อนเข้าตลาด",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Ta In points toward a stuck rusted floodgate at far right; Nil follows his gesture; seawater seeps through lower metal seams. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 42,
+            "endX": 48,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.2,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 43,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            },
+            {
+              "char": "ta_in",
+              "x": 56,
+              "y": 90,
+              "pose": "point",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Show concrete gate at x80, incoming water visibly moving towards shops; Ta In stands to Nil’s right. No dialogue. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "gateLeak": true
+          }
+        },
+        {
+          "id": "s04",
+          "duration": 11,
+          "characters": [
+            "nil"
+          ],
+          "location": "workshop",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue04",
+              "text": "ไซเรนดับ ให้เปิดสามแสง",
+              "start": 6.4,
+              "end": 9.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ในห้องซ่อมของพ่อ นิลเปิดสมุดที่ชื้นฝน ข้างแผนผังหอไฟมีคำสั่งสั้น ๆ ว่า ไซเรนดับ ให้เปิดสามแสง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "mysterious",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "medium",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Warm close view inside a modest repair shop: Nil turns pages of an old notebook by a weak desk lamp; a diagram shows one beacon with three rays, without legible text. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 19,
+            "endX": 41,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.55
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.3,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 34,
+              "y": 90,
+              "pose": "read",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Show notebook opening as an action, then the diagram; narrator reads the note in the same male voice, not the father’s voice. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s05",
+          "duration": 10,
+          "characters": [
+            "nil"
+          ],
+          "location": "workshop",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue05",
+              "text": "สามแสง = ขึ้นที่สูง",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เธอนึกถึงคำสอนวัยเด็ก สามแสงหมายถึงให้ทุกคนขึ้นที่สูง มันไม่ใช่เกมอย่างที่เธอเคยคิด",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "reflective",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "low",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Nil traces a faded three-stroke emergency icon on a paper map; brief slow focus move from her hand to the hill marked on the map. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 35,
+            "endX": 57,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.2,
+            "vignette": 0.14,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 46,
+              "y": 90,
+              "pose": "read",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Same workshop, same lamp and map from previous shot. No flashback requiring an alternate costume; the memory is told by narration. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s06",
+          "duration": 10,
+          "characters": [],
+          "location": "harbor",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue06",
+              "text": "เหลือเพียงแสงบนหอไฟ",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ไฟทั้งท่าเรือดับพรึบ น้ำเริ่มลอดเข้าตลาด และแสงสำรองที่ยังพอใช้ได้ อยู่บนประภาคารร้างเท่านั้น",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Blackout across harbor; seawater moves over the lowest shop steps; far away one dim amber lighthouse point stays lit above the cliffs. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 46,
+            "endX": 76,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.6,
+            "glow": 0.1,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "End with a clear distant lighthouse visual as the cliffhanger. Do not stretch darkness after narration; cut immediately to next episode. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "gateLeak": true,
+            "marketFlood": true,
+            "blackout": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "ep2",
+      "title": "แสงที่หันผิดทาง",
+      "targetSeconds": 60,
+      "hiddenMistake": "",
+      "cliffhanger": "สายพานขาด และประภาคารดับในวินาทีที่ต้องการมันที่สุด",
+      "scenes": [
+        {
+          "id": "s07",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in",
+            "moss"
+          ],
+          "location": "path",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue07",
+              "text": "ต้องไปถึงหอไฟก่อนน้ำมา",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "นิลกับตาอินวิ่งฝ่าฝนขึ้นทางหิน ส่วนมอส ช่างเรือหนุ่ม รีบกลับไปเตือนคนที่ร้านค้าริมน้ำ",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Nil and Ta In run uphill on a slick cliff path; lower down Moss waves urgently and runs back toward the small harbor. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 1,
+            "endX": 54,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.55
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.2,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 18,
+              "y": 90,
+              "pose": "run",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think",
+              "toX": 57,
+              "endPose": "stand"
+            },
+            {
+              "char": "ta_in",
+              "x": 12,
+              "y": 90,
+              "pose": "walk",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "neutral",
+              "toX": 48,
+              "endPose": "stand"
+            },
+            {
+              "char": "moss",
+              "x": 37,
+              "y": 90,
+              "pose": "point",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "surprised"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "One take establishes geography: Nil and Ta In go right/uphill; Moss turns left/downhill to alert shopkeepers. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s08",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "path",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue08",
+              "text": "กล่องเครื่องมือจมหาย",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "สะพานไม้ผุยุบตัวต่อหน้า นิลกระโดดข้ามได้ แต่กล่องเครื่องมือหลุดมือและหายไปในคลื่น",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Danger on the rotten plank bridge: boards collapse, Nil makes a short jump onto secure stone; a separate dark tool box drops downward into foaming water. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 37,
+            "endX": 60,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.73,
+            "glow": 0.2,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 48,
+              "y": 90,
+              "pose": "jump",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised",
+              "toX": 70,
+              "endPose": "surprised"
+            },
+            {
+              "char": "ta_in",
+              "x": 36,
+              "y": 90,
+              "pose": "surprised",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Avoid character intersections and dislocated arms. Tool box falls once and must not reappear later. Nil retains jacket and small cross-body satchel. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "bridgeFall": true,
+            "toolboxFall": true
+          }
+        },
+        {
+          "id": "s09",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "path",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue09",
+              "text": "ประแจที่พ่อฝากไว้",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ตาอินช่วยนิลทรงตัว ก่อนหยิบประแจเก่าจากเสื้อกันฝน เขาบอกด้วยท่าทางว่าพ่อเธอฝากมันไว้",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "reflective",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "low",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Close view: Ta In steadies Nil at the edge then offers her a worn metal wrench from his coat; Nil receives it with both feet firmly on stone. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 58,
+            "endX": 75,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.2,
+            "vignette": 0.14,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 70,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "think"
+            },
+            {
+              "char": "ta_in",
+              "x": 57,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "neutral"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "The wrench transfers from Ta In to Nil in this shot and stays with Nil through mechanical repairs. Any meaning is told by narrator. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s10",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "tower",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue10",
+              "text": "เครื่องปั่นมือสำรอง",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "หอไฟไม่มีไฟฟ้ามาหลายปี แต่ใต้เลนส์กระจก นิลพบเครื่องปั่นมือที่พ่อทำไว้เป็นระบบสำรอง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "mysterious",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "medium",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Interior of old lighthouse lantern room, large glass lens above, improvised manual crank and pulley beneath, rain streaking windows; Nil enters from stair door. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 10,
+            "endX": 50,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.55
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.16,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 18,
+              "y": 90,
+              "pose": "walk",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think",
+              "toX": 41,
+              "endPose": "think"
+            },
+            {
+              "char": "ta_in",
+              "x": 13,
+              "y": 90,
+              "pose": "walk",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "neutral",
+              "toX": 29,
+              "endPose": "stand"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "In tower, crank at x45 and lens at x76, staircase entrance x15. Only hand-powered mechanism; do not depict working mains supply. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s11",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "tower",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue11",
+              "text": "แสงหันผิดทาง",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เธอหมุนคันปั่นจนโคมติดขึ้น ทว่ากระจกสะท้อนยังหันออกทะเล และคนในหมู่บ้านมองไม่เห็นแสง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Nil cranks manually and amber lighthouse lens glows, sending a narrow beam out to dark open sea while the village remains behind the glass. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 45,
+            "endX": 60,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.56,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 43,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            },
+            {
+              "char": "ta_in",
+              "x": 29,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Keep beam direction away from village; show villagers cannot see it. Physically turn only the reflector when it is unlocked in next scene. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "beaconOn": true,
+            "beamDirection": "sea"
+          }
+        },
+        {
+          "id": "s12",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "tower",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue12",
+              "text": "สายพานขาด แสงดับ",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "นิลใช้ประแจคลายเฟืองฝืด จนแผ่นสะท้อนเริ่มหันกลับ แต่สายพานเก่าขาดผึง แสงดับทันที",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Close on Nil using the inherited wrench to free a rusty reflector gear; the old belt snaps under tension and glowing lens abruptly darkens. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 31,
+            "endX": 45,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.64,
+            "glow": 0.1,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 62,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            },
+            {
+              "char": "ta_in",
+              "x": 42,
+              "y": 90,
+              "pose": "surprised",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Definite change of state: reflector released, old belt snapped, beacon OFF. End on the break; no pointless black frames. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "reflectorTurn": true,
+            "beltBreak": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "ep3",
+      "title": "สามแสงก่อนรุ่งสาง",
+      "targetSeconds": 60,
+      "hiddenMistake": "",
+      "cliffhanger": "ทุกคนขึ้นสู่ที่สูงได้ทัน ก่อนพายุเผยให้เห็นคุณค่าของแสงเก่า",
+      "scenes": [
+        {
+          "id": "s13",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "tower",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue13",
+              "text": "ใช้เข็มขัดแทนสายพาน",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "นิลถอดเข็มขัดผ้าใบของตัวเอง คล้องแทนสายพานที่ขาด แล้วใช้ประแจขึงให้แน่น",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Nil removes her plain canvas waist belt, threads it around the emergency pulley as a temporary replacement, tightening it with the old wrench. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 33,
+            "endX": 52,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.55
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.72,
+            "glow": 0.2,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 61,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            },
+            {
+              "char": "ta_in",
+              "x": 43,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "The replacement belt is her waist belt, NOT the tool box or satchel; after repair the original broken belt remains unusable. | Cinematic SVG panorama world=3.2; inspect preview before export."
+        },
+        {
+          "id": "s14",
+          "duration": 10,
+          "characters": [
+            "ta_in",
+            "nil"
+          ],
+          "location": "tower",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue14",
+              "text": "แสงกลับมาอีกครั้ง",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ตาอินออกแรงปั่นคันหมุน นิลหันแผ่นสะท้อนเข้าหาหมู่บ้าน แสงสีอำพันค่อย ๆ กลับมาสว่าง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Ta In steadily turns the manual crank at x45, while Nil pulls the reflector into alignment at x76; warm beam rotates from sea toward hillside houses. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 40,
+            "endX": 62,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.78,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "ta_in",
+              "x": 44,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            },
+            {
+              "char": "nil",
+              "x": 69,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Keep Ta In continuously supplying human power. Beam points toward village only after Nil finishes aligning the reflector. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "beaconOn": true,
+            "beamDirection": "village"
+          }
+        },
+        {
+          "id": "s15",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in"
+          ],
+          "location": "tower",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue15",
+              "text": "หนึ่ง สอง สามวาบ",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "หนึ่งวาบ สองวาบ สามวาบ นิลปิดเปิดบานบังแสงซ้ำ จนไฟจากบ้านบนเนินตอบรับทีละดวง",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Three deliberate amber lighthouse flashes in a repeatable rhythm illuminate the coastal houses; small lights answer from safe hillside windows. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 50,
+            "endX": 55,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.86,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0.13
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 72,
+              "y": 90,
+              "pose": "point",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            },
+            {
+              "char": "ta_in",
+              "x": 45,
+              "y": 90,
+              "pose": "carry",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Exactly three flashes per signal group, with brief separation. No voice saying a character line; male narrator counts. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "beaconOn": true,
+            "beamDirection": "village",
+            "threeFlashes": true
+          }
+        },
+        {
+          "id": "s16",
+          "duration": 10,
+          "characters": [
+            "moss"
+          ],
+          "location": "harbor",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue16",
+              "text": "ทุกคนขึ้นสู่ที่สูง",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "มอสเห็นสัญญาณ เขาชี้ทางขึ้นเนิน ชาวบ้านพากันออกจากตลาดที่เริ่มท่วมโดยไม่กลับไปเก็บของ",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "urgent",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "high",
+            "pace": "brisk, intelligible",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Moss urgently points to the uphill road at right while shopkeepers leave the flooding low quay; small moving silhouettes climb away from the water. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 52,
+            "endX": 84,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.9,
+            "glow": 0.27,
+            "vignette": 0.24,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "moss",
+              "x": 52,
+              "y": 90,
+              "pose": "point",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised",
+              "toX": 79,
+              "endPose": "run"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Evacuation moves left-to-right toward hill, not toward harbor. Keep silhouettes behind primary rig, no crowd obstructing subtitle. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "marketFlood": true
+          }
+        },
+        {
+          "id": "s17",
+          "duration": 10,
+          "characters": [],
+          "location": "harbor",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue17",
+              "text": "ตลาดว่างเปล่าก่อนน้ำถึง",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "ไม่กี่นาทีต่อมา น้ำทะลักผ่านถนนที่ว่างเปล่า แต่ผู้คนขึ้นไปถึงเนินสูงได้ทันแล้ว",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "reflective",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "low",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Heavy storm surge rolls through empty quay and low market stairs; no people remain in danger; amber lighthouse flashes continue distantly on the ridge. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 49,
+            "endX": 84,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "storm",
+          "lighting": {
+            "exposure": 0.65,
+            "glow": 0.2,
+            "vignette": 0.14,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Time jump of several minutes is conveyed by narration; no water touches visible people. Empty market clearly establishes successful evacuation. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "gateLeak": true,
+            "marketFlood": true,
+            "blackout": true
+          }
+        },
+        {
+          "id": "s18",
+          "duration": 10,
+          "characters": [
+            "nil",
+            "ta_in",
+            "moss"
+          ],
+          "location": "hill",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue18",
+              "text": "แสงเก่ายังมีความหมาย",
+              "start": 5.4,
+              "end": 8.4,
+              "speaker": "",
+              "emotion": "neutral"
+            }
+          ],
+          "voiceover": "เมื่อฟ้าเริ่มเปิด นิลปิดสมุดของพ่อ เธอตัดสินใจไม่ขายประภาคาร เพราะแสงเก่าดวงนั้นยังช่วยคนได้",
+          "voiceDirection": {
+            "speaker": "",
+            "voiceProfileId": "narrator",
+            "emotion": "reflective",
+            "tone": "warm low-register Thai male storyteller, restrained cinematic suspense",
+            "delivery": "One male narrator reads every word, even quoted notes; no character dialogue or separate voices",
+            "energy": "low",
+            "pace": "natural",
+            "articulation": "clear Thai consonants, no theatrical stretching",
+            "pause": "short punctuation pauses only",
+            "breath": "natural",
+            "accent": "standard Thai",
+            "emphasis": "the action and consequence, not every adjective",
+            "pronunciation": "อ่าวคราม: อ่าว-คราม",
+            "recordingTips": "Keep narration at a natural pace; use actual recorded audio timing for final edit; avoid long silence",
+            "notes": "Separate narrator from environmental SFX; do not invent spoken dialogue"
+          },
+          "imagePrompt": "Quiet dawn on the safe hill: Nil closes her father’s notebook, Ta In and Moss stand nearby; the lighthouse remains visible in the distance as clouds clear. Visual style: Grounded hand-painted 2D cinematic animation set in a small Thai coastal village, consistent rigged character designs, wet stone textures, indigo storm nights, warm amber emergency light, subtle depth parallax and natural body movement, restrained camera motion, readable compositions, no legible environmental text, no watermarks, no excessive visual noise. Preserve each character according to their fixed promptBlock. No fake environmental lettering.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 42,
+            "endX": 73,
+            "from": 1,
+            "to": 1.03,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "dissolve",
+            "duration": 0.55
+          },
+          "atmosphere": "fog",
+          "lighting": {
+            "exposure": 1.05,
+            "glow": 0.25,
+            "vignette": 0.14,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "sfx": [],
+          "clueIds": [],
+          "actors": [
+            {
+              "char": "nil",
+              "x": 49,
+              "y": 90,
+              "pose": "read",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "happy"
+            },
+            {
+              "char": "ta_in",
+              "x": 31,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "happy"
+            },
+            {
+              "char": "moss",
+              "x": 67,
+              "y": 90,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "left",
+              "face": "happy"
+            }
+          ],
+          "props": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "audioClips": [],
+          "uiBox": null,
+          "notes": "Resolved ending: all three are safe; Nil closes notebook in hand, no speech by cast, no suspense stinger or additional scene. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "beaconOn": true,
+            "beamDirection": "village"
+          }
+        }
+      ]
+    }
+  ]
+}
