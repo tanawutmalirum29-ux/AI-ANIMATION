@@ -103,6 +103,101 @@ def _check_session(value):
         return False
 
 
+
+# AWS cloud renderer: signed direct-to-S3 upload, queued CodeBuild worker and
+# short-lived download URLs. Never proxy multi-megabyte video through Lambda.
+def _export_action(action, body):
+    import boto3
+    from botocore.exceptions import ClientError
+    bucket = os.environ.get("CLOUD_EXPORT_BUCKET", "")
+    project = os.environ.get("CLOUD_EXPORT_PROJECT", "")
+    if not bucket or not project:
+        return _resp(503, {"error": "ยังไม่ได้ติดตั้ง Cloud Export บน AWS"})
+    s3 = boto3.client("s3")
+    cb = boto3.client("codebuild")
+    ident = str(body.get("jobId") or "")
+    def key(suffix):
+        return "jobs/" + ident + "/" + suffix
+    if action == "export.prepare":
+        ident = str(__import__("uuid").uuid4())
+        try:
+            s3.put_object(Bucket=bucket, Key=key("prepared"), Body=b"ready", ContentType="text/plain")
+            url = s3.generate_presigned_url("put_object", Params={
+                "Bucket": bucket, "Key": key("input.json"), "ContentType": "application/json"
+            }, ExpiresIn=600)
+            return _resp(200, {"jobId": ident, "uploadUrl": url, "maxBytes": 100 * 1024 * 1024})
+        except ClientError:
+            return _resp(503, {"error": "สร้างงานบนพื้นที่เก็บข้อมูลไม่สำเร็จ"})
+    if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", ident):
+        return _resp(400, {"error": "หมายเลขงานไม่ถูกต้อง"})
+    try:
+        s3.head_object(Bucket=bucket, Key=key("prepared"))
+    except ClientError:
+        return _resp(404, {"error": "ไม่พบงานส่งออกนี้"})
+    def build_info():
+        try:
+            result = s3.get_object(Bucket=bucket, Key=key("build.json"))
+            return json.loads(result["Body"].read())
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+                return None
+            raise
+    if action == "export.start":
+        old = build_info()
+        if old:
+            return _resp(200, {"jobId": ident, "state": "QUEUED"})
+        try:
+            file = s3.head_object(Bucket=bucket, Key=key("input.json"))
+        except ClientError:
+            return _resp(400, {"error": "ยังไม่ได้อัปโหลดโปรเจกต์"})
+        if file["ContentLength"] < 10 or file["ContentLength"] > 100 * 1024 * 1024:
+            return _resp(413, {"error": "โปรเจกต์ต้องมีขนาดไม่เกิน 100 MB"})
+        try:
+            build = cb.start_build(projectName=project, environmentVariablesOverride=[
+                {"name": "STUDIO_BUCKET", "value": bucket, "type": "PLAINTEXT"},
+                {"name": "STUDIO_JOB_ID", "value": ident, "type": "PLAINTEXT"}
+            ])["build"]
+            s3.put_object(Bucket=bucket, Key=key("build.json"),
+                          Body=json.dumps({"id": build["id"]}).encode(), ContentType="application/json")
+            return _resp(200, {"jobId": ident, "state": "QUEUED"})
+        except ClientError as exc:
+            return _resp(503, {"error": "คิวเรนเดอร์เต็มหรือ AWS ไม่พร้อม: " +
+                               str(exc.response.get("Error", {}).get("Code", "AWS_ERROR"))})
+    if action in ("export.status", "export.cancel"):
+        info = build_info()
+        if not info:
+            return _resp(200, {"jobId": ident, "state": "UPLOADING"})
+        build_id = info["id"]
+        if action == "export.cancel":
+            try:
+                cb.stop_build(id=build_id)
+            except ClientError:
+                pass
+            return _resp(200, {"jobId": ident, "state": "CANCEL_REQUESTED"})
+        result = cb.batch_get_builds(ids=[build_id]).get("builds", [])
+        state = result[0].get("buildStatus", "QUEUED") if result else "QUEUED"
+        if state == "SUCCEEDED":
+            for ext, mime in (("mp4", "video/mp4"), ("zip", "application/zip")):
+                try:
+                    s3.head_object(Bucket=bucket, Key=key("result." + ext))
+                    url = s3.generate_presigned_url("get_object", Params={
+                        "Bucket": bucket, "Key": key("result." + ext),
+                        "ResponseContentDisposition": 'attachment; filename="story-studio.' + ext + '"',
+                        "ResponseContentType": mime
+                    }, ExpiresIn=900)
+                    return _resp(200, {"jobId": ident, "state": "SUCCEEDED", "downloadUrl": url, "extension": ext})
+                except ClientError:
+                    pass
+            state = "FAILED"
+        if state in ("FAILED", "FAULT", "TIMED_OUT", "STOPPED"):
+            try:
+                error = s3.get_object(Bucket=bucket, Key=key("error.txt"))["Body"].read(1200).decode("utf-8", "replace")
+            except ClientError:
+                error = "ตรวจสอบ CloudWatch Logs ของ CodeBuild"
+            return _resp(200, {"jobId": ident, "state": state, "error": error[:600]})
+        return _resp(200, {"jobId": ident, "state": state})
+    return _resp(400, {"error": "ไม่รู้จักคำสั่งส่งออก"})
+
 async def _synth(text, voice, rate, pitch):
     com = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     out = bytearray()
@@ -147,6 +242,11 @@ def handler(event, context):
         sent = str(headers.get("x-dub-key", "")).encode("utf-8")
         if not KEY or not hmac.compare_digest(sent, KEY.encode("utf-8")):
             return _resp(401, {"error": "รหัสลับไม่ถูกต้อง"})
+
+    if action.startswith("export."):
+        if not secured:
+            return _resp(401, {"error": "ต้องเปิดใช้รหัสผ่านเว็บไซต์ก่อนส่งออกผ่านเซิร์ฟเวอร์"})
+        return _export_action(action, body)
 
     if action == "proposeAsset":
         if not secured:
