@@ -46,6 +46,7 @@ on:
       - tests/cinematic-fx-smoke.cjs
       - tests/character-interaction-smoke.cjs
       - tests/mobile-scroll-smoke.cjs
+      - tests/export-focus-layout-smoke.cjs
       - tests/auto-dub-smoke.cjs
       - tests/site-auth-smoke.cjs
       - tests/site-auth-handler-smoke.py
@@ -88,6 +89,7 @@ on:
       - tests/auto-dub-smoke.cjs
       - tests/narration-director-smoke.cjs
       - tests/mobile-scroll-smoke.cjs
+      - tests/export-focus-layout-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   workflow_dispatch:
 permissions:
@@ -137,6 +139,7 @@ jobs:
           node --check tests/cinematic-fx-smoke.cjs
           node --check tests/character-interaction-smoke.cjs
           node --check tests/mobile-scroll-smoke.cjs
+          node --check tests/export-focus-layout-smoke.cjs
           node --check tests/auto-dub-smoke.cjs
           node --check tests/voice-preview-smoke.cjs
           node --check tests/audio-export-integrity-smoke.cjs
@@ -164,6 +167,7 @@ jobs:
           node tests/cinematic-fx-smoke.cjs
           node tests/character-interaction-smoke.cjs
           node tests/mobile-scroll-smoke.cjs
+          node tests/export-focus-layout-smoke.cjs
           node tests/auto-dub-smoke.cjs
           node tests/site-auth-smoke.cjs
           node tests/local-ai-workspace-smoke.cjs
