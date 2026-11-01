@@ -114,8 +114,21 @@
   'three-flashes':/beacon|flash|light|แสง|โคม/i,
   flooding:/flood|water|น้ำท่วม|น้ำ/i
  });
- function eventEvidence(scene,event){
+ const WORLD_ACTIONS=Object.freeze({
+  'bridge-collapse':['coastal-cliff','bridgeFall'],
+  'falling-item':['coastal-cliff','toolboxFall'],
+  'light-switch':['lighthouse-lantern','beaconOn'],
+  'reflector-motion':['lighthouse-lantern','reflectorTurn'],
+  'belt-break':['lighthouse-lantern','beltBreak'],
+  'three-flashes':['lighthouse-lantern','threeFlashes'],
+  flooding:['coastal-harbor','marketFlood']
+ });
+ function eventEvidence(scene,event,worldArt){
   if(coverage(scene).visualMedia)return true; // Needs real exported-frame review.
+  const action=WORLD_ACTIONS[event],fx=scene?.worldEffects;
+  if(action&&worldArt===action[0]&&fx?.[action[1]]===true)return true;
+  if(event==='flooding'&&worldArt==='coastal-harbor'&&fx?.gateLeak===true)return true;
+  if(event==='light-switch'&&worldArt==='coastal-harbor'&&fx?.blackout===true)return true;
   const tag=EVENT_TAGS[event];if(!tag)return false;
   const items=[...(Array.isArray(scene.props)?scene.props:[]),
    ...(Array.isArray(scene.customAssets)?scene.customAssets:[]),
@@ -182,7 +195,8 @@
     const text=narration+' '+prompt,sceneIssues=[];
     for(const event of EVENTS){
      if(!event.test.test(text))continue;
-     const lacksAction=!eventEvidence(scene,event.id);
+     const worldArt=(state?.locations||[]).find(l=>l?.id===scene.location)?.set?.worldArt;
+     const lacksAction=!eventEvidence(scene,event.id,worldArt);
      if(lacksAction)sceneIssues.push({kind:'unverified-event',event:event.id,title:event.title,
        episode:ei+1,scene:si+1,sceneId:scene.id,
        message:event.hint,source:'authored-script',confidence:'needs-visual-review'});
