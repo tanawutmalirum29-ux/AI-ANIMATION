@@ -2304,11 +2304,11 @@ function audioEvents(){const E=ep();if(AUDIO_EVENT_CACHE&&AUDIO_EVENT_CACHE.epis
   const lead=Math.max(0,cleanNum(c.audioLead)),tail=Math.max(0,cleanNum(c.audioTail)),raw=st[i]+(c.loop?0:prerollSpan(E,i,s))+cleanNum(c.at),at=lead>0?Math.max(0,raw-lead):raw,span=safeClipDuration(c);
   if(c.loop&&span>0){let end=st[i]+dur(i),last=i;
    if(opt.link){const key=audioClipKey(c);for(let k=i+1;k<n;k++){const nx=(E.scenes[k].audioClips||[]).find(d=>d.loop&&!skip.has(d)&&cleanNum(d.at)<=.05&&!cleanNum(d.audioLead)&&audioClipKey(d)===key);if(!nx)break;skip.add(nx);end=st[k]+dur(k);last=k}}
-   const ov=opt.xfade&&last<n-1?sceneHeadOverlap(E,last+1):0,ext=Math.max(ov,tail);end=Math.min(end+ext,total());
+   const ov=opt.xfade&&last<n-1?sceneHeadOverlap(E,last+1):0,ext=Math.max(ov,tail);end=Math.min(end+ext,total(),c.__exportStopAt??Infinity);
    const xin=opt.xfade&&i>0&&cleanNum(c.at)<=.05?Math.max(sceneHeadOverlap(E,i),lead):0,xout=ext>0?ext:0;
    for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'scene',scene:i,cycle:j,limit:end,chainStart:at,xin,xout})
-  }else out.push({c,start:at,scope:'scene',scene:i,cycle:0,limit:total(),chainStart:at,xin:0,xout:0})}));
- (E.musicClips||[]).forEach(c=>{const at=cleanNum(c.at),span=safeClipDuration(c),end=total();if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'music',scene:-1,cycle:j,limit:end,chainStart:at,xin:0,xout:0})}else out.push({c,start:at,scope:'music',scene:-1,cycle:0,limit:end,chainStart:at,xin:0,xout:0})});AUDIO_EVENT_CACHE={episode:E,rev:AUDIO_EVENT_REV,events:out};return out}
+  }else out.push({c,start:at,scope:'scene',scene:i,cycle:0,limit:Math.min(total(),c.__exportStopAt??Infinity),chainStart:at,xin:0,xout:0})}));
+ (E.musicClips||[]).forEach(c=>{const at=cleanNum(c.at),span=safeClipDuration(c),end=Math.min(total(),c.__exportStopAt??Infinity);if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'music',scene:-1,cycle:j,limit:end,chainStart:at,xin:0,xout:0})}else out.push({c,start:at,scope:'music',scene:-1,cycle:0,limit:end,chainStart:at,xin:0,xout:0})});AUDIO_EVENT_CACHE={episode:E,rev:AUDIO_EVENT_REV,events:out};return out}
 function clipGain(c,at,duration=safeClipDuration(c)){let vol=c.mute?0:clampN(cleanNum(c.volume,1),0,1),elapsed=at;
  if(c.fadeIn>0)vol*=clampN(elapsed/c.fadeIn,0,1);
  if(c.fadeOut>0)vol*=clampN((duration-elapsed)/c.fadeOut,0,1);
@@ -3345,7 +3345,7 @@ const VIDEO_FORMATS=[
  {id:'webmauto',name:'WebM · อัตโนมัติ',mime:'video/webm',ext:'webm'},
  {id:'mp4video',name:'MP4 · ไม่มีเสียง',mime:'video/mp4;codecs="avc1.42E01E"',ext:'mp4'}
 ];
-let ACTIVE_EXPORT=null;
+let ACTIVE_EXPORT=null,EXPORT_BATCH_RUNNING=false,EXPORT_BATCH_ABORTED=false,EXPORT_JOB_OUTCOME=false,EXPORT_BATCH_FILES=[],EXPORT_BATCH_ZIP=null,EXPORT_COMBINED_LABEL=false;
 const FAST_FORMAT={id:'fastmp4',name:'⚡ MP4 · H.264 เร็ว (แนะนำ)',mime:'video/mp4',ext:'mp4'};
 function compatibleVideoFormats(){const out=[];if(typeof VideoEncoder!=='undefined'&&typeof VideoFrame!=='undefined')out.push(FAST_FORMAT);
  if(typeof MediaRecorder!=='undefined'&&HTMLCanvasElement.prototype.captureStream)out.push(...VIDEO_FORMATS.filter(x=>MediaRecorder.isTypeSupported(x.mime)));return out}
@@ -3359,6 +3359,11 @@ function openVideoExport(){
  $('#videoResult').classList.toggle('ready',!!LAST_VIDEO);
  updateExportScopeHint();
  if(STUDIO_WORKSPACE_READY){switchStudioTool('export');if(!diag.open)diag.show()}else diag.showModal();
+}
+function updateExportScopeHint(){
+ const scope=$('#videoScope')?.value||'current',count=S?.episodes?.length||1;
+ const hints={current:'ส่งออกตอนที่ '+(selEp+1)+' เพียงตอนเดียว',separate:'ส่งออก '+count+' ตอนตามลำดับและรวมเป็น ZIP ดาวน์โหลดครั้งเดียว · เก็บไฟล์แต่ละตอนไว้ให้กดโหลดแยกได้',combined:'รวม '+count+' ตอนเป็นวิดีโอเดียว พร้อมภาพคั่น 2.5 วินาทีระหว่างตอน แสดงเลขตอนและชื่อตอน · จำกัด 30 นาทีต่อไฟล์'};
+ const hint=$('#videoScopeHint');if(hint)hint.textContent=hints[scope];
 }
 function exportStatus(msg,percent){const e=$('#videoStatus');if(e)e.textContent=msg;const p=$('#videoProgress');if(p&&percent!==undefined)p.value=clampN(percent,0,100)}
 function xmlEscAttr(t){return String(t||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
@@ -3773,7 +3778,7 @@ async function startFastExport(f,cfg,o){
   exportStatus('รวมไฟล์ MP4…',99);
   const blob=mux.finish();if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า');
   const filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.mp4';
-  showExportResult(blob,filename);
+  showExportResult(blob,filename);EXPORT_JOB_OUTCOME=true;
   const took=(performance.now()-t0)/1000;
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${needAudio?'🔊 เสียงในไฟล์: '+mixClips+' คลิป · peak '+(20*Math.log10(mixPeak)).toFixed(1)+' dB · AAC '+mux.audioCount()+' แพ็กเก็ต ('+(mux.audioBytes()/1024).toFixed(0)+' KB)\n':'⚠ ไม่มีคลิปเสียงในตอนนี้ — วิดีโอจึงไม่มีเสียง\n'}${(blob.size/1048576).toFixed(2)} MB · ${duration.toFixed(1)} วินาที · ใช้เวลา ${took.toFixed(0)} วินาที (${(duration/took).toFixed(1)}× ของเวลาจริง)${warn?'\n'+warn:''}${job.hiddenDuringExport||job.audioStalled?'\n⚠ หน้าจอถูกพับ/สลับแอประหว่างส่งออก เสียงในไฟล์อาจขาดหาย — แนะนำส่งออกใหม่โดยไม่สลับหน้าจอ':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
@@ -3791,8 +3796,9 @@ function missingNarrationScenes(){
   return !!script&&!hasVoice;
  }).map(({i})=>i+1);
 }
-async function startVideoExport(){
+async function exportOneEpisode(){
  if(ACTIVE_EXPORT)return;
+ EXPORT_JOB_OUTCOME=false;
  const supported=compatibleVideoFormats();let f=supported.find(x=>x.id===$('#videoFormat').value);
  if(!f){exportStatus('เบราว์เซอร์นี้ไม่รองรับชนิดวิดีโอที่เลือก');return}
  const project=ep(),duration=total();if(!(duration>0&&duration<=1800)){exportStatus('ตอนนี้ต้องมีความยาว 0–30 นาที');return}
@@ -3861,7 +3867,7 @@ async function startVideoExport(){
   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
   const blob=new Blob(chunks,{type:rec.mimeType||f.mime});if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า เบราว์เซอร์อาจบล็อกการบันทึก');
   const filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.'+f.ext;
-  showExportResult(blob,filename);
+  showExportResult(blob,filename);EXPORT_JOB_OUTCOME=true;
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${audioData?'🔊 โหมดเวลาจริง · '+audioData.buffers.length+' คลิป · ระบบเสียง: '+audioData.audio.state+(job.audioStalled?' (เคยหยุด)':''):'⚠ ไม่มีคลิปเสียงในตอนนี้ — วิดีโอจึงไม่มีเสียง'}\n${(blob.size/1048576).toFixed(2)} MB · ${(duration).toFixed(1)} วินาที${audioData?.warnings.length?'\n'+audioData.warnings[0]:''}${job.hiddenDuringExport||job.audioStalled?'\n⚠ หน้าจอถูกพับ/สลับแอประหว่างส่งออก เสียงในไฟล์อาจขาดหาย — แนะนำส่งออกใหม่โดยไม่สลับหน้าจอ':''}${framesShown<duration*fps*0.5?'\n⚠ เครื่องเรนเดอร์ช้า ('+framesShown+' เฟรมจริงจาก '+Math.round(duration*fps)+') ภาพจะกระตุก ลองลดความละเอียด/FPS':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
   try{clearInterval(beat)}catch(e){}try{if(job.recorder?.state!=='inactive')job.recorder?.stop()}catch(e){}
