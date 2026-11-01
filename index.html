@@ -3593,6 +3593,7 @@ async function renderVideoFrame(ctx,t,info){
    if(k>0){liveFrame(index,k);$('#transitionPrevious').replaceChildren(prevLive[k-1]);redraw=true}
    if(redraw){exportDraw();redraw=false}
    info.previous.set(key,await imageFromVector(svgFrameFromWorld($('#priorWorld'),scenes[index-1],w,h)));
+   if(info.turbo)while(info.previous.size>8)info.previous.delete(info.previous.keys().next().value);
   }old=info.previous.get(key);if(redraw)exportDraw();
  }
  const im=await exportFrameImage(svgFrameFromWorld(currentWorld,scene,w,h),info);
@@ -3933,7 +3934,11 @@ function renderExportBatchResults(){
   '↓ ดาวน์โหลดทุกตอนใน ZIP · '+(EXPORT_BATCH_ZIP.blob.size/1048576).toFixed(1)+' MB'));
  root.replaceChildren(...children);
 }
+const EXPORT_ZIP_CRC_TABLE=(()=>{const table=new Uint32Array(256);
+ for(let i=0;i<256;i++){let c=i;for(let bit=0;bit<8;bit++)c=(c>>>1)^((c&1)?0xedb88320:0);table[i]=c>>>0}return table;
+})();
 async function makeExportZip(files){
+ const turbo=exportPipelineTurbo();
  const encoder=new TextEncoder(),parts=[],central=[];
  const header=(n)=>{const buf=new Uint8Array(n);return {buf,v:new DataView(buf.buffer)}};
  let offset=0,centralBytes=0;
@@ -3941,11 +3946,12 @@ async function makeExportZip(files){
   if(EXPORT_BATCH_ABORTED)throw new Error('ผู้ใช้ยกเลิกการรวม ZIP');
   if(file.blob.size>0xffffffff)throw new Error('ไฟล์หนึ่งใหญ่เกินข้อจำกัด ZIP 4 GB');
   const name=encoder.encode(file.filename);if(name.length>65535)throw new Error('ชื่อไฟล์ยาวเกินไป');
-  let crc=0xffffffff;const sliceSize=1024*1024;
+  let crc=0xffffffff;const sliceSize=turbo?2*1024*1024:1024*1024;
   for(let pos=0;pos<file.blob.size;pos+=sliceSize){
    if(EXPORT_BATCH_ABORTED)throw new Error('ผู้ใช้ยกเลิกการรวม ZIP');
    const bytes=new Uint8Array(await file.blob.slice(pos,pos+sliceSize).arrayBuffer());
-   for(let i=0;i<bytes.length;i++){crc^=bytes[i];for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}
+   if(turbo){for(let i=0;i<bytes.length;i++)crc=EXPORT_ZIP_CRC_TABLE[(crc^bytes[i])&255]^(crc>>>8)}
+   else for(let i=0;i<bytes.length;i++){crc^=bytes[i];for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}
   }
   crc=(crc^0xffffffff)>>>0;
   const l=header(30);l.v.setUint32(0,0x04034b50,true);l.v.setUint16(4,20,true);l.v.setUint16(6,0x800,true);
@@ -3967,6 +3973,7 @@ async function startVideoExport(){
  const mode=$('#videoScope')?.value||'current';
  EXPORT_BATCH_FILES=[];EXPORT_BATCH_ZIP=null;EXPORT_BATCH_ABORTED=false;EXPORT_COMBINED_LABEL=false;
  renderExportBatchResults();
+ if(exportPipelineTurbo()&&mode==='separate')$('#videoResult').classList.remove('ready');
  if(mode==='current'){await exportOneEpisode();return}
  const episodes=S.episodes;
  if(!episodes.length||episodes.some(E=>!Array.isArray(E.scenes)||!E.scenes.length)){exportStatus('ไม่มีตอนที่ส่งออกได้',0);return}
@@ -4023,6 +4030,9 @@ let LAST_VIDEO=null;
 function showExportResult(blob,filename){
  if(EXPORT_COMBINED_LABEL)filename=exportFilePrefix()+'-รวมทุกตอน.'+filename.split('.').pop();
  if(EXPORT_BATCH_RUNNING&&$('#videoScope').value==='separate')EXPORT_BATCH_FILES.push({blob,filename});
+ // Turbo does not repeatedly attach earlier episode videos to an iOS decoder.
+ // The user can still download each result immediately from the batch list.
+ if(exportPipelineTurbo()&&EXPORT_BATCH_RUNNING&&$('#videoScope').value==='separate'&&selEp<S.episodes.length-1)return;
  if(LAST_VIDEO?.url)URL.revokeObjectURL(LAST_VIDEO.url);const url=URL.createObjectURL(blob);LAST_VIDEO={blob,filename,url};
  const panel=$('#videoResult');panel.classList.add('ready');$('#videoResultInfo').textContent=filename+' · '+(blob.size/1048576).toFixed(2)+' MB';$('#videoResultPreview').src=url;
  $('#videoSaveAs').style.display=typeof window.showSaveFilePicker==='function'?'':'none';
