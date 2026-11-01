@@ -58,6 +58,10 @@
   const episodes=Array.isArray(state?.episodes)?state.episodes:[],issues=[],scenes=[];
   const scope=options.scope||'all',episodeIndex=Math.max(0,Number(options.episodeIndex)||0),
    sceneId=options.sceneId;
+  const aspect=String(state?.project?.aspect||'16:9').split(':').map(Number);
+  // Portrait rigs use a greater share of screen width; 14% separation can
+  // still visibly overlap arms/torso even if old 10% threshold passed.
+  const actorGap=aspect[0]>0&&aspect[1]>0&&aspect[0]<aspect[1]?18:10;
   episodes.forEach((ep,ei)=>{
    if(scope!=='all'&&ei!==episodeIndex)return;
    (ep.scenes||[]).forEach((scene,si)=>{
@@ -85,7 +89,7 @@
      const u=actors[a],v=actors[b];
      if(!Number.isFinite(Number(u?.x))||!Number.isFinite(Number(v?.x))||
       !Number.isFinite(Number(u?.y))||!Number.isFinite(Number(v?.y)))continue;
-     if(Math.abs(Number(u.x)-Number(v.x))<10&&Math.abs(Number(u.y)-Number(v.y))<8&&
+     if(Math.abs(Number(u.x)-Number(v.x))<actorGap&&Math.abs(Number(u.y)-Number(v.y))<8&&
       !anyMotion([u,v])&&!u.depth&&!v.depth)
       sceneIssues.push({kind:'actor-overlap',event:'actor-overlap',title:'ตัวละครอาจซ้อนทับกัน',
        episode:ei+1,scene:si+1,sceneId:scene.id,
