@@ -87,3 +87,13 @@
 #aiWorkspacePanel .ai-script-settings input:focus-visible,#aiWorkspacePanel .ai-script-settings select:focus-visible{outline:2px solid #e0b46e;outline-offset:2px}
 #aiWorkspacePanel .ai-audio-agent textarea{width:100%;min-height:140px;max-height:340px;resize:vertical;padding:12px;font-size:14px;line-height:1.7;background:#222327;color:#f3f3f4;border:1px solid #595b60;border-radius:9px}
 #aiWorkspacePanel .ai-audio-agent textarea:focus-visible{outline:2px solid #e0b46e;outline-offset:2px}
+
+/* Six-specialist production scoreboard: compact, stable, phone-first. */
+.ai-factory-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0;}
+.ai-factory-step{display:flex;flex-direction:column;min-width:0;gap:3px;padding:10px;border:1px solid var(--line,#43576c);border-radius:10px;background:rgba(12,20,35,.20);overflow-wrap:anywhere;}
+.ai-factory-step strong{font-size:.8rem;line-height:1.4;}
+.ai-factory-step small{font-size:.72rem;line-height:1.4;color:var(--muted,#94a3b8);}
+.ai-factory-step[data-stage="done"]{border-color:rgba(99,177,146,.55);}
+.ai-factory-step[data-stage="running"]{border-color:rgba(154,184,224,.7);}
+.ai-factory-step[data-stage="needs_attention"],.ai-factory-step[data-stage="failed"]{border-color:rgba(223,150,85,.65);}
+@media(max-width:640px){.ai-factory-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.ai-factory-step{padding:8px}}
