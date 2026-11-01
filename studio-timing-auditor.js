@@ -222,16 +222,19 @@
     skipped.push({sceneId:scene.id,reason:'manual-or-missing-voice'});continue;
    }
    const narration=String(scene.voiceover||'').trim();
+   const provided=new Set(voices.flatMap(c=>[
+      c.cueId,...(Array.isArray(c.cueIds)?c.cueIds:[])
+   ].filter(Boolean)));
    if(narration){
     const parts=typeof options.splitNarration==='function'?
       options.splitNarration(narration,175):[];
-    const provided=new Set(voices.flatMap(c=>[
-      c.cueId,...(Array.isArray(c.cueIds)?c.cueIds:[])
-    ].filter(Boolean)));
     if(!parts.length||parts.some((_,i)=>!provided.has(
       'narration-'+scene.id+'-part'+(i+1)))){
      skipped.push({sceneId:scene.id,reason:'incomplete-narration'});continue;
     }
+   }else if((scene.subtitleCues||[]).some(q=>
+     String(q?.text||'').trim()&&!provided.has(q.id))){
+    skipped.push({sceneId:scene.id,reason:'incomplete-subtitle-dub'});continue;
    }
    shortenedSeconds+=scene.duration-op.patch.duration;
    ops.push(op);
