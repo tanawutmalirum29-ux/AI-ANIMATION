@@ -2172,8 +2172,8 @@ if('speechSynthesis' in window){speechSynthesis.addEventListener?.('voiceschange
 let AUDIO_DESK_SCENE=0, AUDIO_DESK_TAB='scene';
 const AUDIO_PLAYERS=new Map(), AUDIO_PLAYER_GRAPHS=new Map();
 let PREVIEW_AUDIO_CTX=null,PREVIEW_MEDIA_ERROR='';
-const PREVIEW_DIRECT_VOICE=/(iPad|iPhone|iPod)/i.test(navigator.userAgent)||
- (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+// WebAudio schedules decoded narration on a stable clock even on iPad; HTML Audio remains fallback.
+const PREVIEW_DIRECT_VOICE=false;
 const PREVIEW_MEDIA_RETRY_AT=new Map();
 function previewVoiceClips(){return ep().scenes.flatMap(sc=>(sc.audioClips||[]).filter(c=>c.kind==='voice'&&c.data))}
 function showPreviewAudioProblem(message){PREVIEW_MEDIA_ERROR=message;updateAudioHint()}
@@ -2218,12 +2218,21 @@ function clipGain(c,at,duration=safeClipDuration(c)){let vol=c.mute?0:clampN(cle
  if(c.fadeOut>0)vol*=clampN((duration-elapsed)/c.fadeOut,0,1);
  return vol;
 }
-function previewContext(){if(!PREVIEW_AUDIO_CTX){PREVIEW_AUDIO_CTX=new (window.AudioContext||window.webkitAudioContext)();try{PREVIEW_AUDIO_CTX.onstatechange=()=>updateAudioHint()}catch(e){}}if(PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed')PREVIEW_AUDIO_CTX.resume().then(updateAudioHint,()=>{});return PREVIEW_AUDIO_CTX}
+let PREVIEW_RESUME_PENDING=null;
+function previewContext(){
+ if(!PREVIEW_AUDIO_CTX||PREVIEW_AUDIO_CTX.state==='closed'){
+  PREVIEW_AUDIO_CTX=new (window.AudioContext||window.webkitAudioContext)();
+  try{PREVIEW_AUDIO_CTX.onstatechange=()=>updateAudioHint()}catch(e){}
+ }
+ if(PREVIEW_AUDIO_CTX.state==='suspended'&&!PREVIEW_RESUME_PENDING){
+  PREVIEW_RESUME_PENDING=PREVIEW_AUDIO_CTX.resume().then(updateAudioHint,()=>updateAudioHint()).finally(()=>{PREVIEW_RESUME_PENDING=null});
+ }
+ return PREVIEW_AUDIO_CTX;
+}
 /* v40: เสียงพรีวิวบน iPad/Safari ต้องถูกปลดล็อกจากการแตะจริง (ไม่ใช่จาก requestAnimationFrame) และต้องตั้งโหมดเสียงเป็น playback
    ไม่งั้น AudioContext ค้าง suspended / ถูกสวิตช์ปิดเสียงของเครื่องตัดทิ้ง ทำให้เสียงพากย์ได้ยินเฉพาะตอน export (export สร้าง AudioContext ในปุ่มกดโดยตรง) */
 function unlockPreviewAudio(){
  PREVIEW_MEDIA_ERROR='';
- if(PREVIEW_DIRECT_VOICE){updateAudioHint();return}
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
  try{
   const ctx=previewContext();
@@ -2262,7 +2271,9 @@ function rememberVoicePreviewBuffer(data,buffer){
 }
 function primeVoicePreview(c){
  const data=c.data;
- if(!data||VOICE_PREVIEW_BUFFERS.has(data)||VOICE_PREVIEW_PENDING.has(data)||VOICE_PREVIEW_BAD.has(data))return;
+ if(!data||VOICE_PREVIEW_BAD.has(data))return Promise.resolve(null);
+ if(VOICE_PREVIEW_BUFFERS.has(data))return Promise.resolve(VOICE_PREVIEW_BUFFERS.get(data));
+ if(VOICE_PREVIEW_PENDING.has(data))return VOICE_PREVIEW_PENDING.get(data);
  const pending=(async()=>{const ctx=previewContext(),res=await fetch(data);if(!res.ok)throw Error('audio fetch '+res.status);
   const buffer=await ctx.decodeAudioData(await res.arrayBuffer());rememberVoicePreviewBuffer(data,buffer);
  })();
@@ -2272,6 +2283,7 @@ function primeVoicePreview(c){
   // ถ้ายังกดเล่นอยู่ ให้เริ่มจากตำแหน่งปัจจุบัน ไม่เล่นเสียงย้อนหลังตอนถอดรหัสเสร็จ
   if(playing)syncAudioAt(T,true);
  });
+ return pending;
 }
 // v41: ถอดรหัสเสียงพากย์ล่วงหน้า (ไม่รอจนใกล้ถึงคิว) — เดิมเริ่มถอดรหัสตอนเหลือ 0.55 วิ จึงได้ยินช่วงต้นขาด/ไม่ได้ยินเลยถ้าถอดไม่ทัน
 let VOICE_LOOKAHEAD_AT=0;
@@ -3025,7 +3037,20 @@ function tryPreviewReadNarration(){
 function ctl(){const tt=total();$('#ctl').replaceChildren(
 h('button',{onclick:()=>go(-1),'aria-label':'ฉากก่อน'},'⏮'),h('button',{id:'pp',onclick:toggle,'aria-label':'เล่น/หยุด'},playing?'⏸':'▶'),h('button',{onclick:()=>go(1),'aria-label':'ฉากถัดไป'},'⏭'),
 h('input',{type:'range',min:0,max:tt*100,value:T*100,'aria-label':'เวลา',oninput:e=>{T=e.target.value/100;playing=false;draw();if(MOTION_ACTIVE)renderMotionBar()}}),h('span',{id:'clock'},''),h('button',{type:'button',title:'ตรวจและทดลองฟังไฟล์พากย์จริง',onclick:checkPreviewAudio,'aria-label':'ตรวจเสียงพากย์'},'🔊'),h('button',{type:'button',title:'อ่านบทฉากปัจจุบันด้วยเสียงระบบ (ไม่ได้บันทึกเป็นไฟล์)',onclick:tryPreviewReadNarration,'aria-label':'ทดลองอ่านบทด้วยเสียงระบบ'},'🗣'))}
-function toggle(){if(T>=total())T=0;playing=!playing;last=performance.now();ctl();draw();if(playing&&!previewVoiceClips().length)showPreviewAudioProblem('ยังไม่มีไฟล์พากย์จริงในตอนนี้ · ต้องเพิ่มเสียงใน Sound Desk หรือสร้างเสียงด้วย AI-2')}
+let PREVIEW_START_GENERATION=0;
+function toggle(){
+ if(playing){PREVIEW_START_GENERATION++;playing=false;ctl();draw();return}
+ if(T>=total())T=0;
+ unlockPreviewAudio();
+ const generation=++PREVIEW_START_GENERATION,start=T;
+ const first=audioEvents().filter(ev=>ev.c.kind==='voice'&&ev.c.data&&!ev.c.mute&&ev.start<=start+2&&ev.start+safeClipDuration(ev.c)>start).slice(0,6);
+ const begin=()=>{if(generation!==PREVIEW_START_GENERATION)return;playing=true;last=performance.now();ctl();draw();
+  if(!previewVoiceClips().length)showPreviewAudioProblem('ยังไม่มีไฟล์พากย์จริงในตอนนี้ · ต้องเพิ่มเสียงใน Sound Desk หรือสร้างเสียงด้วย AI-2')};
+ if(first.length&&first.some(ev=>!VOICE_PREVIEW_BUFFERS.has(ev.c.data)&&!VOICE_PREVIEW_BAD.has(ev.c.data))){
+  playing=false;ctl();showPreviewAudioProblem('กำลังโหลดเสียงพากย์ก่อนเริ่มเล่น เพื่อไม่ให้ขาดช่วง…');
+  Promise.allSettled(first.map(ev=>primeVoicePreview(ev.c))).then(()=>{if(generation!==PREVIEW_START_GENERATION)return;PREVIEW_MEDIA_ERROR='';updateAudioHint();begin()});
+ }else begin();
+}
 function go(d){const n=Math.min(ep().scenes.length-1,Math.max(0,sel+d));sel=n;T=starts()[n];playing=false;render()}
 // v34 C3: คำนวณท่ากล้องของฉาก (ใช้ร่วมพรีวิว+ส่งออก) / cameraPoseAt เพิ่ม match cut: กล้องไหลต่อจากเฟรมสุดท้ายของฉากก่อน
 function cameraPose(s,loc,aloc,adur){
