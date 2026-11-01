@@ -85,7 +85,11 @@
   return arr.map(item=>{
    try{
     const a=asset(item.asset),pose=assetFrame(item,local),x=pose.x*W/100,y=pose.y*.9,
-      // The 0..100 SVG template units were previously scaled as if every frame were wide.\n      // On 9:16 exports this made factory bridges and reflectors wider than the scene.\n      // Only shrink our generated drafts; do not change the size of users' hand-placed assets.\n      scale=pose.scale*.42*(item.producer==='studio-production-v1'?\n       Math.min(1,W/90)*(item.eventKind==='beacon'?.78:1):1),flip=item.flip?-1:1;
+      // The 0..100 SVG template units were previously scaled as if every frame were wide.
+      // On 9:16 exports this made factory bridges and reflectors wider than the scene.
+      // Only shrink our generated drafts; do not change the size of users' hand-placed assets.
+      scale=pose.scale*.42*(item.producer==='studio-production-v1'?
+       Math.min(1,W/90)*(item.eventKind==='beacon'?.78:1):1),flip=item.flip?-1:1;
     // SVG is generated from bounded numeric primitives, never user-supplied SVG.
     const elements=svg(a).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
     return '<g transform="translate('+x.toFixed(2)+' '+y.toFixed(2)+') rotate('+pose.rotate.toFixed(2)+') scale('+(scale*flip).toFixed(3)+' '+scale.toFixed(3)+') translate(-50 -85)" opacity="'+pose.opacity.toFixed(3)+'">'+elements+'</g>';
