@@ -3925,7 +3925,7 @@ function buildExportCompilation(episodes){
 // Grapheme-safe truncation avoids slicing a visible Thai syllable in half.
 function exportFilePrefix(){
  const raw=String(S.project.title||'story-studio').normalize('NFC');
- const cleaned=raw.replace(/[^\\p{L}\\p{M}\\p{N}_-]+/gu,'-').replace(/^-+|-+$/g,'');
+ const cleaned=raw.replace(/[^\p{L}\p{M}\p{N}_-]+/gu,'-').replace(/^-+|-+$/g,'');
  if(!cleaned)return 'story-studio';
  const chars=typeof Intl.Segmenter==='function'
   ?Array.from(new Intl.Segmenter('th',{granularity:'grapheme'}).segment(cleaned),x=>x.segment)
