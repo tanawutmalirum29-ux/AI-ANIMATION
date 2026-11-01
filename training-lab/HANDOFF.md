@@ -74,3 +74,20 @@ Do not touch story meaning or uploaded original JSON to hide engine faults.
 Next inspect fresh exports after re-running the six-step producer; continue
 implementing real prop/state transitions for blackout, notebook, wrench transfer
 only against supported rendering primitives and regressions.
+
+
+## Combined export follow-up (2026-11-01)
+
+User provided a 117.407s compiled H.264/AAC export. Chapter divider cards
+are intentional (2.5s each), with ~3.63s low-level audio intervals including
+their surrounding quiet tails. Visible issues remain: static workshop pose,
+actor crowding and occasional overlapping arms. See
+`training-lab/evaluations/three-flashes-nov1-compiled-export.json`.
+
+A concrete **filename** bug was confirmed: Thai combining marks were excluded
+by a Unicode name sanitizer. `exportFilePrefix()` now retains Unicode marks
+and all title-derived export names share this helper (individual episodes,
+joined MP4, ZIP). The currently attached combined MP4 was renamed for download
+without reencoding. Keep chapter dividers; further image/motion improvements
+need correct labeled examples and independent visual QA. No neural weights
+were trained from this export.
