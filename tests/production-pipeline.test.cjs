@@ -58,7 +58,7 @@ assert.notEqual(off,on,'SVG animation must respond to real scene time');
 const timedScene=structuredClone(key);
 timedScene.audioClips=[{kind:'voice',data:'data:audio/wav;base64,AAAA',duration:2,at:0,rate:1}];
 const timedState={episodes:[{id:'timed',scenes:[timedScene]}]};
-assert.equal(timing.hasTimedEvents(timedScene),true,'asset keyframes protect visual events');
+assert.equal(timing.hasTimedEvents(timedScene),false,'factory relative keyframes must not count as an authored hold');
 const autoReflow=timing.audit(timedState,{scope:'all'});
 assert.equal(autoReflow.ops.length,1,
  'factory-owned relative animation should follow narration rather than adding a 5s mute tail');
