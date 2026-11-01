@@ -232,3 +232,4 @@ jobs:
           node tests/voice-preview-smoke.cjs
           node tests/preview-audio-mobile-recovery.cjs
           node tests/audio-export-integrity-smoke.cjs
+          node tests/cloud-export-browser-smoke.cjs
