@@ -696,8 +696,8 @@ body.export-focus #videoBack:disabled{opacity:.45;cursor:not-allowed}
 </div>
 <p class="sum" id="videoScopeHint">เลือกขอบเขต กดส่งออกครั้งเดียว ระบบจะทำงานตามลำดับอัตโนมัติ</p>
 <p>ใช้ภาพ ฉาก ซับ เพลง และเสียงจาก Sound Desk · ประมวลผลในเบราว์เซอร์ ไม่อัปโหลดวิดีโอไปยังเซิร์ฟเวอร์</p>
-<div class="video-export-grid"><div><label for="videoResolution">ความละเอียด</label><select id="videoResolution"><option value="540">540p · เหมาะกับมือถือ</option><option value="720" selected>720p · แนะนำ</option><option value="1080">1080p · เครื่องแรง</option></select></div><div><label for="videoFPS">เฟรมต่อวินาที</label><select id="videoFPS"><option value="12">12 FPS · ประหยัด</option><option value="24" selected>24 FPS · ภาพลื่น</option></select></div><div><label for="videoFormat">รูปแบบไฟล์</label><select id="videoFormat"></select></div><div><label>ตัวเลือกภาพ</label><label style="display:flex;gap:7px;align-items:center"><input id="videoCaptions" type="checkbox" checked style="width:18px;min-height:0">ใส่ซับไตเติล</label></div></div>
-<p id="videoCompatibility">กำลังตรวจรูปแบบที่เบราว์เซอร์รองรับ…</p><p>คุณภาพสูงต้องใช้พลังประมวลผลมาก บนโทรศัพท์แนะนำ 540p / 12 FPS; MP4 มีให้เลือกเมื่อเบราว์เซอร์รองรับเท่านั้น</p><progress id="videoProgress" max="100" value="0"></progress><p id="videoStatus" role="status" aria-live="polite">พร้อมส่งออก</p>
+<div class="video-export-grid"><div><label for="videoResolution">ความละเอียด</label><select id="videoResolution"><option value="540">540p · เหมาะกับมือถือ</option><option value="720" selected>720p · แนะนำ</option><option value="1080">1080p · เครื่องแรง</option></select></div><div><label for="videoFPS">เฟรมต่อวินาที</label><select id="videoFPS"><option value="12">12 FPS · ประหยัด</option><option value="24" selected>24 FPS · ภาพลื่น</option></select></div><div><label for="videoFormat">รูปแบบไฟล์</label><select id="videoFormat"></select></div><div><label for="videoPipeline">ระบบส่งออก</label><select id="videoPipeline"><option value="standard">มาตรฐาน · ระบบเดิม</option><option value="turbo">⚡ Turbo · ลดงานซ้ำ</option></select></div><div><label>ตัวเลือกภาพ</label><label style="display:flex;gap:7px;align-items:center"><input id="videoCaptions" type="checkbox" checked style="width:18px;min-height:0">ใส่ซับไตเติล</label></div></div>
+<p id="videoPipelineHint" class="sum" role="status">มาตรฐาน: ใช้กระบวนการเดิมทุกขั้นตอน</p><p id="videoCompatibility">กำลังตรวจรูปแบบที่เบราว์เซอร์รองรับ…</p><p>คุณภาพสูงต้องใช้พลังประมวลผลมาก บนโทรศัพท์แนะนำ 540p / 12 FPS; MP4 มีให้เลือกเมื่อเบราว์เซอร์รองรับเท่านั้น</p><progress id="videoProgress" max="100" value="0"></progress><p id="videoStatus" role="status" aria-live="polite">พร้อมส่งออก</p>
 <div id="videoBatchResults" role="region" aria-label="ไฟล์วิดีโอทุกตอน" hidden></div><div id="videoResult" role="region" aria-label="ไฟล์วิดีโอที่สร้างแล้ว"><strong id="videoResultInfo"></strong><div class="result-buttons"><button type="button" id="videoDownload">ดาวน์โหลดอีกครั้ง</button><button type="button" id="videoShare">แชร์ / บันทึกลงเครื่อง</button><button type="button" id="videoSaveAs">เลือกตำแหน่งบันทึก</button></div><video id="videoResultPreview" controls playsinline></video><p class="sum">ไฟล์ที่ดาวน์โหลดจะอยู่ใน Downloads · อุปกรณ์ Apple อาจต้องกดดาวน์โหลด ZIP เมื่อระบบรวมไฟล์เสร็จ</p></div></dialog>
 <dialog id="audioDesk" aria-labelledby="audioDeskTitle"><div class="audio-head"><h2 id="audioDeskTitle">Sound Desk — ตัดต่อเสียง</h2><button type="button" id="audioDeskClose">ปิด ✕</button></div><div id="audioDeskBody"></div></dialog>
 <div id="previewTheater" hidden role="dialog" aria-modal="true" aria-label="พรีวิววิดีโอเต็มจอ"><div class="theater-head"><span id="theaterTitle" class="theater-title">พรีวิวตอน</span><div class="theater-btns"><button type="button" id="theaterCaptions" aria-label="แสดงหรือซ่อนซับ">CC</button><button type="button" id="theaterLabels" aria-label="แสดงหรือซ่อนป้าย">ป้าย</button><button type="button" id="theaterClose">✕ ปิดเต็มจอ</button></div></div></div><button type="button" id="jumpTop" hidden aria-label="กลับไปส่วนบนสุดของหน้า">↑ กลับบนสุด</button>
@@ -3357,8 +3357,15 @@ function openVideoExport(){
  'เบราว์เซอร์นี้ไม่รองรับ MediaRecorder หรือ Canvas Capture; กรุณาใช้ Chrome / Edge เวอร์ชันใหม่';
  $('#videoStart').disabled=!opts.length||!!ACTIVE_EXPORT;$('#videoProgress').value=0;$('#videoStatus').textContent=opts.length?'พร้อมส่งออก · กรุณาอย่าปิดแท็บระหว่างทำงาน':'ไม่สามารถส่งออกบนเบราว์เซอร์นี้';
  $('#videoResult').classList.toggle('ready',!!LAST_VIDEO);
- updateExportScopeHint();
+ updateExportScopeHint();updateExportPipelineHint();
  if(STUDIO_WORKSPACE_READY){switchStudioTool('export');if(!diag.open)diag.show()}else diag.showModal();
+}
+function exportPipelineTurbo(){return $('#videoPipeline')?.value==='turbo'}
+function updateExportPipelineHint(){
+ const hint=$('#videoPipelineHint');if(!hint)return;
+ hint.textContent=exportPipelineTurbo()?
+ '⚡ Turbo: ใช้ภาพ SVG ที่ไม่เปลี่ยนซ้ำได้ ลด CPU ในการสร้าง ZIP และขอเข้ารหัสด้วยฮาร์ดแวร์เมื่อรองรับ · ความละเอียด/FPS/เสียงยังใช้ค่าที่เลือก · ความเร็วขึ้นอยู่กับอุปกรณ์และเนื้อหาฉาก':
+ 'มาตรฐาน: ใช้ระบบส่งออกเดิมทั้งหมด · เหมาะเป็นทางสำรองหากโหมด Turbo มีปัญหาบนอุปกรณ์นี้';
 }
 function updateExportScopeHint(){
  const scope=$('#videoScope')?.value||'current',count=S?.episodes?.length||1;
@@ -3564,6 +3571,15 @@ function drawExportChapterSeparator(ctx,part,loc,w,h){
  if(current)lines.push(current);for(let i=0;i<Math.min(3,lines.length);i++)ctx.fillText(lines[i],w/2,h*.53+i*h*.065,w*.82);
  ctx.restore();
 }
+// Turbo only reuses a decoded image when its complete SVG payload matches.
+// Animated scenes, camera changes and lighting produce a new payload, so quality
+// and timing are identical to the standard renderer; cache holds at most one image.
+async function exportFrameImage(svg,info){
+ if(info?.turbo&&info.frameCache?.svg===svg){info.frameCacheHits=(info.frameCacheHits||0)+1;return info.frameCache.image}
+ const image=await imageFromVector(svg);
+ if(info?.turbo)info.frameCache={svg,image};
+ return image;
+}
 async function renderVideoFrame(ctx,t,info){
  const scenes=ep().scenes,st=starts();let index=scenes.findIndex((s,i)=>t<st[i]+s.duration);if(index<0)index=scenes.length-1;
  T=t;const scene=scenes[index],loc=Math.max(0,Math.min(scene.duration,t-st[index])),w=info.w,h=info.h;
@@ -3577,9 +3593,10 @@ async function renderVideoFrame(ctx,t,info){
    if(k>0){liveFrame(index,k);$('#transitionPrevious').replaceChildren(prevLive[k-1]);redraw=true}
    if(redraw){exportDraw();redraw=false}
    info.previous.set(key,await imageFromVector(svgFrameFromWorld($('#priorWorld'),scenes[index-1],w,h)));
+   if(info.turbo)while(info.previous.size>8)info.previous.delete(info.previous.keys().next().value);
   }old=info.previous.get(key);if(redraw)exportDraw();
  }
- const im=await imageFromVector(svgFrameFromWorld(currentWorld,scene,w,h));
+ const im=await exportFrameImage(svgFrameFromWorld(currentWorld,scene,w,h),info);
  drawTransitionToCanvas(ctx,scene,loc,index,im,old,w,h);
  filmSceneLight(ctx,scene,w,h,loc);
  drawGraphicCards(ctx,scene,loc,w,h);
@@ -3702,13 +3719,17 @@ function fxSleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function fastAvcCodec(w,h){const mb=Math.ceil(w/16)*Math.ceil(h/16);return mb<=3600?'avc1.42E01F':mb<=8192?'avc1.42E028':'avc1.42E033'}
 function fastFrameSize(requested,aspect){let [ar,br]=String(aspect||'16:9').split(':').map(Number);if(!ar||!br){ar=16;br=9}
  let w=ar>=br?Math.round(requested*ar/br):requested,h=ar>=br?requested:Math.round(requested*br/ar);return [w+(w&1),h+(h&1)]}
-async function fastExportCheck(w,h,fps,bitrate,needAudio,duration){
+async function fastExportCheck(w,h,fps,bitrate,needAudio,duration,turbo=false){
  if(typeof VideoEncoder==='undefined'||typeof VideoFrame==='undefined')return null;
- const cfg={codec:fastAvcCodec(w,h),width:w,height:h,bitrate,framerate:fps,avc:{format:'avc'}};
- try{const s=await VideoEncoder.isConfigSupported(cfg);if(!s||!s.supported)return null;
-  if(needAudio){if(typeof AudioEncoder==='undefined'||typeof OfflineAudioContext==='undefined'||duration>600)return null;
-   const a=await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000});if(!a||!a.supported)return null}
-  return cfg}catch(e){return null}
+ const base={codec:fastAvcCodec(w,h),width:w,height:h,bitrate,framerate:fps,avc:{format:'avc'}};
+ if(needAudio){if(typeof AudioEncoder==='undefined'||typeof OfflineAudioContext==='undefined'||duration>600)return null;
+  try{const a=await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000});if(!a||!a.supported)return null}catch(e){return null}}
+ // Hardware is a preference, not a guarantee. Fall back to the exact legacy
+ // configuration if the browser doesn't recognize the hint.
+ for(const cfg of (turbo?[{...base,hardwareAcceleration:'prefer-hardware'},base]:[base])){
+  try{const s=await VideoEncoder.isConfigSupported(cfg);if(s?.supported)return cfg}catch(e){}
+ }
+ return null;
 }
 function fxScheduleAudio(off,buffers){
  for(const b of buffers){const source=off.createBufferSource();source.buffer=b.buffer;source.playbackRate.value=b.rate;let feed=source,xg=null;if(b.xin>0||b.xout>0){xg=off.createGain();source.connect(xg);feed=xg}
@@ -3749,7 +3770,7 @@ async function startFastExport(f,cfg,o){
   // 2) วิดีโอ: เรนเดอร์ทีละเฟรมตามเวลาที่กำหนดเอง (ไม่ผูกกับนาฬิกาจริง)
   venc=new VideoEncoder({output:(chunk,meta)=>{const d=meta?.decoderConfig?.description;if(d)mux.setVideoDesc(fxCopy(d));const buf=new Uint8Array(chunk.byteLength);chunk.copyTo(buf);mux.addVideo(buf,chunk.timestamp,chunk.type==='key')},error:e=>{encErr=e}});
   venc.configure(cfg);
-  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map()},N=Math.max(1,Math.round(duration*fps)),keyEvery=Math.max(1,Math.round(fps*2));
+  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map(),turbo:exportPipelineTurbo(),frameCacheHits:0},N=Math.max(1,Math.round(duration*fps)),keyEvery=Math.max(1,Math.round(fps*2));
   let lastUi=0;
   for(let i=0;i<N;i++){
    if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');if(encErr)throw new Error('เข้ารหัสวิดีโอผิดพลาด: '+(encErr.message||encErr));
@@ -3815,7 +3836,7 @@ async function exportOneEpisode(){
  if(f.id==='fastmp4'){
   const needAudio=audioEvents().some(ev=>ev.c.data&&!ev.c.mute),[fw,fh]=fastFrameSize(requested,aspect),bitrate=Math.round((requested>=1080?5e6:requested>=720?3e6:1.3e6)*(fps>12?1.3:1));
   exportStatus('ตรวจการเข้ารหัสแบบเร็ว…',0);
-  const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration);
+  const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration,exportPipelineTurbo());
   if(cfg)return startFastExport(f,cfg,{w:fw,h:fh,fps,duration,needAudio,audioContext:earlyAudio});
   const alt=supported.find(x=>x.id!=='fastmp4');
   if(!alt){if(earlyAudio!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(earlyAudio);exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
@@ -3840,7 +3861,7 @@ async function exportOneEpisode(){
   rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
   rec.onerror=e=>{mediaError=new Error(e.error?.message||'เข้ารหัสวิดีโอผิดพลาด');job.aborted=true};
   const stopped=new Promise((resolve,reject)=>{rec.onstop=resolve});
-  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map()};
+  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map(),turbo:exportPipelineTurbo(),frameCacheHits:0};
   await renderVideoFrame(ctx,0,info);
   rec.start(1000);pushFrame();
   /* heartbeat: iOS/Safari writes frames at the nominal fps, so when rendering is slower than real time the file gets time-compressed. Re-send the last canvas at fps while a slow frame is still rendering. */
@@ -3913,7 +3934,11 @@ function renderExportBatchResults(){
   '↓ ดาวน์โหลดทุกตอนใน ZIP · '+(EXPORT_BATCH_ZIP.blob.size/1048576).toFixed(1)+' MB'));
  root.replaceChildren(...children);
 }
+const EXPORT_ZIP_CRC_TABLE=(()=>{const table=new Uint32Array(256);
+ for(let i=0;i<256;i++){let c=i;for(let bit=0;bit<8;bit++)c=(c>>>1)^((c&1)?0xedb88320:0);table[i]=c>>>0}return table;
+})();
 async function makeExportZip(files){
+ const turbo=exportPipelineTurbo();
  const encoder=new TextEncoder(),parts=[],central=[];
  const header=(n)=>{const buf=new Uint8Array(n);return {buf,v:new DataView(buf.buffer)}};
  let offset=0,centralBytes=0;
@@ -3921,11 +3946,12 @@ async function makeExportZip(files){
   if(EXPORT_BATCH_ABORTED)throw new Error('ผู้ใช้ยกเลิกการรวม ZIP');
   if(file.blob.size>0xffffffff)throw new Error('ไฟล์หนึ่งใหญ่เกินข้อจำกัด ZIP 4 GB');
   const name=encoder.encode(file.filename);if(name.length>65535)throw new Error('ชื่อไฟล์ยาวเกินไป');
-  let crc=0xffffffff;const sliceSize=1024*1024;
+  let crc=0xffffffff;const sliceSize=turbo?2*1024*1024:1024*1024;
   for(let pos=0;pos<file.blob.size;pos+=sliceSize){
    if(EXPORT_BATCH_ABORTED)throw new Error('ผู้ใช้ยกเลิกการรวม ZIP');
    const bytes=new Uint8Array(await file.blob.slice(pos,pos+sliceSize).arrayBuffer());
-   for(let i=0;i<bytes.length;i++){crc^=bytes[i];for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}
+   if(turbo){for(let i=0;i<bytes.length;i++)crc=EXPORT_ZIP_CRC_TABLE[(crc^bytes[i])&255]^(crc>>>8)}
+   else for(let i=0;i<bytes.length;i++){crc^=bytes[i];for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}
   }
   crc=(crc^0xffffffff)>>>0;
   const l=header(30);l.v.setUint32(0,0x04034b50,true);l.v.setUint16(4,20,true);l.v.setUint16(6,0x800,true);
@@ -3947,6 +3973,7 @@ async function startVideoExport(){
  const mode=$('#videoScope')?.value||'current';
  EXPORT_BATCH_FILES=[];EXPORT_BATCH_ZIP=null;EXPORT_BATCH_ABORTED=false;EXPORT_COMBINED_LABEL=false;
  renderExportBatchResults();
+ if(exportPipelineTurbo()&&mode==='separate')$('#videoResult').classList.remove('ready');
  if(mode==='current'){await exportOneEpisode();return}
  const episodes=S.episodes;
  if(!episodes.length||episodes.some(E=>!Array.isArray(E.scenes)||!E.scenes.length)){exportStatus('ไม่มีตอนที่ส่งออกได้',0);return}
@@ -4003,6 +4030,9 @@ let LAST_VIDEO=null;
 function showExportResult(blob,filename){
  if(EXPORT_COMBINED_LABEL)filename=exportFilePrefix()+'-รวมทุกตอน.'+filename.split('.').pop();
  if(EXPORT_BATCH_RUNNING&&$('#videoScope').value==='separate')EXPORT_BATCH_FILES.push({blob,filename});
+ // Turbo does not repeatedly attach earlier episode videos to an iOS decoder.
+ // The user can still download each result immediately from the batch list.
+ if(exportPipelineTurbo()&&EXPORT_BATCH_RUNNING&&$('#videoScope').value==='separate'&&selEp<S.episodes.length-1)return;
  if(LAST_VIDEO?.url)URL.revokeObjectURL(LAST_VIDEO.url);const url=URL.createObjectURL(blob);LAST_VIDEO={blob,filename,url};
  const panel=$('#videoResult');panel.classList.add('ready');$('#videoResultInfo').textContent=filename+' · '+(blob.size/1048576).toFixed(2)+' MB';$('#videoResultPreview').src=url;
  $('#videoSaveAs').style.display=typeof window.showSaveFilePicker==='function'?'':'none';
@@ -4028,6 +4058,7 @@ $('#videoDownload').onclick=videoDownloadAgain;$('#videoShare').onclick=videoSha
 function cancelVideoExport(){if(EXPORT_BATCH_RUNNING)EXPORT_BATCH_ABORTED=true;if(ACTIVE_EXPORT){ACTIVE_EXPORT.aborted=true;exportStatus('กำลังยกเลิก…')}else if(EXPORT_BATCH_RUNNING)exportStatus('ยกเลิกคิวที่เหลือแล้ว · กำลังหยุดงานปัจจุบัน…');else $('#videoDialog').close()}
 $('#videoQuick').onclick=openVideoExport;
 $('#videoScope').addEventListener('change',updateExportScopeHint);
+$('#videoPipeline').addEventListener('change',updateExportPipelineHint);
 $('#videoStart').onclick=startVideoExport;
 $('#videoCancel').onclick=cancelVideoExport;
 function exitVideoExport(){if(ACTIVE_EXPORT||EXPORT_BATCH_RUNNING)return;$('#videoDialog').close();if(STUDIO_WORKSPACE_READY)switchStudioTool('scene');}
@@ -4720,7 +4751,7 @@ function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_T
    if(id==='audio'){AUDIO_DESK_SCENE=sel;renderAudioDesk()}
    if(id==='voices')renderVoiceStudio();
    if(id==='smart'){smartSyncUI();smartRenderReport()}
-   if(id==='export'){const opts=compatibleVideoFormats();$('#videoFormat').replaceChildren(...opts.map((f,i)=>h('option',{value:f.id,selected:i===0},f.name)));$('#videoStart').disabled=!opts.length}
+   if(id==='export'){const opts=compatibleVideoFormats();$('#videoFormat').replaceChildren(...opts.map((f,i)=>h('option',{value:f.id,selected:i===0},f.name)));$('#videoStart').disabled=!opts.length;updateExportPipelineHint()}
    target.show();
   }
  }
