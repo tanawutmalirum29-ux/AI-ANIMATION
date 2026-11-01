@@ -690,6 +690,7 @@ body.export-focus #videoBack:disabled{opacity:.45;cursor:not-allowed}
 <script src="./studio-art-vault.js"></script>
 <script src="./narration-director.js"></script>
 <script src="./studio-sound-assistant.js"></script>
+<script src="./studio-export-integrity.js"></script>
 <script>
 /* ===== state & history ===== */
 const LS='storyStudio.v6'; const PREVIOUS_LS='storyStudio.v5';
@@ -3163,7 +3164,7 @@ const VIDEO_FORMATS=[
  {id:'webm',name:'WebM · VP9',mime:'video/webm;codecs=vp9,opus',ext:'webm'},
  {id:'webm8',name:'WebM · VP8',mime:'video/webm;codecs=vp8,opus',ext:'webm'},
  {id:'webmauto',name:'WebM · อัตโนมัติ',mime:'video/webm',ext:'webm'},
- {id:'mp4video',name:'MP4 · ไม่มีเสียง',mime:'video/mp4;codecs="avc1.42E01E"',ext:'mp4'}
+ {id:'mp4auto',name:'MP4 · อัตโนมัติ (ตรวจแทร็กเสียง)',mime:'video/mp4',ext:'mp4'}
 ];
 let ACTIVE_EXPORT=null;
 const FAST_FORMAT={id:'fastmp4',name:'⚡ MP4 · H.264 เร็ว (แนะนำ)',mime:'video/mp4',ext:'mp4'};
@@ -3180,6 +3181,8 @@ function openVideoExport(){
  if(STUDIO_WORKSPACE_READY){switchStudioTool('export');if(!diag.open)diag.show()}else diag.showModal();
 }
 function exportStatus(msg,percent){const e=$('#videoStatus');if(e)e.textContent=msg;const p=$('#videoProgress');if(p&&percent!==undefined)p.value=clampN(percent,0,100)}
+function closeExportAudioContext(ctx){if(!ctx||ctx.state==='closed')return;try{const pending=ctx.close();if(pending?.catch)pending.catch(()=>{})}catch(e){}}
+
 function xmlEscAttr(t){return String(t||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
 function svgFrameFromWorld(world,scene,w,h){
  const factor=clampN(nm(scene.camera?.world,1),1,3.5),wide=Math.round(w*factor);
@@ -3447,6 +3450,7 @@ function createMp4Muxer(o){
   addVideo(data,ts,key){vs.push({data,ts,key,k:0})},addAudio(data,ts){as.push({data,ts,k:1})},
   finish(){
    if(!vs.length)throw new Error('ไม่มีเฟรมวิดีโอ');if(!vdesc)throw new Error('ไม่ได้รับค่า avcC จากตัวเข้ารหัส');
+   if(hasAudio&&!as.length)throw new Error('มีเสียงในโปรเจกต์ แต่ MP4 ไม่มีเฟรมเสียง AAC จึงยกเลิกการส่งออก');
    const ftyp=fxBox('ftyp',[fxBytes([...'isom'].map(c=>c.charCodeAt(0))),fxU32([512]),fxBytes([...'isomiso2avc1mp41'].map(c=>c.charCodeAt(0)))]);
    const all=vs.concat(as).sort((p,q)=>p.ts-q.ts||p.k-q.k);
    const dummy={vOff:vs.map(()=>0),aOff:as.map(()=>0)};
@@ -3504,7 +3508,7 @@ async function startFastExport(f,cfg,o){
     const off=new OfflineAudioContext(2,Math.max(1,Math.ceil(duration*48000)),48000);
     fxScheduleAudio(off,pa.buffers);audioBuf=await off.startRendering();
    }
-   try{pa.audio.close()}catch(e){}job.context=null;
+   closeExportAudioContext(pa.audio)job.context=null;
    if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
   }
   // 2) วิดีโอ: เรนเดอร์ทีละเฟรมตามเวลาที่กำหนดเอง (ไม่ผูกกับนาฬิกาจริง)
@@ -3537,13 +3541,14 @@ async function startFastExport(f,cfg,o){
   }
   exportStatus('รวมไฟล์ MP4…',99);
   const blob=mux.finish();if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า');
+  if(needAudio)await window.StoryExportIntegrity.requireAudio(blob,'mp4');
   const filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.mp4';
   showExportResult(blob,filename);
   const took=(performance.now()-t0)/1000;
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${(blob.size/1048576).toFixed(2)} MB · ${duration.toFixed(1)} วินาที · ใช้เวลา ${took.toFixed(0)} วินาที (${(duration/took).toFixed(1)}× ของเวลาจริง)${warn?'\n'+warn:''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
   try{venc&&venc.state!=='closed'&&venc.close()}catch(e){}try{aenc&&aenc.state!=='closed'&&aenc.close()}catch(e){}
-  try{job.context?.close()}catch(e){}try{o.audioContext?.close()}catch(e){}
+  closeExportAudioContext(job.context)closeExportAudioContext(o.audioContext)
   T=keep.T;playing=false;sel=keep.sel;resetTransitionCache();draw();ctl();
   ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
  }
@@ -3564,7 +3569,6 @@ async function startVideoExport(){
  const missing=missingNarrationScenes();
  if(missing.length){exportStatus('ยังส่งออกไม่ได้: ฉากที่มีบทพากย์แต่ไม่มีไฟล์เสียงจริง '+missing.length+' ฉาก ('+missing.slice(0,12).join(', ')+(missing.length>12?', …':'')+') · สร้างหรือเพิ่มเสียงใน Sound Desk ก่อนเพื่อไม่ให้วิดีโอขาดเสียง',0);return}
  const wantsAudio=audioEvents().some(ev=>ev.c.data&&!ev.c.mute&&safeClipDuration(ev.c)>0);
- if(wantsAudio&&f.id==='mp4video'){exportStatus('รูปแบบ MP4 ไม่มีเสียง ไม่สามารถใช้กับโปรเจกต์ที่มีเสียงได้ · เลือก MP4 แบบมีเสียงหรือ WebM',0);return}
  // iOS Safari: create/resume the export AudioContext synchronously inside the Export button gesture.
  const earlyAudio=wantsAudio?new (window.AudioContext||window.webkitAudioContext)():null;
  if(earlyAudio)earlyAudio.resume().catch(()=>{});
@@ -3577,7 +3581,7 @@ async function startVideoExport(){
   const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration);
   if(cfg)return startFastExport(f,cfg,{w:fw,h:fh,fps,duration,needAudio,audioContext:earlyAudio});
   const alt=supported.find(x=>x.id!=='fastmp4');
-  if(!alt){try{earlyAudio?.close()}catch(e){}exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
+  if(!alt){closeExportAudioContext(earlyAudio)exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
   f=alt;exportStatus('เข้ารหัสแบบเร็วใช้ไม่ได้บนเครื่องนี้ (ต้องมี H.264/AAC) · ใช้โหมดเวลาจริงแทน');
  }
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:false});
@@ -3624,12 +3628,13 @@ async function startVideoExport(){
   if(mediaError)throw mediaError;
   if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');
   const blob=new Blob(chunks,{type:rec.mimeType||f.mime});if(blob.size<2000)throw new Error('ไฟล์วิดีโอที่ได้ว่างเปล่า เบราว์เซอร์อาจบล็อกการบันทึก');
+  if(wantsAudio)await window.StoryExportIntegrity.requireAudio(blob,f.ext);
   const filename=(S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,55)+'-'+(selEp+1)+'.'+f.ext;
   showExportResult(blob,filename);
   exportStatus(`ส่งออกสำเร็จ: ${filename}\n${(blob.size/1048576).toFixed(2)} MB · ${(duration).toFixed(1)} วินาที${audioData?.warnings.length?'\n'+audioData.warnings[0]:''}${framesShown<duration*fps*0.5?'\n⚠ เครื่องเรนเดอร์ช้า ('+framesShown+' เฟรมจริงจาก '+Math.round(duration*fps)+') ภาพจะกระตุก ลองลดความละเอียด/FPS':''}`,100);
  }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+e.message)}finally{
   try{clearInterval(beat)}catch(e){}try{if(job.recorder?.state!=='inactive')job.recorder?.stop()}catch(e){}
-  try{job.context?.close()}catch(e){}try{earlyAudio?.close()}catch(e){}try{frames.getTracks().forEach(x=>x.stop())}catch(e){}
+  closeExportAudioContext(job.context)closeExportAudioContext(earlyAudio)try{frames.getTracks().forEach(x=>x.stop())}catch(e){}
   T=keep.T;playing=false;sel=keep.sel;resetTransitionCache();draw();ctl();
   ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
  }
