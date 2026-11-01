@@ -82,19 +82,43 @@
        episode:ei+1,scene:si+1,sceneId:scene.id,
        message:event.hint,source:'authored-script',confidence:'needs-visual-review'});
     }
-    // Both characters can legitimately interact/embrace. Warn only about
-    // near-identical coordinates with no staggered depth/keyframe instruction.
+    // Export review 2026-11-01: actors overlap visibly even when both have
+    // a motion route. Their starting anchors can be cramped before the motion
+    // separates them; motion alone is NOT proof the silhouette is readable.
+    // Never move actors or reject intentional embraces automatically.
     const actors=Array.isArray(scene.actors)?scene.actors:[];
     for(let a=0;a<actors.length;a++)for(let b=a+1;b<actors.length;b++){
      const u=actors[a],v=actors[b];
      if(!Number.isFinite(Number(u?.x))||!Number.isFinite(Number(v?.x))||
       !Number.isFinite(Number(u?.y))||!Number.isFinite(Number(v?.y)))continue;
      if(Math.abs(Number(u.x)-Number(v.x))<actorGap&&Math.abs(Number(u.y)-Number(v.y))<8&&
-      !anyMotion([u,v])&&!u.depth&&!v.depth)
+      !u.depth&&!v.depth){
+      const moving=anyMotion([u,v]);
       sceneIssues.push({kind:'actor-overlap',event:'actor-overlap',title:'ตัวละครอาจซ้อนทับกัน',
        episode:ei+1,scene:si+1,sceneId:scene.id,
-       message:'ระยะ X ของตัวละครใกล้กันมาก ตรวจการบังกัน/มือทะลุตัว และกำหนดตำแหน่งหรือ depth ให้ชัด',
+       message:(moving?'ตัวละครเริ่มชิดกัน แม้มี motion/keyframe ก็อาจบังกันช่วงต้นฉาก; ':
+        'ระยะ X ของตัวละครใกล้กันมาก; ')+
+        'ตรวจภาพจริง มือ/ลำตัวทะลุกัน และการกอดที่ตั้งใจ ก่อนแก้ตำแหน่งหรือ depth',
        source:'actor-position',confidence:'needs-visual-review'});
+     }
+    }
+    // Production-owned SVG drafts can obscure nearby actors in portrait
+    // exports (oversized toolbox/reflector seen in sampled MP4 frames).
+    // Position is an approximation, not a pixel-level collision test.
+    // Flag for review ONLY; never resize or relocate user/manual assets.
+    for(const draft of Array.isArray(scene.customAssets)?scene.customAssets:[]){
+     if(draft?.producer!=='studio-production-v1'||draft.productionManualLock===true||
+       !Number.isFinite(Number(draft.x))||!Number.isFinite(Number(draft.y))||
+       !Number.isFinite(Number(draft.scale))||Number(draft.scale)<.7)continue;
+     const nearby=actors.some(actor=>Number.isFinite(Number(actor?.x))&&
+       Number.isFinite(Number(actor?.y))&&
+       Math.abs(Number(draft.x)-Number(actor.x))<(actorGap+8)&&
+       Math.abs(Number(draft.y)-Number(actor.y))<30);
+     if(nearby)sceneIssues.push({kind:'draft-asset-clearance',event:'draft-asset-clearance',
+      title:'วัตถุร่าง SVG อาจบังตัวละคร',episode:ei+1,scene:si+1,sceneId:scene.id,
+      message:'ตรวจขนาด/เลเยอร์/ตำแหน่งของ '+String(draft.eventKind||'วัตถุ')+
+       ' กับตัวละครจากเฟรมส่งออกจริง; อย่าแก้ฉากอัตโนมัติจากระยะโดยประมาณ',
+      source:'generated-asset-position',confidence:'needs-visual-review'});
     }
     scenes.push({episode:ei+1,scene:si+1,sceneId:scene.id,coverage:data,issues:sceneIssues.length});
     issues.push(...sceneIssues);
@@ -102,7 +126,8 @@
   });
   return {inspected:scenes.length,issues,scenes,byKind:{
    unverifiedEvents:issues.filter(i=>i.kind==='unverified-event').length,
-   actorOverlap:issues.filter(i=>i.kind==='actor-overlap').length
+   actorOverlap:issues.filter(i=>i.kind==='actor-overlap').length,
+   draftAssetClearance:issues.filter(i=>i.kind==='draft-asset-clearance').length
   },limits:'Static JSON preflight; sampled/exported frames must still be reviewed. No automatic visual changes.'};
  }
  return Object.freeze({inspect,coverage,EVENTS});

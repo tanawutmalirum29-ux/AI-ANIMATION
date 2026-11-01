@@ -41,4 +41,20 @@ for(const kind of cases){
  assert.equal(JSON.stringify(state.episodes[0].scenes[0]),JSON.stringify(initial),
   'audit never modifies source story before approval');
 }
+
+const newest=JSON.parse(fs.readFileSync(path.resolve(__dirname,
+ '../training-lab/evaluations/three-flashes-nov1-latest-user-exports.json'),'utf8'));
+assert.equal(newest.label,'evaluation-only','visual/audio feedback is not an approved model training label');
+assert.equal(newest.clips.length,3);
+assert.ok(newest.clips.every(c=>c.audio.codec==='aac'&&c.video.fps===24));
+assert.ok(newest.clips.every(c=>c.longQuietRegionsOver4s===0));
+assert.ok(newest.clips.every(c=>Math.max(...c.quietDurationsSeconds)<1.3));
+assert.equal(newest.clips[1].seconds,newest.clips[2].seconds);
+assert.deepEqual(newest.clips[1].quietDurationsSeconds,newest.clips[2].quietDurationsSeconds);
+assert.equal(newest.comparisons.episode2VersionAudioPCMSHA256Equal,true);
+assert.equal(newest.comparisons.episode2VersionsConsideredIndependentStories,false,
+ 'duplicate encodes are not independent evidence for statistical training');
+assert.equal(newest.trainingAssessment.approvedTrainingLabels,0);
+assert.equal(newest.trainingAssessment.weightUpdateFromTheseMP4s,false);
+
 console.log('PASS: measured latest 3 exported videos and six factory animation types no longer create voice-tail silence');
