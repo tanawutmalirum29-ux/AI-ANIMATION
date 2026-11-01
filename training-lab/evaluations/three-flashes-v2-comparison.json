@@ -131,5 +131,36 @@
     "Frame sampling cannot prove an effect is never visible between samples",
     "Current output durations remain well below 60s; never insert filler or repeat narration merely to force a 60-second target",
     "No model weights were retrained"
-  ]
+  ],
+  "audioContentComparison": {
+    "method": "Decode each MP4 to 8 kHz mono PCM; compare ~3 s overlapping voiced audio from each of the six inferred scene segments using normalized cross-correlation with +/-250 ms alignment. This is a sample-based continuity check, not speech recognition.",
+    "peakNormalizedCorrelationsByEpisode": [
+      [
+        0.998,
+        0.986,
+        0.995,
+        0.998,
+        0.998,
+        0.996
+      ],
+      [
+        0.998,
+        0.996,
+        0.998,
+        0.994,
+        0.997,
+        0.992
+      ],
+      [
+        0.998,
+        0.997,
+        0.991,
+        0.997,
+        0.996,
+        0.991
+      ]
+    ],
+    "overallMin": 0.986,
+    "interpretation": "High waveform correlation in selected speech samples supports that the same soundtrack segments were retained after scene tightening. It does not establish that every spoken word or every frame is present."
+  }
 }
