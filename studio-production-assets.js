@@ -28,7 +28,7 @@ function beats(kind,duration){
  if(kind==='reflector')return[{t:0,rotate:-30},{t:at(.45),rotate:0},{t:d,rotate:65}];
  if(kind==='belt')return[{t:0,rotate:0},{t:at(.44),rotate:0},{t:at(.7),rotate:32},{t:d,rotate:60,opacity:.1}];
  if(kind==='beacon'){const k=[{t:0,opacity:0}];for(let i=0;i<3;i++)k.push({t:at(.16+i*.23),opacity:0},{t:at(.20+i*.23),opacity:1},{t:at(.25+i*.23),opacity:1},{t:at(.30+i*.23),opacity:0});k.push({t:d,opacity:0});return k;}
- if(kind==='flood')return[{t:0,y:99,opacity:.55},{t:at(.4),y:85,opacity:.75},{t:d,y:68,opacity:.92}];
+ if(kind==='flood')return[{t:0,y:99,opacity:.38},{t:at(.4),y:90,opacity:.5},{t:d,y:79,opacity:.65}];
  return [];
 }
 function item(scene,kind){const t=templates[kind];if(!t)return null;return {asset:{version:1,id:'auto-'+kind+'-v1',name:t.name,category:t.category,description:'Auto draft; inspect visuals before publishing.',shapes:t.shapes.map(s=>({...s}))},x:t.x,y:t.y,scale:t.scale,front:t.front,producer:'studio-production-v1',eventKind:kind,motionKeys:beats(kind,scene.duration)};}
