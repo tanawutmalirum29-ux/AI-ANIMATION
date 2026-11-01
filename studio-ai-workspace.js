@@ -300,6 +300,45 @@ async function runTask(taskId){
  }finally{busy=false;render()}
 }
 
+/* One-button stages use a shared, persistent JSON project. These are bounded
+ * local rule modules, not six neural models conversing or trained in secret. */
+function productionSteps(){
+ const names=root.StoryProductionPlanner?.stages||[];
+ return names.map(x=>({id:x.id,name:x.name,mode:x.mode,status:'pending',summary:''}));
+}
+function patchProductionStep(taskId,id,update){
+ persist(state=>{
+  const t=state.tasks.find(x=>x.id===taskId);
+  if(!t)return;
+  const step=t.steps?.find(x=>x.id===id);
+  if(step)Object.assign(step,update,{updatedAt:now()});
+  t.updatedAt=now();
+ });
+ render();
+}
+async function applyProductionPlan(stage,ensureBackup){
+ const planner=root.StoryProductionPlanner,editor=root.StudioAPI;
+ if(!planner?.plan||!editor?.apply)throw Error('ยังโหลดระบบ '+stage+' ไม่ครบ');
+ const result=planner.plan(bridge.get(),stage,root.StoryProductionAssets);
+ if(!result.ops?.length)return {applied:0,warnings:result.warnings||[],details:[]};
+ const dry=editor.apply(result.ops,{dryRun:true});
+ if(!dry.ok)throw Error('แผน '+stage+' ไม่ผ่าน validator: '+
+  ((dry.errors||[]).map(x=>x.msg).join('; ')||
+   (dry.issues||[]).find(x=>x.level==='error')?.msg||'รูปแบบไม่ถูกต้อง'));
+ await ensureBackup();
+ const applied=editor.apply(result.ops);
+ if(!applied.applied)throw Error('ไม่สามารถบันทึกผล '+stage);
+ return {applied:result.ops.length,warnings:result.warnings||[],details:result.details||[]};
+}
+function countVoiceCoverage(state){
+ let expected=0,voiced=0;
+ for(const ep of state.episodes||[])for(const sc of ep.scenes||[]){
+  if(!String(sc.voiceover||(sc.subtitle||[]).join(' ')).trim())continue;
+  expected++;
+  if((sc.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&!c.mute&&!c.staleNarration))voiced++;
+ }
+ return {expected,voiced,missing:Math.max(0,expected-voiced)};
+}
 async function runCoordinatedProduction(){
  if(busy){status('กำลังทำงานอื่นอยู่ โปรดรอจนงานนั้นจบก่อน',true);return}
  const job={id:core.id(),role:'production',scope:'all',
