@@ -54,7 +54,7 @@ phases:
     commands:
       - npm install --prefix /tmp/story-cloud-tools --no-audit --no-fund playwright@1.56.1
       - /tmp/story-cloud-tools/node_modules/.bin/playwright install chromium --with-deps
-      - if ! command -v ffmpeg >/dev/null; then apt-get update -qq && apt-get install -y ffmpeg zip unzip; fi
+      - if ! command -v ffmpeg >/dev/null || ! command -v zip >/dev/null || ! command -v unzip >/dev/null; then apt-get update -qq && apt-get install -y ffmpeg zip unzip; fi
   build:
     commands:
       - git clone --depth 1 --branch main https://github.com/tanawutmalirum29-ux/AI-ANIMATION.git /tmp/story-site
