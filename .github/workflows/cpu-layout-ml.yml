@@ -1,0 +1,60 @@
+name: CPU Layout ML (experimental)
+on:
+  pull_request:
+    paths:
+      - studio-layout-ml.js
+      - training-lab/train-layout.py
+      - training-lab/test-layout-ml.py
+      - training-lab/datasets/approved/**
+      - tests/layout-ml-contract.test.cjs
+      - .github/workflows/cpu-layout-ml.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Train synthetic demo or human-approved numeric labels"
+        type: choice
+        required: true
+        default: demo
+        options:
+          - demo
+          - approved
+permissions:
+  contents: read
+concurrency:
+  group: cpu-layout-ml-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  cpu-train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify schema and incremental CPU trainer (no dependencies)
+        run: |
+          node --check studio-layout-ml.js
+          node tests/layout-ml-contract.test.cjs
+          python3 training-lab/test-layout-ml.py
+      - name: Train only on explicitly dispatched mode
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TRAIN_MODE: ${{ inputs.mode }}
+        run: |
+          mkdir -p candidate-output
+          if [ "$TRAIN_MODE" = "approved" ]; then
+            python3 training-lab/train-layout.py --mode approved --data training-lab/datasets/approved/layout-spacing.jsonl --out candidate-output/layout-candidate.json
+          else
+            python3 training-lab/train-layout.py --mode demo --out candidate-output/layout-demo-only.json
+          fi
+      - name: Save weights for review only (never deploy)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-layout-ml-${{ inputs.mode }}
+          path: candidate-output/*.json
+          retention-days: 1

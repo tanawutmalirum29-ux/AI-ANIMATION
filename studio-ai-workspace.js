@@ -464,6 +464,17 @@ function exportText(name,data,mime='application/json'){
  const a=e('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
 
+function exportApprovedLayoutFeedback(action){
+ try{
+  if(!bridge?.layoutFeedback)throw Error('ระบบจัดเก็บตัวอย่างยังไม่พร้อม');
+  const record=bridge.layoutFeedback(action);
+  // Download only: never upload to GitHub or a model-training service.
+  exportText('layout-feedback-'+Date.now()+'.jsonl',JSON.stringify(record)+'\n',
+   'application/x-ndjson');
+  status('ดาวน์โหลดตัวอย่างจัดฉากที่อนุมัติแล้ว 1 รายการ · ยังไม่ส่งข้อมูลไปฝึกอัตโนมัติ');
+ }catch(error){status('บันทึกตัวอย่าง ML ไม่สำเร็จ: '+error.message,true)}
+}
+
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
  pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
@@ -477,6 +488,14 @@ function renderChat(container){
   e('small',{},'สำรองก่อนแก้ • ใช้เสียงเดิมถ้ามี • รักษาบทและ Keyframe • ถ้า TTS ไม่พร้อมจะข้ามและแจ้งเตือน • ต้องตรวจวิดีโอจริงก่อนเผยแพร่'),
   ...(production?.lastSummary?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
     'สถานะล่าสุด '+production.stage+' · '+production.lastSummary)]:[])
+ ));
+ pane.append(e('details',{className:'ai-task'},
+  e('summary',{},'ML Lab · บันทึกตัวอย่างที่คุณตรวจแล้ว (ไม่ใช้ GPU)'),
+  e('p',{className:'ai-help'},'เลือกฉากที่มีตัวละคร 2 คนขึ้นไป ตรวจตำแหน่งด้วยตนเองก่อนอนุมัติ ระบบส่งออกเฉพาะตัวเลข ไม่มีภาพ เสียง หรือข้อความบท ไม่อัปโหลดข้อมูลไป GitHub เอง'),
+  e('div',{className:'ai-actions'},
+   button('ตำแหน่งคู่นี้ดีแล้ว · เก็บตัวอย่าง',()=>exportApprovedLayoutFeedback('keep'),{disabled:busy}),
+   button('แก้ตำแหน่งล่าสุดแล้ว · เก็บตัวอย่าง',()=>exportApprovedLayoutFeedback('correction'),{disabled:busy})),
+  e('small',{},'ไฟล์ .jsonl ดาวน์โหลดลงเครื่องเมื่อคุณกดเท่านั้น · ต้องนำข้อมูลที่ตรวจแล้วเข้าชุดฝึกก่อนฝึก CPU จริง · โมเดลทดลองยังไม่ควบคุมฉากอัตโนมัติ')
  ));
  const latest=w().tasks.slice().reverse().find(x=>x.role==='production');
  const steps=latest?.steps?.length?latest.steps:productionSteps();
