@@ -36,7 +36,7 @@
   const awning=Array.from({length:5},(_,i)=>
    R(-10+i*4,-25,4,3,i%2===0?shade:'#ece0bf',0)).join('');
   const produce=['#d49b54','#8fbc8c','#c87858','#b1a06c'].map((v,i)=>E(-7+i*4.4,-7,2.2,1.1,v)).join('');
-  return '<g transform="translate('+f(x)+' '+f(y)+') scale('+f(scale)+')">'+
+  return '<g data-world-object="market-stall" transform="translate('+f(x)+' '+f(y)+') scale('+f(scale)+')">'+
    R(-9,-22,1.5,22,'#847a73')+R(7.5,-22,1.5,22,'#847a73')+
    P('M-11 -23L-8 -32L8 -32L11 -23Z','#443e48')+awning+
    R(-10,-11,20,3,'#a38a6b',.5)+R(-8,-8,16,8,'#5a5151')+produce+
@@ -44,7 +44,7 @@
    (light?C(0,-27,1.6,'#ffe6a2',.95)+C(0,-27,4.3,'#ffda85',.13):'')+'</g>';
  }
  function lighthouse(x,base,scale=1,beam=false,direction='right',phase=1){
-  let body='<g transform="translate('+f(x)+' '+f(base)+') scale('+f(scale)+')">'+
+  let body='<g data-world-object="lighthouse-exterior" transform="translate('+f(x)+' '+f(base)+') scale('+f(scale)+')">'+
    E(0,1,18,3,'#1c3440',.6)+
    P('M-8 0L-6 -60L6 -60L8 0Z','#d2d0c7')+
    P('M-7 -19L7 -19L6.8 -26L-6.7 -26Z','#ae6664')+
@@ -85,14 +85,14 @@
    Array.from({length:9},(_,i)=>L(x(.19+i*.033),67,x(.19+i*.033),82,'#394852',.45,.8)).join('')+
    Array.from({length:4},(_,i)=>R(x(.23+i*.07),63,1,3.5,'#313e45',.3)).join('')+
    // Floodgate: concrete piers, hoist, rusted SLIDING IRON PANEL and leaking sea water.
-   R(x(.47)-6,46,5.5,37,'#7e8585')+R(x(.58),46,5.5,37,'#7e8585')+
+   '<g data-world-object="floodgate">'+R(x(.47)-6,46,5.5,37,'#7e8585')+R(x(.58),46,5.5,37,'#7e8585')+
    R(x(.47)-7,43,x(.11)+15,5,'#a4a29e')+
    R(x(.475),51,x(.1),27,'#6a7378')+
    Array.from({length:7},(_,i)=>L(x(.478),54+i*3.3,x(.573),54+i*3.3,'#a77d6b',.72,.9)).join('')+
    Array.from({length:3},(_,i)=>R(x(.492+i*.032),54,1.4,24,'#4f5964')).join('')+
    C(x(.522),42,3,'#4c515b')+C(x(.522),42,1.4,'#cfb394')+
    L(x(.522),43,x(.522),51,'#c2b8a3',.9)+
-   R(x(.474),72,x(.104),7,'#53636d')+
+   R(x(.474),72,x(.104),7,'#53636d')+'</g>'+
    // Street and market building silhouettes sit BEHIND the stalls.
    P('M'+f(x(.60))+' 65L'+f(x(.64))+' 60L'+f(x(.75))+' 61L'+f(x(.8))+' 56L'+f(W)+' 58L'+f(W)+' 82L'+f(x(.6))+' 82Z','#384953')+
    [0.64,0.77,0.9].map((v,i)=>tinyHouse(x(v),66,.58+i*.1,['#506275','#625e65','#4d6970'][i])).join('')+
@@ -171,12 +171,12 @@
      Array.from({length:3},(_,j)=>L(xx+3+j*5,23,xx+5+j*5,40,'#91afb8',.45,.26)).join('');
    }).join('')+
    // Lighthouse glass giant Fresnel lens, not a household lamp.
-   E(x(.63),30,20,18,'#fbdfa3',.11*lit)+
+   '<g data-world-object="fresnel-lens">'+E(x(.63),30,20,18,'#fbdfa3',.11*lit)+
    P('M'+f(x(.63)-12)+' 13L'+f(x(.63)+12)+' 13L'+f(x(.63)+15)+' 48L'+f(x(.63)-15)+' 48Z','#9dbbc0',.65)+
    Array.from({length:7},(_,i)=>{
     const yy=18+i*4;return L(x(.63)-13,yy,x(.63)+13,yy,i%2?'#d4d3bd':'#9be3ef',.8,.75);
    }).join('')+
-   E(x(.63),31,9,12,'#ecd8a3',.52)+C(x(.63),31,5.4,'#fff1bc',lit*.9)+
+   E(x(.63),31,9,12,'#ecd8a3',.52)+C(x(.63),31,5.4,'#fff1bc',lit*.9)+'</g>'+
    // Large gear train + manual crank assembly at left.
    R(x(.16),53,x(.45),4,'#9c8875')+R(x(.28),48,3,35,'#5e6267')+
    C(x(.32),51,7,'#535c62')+C(x(.32),51,4.8,'#ac9f86')+C(x(.32),51,2,'#51616a')+
@@ -212,12 +212,13 @@
   const kind=typeof set==='string'?set:set&&set.worldArt;
   if(!TYPES.includes(kind))return '';
   const width=clamp(W,20,1100,160),t=clamp(local,0,1000,0),front=layer==='front';
-  if(kind==='coastal-harbor')return harbor(width,t,scene,front);
-  if(kind==='coastal-workshop')return workshop(width,t,scene,front);
-  if(kind==='coastal-cliff')return cliff(width,t,scene,front);
-  if(kind==='lighthouse-lantern')return lantern(width,t,scene,front);
-  if(kind==='coastal-hill')return hill(width,t,scene,front);
-  return '';
+  let svg='';
+  if(kind==='coastal-harbor')svg=harbor(width,t,scene,front);
+  if(kind==='coastal-workshop')svg=workshop(width,t,scene,front);
+  if(kind==='coastal-cliff')svg=cliff(width,t,scene,front);
+  if(kind==='lighthouse-lantern')svg=lantern(width,t,scene,front);
+  if(kind==='coastal-hill')svg=hill(width,t,scene,front);
+  return '<g data-world-art="'+kind+'" data-world-layer="'+layer+'">'+svg+'</g>';
  }
  return Object.freeze({TYPES,render});
 });
