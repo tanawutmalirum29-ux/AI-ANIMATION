@@ -4511,7 +4511,7 @@ window.StoryStudioBridge={
 };
 
 /* ===== boot ===== */
-function fit(){const w=$('#stageWrap'),st=$('#stage'),[a,b]=S.project.aspect.split(':').map(Number),mob=innerWidth<=820,cinema=THEATER_ACTIVE;
+function fit(){const w=$('#stageWrap'),st=$('#stage'),[a,b]=S.project.aspect.split(':').map(Number),mob=matchMedia('(max-width:820px), (orientation:portrait) and (max-width:1100px)').matches,cinema=THEATER_ACTIVE;
 // In the normal editor cap the stage height. In cinema mode use the actual available viewport.
 const W=Math.max(100,(w.clientWidth||300)-24);
 const H=cinema?Math.max(120,(w.clientHeight||innerHeight-120)-20):mob?Math.max(155,Math.min(innerHeight*.29,290)):Math.max(100,(w.clientHeight||300)-24);

@@ -180,23 +180,75 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
 #tl .motion-lane{margin:0;padding:3px 10px;background:#121317;border-top:1px solid var(--pro-line);font-size:11px;flex:none}
 .pt-toast{position:absolute;right:12px;bottom:10px;background:#000c;color:#fff;border:1px solid var(--pro-edge);border-radius:5px;padding:6px 10px;font-size:12px;z-index:30;pointer-events:none}
 
-@media(max-width:820px){
- header#top{height:auto;flex-wrap:wrap;padding:6px 8px}
- header#top::before{display:none}
- #pre #ctl #clock{min-width:96px;font-size:11px;padding:6px}
- #tl{min-height:300px}
- .pt-head{width:92px}.pt-head .cnt,.pt-head .led{display:none}
- .pt-btn kbd{display:none}
- #studioToolNav{flex-direction:row}#studioToolNav button{flex-direction:row;min-height:38px;width:auto}
-}
 
 @media(min-width:821px) and (max-height:820px){
  .pt-row.audio .pt-lane,.pt-row.audio .pt-head{height:38px}
  .pt-row.video .pt-lane,.pt-row.video .pt-head{height:44px}
  .pt-props{height:38px}
 }
-@media(max-width:820px){
+
+/* ===== Portrait / phone layout: fixed app frame ===========================
+   preview (pinned) -> tool tabs (pinned) -> timeline (pinned) -> tool panel (the only scrolling area) */
+@media (max-width:820px), (orientation:portrait) and (max-width:1100px){
+ html{height:100%;overflow:hidden}
+ body{display:flex!important;flex-direction:column;height:100dvh!important;min-height:0!important;overflow:hidden!important;padding-bottom:env(safe-area-inset-bottom,0px);gap:0}
+ header#top{order:0;flex:none;display:flex!important;flex-wrap:nowrap;align-items:center;height:46px;padding:0 8px;gap:5px;overflow:hidden;position:relative;z-index:5}
+ header#top::before{display:none}
+ header#top .ttl{grid-area:auto;flex:1 1 0;min-width:0;width:auto;height:34px;font-size:14px;padding:0 8px}
+ header#top .epsel{grid-area:auto;flex:0 1 34%;min-width:0;width:auto;height:34px;font-size:12px}
+ header#top .tool-btn{grid-area:auto;width:34px;height:34px}
+ header#top .menu-toggle{grid-area:auto;width:auto;height:34px;padding:0 9px}
+ header#top .menu-toggle span,header#top .export-btn span{display:none}
+ header#top .export-btn{width:34px;padding:0;justify-content:center;height:34px}
+ header#top .top-spacer,header#top .sep{display:none}
+
+ #pre{order:1;flex:none;padding:0!important;gap:0!important;overflow:visible!important;max-height:none;min-height:0;display:flex;flex-direction:column}
+ #pre .preview-toolbar{height:30px;min-height:30px;padding:0 6px;flex:none}
+ #pre .preview-label,#pre .preview-context{display:none}
+ #pre .preview-actions{width:100%;justify-content:space-between}
+ #pre .preview-toolbar button{height:26px;min-height:26px;font-size:11px;padding:0 7px}
+ #pre #stageWrap{flex:none;margin:0;border-radius:0;border-left:0;border-right:0;padding:6px!important;width:100%}
+ #pre #ctl{display:grid!important;grid-template-columns:auto auto auto auto minmax(60px,1fr) auto auto;grid-template-areas:"clock prev play next scrub t1 t2";gap:5px;padding:5px 8px;align-items:center}
+ #pre #ctl>input[type=range]{grid-area:scrub;height:24px}
+ #pre #ctl #clock{font-size:11px;min-width:0;padding:6px 7px;letter-spacing:0}
+ #pre #ctl>button{width:36px;height:34px}
+ #pre #ctl #pp{width:42px}
+ #pre #ctl>button.ctl-t{width:36px;padding:0;justify-content:center;margin:0}
  #pre #ctl>button.ctl-t span{display:none}
- #pre #ctl>button.ctl-t{width:34px;padding:0;justify-content:center}
- #pre #ctl #clock{min-width:0;padding:6px 7px}
+ #pre #motionBar{max-height:20dvh;overflow:auto}
+ #welcome{margin:4px 6px;padding:6px 8px}
+ #welcome .intro-detail{display:none}
+
+ /* tool tabs: pinned strip directly under the preview */
+ #studioWorkspace{display:contents!important}
+ #studioToolNav{order:2;flex:none;display:flex!important;flex-direction:row;align-items:stretch;gap:3px;height:54px;padding:4px 6px!important;overflow-x:auto;overflow-y:hidden;background:#121317;border-top:1px solid #000;border-bottom:1px solid #000;border-right:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:4}
+ #studioToolNav::-webkit-scrollbar{display:none}
+ #studioToolNav button{flex:0 0 auto;width:60px;min-width:60px;min-height:0;height:46px;padding:3px 2px;font-size:10px}
+ #studioToolNav button .pi{width:19px;height:19px}
+ #studioToolNav button span{max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #studioToolTitle{display:none!important}
+
+ /* timeline: pinned dock */
+ #tl{order:3;flex:none;height:clamp(132px,21dvh,210px);max-height:none!important;min-height:0!important;overflow:hidden!important;padding:0!important;border-top:0}
+ .pt-bar{height:34px}.pt-btn{height:26px;padding:0 7px}.pt-btn kbd,.pt-bar .zoom-wrap{display:none}
+ .pt-props.empty{display:none}.pt-props{height:36px}
+ .pt-head{width:104px;padding:0 6px;gap:5px}.pt-head .nm{font-size:10.5px}.pt-head button:last-child{display:none}
+ .pt-row.audio .pt-lane,.pt-row.audio .pt-head{height:34px}.pt-row.video .pt-lane,.pt-row.video .pt-head{height:40px}
+ .pt-head button{width:22px;height:22px}
+ #tl .motion-lane{display:none}
+
+ /* tool panel: the only part that scrolls */
+ #studioToolBody{order:4;flex:1 1 0!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-top:0}
+ #studioToolBody>*{max-width:100%}
+ #jumpTop,#previewScrollTop,#workspaceJumpTop{display:none!important}
+}
+@media (orientation:portrait) and (max-width:1100px) and (min-width:700px){
+ #pre #ctl #clock{font-size:12px}
+ header#top .menu-toggle span,header#top .export-btn span{display:inline}
+ header#top .export-btn{width:auto;padding:0 12px}
+}
+
+@media (max-width:520px){
+ #pre #ctl{grid-template-columns:minmax(0,1fr) auto auto auto auto auto auto;grid-template-areas:"scrub scrub scrub scrub scrub scrub scrub" "clock prev play next . t1 t2"}
+ #pre #ctl>input[type=range]{height:20px}
 }

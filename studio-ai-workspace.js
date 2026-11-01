@@ -478,6 +478,21 @@ function standardNarrative(sc){
  }
  return {id:sc.id,voiceover:sc.voiceover,subtitle,subtitleCues};
 }
+async function chatWithRecovery(modelId,request){
+ // web-llm can lose its Tokenizer after an unload / GPU hiccup on iPad Safari.
+ // Reload a fresh engine once and retry the same request instead of failing the whole task.
+ let engine=await loadLocalModel(modelId);
+ try{return await abortableModelWork(engine.chat.completions.create(request))}
+ catch(err){
+  const text=String(err?.message||err);
+  if(modelAbortController?.signal.aborted||!/deleted object|tokenizer\*|disposed/i.test(text))throw err;
+  releaseLocalModel();
+  updateModelLoad({active:true,ready:false,percent:null,error:'',
+   stage:'Tokenizer ของโมเดลหลุด · กำลังโหลดโมเดลใหม่แล้วลองซ้ำ 1 ครั้ง'});
+  engine=await loadLocalModel(modelId);
+  return await abortableModelWork(engine.chat.completions.create(request));
+ }
+}
 async function runNarrative(config={}){
  const coordinated=!!config.coordinated;
  if(busy&&!coordinated)return;
@@ -496,16 +511,16 @@ async function runNarrative(config={}){
    const rules=narrativeMode==='preserve'?'Keep voiceover EXACTLY unchanged. Only improve subtitle segmentation.':
     narrativeMode==='polish'?'Polish voiceover language and subtitles without changing events, identities, or plot.':
     'You may creatively rewrite narration and add small lines for atmosphere, but do not invent plot events or change identities.';
-   const batchSize=LOCAL_MODELS.find(m=>m.id===narrativeModel)?.backend==='wasm'?1:3;
+   const small=/0\.5B|1\.5B/.test(narrativeModel),batchSize=LOCAL_MODELS.find(m=>m.id===narrativeModel)?.backend==='wasm'||small?1:3,clip=small?700:1600;
    const allChanges=[];
    for(let offset=0;offset<scenes.length;offset+=batchSize){
     const batch=scenes.slice(offset,offset+batchSize);
     updateModelLoad({active:true,ready:false,percent:null,
      stage:'AI-3 วิเคราะห์ฉาก '+(offset+1)+'–'+(offset+batch.length)+' จาก '+scenes.length});
-    const response=await abortableModelWork(engine.chat.completions.create({messages:[
+    const response=await chatWithRecovery(narrativeModel,{messages:[
      {role:'system',content:'You are a Thai animation narration and subtitle editor. Return ONLY JSON {"changes":[{"id":"scene id","voiceover":"Thai narration","subtitle":["Thai subtitle line"]}]}. '+rules+' Each subtitle line <=28 Thai characters, NO MORE THAN 3 lines per scene. Use concise subtitles while preserving the complete voiceover. Do not change scene order or other fields. Keep story faithful. Output only supplied scene IDs.'},
-     {role:'user',content:JSON.stringify(batch.map(x=>({...x,voiceover:x.voiceover.slice(0,1600)})))}
-    ],temperature:.2,max_tokens:batchSize===1?520:1050}));
+     {role:'user',content:JSON.stringify(batch.map(x=>({...x,voiceover:x.voiceover.slice(0,clip)})))}
+    ],temperature:.2,max_tokens:batchSize===1?520:1050});
     const raw=String(response.choices?.[0]?.message?.content||'').trim()
      .replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
     let parsed;
