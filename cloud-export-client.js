@@ -19,6 +19,7 @@
     'ยังไม่ได้ติดตั้ง Cloud Export: ต้อง Deploy ตัวเรนเดอร์บน AWS ก่อนใช้งาน'):
    'เครื่องนี้: เข้ารหัสในเบราว์เซอร์ ใช้ CPU/RAM ของโทรศัพท์ ไม่คิดค่าเรนเดอร์บน AWS';
   const localFormats=typeof compatibleVideoFormats==='function'?compatibleVideoFormats().length>0:true;
+  choice.disabled=busy;
   start.disabled=busy||(cloud()?(!configured||!root.StoryStudioAccess?.isReady?.()):!localFormats);
   if($('videoFormat'))$('videoFormat').disabled=cloud();
   if($('videoPipelineStandard'))$('videoPipelineStandard').disabled=cloud()||busy;
@@ -46,7 +47,9 @@
   try{
    const info=await api({action:'export.status',jobId:pending.jobId});
    if(info.state==='SUCCEEDED'&&info.downloadUrl){
-    pendingJob(null);setBusy(false);$('videoProgress').value=100;
+    const finished=pending;pending=null;
+    try{localStorage.setItem(storeKey,JSON.stringify({...finished,finished:true}))}catch(e){}
+    setBusy(false);$('videoProgress').value=100;
     status('เรนเดอร์บนเซิร์ฟเวอร์สำเร็จ · ดาวน์โหลดไฟล์ได้ด้านล่าง (ลิงก์มีอายุ 15 นาที)');
     showDownload(info.downloadUrl,info.extension);return;
    }
@@ -85,6 +88,8 @@
       throw Error('ตอน '+(snapshot.episodes.indexOf(episode)+1)+' ฉาก '+(i+1)+' มีบทพากย์แต่ยังไม่มีไฟล์เสียงจริง');
     }
    }
+   if(current==='combined'&&targets.reduce((n,E)=>n+E.scenes.reduce((a,s)=>a+Number(s.duration||0),0),Math.max(0,targets.length-1)*2.5)>1800)
+    throw Error('วิดีโอรวมเกิน 30 นาที · เลือกทุกตอนแบบแยกไฟล์');
    payload=JSON.stringify({project:snapshot,settings:{
     scope:current,episodeIndex:selEp,resolution:selection,fps,captions:$('videoCaptions').checked
    }});
@@ -108,7 +113,7 @@
    await poll();
   }catch(err){
    uploadAbort=null;
-   // A failed start can be retried from the same job after a reload.
+   pendingJob(null);
    fail(err);
   }
  }
