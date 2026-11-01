@@ -68,7 +68,7 @@ test('iPad preview plays an existing voice clip and immediately replays after da
   AUDIO_PLAYERS:audioPlayers,AUDIO_PLAYER_GRAPHS:new Map(),Audio:FakeAudio,
   clipGain:()=>1,eventXGain:()=>1,voiceGainFactor:()=>1,clipAutoGainFactor:()=>1,
   effectiveClipRate:()=>1,cleanNum:(x,d=0)=>Number.isFinite(Number(x))?Number(x):d,
-  PREVIEW_MEDIA_RETRY_AT:retry,performance:{now:()=>now},
+  PREVIEW_MEDIA_RETRY_AT:retry,PREVIEW_MEDIA_PLAY_PENDING:new Set(),performance:{now:()=>now},
   clampN:(x,l,h)=>Math.max(l,Math.min(h,x)),showPreviewAudioProblem(){},
   PREVIEW_MEDIA_ERROR:'',createFxNodes(){},applyFxNodes(){},$:()=>({pause(){}})
  };
@@ -106,7 +106,7 @@ test('iPad preview plays original and replaced narration clips without stale aud
   AUDIO_PLAYERS:map,AUDIO_PLAYER_GRAPHS:new Map(),Audio:MockAudio,clipGain:()=>1,
   eventXGain:()=>1,voiceGainFactor:()=>1,clipAutoGainFactor:()=>1,
   effectiveClipRate:()=>1,cleanNum:(x,d=0)=>Number.isFinite(Number(x))?Number(x):d,
-  PREVIEW_MEDIA_RETRY_AT:retry,performance:{now:()=>2500},
+  PREVIEW_MEDIA_RETRY_AT:retry,PREVIEW_MEDIA_PLAY_PENDING:new Set(),performance:{now:()=>2500},
   clampN:(x,min,max)=>Math.max(min,Math.min(max,x)),
   showPreviewAudioProblem(){},PREVIEW_MEDIA_ERROR:'',createFxNodes(){},applyFxNodes(){},
   $:()=>({pause(){}})
