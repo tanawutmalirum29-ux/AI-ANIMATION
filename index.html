@@ -4716,6 +4716,9 @@ window.StoryStudioBridge={
   const ML=window.StoryLayoutML;
   if(!ML)throw Error('โมดูล ML Feedback ยังไม่โหลด');
   const current=sc(),workspace=window.StoryAIWorkspaceCore?.ensure(S.project.aiWorkspace||{});
+  // Keep a stable pseudonymous group ID across exports, even on old projects
+  // that did not yet have an AI workspace object.
+  if(!S.project.aiWorkspace){S.project.aiWorkspace=workspace;save()}
   const group=workspace?.projectId;
   if(action==='keep'){
    const pair=ML.closestPair(current);
