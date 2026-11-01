@@ -21,6 +21,10 @@ on:
       - studio-github-art.js
       - studio-timing-auditor.js
       - studio-visual-qa.js
+      - studio-production-pipeline.js
+      - studio-production-orchestrator.js
+      - tests/production-six-specialists.test.cjs
+      - tests/production-factory-browser-smoke.cjs
       - tests/visual-coverage-qa.test.cjs
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
@@ -70,6 +74,10 @@ on:
       - studio-github-art.js
       - studio-timing-auditor.js
       - studio-visual-qa.js
+      - studio-production-pipeline.js
+      - studio-production-orchestrator.js
+      - tests/production-six-specialists.test.cjs
+      - tests/production-factory-browser-smoke.cjs
       - tests/visual-coverage-qa.test.cjs
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
@@ -130,6 +138,9 @@ jobs:
           node --check studio-ai-core.js
           node --check studio-timing-auditor.js
           node --check studio-visual-qa.js
+          node --check studio-production-pipeline.js
+          node --check studio-production-orchestrator.js
+          node tests/production-six-specialists.test.cjs
           node tests/visual-coverage-qa.test.cjs
           node tests/indoor-weather.test.cjs
           node --check studio-ai-workspace.js
@@ -161,7 +172,7 @@ jobs:
           node --check tests/audio-export-integrity-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist/assets
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-visual-qa.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-visual-qa.js studio-production-pipeline.js studio-production-orchestrator.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
           cp assets/library.json dist/assets/library.json
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
@@ -170,6 +181,7 @@ jobs:
           test -f dist/studio-sound-assistant.js
           test -f dist/site-auth.js && test -f dist/runtime-config.js
           test -f dist/studio-timing-auditor.js && test -f dist/studio-visual-qa.js
+          test -f dist/studio-production-pipeline.js && test -f dist/studio-production-orchestrator.js
           test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
           test -f dist/studio-github-art.js
           test -f dist/studio-asset-core.js && test -f dist/studio-art-vault.js && test -f dist/studio-art-vault.css && test -f dist/assets/library.json
@@ -187,6 +199,7 @@ jobs:
           node tests/auto-dub-smoke.cjs
           node tests/site-auth-smoke.cjs
           node tests/local-ai-workspace-smoke.cjs
+          node tests/production-factory-browser-smoke.cjs
           node tests/art-vault-browser-smoke.cjs
           node tests/voice-preview-smoke.cjs
           node tests/audio-export-integrity-smoke.cjs
