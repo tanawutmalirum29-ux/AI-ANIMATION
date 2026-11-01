@@ -150,9 +150,12 @@ test('narration preview has a local speech option when no actual voice clip exis
 });
 
 
-test('AI-3 → AI-2 → AI-1 coordinated production safely creates two ~60s episodes',async()=>{
+test('six-stage coordinated production safely creates two ~60s episodes',async()=>{
  const core=require('../studio-ai-core.js');
  const auditor=require('../studio-timing-auditor.js');
+  const planner=require('../studio-production-planner.js');
+  const assets=require('../studio-production-assets.js');
+  const visualQA=require('../studio-visual-qa.js');
  const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
  const backupStart='async function backupBeforeEdit(){';
  const backupEnd='// No pasted story or replacement script operations';
@@ -190,7 +193,8 @@ test('AI-3 → AI-2 → AI-1 coordinated production safely creates two ~60s epis
    return {ok:true,made:6,failed:0};
   }
  };
- const win={StoryAIWorkspaceCore:core,StoryTimingAuditor:auditor,StudioAPI:editor};
+ const win={StoryAIWorkspaceCore:core,StoryTimingAuditor:auditor,StudioAPI:editor,
+    StoryProductionPlanner:planner,StoryProductionAssets:assets,StoryVisualQA:visualQA};
  new Function('window','document','localStorage','performance','navigator','Worker','URL',source)(
   win,{readyState:'loading',addEventListener(){}},
   {getItem:()=>null,setItem(){}},{now:()=>1},{},class Worker{},class URL{}
@@ -208,7 +212,8 @@ test('AI-3 → AI-2 → AI-1 coordinated production safely creates two ~60s epis
  assert.ok(state.episodes.flatMap(e=>e.scenes).every(s=>s.audioClips.length===1));
  assert.equal(state.project.aiWorkspace.production.stage,'ready');
  assert.equal(state.project.aiWorkspace.production.pendingDub,false);
- assert.deepEqual(state.project.aiWorkspace.production.handoffs.map(x=>x.role),['AI-3','AI-2','AI-1']);
+ assert.deepEqual(state.project.aiWorkspace.tasks.find(x=>x.role==='production').steps.map(x=>x.id),planner.stages.map(x=>x.id));
+  assert.equal(state.project.aiWorkspace.production.handoffs.length,7,'all six stages plus completion handoff');
  assert.equal(win.__productionTest.state().busy,false);
 });
 
@@ -224,7 +229,7 @@ test('external JSON prompt may exceed the 60s target without requiring content d
  const context=core.context(state,0);
  assert.equal(context.production.targetSeconds,60);
  assert.equal(context.production.maxSeconds,65);
- assert.match(core.systemPrompt('structure',state,0),/AI-3 → AI-2 → AI-1/);
+ assert.match(core.systemPrompt('structure',state,0),/AI-1 องค์ประกอบ → AI-2 SVG → AI-3 Motion → AI-4 พากย์ → AI-5 เวลา → AI-6 QA/);
 });
 
 test('only the built-in Timing Engine remains: no model workers, CDNs or model pickers',()=>{
