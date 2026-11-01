@@ -24,6 +24,7 @@
   if($('videoFormat'))$('videoFormat').disabled=cloud();
   if($('videoPipelineStandard'))$('videoPipelineStandard').disabled=cloud()||busy;
   if($('videoPipelineTurbo'))$('videoPipelineTurbo').disabled=cloud()||busy;
+  if(!cloud()&&typeof updateExportPipelineHint==='function')updateExportPipelineHint();
   if($('videoPipelineHint')&&cloud())$('videoPipelineHint').textContent='เซิร์ฟเวอร์: ส่งออกเป็น MP4 (H.264 + AAC) โดยใช้ Chromium และ FFmpeg บน AWS';
   cancel.disabled=!busy;
  }
