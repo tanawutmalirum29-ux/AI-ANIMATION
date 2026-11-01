@@ -11,11 +11,11 @@ const path=require('node:path');
   await page.locator('#aiQuick').click();
   const panel=page.locator('#aiWorkspacePanel');
   await panel.waitFor({state:'visible'});
-  assert.equal(await panel.getByRole('heading',{name:'AI Production · 3 ผู้ช่วย'}).count(),1);
-  assert.equal(await panel.getByRole('heading',{name:/AI-1 · ตรวจจังหวะฉาก/}).count(),1);
-  assert.equal(await panel.getByRole('heading',{name:/AI-2 · พากย์เสียง/}).count(),1);
-  assert.equal(await panel.getByRole('heading',{name:/AI-3 · ผู้กำกับบทบรรยายและซับไตเติล/}).count(),1);
-  assert.deepEqual(await page.evaluate(()=>StoryAIWorkspaceCore.roles.map(x=>x.id)),['structure','voice','narrative']);
+  assert.equal(await panel.getByRole('heading',{name:'AI Production · 6 ผู้ช่วย'}).count(),1);
+  assert.equal(await panel.getByRole('heading',{name:/AI-5 · ตรวจจังหวะฉาก/}).count(),1);
+  assert.equal(await panel.getByRole('heading',{name:/AI-4 · พากย์เสียง/}).count(),1);
+  assert.equal(await panel.getByRole('heading',{name:/AI-1 / AI-2 / AI-3 / AI-6 · งานภาพและ QA/}).count(),1);
+  assert.deepEqual(await page.evaluate(()=>StoryAIWorkspaceCore.roles.map(x=>x.id)),['composition','assets','motion','voice','structure','qa']);
   assert.equal(await panel.locator('textarea[aria-label="วางบทสำหรับแบ่งตอน"]').count(),0);
   const initial=await page.evaluate(()=>{
    const scene=StoryStudioBridge.get().episodes[0].scenes[0];
@@ -52,6 +52,6 @@ const path=require('node:path');
   await panel.getByRole('button',{name:'บันทึกเวอร์ชันในเครื่อง'}).click();
   await panel.locator('#aiProjectLibrary .ai-snapshot').first().waitFor();
   assert.deepEqual(errors,[]);
-  console.log('PASS: three agents, imported JSON audit, measured speech trim, persisted clips and unchanged authored script');
+  console.log('PASS: six specialist pipeline, imported JSON audit, measured speech trim, persisted clips and unchanged authored script');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
