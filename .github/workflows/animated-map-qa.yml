@@ -61,6 +61,7 @@ on:
       - tests/site-auth-smoke.cjs
       - tests/site-auth-handler-smoke.py
       - tests/voice-preview-smoke.cjs
+      - tests/preview-audio-mobile-recovery.cjs
       - tests/audio-export-integrity-smoke.cjs
       - .github/workflows/animated-map-qa.yml
   pull_request:
@@ -202,4 +203,5 @@ jobs:
           node tests/production-browser-smoke.cjs
           node tests/art-vault-browser-smoke.cjs
           node tests/voice-preview-smoke.cjs
+          node tests/preview-audio-mobile-recovery.cjs
           node tests/audio-export-integrity-smoke.cjs
