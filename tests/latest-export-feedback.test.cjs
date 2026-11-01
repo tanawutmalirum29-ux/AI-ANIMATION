@@ -73,4 +73,19 @@ assert.equal(followup.training.trainedWeightUpdates,0);
 assert.equal(followup.training.modelPromoted,false);
 assert.equal(followup.engineering.requiresReExport,true);
 
+
+const compilation=JSON.parse(fs.readFileSync(path.resolve(__dirname,
+ '../training-lab/evaluations/three-flashes-nov1-compiled-export.json'),'utf8'));
+assert.equal(compilation.status,'evaluation-only');
+assert.equal(compilation.media.audioCodec,'aac');
+assert.ok(compilation.media.durationSeconds>115&&compilation.media.durationSeconds<120);
+assert.equal(compilation.separator.betweenEpisodesCount,2);
+assert.equal(compilation.separator.authoredDurationSeconds,2.5,
+ 'chapter cards are intentional and should not be removed as dead air');
+assert.equal(compilation.audio.boundaryLowLevelIntervals.length,2);
+assert.ok(compilation.audio.boundaryLowLevelIntervals.every(x=>x.lengthSeconds>3.5&&x.lengthSeconds<3.8));
+assert.equal(compilation.training.approvedSamplesAdded,0);
+assert.equal(compilation.training.modelWeightsUpdated,false);
+assert.equal(compilation.training.modelPromoted,false);
+
 console.log('PASS: measured latest 3 exported videos and six factory animation types no longer create voice-tail silence');
