@@ -3,6 +3,7 @@
 # Run in AWS CloudShell from the repository after pulling main.
 set -euo pipefail
 REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-southeast-2}}"
+ORIGIN="${1:-https://main.d1wc6w01kiwpnk.amplifyapp.com}"
 PROJECT="${STORY_STUDIO_RENDER_PROJECT:-story-studio-cloud-render}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp)"
@@ -22,5 +23,7 @@ aws codebuild update-project --region "$REGION" --name "$PROJECT" \
   --source "file://$TMP" \
   --cache '{"type":"LOCAL","modes":["LOCAL_CUSTOM_CACHE"]}' \
   --query 'project.[name,cache.type]' --output text
-echo "Done. New render jobs use cached Playwright/Chromium when AWS reuses a build host."
-echo "Local cache is best-effort. Existing running jobs remain unchanged."
+echo "New render jobs use the faster setup with an opportunistic local cache."
+echo "Updating Lambda export phase reporting (also triggers an Amplify release)..."
+bash "$ROOT/autodub/deploy.sh" "$ORIGIN"
+echo "Done. Existing running jobs are unchanged; AWS local cache reuse is best-effort."
