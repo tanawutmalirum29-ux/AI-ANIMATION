@@ -53,10 +53,11 @@ const path=require('node:path');
    starts:window.__mediaStarts,
    direct:AUDIO_PLAYERS.has('mobile-voice:0'),
    web:VOICE_PREVIEW_SOURCES.size,
-   playing,diagnostics:StoryStudioBridge.previewAudioReport()
+   playing,nativeOnly:PREVIEW_AUDIO_CTX===null,diagnostics:StoryStudioBridge.previewAudioReport()
   }));
   assert.equal(startup.direct,true,'native audio element started in the play click');
   assert.equal(startup.web,0,'iPad does not route narrator through suspended WebAudio');
+  assert.equal(startup.nativeOnly,true,'iPad preview must not open an extra AudioContext on play');
   assert.equal(startup.starts[0]?.gesture,true,'native media.play must retain the user gesture');
   await page.waitForTimeout(180);
   const playback=await page.evaluate(()=>{
@@ -64,6 +65,27 @@ const path=require('node:path');
    return {paused:a?.paused,currentTime:a?.currentTime,readyState:a?.readyState};
   });
   assert.equal(playback.paused,false,'voice plays on mobile route');
+  // Rendering lag must not repeatedly seek the narrator's MP3 forward.
+  const drift=await page.evaluate(()=>{
+   const a=AUDIO_PLAYERS.get('mobile-voice:0'),before=a.currentTime;
+   syncAudioAt(.85,true);
+   return {before,after:a.currentTime};
+  });
+  assert.ok(drift.after<.65,'ordinary visual drift must not seek the audible voice');
+  // Music/SFX must also avoid a suspended WebAudio graph on iPad.
+  const sfx=await page.evaluate(()=>{
+   const scene=StoryStudioBridge.get().episodes[0].scenes[0];
+   scene.audioClips.push({id:'mobile-sfx',kind:'sfx',data:scene.audioClips[0].data,
+    duration:2,at:0,rate:1,volume:1,mute:false,trimStart:0,trimEnd:0});
+   StoryStudioBridge.persist();syncAudioAt(.85,true);
+   return {nativeOnly:PREVIEW_AUDIO_CTX===null,sfx:AUDIO_PLAYERS.has('mobile-sfx:0')};
+  });
+  assert.equal(sfx.nativeOnly,true,'iOS effects must not create WebAudio from animation frames');
+  assert.equal(sfx.sfx,true,'native SFX must still be scheduled');
+  await page.locator('#pp').click();
+  await page.locator('#pp').click();
+  const resumed=await page.evaluate(()=>({paused:AUDIO_PLAYERS.get('mobile-voice:0')?.paused}));
+  assert.equal(resumed.paused,false,'rapid pause/restart must not be blocked by retry throttle');
   await page.locator('#pp').click();
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>StoryStudioBridge.previewAudioReport().voices===1,{timeout:15000});
