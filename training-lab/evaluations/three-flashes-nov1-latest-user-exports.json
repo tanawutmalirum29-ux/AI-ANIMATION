@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-01",
+  "label": "evaluation-only",
+  "provenance": "User-supplied three MP4 exports reviewed in this conversation; no clip binaries or narration text uploaded to repository",
+  "method": {
+    "duration": "ffprobe format.duration",
+    "audio": "ffprobe streams and ffmpeg -af silencedetect=noise=-35dB:d=0.35",
+    "video": "24 evenly spaced decoded frames from each MP4 inspected visually; not full frame-by-frame QA",
+    "comparison": "decoded PCM SHA-256 on both episode-2 versions; 12 sampled timestamps compared for pixels"
+  },
+  "clips": [
+    {
+      "id": "ep1-export7",
+      "episode": 1,
+      "seconds": 38.149333,
+      "video": {
+        "codec": "h264",
+        "width": 720,
+        "height": 1280,
+        "fps": 24
+      },
+      "audio": {
+        "codec": "aac",
+        "sampleRate": 48000,
+        "channels": 2
+      },
+      "quietDurationsSeconds": [
+        1.219125,
+        1.105167,
+        1.091417,
+        1.12875,
+        1.136396,
+        0.982396
+      ],
+      "longQuietRegionsOver4s": 0,
+      "visualRisk": [
+        "0–6s: rooftop establishing view, no visible actors in sampled frames",
+        "19–31s: largely held indoor pose without strong visible action",
+        "33–38s: empty rooftop environment returns"
+      ]
+    },
+    {
+      "id": "ep2-export8",
+      "episode": 2,
+      "seconds": 37.428,
+      "video": {
+        "codec": "h264",
+        "width": 720,
+        "height": 1280,
+        "fps": 24
+      },
+      "audio": {
+        "codec": "aac",
+        "sampleRate": 48000,
+        "channels": 2
+      },
+      "quietDurationsSeconds": [
+        0.426812,
+        1.127687,
+        1.1675,
+        1.130354,
+        0.367208,
+        1.090146,
+        1.157458,
+        0.988479
+      ],
+      "longQuietRegionsOver4s": 0,
+      "visualRisk": [
+        "0–5s: character silhouettes overlap on rooftop",
+        "7–12s: bridge/toolbox animation visible but toolbox is large relative to actor",
+        "13–19s: actor silhouettes remain close and overlap",
+        "25–37s: reflector overlaps or crowds actor heads in sampled frames"
+      ]
+    },
+    {
+      "id": "ep2-timestamped",
+      "episode": 2,
+      "seconds": 37.428,
+      "video": {
+        "codec": "h264",
+        "width": 720,
+        "height": 1280,
+        "fps": 24
+      },
+      "audio": {
+        "codec": "aac",
+        "sampleRate": 48000,
+        "channels": 2
+      },
+      "quietDurationsSeconds": [
+        0.426812,
+        1.127687,
+        1.1675,
+        1.130354,
+        0.367208,
+        1.090146,
+        1.157458,
+        0.988479
+      ],
+      "longQuietRegionsOver4s": 0,
+      "visualRisk": [
+        "Same timeline and audio PCM as ep2-export8; pixels match in some sampled frames and have tiny differences in other frames"
+      ]
+    }
+  ],
+  "comparisons": {
+    "episode2VersionAudioPCMSHA256Equal": true,
+    "episode2VersionsConsideredIndependentStories": false,
+    "episode1OldFactoryExportSeconds": 38.105,
+    "episode2PreviousFactoryExportSeconds": 49.266667,
+    "episode2NowHasLongQuietOver4s": false
+  },
+  "trainingAssessment": {
+    "approvedTrainingLabels": 0,
+    "weightUpdateFromTheseMP4s": false,
+    "note": "Audio track presence and low-level intervals do not prove every narrated word is present. 24 sampled frames cannot establish complete animation or correct story semantics. Do not use as approved labels.",
+    "engineeringAction": "Add conservative static QA warnings for overlapping actor start positions even when motion exists and production-owned SVG draft clearance risks. No automatic scene edits."
+  }
+}
