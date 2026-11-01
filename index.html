@@ -699,10 +699,11 @@ const $=s=>document.querySelector(s);
 const ep=()=>S.episodes[selEp], sc=()=>ep().scenes[sel];
 function h(t,a={},...k){const e=document.createElement(t);for(const[x,v]of Object.entries(a)){if(x.startsWith('on'))e.addEventListener(x.slice(2),v);else if(x==='style')e.style.cssText=v;else if(x.startsWith('aria')||x.startsWith('data'))e.setAttribute(x,v);else e[x]=v}k.flat().forEach(c=>e.append(c instanceof Node?c:document.createTextNode(c??'')));return e}
 let STORAGE_DB=null,STORAGE_READY=false,BOOT_EDITED=false,STORAGE_WARNED=false;
+let AUDIO_EVENT_REV=0,AUDIO_EVENT_CACHE=null;
 const DB_NAME='storyStudio.assets.v9',DB_STORE='projects';
 function storeInDB(snapshot){if(!STORAGE_DB)return;try{const tx=STORAGE_DB.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(snapshot,'primary');tx.onerror=tx.onabort=()=>{console.warn('Story Studio: IndexedDB write failed',tx.error);warnStorageFailed()}}catch(e){console.warn('Story Studio IndexedDB:',e);warnStorageFailed()}}
 function warnStorageFailed(){if(STORAGE_WARNED)return;STORAGE_WARNED=true;alert('บันทึกงานลงเบราว์เซอร์ไม่สำเร็จ (พื้นที่เต็ม/โหมดส่วนตัว/ถูกจำกัดสิทธิ์) เสียงพากย์อาจหายเมื่อรีเฟรช — กดเมนู ☰ → บันทึก JSON เพื่อสำรองทันที')}
-function save(){if(!STORAGE_READY)BOOT_EDITED=true;const snapshot=JSON.stringify(S);
+function save(){if(!STORAGE_READY)BOOT_EDITED=true;AUDIO_EVENT_REV++;AUDIO_EVENT_CACHE=null;const snapshot=JSON.stringify(S);
  if(STORAGE_READY)storeInDB(snapshot);
  try{if(snapshot.length<2400000)localStorage.setItem(LS,snapshot);else if(STORAGE_READY&&STORAGE_DB)localStorage.removeItem(LS);else if(STORAGE_READY)localStorage.setItem(LS,snapshot);else return;
  }catch(e){if(!STORAGE_WARNED&&!STORAGE_DB){STORAGE_WARNED=true;alert('พื้นที่เก็บงานในเบราว์เซอร์เต็ม โปรดใช้เมนู ☰ → บันทึก JSON เพื่อสำรองเสียงและโปรเจกต์ไว้ในไฟล์ ไม่ควรปิดหน้านี้ก่อนสำรอง')}}
@@ -2216,7 +2217,7 @@ let PREVIEW_AUDIO_CTX=null,PREVIEW_MEDIA_ERROR='';
 // Other browsers retain WebAudio's frame-independent scheduling.
 const PREVIEW_DIRECT_VOICE=/iPad|iPhone|iPod/i.test(navigator.userAgent||'')||
  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const PREVIEW_MEDIA_RETRY_AT=new Map();
+const PREVIEW_MEDIA_RETRY_AT=new Map(),PREVIEW_MEDIA_PLAY_PENDING=new Set();
 function previewVoiceClips(){return ep().scenes.flatMap(sc=>(sc.audioClips||[]).filter(c=>c.kind==='voice'&&c.data))}
 function showPreviewAudioProblem(message){PREVIEW_MEDIA_ERROR=message;updateAudioHint()}
 function previewAudioReport(){
@@ -2275,7 +2276,8 @@ function audioClipKey(c){const d=c.data;if(!d)return '';let k=AUDIO_KEY_CACHE.ge
 function audioLinkOpts(E){const o=E&&E.audioLink;return{link:!(o&&o.link===false),xfade:!(o&&o.xfade===false)}}
 function sceneHeadOverlap(E,i){const s=E.scenes[i];if(!s||i<=0)return 0;const tr=s.transition||{},dur=cleanNum(s.duration);return Math.max(0,tr.type==='cut'?Math.min(FILM_FADE,dur):transitionSpan(s))}
 function eventXGain(ev,t){let g=1;if(ev.xin>0)g*=clampN((t-ev.chainStart)/ev.xin,0,1);if(ev.xout>0&&isFinite(ev.limit))g*=clampN((ev.limit-t)/ev.xout,0,1);return g}
-function audioEvents(){const E=ep(),st=starts(),out=[],opt=audioLinkOpts(E),n=E.scenes.length,skip=new Set(),dur=i=>cleanNum(E.scenes[i].duration);
+function audioEvents(){const E=ep();if(AUDIO_EVENT_CACHE&&AUDIO_EVENT_CACHE.episode===E&&AUDIO_EVENT_CACHE.rev===AUDIO_EVENT_REV)return AUDIO_EVENT_CACHE.events;
+ const st=starts(),out=[],opt=audioLinkOpts(E),n=E.scenes.length,skip=new Set(),dur=i=>cleanNum(E.scenes[i].duration);
  E.scenes.forEach((s,i)=>(s.audioClips||[]).forEach(c=>{if(skip.has(c))return;
   const lead=Math.max(0,cleanNum(c.audioLead)),tail=Math.max(0,cleanNum(c.audioTail)),raw=st[i]+(c.loop?0:prerollSpan(E,i,s))+cleanNum(c.at),at=lead>0?Math.max(0,raw-lead):raw,span=safeClipDuration(c);
   if(c.loop&&span>0){let end=st[i]+dur(i),last=i;
@@ -2284,7 +2286,7 @@ function audioEvents(){const E=ep(),st=starts(),out=[],opt=audioLinkOpts(E),n=E.
    const xin=opt.xfade&&i>0&&cleanNum(c.at)<=.05?Math.max(sceneHeadOverlap(E,i),lead):0,xout=ext>0?ext:0;
    for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'scene',scene:i,cycle:j,limit:end,chainStart:at,xin,xout})
   }else out.push({c,start:at,scope:'scene',scene:i,cycle:0,limit:total(),chainStart:at,xin:0,xout:0})}));
- (E.musicClips||[]).forEach(c=>{const at=cleanNum(c.at),span=safeClipDuration(c),end=total();if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'music',scene:-1,cycle:j,limit:end,chainStart:at,xin:0,xout:0})}else out.push({c,start:at,scope:'music',scene:-1,cycle:0,limit:end,chainStart:at,xin:0,xout:0})});return out}
+ (E.musicClips||[]).forEach(c=>{const at=cleanNum(c.at),span=safeClipDuration(c),end=total();if(c.loop&&span>0){for(let j=0;j<Math.min(900,Math.ceil((end-at)/span));j++)out.push({c,start:at+j*span,scope:'music',scene:-1,cycle:j,limit:end,chainStart:at,xin:0,xout:0})}else out.push({c,start:at,scope:'music',scene:-1,cycle:0,limit:end,chainStart:at,xin:0,xout:0})});AUDIO_EVENT_CACHE={episode:E,rev:AUDIO_EVENT_REV,events:out};return out}
 function clipGain(c,at,duration=safeClipDuration(c)){let vol=c.mute?0:clampN(cleanNum(c.volume,1),0,1),elapsed=at;
  if(c.fadeIn>0)vol*=clampN(elapsed/c.fadeIn,0,1);
  if(c.fadeOut>0)vol*=clampN((duration-elapsed)/c.fadeOut,0,1);
@@ -2313,10 +2315,11 @@ function unlockPreviewAudio(){
   VOICE_PREVIEW_BAD.clear();VOICE_PREVIEW_FAILS.clear();
  }
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
- try{
-  const ctx=previewContext();
-  if(ctx.state!=='closed'){const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0)}
- }catch(e){}
+ // Native HTMLAudio is the only preview audio session on iOS. Do not
+ // create a suspended WebAudio graph in response to unrelated gestures.
+ if(!PREVIEW_DIRECT_VOICE){
+  try{const ctx=previewContext();if(ctx.state!=='closed'){const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0)}}catch(e){}
+ }
  updateAudioHint();
 }
 function audioHintNeeded(){return !!(playing&&PREVIEW_AUDIO_CTX&&PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed'&&(()=>{try{return audioEvents().some(ev=>ev.c.data&&T>=ev.start-.55&&T<ev.start+safeClipDuration(ev.c))}catch(e){return false}})())}
@@ -2329,7 +2332,7 @@ function updateAudioHint(){
  el.textContent=PREVIEW_MEDIA_ERROR||'เสียงพรีวิวยังไม่เปิด — แตะหน้าจออีกครั้ง แล้วกด ▶ ใหม่';
  el.style.display='block';
 }
-['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockPreviewAudio,{capture:true,passive:true}));
+// Unlock audio inside the Play handler's trusted gesture, not on every editor tap.
 /* v42: พับจอ/ล็อกจอ/สลับแอป → เบราว์เซอร์หยุด requestAnimationFrame และพัก AudioContext. เดิมไม่มีตัวจัดการ ทำให้ playhead กระโดดข้ามไปตามเวลาจริง
    (เสียงที่เหลือเลยไม่ถูกเล่น) และบน iOS context ค้างสถานะ 'interrupted' จึงเงียบจนกว่าจะรีโหลด */
 let WAKE_LOCK=null;
@@ -2343,7 +2346,7 @@ function previewGoesToBackground(){
 function previewReturnsToForeground(){
  last=performance.now();
  if(typeof ACTIVE_EXPORT!=='undefined'&&ACTIVE_EXPORT){holdWakeLock();return}
- if(PREVIEW_AUDIO_CTX&&PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed')PREVIEW_AUDIO_CTX.resume().catch(()=>{});
+ if(!PREVIEW_DIRECT_VOICE&&PREVIEW_AUDIO_CTX&&PREVIEW_AUDIO_CTX.state!=='running'&&PREVIEW_AUDIO_CTX.state!=='closed')PREVIEW_AUDIO_CTX.resume().catch(()=>{});
  updateAudioHint();
 }
 document.addEventListener('visibilitychange',()=>{document.hidden?previewGoesToBackground():previewReturnsToForeground()});
@@ -2361,11 +2364,20 @@ function setSmoothGain(n,ctx,v){const g=n.gain.gain;try{g.setTargetAtTime(v,ctx.
 // v39: พากย์ในพรีวิวใช้ AudioBufferSource (Web Audio clock) แทนการ seek MP3 ทุก animation frame.
 // เก็บแคชเฉพาะเสียงพากย์ล่าสุด เพื่อไม่ให้ iPad ต้องถอดรหัสซ้ำและไม่กิน RAM ไม่จำกัด
 const VOICE_PREVIEW_BUFFERS=new Map(),VOICE_PREVIEW_PENDING=new Map(),VOICE_PREVIEW_BAD=new Set(),VOICE_PREVIEW_SOURCES=new Map(),VOICE_PREVIEW_FAILS=new Map();
+let VOICE_PREVIEW_BUFFER_BYTES=0;
+const VOICE_PREVIEW_BUFFER_LIMIT=PREVIEW_DIRECT_VOICE?0:((navigator.deviceMemory||4)<=2?20:48)*1024*1024;
 let VOICE_PREVIEW_CLOCK=null;
 function rememberVoicePreviewBuffer(data,buffer){
  if(!data||!buffer)return;
- VOICE_PREVIEW_BUFFERS.delete(data);VOICE_PREVIEW_BUFFERS.set(data,buffer);
- while(VOICE_PREVIEW_BUFFERS.size>40)VOICE_PREVIEW_BUFFERS.delete(VOICE_PREVIEW_BUFFERS.keys().next().value);
+ const bytes=buffer.length*buffer.numberOfChannels*4;
+ if(bytes>VOICE_PREVIEW_BUFFER_LIMIT)return;
+ const previous=VOICE_PREVIEW_BUFFERS.get(data);
+ if(previous)VOICE_PREVIEW_BUFFER_BYTES-=previous.length*previous.numberOfChannels*4;
+ VOICE_PREVIEW_BUFFERS.delete(data);VOICE_PREVIEW_BUFFERS.set(data,buffer);VOICE_PREVIEW_BUFFER_BYTES+=bytes;
+ while(VOICE_PREVIEW_BUFFERS.size>12||VOICE_PREVIEW_BUFFER_BYTES>VOICE_PREVIEW_BUFFER_LIMIT){
+  const oldest=VOICE_PREVIEW_BUFFERS.keys().next().value,b=VOICE_PREVIEW_BUFFERS.get(oldest);
+  VOICE_PREVIEW_BUFFER_BYTES-=b.length*b.numberOfChannels*4;VOICE_PREVIEW_BUFFERS.delete(oldest);
+ }
 }
 function primeVoicePreview(c){
  const data=c.data;
@@ -2395,8 +2407,8 @@ function stopVoicePreview(){
  VOICE_PREVIEW_SOURCES.clear();VOICE_PREVIEW_CLOCK=null;
 }
 function pauseAudioPlayers(){
- stopVoicePreview();
- for(const [,a] of AUDIO_PLAYERS)a.pause();
+ stopVoicePreview();PREVIEW_MEDIA_RETRY_AT.clear();PREVIEW_MEDIA_PLAY_PENDING.clear();
+ for(const [,a] of AUDIO_PLAYERS){a.pause();a._storyPositioned=false}
  $('#vo').pause();$('#bgm').pause();
 }
 function syncAudioAt(t,play){
