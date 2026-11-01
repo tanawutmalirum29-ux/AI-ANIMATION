@@ -30,7 +30,11 @@ const path=require('node:path');
    window.__mediaStarts=[];
    const original=HTMLMediaElement.prototype.play;
    HTMLMediaElement.prototype.play=function(...args){
-    window.__mediaStarts.push({kind:this.tagName,gesture:navigator.userActivation?.isActive??null});
+    const gesture=navigator.userActivation?.isActive??false;
+    window.__mediaStarts.push({kind:this.tagName,gesture});
+    // Simulate Safari's policy: a new HTMLAudio.play from an animation frame
+    // after the click would reject with NotAllowedError.
+    if(this.tagName==='AUDIO'&&!gesture)return Promise.reject(new DOMException('User activation required','NotAllowedError'));
     return original.apply(this,args);
    };
   });
@@ -46,46 +50,46 @@ const path=require('node:path');
    StoryStudioBridge.persist();
    return {route:PREVIEW_DIRECT_VOICE,report:StoryStudioBridge.previewAudioReport()};
   });
-  assert.equal(pre.route,true,'iPad must not depend on WebAudio for narration');
+  assert.equal(pre.route,true,'browser recognized iPad');
   assert.equal(pre.report.playable,1);
   await page.locator('#pp').click();
+  await page.waitForFunction(()=>playing&&VOICE_PREVIEW_SOURCES.has('mobile-voice:0'),{timeout:15000});
   const startup=await page.evaluate(()=>({
    starts:window.__mediaStarts,
-   direct:AUDIO_PLAYERS.has('mobile-voice:0'),
-   web:VOICE_PREVIEW_SOURCES.size,
-   playing,nativeOnly:PREVIEW_AUDIO_CTX===null,diagnostics:StoryStudioBridge.previewAudioReport()
+   nativePlayers:AUDIO_PLAYERS.size,buffered:PREVIEW_MOBILE_BUFFERED,
+   context:PREVIEW_AUDIO_CTX?.state,source:VOICE_PREVIEW_SOURCES.has('mobile-voice:0'),
+   playing,diagnostics:StoryStudioBridge.previewAudioReport()
   }));
-  assert.equal(startup.direct,true,'native audio element started in the play click');
-  assert.equal(startup.web,0,'iPad does not route narrator through suspended WebAudio');
-  assert.equal(startup.nativeOnly,true,'iPad preview must not open an extra AudioContext on play');
-  assert.equal(startup.starts[0]?.gesture,true,'native media.play must retain the user gesture');
-  await page.waitForTimeout(180);
-  const playback=await page.evaluate(()=>{
-   const a=AUDIO_PLAYERS.get('mobile-voice:0');
-   return {paused:a?.paused,currentTime:a?.currentTime,readyState:a?.readyState};
+  assert.equal(startup.buffered,true,'mobile voice must use a user-unlocked WebAudio context');
+  assert.equal(startup.context,'running','AudioContext must be unlocked by the original Play click');
+  assert.equal(startup.source,true,'decoded narration must start on the audio clock');
+  assert.equal(startup.starts.filter(x=>x.kind==='AUDIO').length,0,'no prohibited HTMLAudio.play from RAF');
+  await page.waitForTimeout(200);
+  const continuous=await page.evaluate(()=>{
+   const entry=VOICE_PREVIEW_SOURCES.get('mobile-voice:0'),source=entry?.source;
+   syncAudioAt(T,true);syncAudioAt(T+.02,true);
+   return {continuous:source===VOICE_PREVIEW_SOURCES.get('mobile-voice:0')?.source,playing};
   });
-  assert.equal(playback.paused,false,'voice plays on mobile route');
-  // Rendering lag must not repeatedly seek the narrator's MP3 forward.
-  const drift=await page.evaluate(()=>{
-   const a=AUDIO_PLAYERS.get('mobile-voice:0'),before=a.currentTime;
-   syncAudioAt(.85,true);
-   return {before,after:a.currentTime};
-  });
-  assert.ok(drift.after<.65,'ordinary visual drift must not seek the audible voice');
-  // Music/SFX must also avoid a suspended WebAudio graph on iPad.
+  assert.equal(continuous.continuous,true,'successive animation frames must not restart narration');
+  // Add a new overlapping SFX (same PCM bytes) after playback began.
+  // It must be scheduled through the clock without another restricted play().
   const sfx=await page.evaluate(()=>{
    const scene=StoryStudioBridge.get().episodes[0].scenes[0];
    scene.audioClips.push({id:'mobile-sfx',kind:'sfx',data:scene.audioClips[0].data,
     duration:2,at:0,rate:1,volume:1,mute:false,trimStart:0,trimEnd:0});
-   StoryStudioBridge.persist();syncAudioAt(.85,true);
-   return {nativeOnly:PREVIEW_AUDIO_CTX===null,sfx:AUDIO_PLAYERS.has('mobile-sfx:0')};
+   StoryStudioBridge.persist();syncAudioAt(T,true);
+   return {source:VOICE_PREVIEW_SOURCES.has('mobile-sfx:0'),
+     context:PREVIEW_AUDIO_CTX.state,htmlPlays:window.__mediaStarts.filter(x=>x.kind==='AUDIO').length};
   });
-  assert.equal(sfx.nativeOnly,true,'iOS effects must not create WebAudio from animation frames');
-  assert.equal(sfx.sfx,true,'native SFX must still be scheduled');
+  assert.equal(sfx.source,true,'iPad sound effects also use scheduled WebAudio');
+  assert.equal(sfx.context,'running');
+  assert.equal(sfx.htmlPlays,0,'do not call HTMLAudio.play when the user gesture has expired');
   await page.locator('#pp').click();
   await page.locator('#pp').click();
-  const resumed=await page.evaluate(()=>({paused:AUDIO_PLAYERS.get('mobile-voice:0')?.paused}));
-  assert.equal(resumed.paused,false,'rapid pause/restart must not be blocked by retry throttle');
+  await page.waitForFunction(()=>playing&&VOICE_PREVIEW_SOURCES.has('mobile-voice:0'),{timeout:15000});
+  const restarted=await page.evaluate(()=>({playing,htmlPlays:window.__mediaStarts.filter(x=>x.kind==='AUDIO').length}));
+  assert.equal(restarted.playing,true,'rapid user pause/restart must resume the buffered clock');
+  assert.equal(restarted.htmlPlays,0);
   await page.locator('#pp').click();
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>StoryStudioBridge.previewAudioReport().voices===1,{timeout:15000});
@@ -127,6 +131,6 @@ const path=require('node:path');
   assert.equal(desktopResult.webSource,false);
   await desktop.close();
   assert.deepEqual(errors,[],'no uncaught page errors');
-  console.log('PASS iOS first-tap voice, persisted bytes, mute diagnostics, and desktop decode fallback');
+  console.log('PASS Safari-policy blocked HTMLAudio but iOS buffered voice/SFX play, restart, persist and desktop fallback');
  }finally{await browser.close();}
 })().catch(err=>{console.error(err);process.exit(1)});

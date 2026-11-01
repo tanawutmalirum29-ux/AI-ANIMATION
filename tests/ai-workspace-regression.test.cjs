@@ -61,7 +61,7 @@ test('iPad preview plays an existing voice clip and immediately replays after da
  const scope={
   VOICE_RECORDER:null,STUDIO_CURRENT_TOOL:'ai',STUDIO_DUB_AUTOPLAY:false,
   pauseAudioPlayers(){},audioEvents:()=>[{c:voice,start:0,cycle:0,limit:5}],
-  PREVIEW_DIRECT_VOICE:true,safeClipDuration:c=>c.duration,
+  PREVIEW_DIRECT_VOICE:true,PREVIEW_MOBILE_BUFFERED:false,safeClipDuration:c=>c.duration,
   VOICE_PREVIEW_BAD:new Set(),previewContext(){},updateAudioHint(){},
   VOICE_PREVIEW_CLOCK:null,stopVoicePreview(){},VOICE_PREVIEW_BUFFERS:new Map(),
   VOICE_PREVIEW_SOURCES:new Map(),primeVoicePreview(){},
@@ -99,7 +99,7 @@ test('iPad preview plays original and replaced narration clips without stale aud
  const event={c:{id:'v1',kind:'voice',data:'data:audio/first',duration:5,rate:1,volume:1,at:0},start:0,cycle:0,limit:5};
  const ctx={
   VOICE_RECORDER:null,STUDIO_CURRENT_TOOL:'ai',STUDIO_DUB_AUTOPLAY:false,
-  pauseAudioPlayers(){},audioEvents:()=>[event],PREVIEW_DIRECT_VOICE:true,
+  pauseAudioPlayers(){},audioEvents:()=>[event],PREVIEW_DIRECT_VOICE:true,PREVIEW_MOBILE_BUFFERED:false,
   safeClipDuration:c=>c.duration,VOICE_PREVIEW_BAD:new Set(),previewContext:()=>null,
   PREVIEW_AUDIO_CTX:null,updateAudioHint(){},VOICE_PREVIEW_CLOCK:null,stopVoicePreview(){},
   VOICE_PREVIEW_BUFFERS:new Map(),VOICE_PREVIEW_SOURCES:new Map(),primeVoicePreview(){},
