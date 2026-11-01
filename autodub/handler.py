@@ -189,6 +189,7 @@ def _export_action(action, body):
             return _resp(200, {"jobId": ident, "state": "CANCEL_REQUESTED"})
         result = cb.batch_get_builds(ids=[build_id]).get("builds", [])
         state = result[0].get("buildStatus", "QUEUED") if result else "QUEUED"
+        phase = result[0].get("currentPhase", "") if result else ""
         if state == "SUCCEEDED":
             for ext, mime in (("mp4", "video/mp4"), ("zip", "application/zip")):
                 try:
@@ -208,7 +209,7 @@ def _export_action(action, body):
             except ClientError:
                 error = "ตรวจสอบ CloudWatch Logs ของ CodeBuild"
             return _resp(200, {"jobId": ident, "state": state, "error": error[:600]})
-        return _resp(200, {"jobId": ident, "state": state})
+        return _resp(200, {"jobId": ident, "state": state, "phase": phase})
     return _resp(400, {"error": "ไม่รู้จักคำสั่งส่งออก"})
 
 async def _synth(text, voice, rate, pitch):
