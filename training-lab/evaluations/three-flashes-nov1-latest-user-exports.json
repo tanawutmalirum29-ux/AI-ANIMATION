@@ -115,6 +115,6 @@
     "approvedTrainingLabels": 0,
     "weightUpdateFromTheseMP4s": false,
     "note": "Audio track presence and low-level intervals do not prove every narrated word is present. 24 sampled frames cannot establish complete animation or correct story semantics. Do not use as approved labels.",
-    "engineeringAction": "Add conservative static QA warnings for overlapping actor start positions even when motion exists and production-owned SVG draft clearance risks. No automatic scene edits."
+    "engineeringAction": "Conservative static QA warns on motion-at-entry actor overlap and factory SVG clearance risks; factory-owned toolbox and reflector drafts are made smaller and toolbox moved to back layer. Manual artwork unchanged. Re-export still required to confirm visual improvements."
   }
 }
