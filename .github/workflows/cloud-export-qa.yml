@@ -1,0 +1,33 @@
+name: Cloud Export Static QA
+on:
+  pull_request:
+    paths:
+      - 'cloud-export/**'
+      - 'cloud-export-client.js'
+      - 'autodub/handler.py'
+      - 'amplify.yml'
+      - 'index.html'
+      - 'tests/cloud-export-contract-smoke.cjs'
+      - '.github/workflows/cloud-export-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cloud-export/**'
+      - 'cloud-export-client.js'
+      - 'autodub/handler.py'
+      - 'amplify.yml'
+      - 'index.html'
+      - 'tests/cloud-export-contract-smoke.cjs'
+jobs:
+  lint-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bash -n cloud-export/deploy.sh
+      - run: python3 -m py_compile autodub/handler.py
+      - run: node --check cloud-export-client.js
+      - run: node --check cloud-export/worker.cjs
+      - run: node tests/cloud-export-contract-smoke.cjs
