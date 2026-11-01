@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const path=require('node:path');
 (async()=>{
- const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
  const errors=[];
  const wav=String.raw`function makeTone(){
   const rate=16000,n=rate*2,b=new ArrayBuffer(44+n*2),d=new DataView(b);
