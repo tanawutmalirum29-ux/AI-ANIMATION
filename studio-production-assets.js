@@ -6,8 +6,8 @@ const C=(cx,cy,r,fill)=>({type:'circle',cx,cy,r,fill});
 const L=(x1,y1,x2,y2,stroke,strokeWidth=2)=>({type:'line',x1,y1,x2,y2,stroke,strokeWidth});
 const templates={
  bridge:{name:'สะพานไม้ (ภาพร่าง)',category:'architecture',x:50,y:75,scale:2.1,front:false,shapes:[R(0,38,100,12,'#6f513b',2),R(4,20,7,58,'#564339'),R(89,20,7,58,'#564339'),L(8,20,92,20,'#b7a083',5),L(8,34,92,34,'#b7a083',2)]},
- toolbox:{name:'กล่องเครื่องมือ (ภาพร่าง)',category:'prop',x:66,y:60,scale:.9,front:true,shapes:[R(18,34,64,43,'#ac473f',4),R(21,32,59,10,'#e16a50',3),R(40,22,20,11,'#59565b',3),R(46,34,8,10,'#f5d381',2)]},
- reflector:{name:'แผ่นสะท้อนแสง (ภาพร่าง)',category:'prop',x:65,y:60,scale:1.1,front:false,shapes:[C(50,45,32,'#d9e8ed'),C(50,45,26,'#91b2c1'),R(45,19,10,52,'#f7fbfb',3),L(50,77,50,97,'#626e73',8)]},
+ toolbox:{name:'กล่องเครื่องมือ (ภาพร่าง)',category:'prop',x:66,y:60,scale:.65,front:false,shapes:[R(18,34,64,43,'#ac473f',4),R(21,32,59,10,'#e16a50',3),R(40,22,20,11,'#59565b',3),R(46,34,8,10,'#f5d381',2)]},
+ reflector:{name:'แผ่นสะท้อนแสง (ภาพร่าง)',category:'prop',x:65,y:60,scale:.8,front:false,shapes:[C(50,45,32,'#d9e8ed'),C(50,45,26,'#91b2c1'),R(45,19,10,52,'#f7fbfb',3),L(50,77,50,97,'#626e73',8)]},
  belt:{name:'สายพาน (ภาพร่าง)',category:'prop',x:55,y:77,scale:.8,front:false,shapes:[R(6,38,88,18,'#6b5446',7),R(8,42,84,9,'#a38864',5),R(48,36,6,21,'#3f3834',1)]},
  beacon:{name:'แสงสามวาบ (ภาพร่าง)',category:'fx',x:60,y:40,scale:1.5,front:false,shapes:[C(50,45,46,'#f6dc80'),C(50,45,28,'#fff7b9'),C(50,45,12,'#ffffff')]},
  flood:{name:'น้ำที่ไหลบ่า (ภาพร่าง)',category:'nature',x:50,y:99,scale:2.1,front:true,shapes:[R(0,40,100,60,'#316c96'),L(0,42,32,44,'#a7d6e3',3),L(36,45,68,43,'#a7d6e3',3),L(71,42,100,44,'#a7d6e3',3)]}
