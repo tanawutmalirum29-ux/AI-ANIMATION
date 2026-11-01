@@ -63,7 +63,12 @@
    const oldDist=Math.hypot(Number(a.x)-Number(b.x),Number(a.y)-Number(b.y));
    const newDist=Math.hypot(Number(x.x)-Number(y.x),Number(x.y)-Number(y.y));
    const gain=newDist-oldDist;
-   if(gain>3&&(!selected||gain>selected.gain))selected={i,j,gain};
+   const aspect=String(project?.aspect||'16:9').split(':').map(Number);
+   // Only label a genuinely cramped pair; moving an actor away from one
+   // neighbor can increase distance to a completely different actor too.
+   const cramped=aspect[0]>0&&aspect[1]>0&&aspect[0]<aspect[1]?18:12;
+   if(oldDist<=cramped&&gain>3&&(!selected||gain>selected.gain))
+    selected={i,j,gain};
   }
   if(!selected)return null;
   return makeExample(project,before,selected.i,selected.j,'separate',group);
