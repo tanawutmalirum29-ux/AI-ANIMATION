@@ -4,6 +4,7 @@ on:
     paths:
       - 'cloud-export/**'
       - 'cloud-export-client.js'
+      - 'tests/cloud-export-presign-smoke.py'
       - 'autodub/handler.py'
       - 'amplify.yml'
       - 'index.html'
@@ -26,8 +27,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: bash -n cloud-export/deploy.sh
+      - run: bash -n cloud-export/deploy.sh cloud-export/repair-upload.sh
       - run: python3 -m py_compile autodub/handler.py
+      - run: python3 -m pip install --quiet boto3
+      - run: python3 tests/cloud-export-presign-smoke.py
       - run: node --check cloud-export-client.js
       - run: node --check cloud-export/worker.cjs
       - run: node tests/cloud-export-contract-smoke.cjs
