@@ -15,7 +15,10 @@ const path=require('node:path');
   assert.equal(await panel.getByRole('heading',{name:'AI Production · 6 ผู้ช่วย'}).count(),1);
   assert.equal(await panel.locator('.ai-factory-step').count(),6);
   await page.evaluate(()=>{
-   const s=StoryStudioBridge.get().episodes[0].scenes[0];
+   const project=StoryStudioBridge.get();
+   project.characters=[{id:'nil',name:'Nil',promptBlock:'Cartoon adult with dark hair, yellow coat'},
+    {id:'ta_in',name:'Ta In',promptBlock:'Cartoon elderly man with grey hair, blue coat'}];
+   const s=project.episodes[0].scenes[0];
    s.duration=12;
    s.voiceover='สะพานไม้ผุยุบตัวต่อหน้า กล่องเครื่องมือหลุดมือและตกลงน้ำ';
    s.imagePrompt='';
@@ -40,7 +43,7 @@ const path=require('node:path');
   const result=await page.evaluate(()=>{
    const s=StoryStudioBridge.get().episodes[0].scenes[0];
    const job=StoryStudioBridge.get().project.aiWorkspace.tasks.filter(t=>t.role==='factory').at(-1);
-   return {jobStatus:job.status,steps:job.steps.map(x=>[x.id,x.state]),
+   return {jobStatus:job.status,error:job.error,response:job.response,steps:job.steps.map(x=>[x.id,x.state]),
     stage:StoryStudioBridge.get().project.aiWorkspace.production?.stage,
     assets:(s.customAssets||[]).map(x=>x.autoDirectorTag),
     motion:(s.actors||[]).find(x=>x.char==='nil')?.motionKeys?.length,
