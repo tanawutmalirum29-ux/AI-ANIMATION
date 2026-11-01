@@ -12,7 +12,7 @@ const base={project:{title:'factory qa'},episodes:[{id:'ep1',scenes:[
  {id:'s15',duration:9,voiceover:'หนึ่งวาบ สองวาบ สามวาบ นิลเปิดบานบังแสง',
   actors:[{char:'nil',x:72,y:90,pose:'point'}],imagePrompt:'',props:[],audioClips:[],customAssets:[]},
  {id:'s18',duration:7,voiceover:'นิลปิดสมุดของพ่อ',actors:[],props:[],audioClips:[],customAssets:[]},
- {id:'locked',duration:4,voiceover:'สะพานพัง',autoDirectorLocked:true,customAssets:[],audioClips:[]}
+ {id:'locked',duration:4,voiceover:'ฉากนี้ล็อกไว้',autoDirectorLocked:true,customAssets:[],audioClips:[]}
  ]}]};
 const result=planner.plan(base,assetCore);
 assert.ok(result.layout.ops.length>=1,'composition resolves overlapping actors');
