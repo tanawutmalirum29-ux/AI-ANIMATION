@@ -103,9 +103,17 @@
    status('กำลังเตรียมงานและส่งไฟล์โปรเจกต์ขึ้น AWS…');$('videoProgress').removeAttribute('value');
    const prepared=await api({action:'export.prepare'});
    if(!prepared.jobId||!prepared.uploadUrl)throw Error('ไม่ได้รับลิงก์อัปโหลดจาก AWS');
-   const uploaded=await fetch(prepared.uploadUrl,{method:'PUT',
-    headers:{'Content-Type':'application/json'},body:bytes,signal:uploadAbort.signal});
-   if(!uploaded.ok)throw Error('อัปโหลดโปรเจกต์ไม่สำเร็จ (HTTP '+uploaded.status+')');
+   let uploaded;
+   try{
+    // Upload directly to the regional S3 URL returned by the server.
+    // Do not alter its query, host, headers or signed Content-Type.
+    uploaded=await fetch(prepared.uploadUrl,{method:'PUT',
+     headers:{'Content-Type':'application/json'},body:bytes,signal:uploadAbort.signal});
+   }catch(err){
+    if(err?.name==='AbortError')throw Error('ยกเลิกการอัปโหลดแล้ว');
+    throw Error('เชื่อมต่อ S3 เพื่ออัปโหลดไม่ได้ (ตรวจ CORS / AWS Region / อินเทอร์เน็ต) · '+String(err?.message||err));
+   }
+   if(!uploaded.ok)throw Error('S3 ปฏิเสธการอัปโหลด (HTTP '+uploaded.status+') · ตรวจลิงก์และสิทธิ์ AWS');
    pendingJob({jobId:prepared.jobId,createdAt:Date.now()});
    const result=await api({action:'export.start',jobId:prepared.jobId});
    if(result.error)throw Error(result.error);
