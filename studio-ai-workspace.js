@@ -456,18 +456,30 @@ function exportText(name,data,mime='application/json'){
 
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
- pane.append(e('h3',{},'ผู้ช่วย 3 ตัว · ใช้โปรเจกต์ JSON จาก AI ภายนอกโดยตรง'),
+ pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
   e('p',{className:'ai-help'},'บท ฉาก ภาพ ตัวละคร และเหตุการณ์มาจาก JSON ที่นำเข้าแล้ว ผู้ช่วยตรวจงานจริง ไม่ให้วางบทใหม่ และไม่สร้างเนื้อเรื่องแทน'));
  const production=w().production;
  pane.append(e('section',{className:'ai-audio-agent'},
-  e('h4',{},'ทำงานร่วมกัน · จัดทุกตอนให้ใกล้ 60 วินาที (สูงสุด 65 วินาที)'),
-  e('p',{},'นำเข้า JSON จาก AI ภายนอกได้ยาวเกิน 60 วินาที · ระบบจะใช้ AI-3 มาตรฐานจัดซับ → AI-2 สร้างเสียงจริง → AI-1 วัดเสียงและแบ่งตอนตามรอยต่อฉากที่ปลอดภัย'),
-  button(busy?'กำลังประสาน 3 ผู้ช่วย…':'ให้ AI-3 → AI-2 → AI-1 ทำงานร่วมกันทั้งโปรเจกต์',
+  e('h4',{},'ผลิตอัตโนมัติ 6 ขั้น · กดครั้งเดียว'),
+  e('p',{},'จัดองค์ประกอบ → ร่าง SVG → Keyframe → พากย์เสียง → จัดเวลา → QA ตามลำดับ ระบบทำงานตามความสามารถจริงและข้ามขั้นที่ยังไม่พร้อม ไม่ใช่โมเดล AI 6 ตัวที่สนทนากัน'),
+  button(busy?'กำลังผลิตทั้งโปรเจกต์…':'เริ่มผลิตด้วย 6 ผู้ช่วย · ปุ่มเดียว',
    runCoordinatedProduction,{disabled:busy,className:'ai-primary'}),
-  e('small',{},'เป้า 60–65 วินาทีต่อหนึ่งตอน · ไม่ตัดคำพากย์ ไม่ยืดความเงียบเพื่อให้ครบ 60 · ถ้าฉากเดียวยาวกว่า 65 วินาทีจะเตือนให้จัดฉากใหม่'),
+  e('small',{},'สำรองก่อนแก้ • ใช้เสียงเดิมถ้ามี • รักษาบทและ Keyframe • ถ้า TTS ไม่พร้อมจะข้ามและแจ้งเตือน • ต้องตรวจวิดีโอจริงก่อนเผยแพร่'),
   ...(production?.lastSummary?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
     'สถานะล่าสุด '+production.stage+' · '+production.lastSummary)]:[])
  ));
+ const latest=w().tasks.slice().reverse().find(x=>x.role==='production');
+ const steps=latest?.steps?.length?latest.steps:productionSteps();
+ const progressBox=e('section',{className:'ai-production-progress','aria-label':'สถานะผู้ช่วยทั้ง 6 ขั้น'},
+  e('h4',{},'ลำดับการทำงานและสถานะ'));
+ for(const [index,phase] of steps.entries())
+  progressBox.append(e('div',{className:'ai-production-step','data-step':phase.id,
+    'data-state':phase.status},e('strong',{},(index+1)+'. '+phase.name),
+    e('span',{className:'ai-production-step-state'},
+      ({pending:'รอทำงาน',running:'กำลังทำ',done:'เสร็จ',skipped:'ข้าม/ไม่ต้องแก้',
+        warning:'มีข้อจำกัด',failed:'ล้มเหลว'})[phase.status]||phase.status),
+    ...(phase.summary?[e('small',{},phase.summary)]:[])));
+ pane.append(progressBox);
  const cards=e('div',{className:'ai-audio-agents'});
  const scope=e('select',{'aria-label':'ขอบเขตตรวจและพากย์',onchange:evt=>{audioScope=evt.target.value;lastAudit=null;render()}},
   ...[['scene','เฉพาะฉากปัจจุบัน'],['episode','ตอนปัจจุบัน'],['all','ทุกตอนในโปรเจกต์']].map(([id,label])=>
@@ -477,7 +489,7 @@ function renderChat(container){
   onchange:evt=>{splitEpisodes=!!evt.target.checked}}),
   ' แบ่งตอนที่ยาวเกิน ณ รอยต่อฉากเดิม (เฉพาะเมื่อย้ายได้อย่างปลอดภัย)');
  const structure=e('article',{className:'ai-audio-agent'},
-  e('h4',{},'AI-1 · ตรวจจังหวะฉากและความยาวตอนจากงานจริง'),
+  e('h4',{},'AI-5 · ตรวจจังหวะฉากและความยาวตอนจากงานจริง'),
   e('p',{},'วัดเสียงพากย์จริง ลดภาพค้าง แบ่งตอนจากฉากเดิมให้เข้าใกล้ 60 วินาที และไม่เกิน 65 วินาทีหากแบ่งอย่างปลอดภัยได้'),
   e('div',{className:'ai-script-settings'},e('label',{},'ตรวจขอบเขต',scope),
     e('label',{},'เวลาต่อตอน',minutes)),
@@ -510,28 +522,27 @@ function renderChat(container){
   structure.append(report);
  }
  const voice=e('article',{className:'ai-audio-agent'},
-  e('h4',{},'AI-2 · พากย์เสียงจากฉากที่เขียนเสร็จ'),
+  e('h4',{},'AI-4 · พากย์เสียงจากฉากที่เขียนเสร็จ'),
   e('p',{},'พากย์ข้อความ voiceover / subtitle จาก JSON เดิม แบ่งข้อความที่ยาวเป็นคลิปสั้นเพื่อลดการเว้นวรรคนานเกินไป ใช้ความยาว MP3 จริงจัดจังหวะอีกครั้งหลังจบ'),
   button(busy?'กำลังพากย์…':'พากย์และจัดเวลาหลังพากย์',()=>queueWork('voice'),{disabled:busy,className:'ai-primary'}),
   e('small',{},'ทำงานบน Edge TTS ที่เชื่อมไว้เดิม · หากบริการไม่พร้อม จะแจ้งว่าไม่สามารถพากย์ได้ ไม่แสดงผลสำเร็จปลอม'));
- const narrative=e('article',{className:'ai-audio-agent'},
- e('h4',{},'AI-3 · ผู้กำกับบทบรรยายและซับไตเติล'),
- e('p',{},'ใช้ JSON ภายนอกเป็นต้นฉบับ · รักษาบทเดิม แบ่งซับและกระจายเวลาซับตามความยาวฉาก · สำรองก่อนแก้'),
-button(busy?'กำลังทำงาน…':'ให้ AI-3 จัดบทและซับ',()=>runNarrative(),{disabled:busy,className:'ai-primary'}),
- ...(narrativeReport?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},narrativeReport)]:[]));
- cards.append(structure,voice,narrative);
+ const visual=e('article',{className:'ai-audio-agent'},
+  e('h4',{},'AI-1 / AI-2 / AI-3 / AI-6 · งานภาพและ QA'),
+  e('p',{},'AI-1 แยกตำแหน่งเฉพาะที่ไม่มีการล็อกหรือ choreography · AI-2 สร้าง SVG จากแม่แบบที่รองรับ · AI-3 ทำ Keyframe พื้นฐาน · AI-6 ตรวจ JSON และฉากที่มีคำสั่งจริง'),
+  e('small',{},'ส่วนภาพยังเป็นกฎเฉพาะทาง ไม่ใช่โมเดลสร้างภาพอิสระ และไม่รับประกันภาพซับซ้อนจากข้อความอย่างเดียว'));
+ cards.append(visual,structure,voice);
  pane.append(cards,e('p',{className:'ai-help'},'เครื่องมืออื่น เช่น Sound Desk กล้อง เอฟเฟกต์ และคลัง GitHub ยังอยู่ แต่ไม่ได้เป็นผู้ช่วย AI เพิ่ม'));
  container.append(pane);
 }
 
 function renderTasks(container){
  const tasks=w().tasks.slice().reverse(),pane=e('section',{className:'ai-task-panel'});
- pane.append(e('div',{className:'ai-section-head'},e('h3',{},'ประวัติการตรวจจังหวะและพากย์'),e('span',{},'บันทึกงานเก่าไว้เป็นประวัติ · มีผู้ช่วย 3 ตัวเท่านั้น')));
+ pane.append(e('div',{className:'ai-section-head'},e('h3',{},'ประวัติการตรวจจังหวะและพากย์'),e('span',{},'บันทึกสถานะทุกขั้นและงานจากระบบเก่าไว้ย้อนหลัง')));
  if(!tasks.length)pane.append(e('p',{className:'ai-help'},'ยังไม่มีงาน กดตรวจ JSON หรือเริ่มพากย์เสียง'));
  for(const task of tasks){
   const role=core.roles.find(r=>r.id===task.role);
   const box=e('article',{className:'ai-task','data-task-id':task.id});
-  box.append(e('div',{className:'ai-task-head'},e('strong',{},role?.name||(task.role==='production'?'เวิร์กโฟลว์ AI-3 → AI-2 → AI-1':'งาน AI เก่า (อ่านอย่างเดียว)')),
+  box.append(e('div',{className:'ai-task-head'},e('strong',{},role?.name||(task.role==='production'?'เวิร์กโฟลว์ AI-1 → AI-6':'งาน AI เก่า (อ่านอย่างเดียว)')),
    e('span',{className:'ai-task-state','data-state':task.status},
     ({queued:'รอทำ',running:'กำลังทำ',done:'เสร็จ',failed:'ผิดพลาด',applied:'งานเก่า',interrupted:'หยุดไป'}[task.status]||task.status))));
   box.append(e('p',{},task.prompt||''));
@@ -642,12 +653,12 @@ function renderProjects(container){
 function render(){
  if(!rootElement||!bridge)return;
  rootElement.replaceChildren(
-  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 3 ผู้ช่วย'),
-   e('p',{},'ตรวจฉากจาก JSON จริง · เทียบเสียงกับความยาว · พากย์เสียง'))),
+  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 6 ผู้ช่วย'),
+   e('p',{},'จัดองค์ประกอบ · SVG · Motion · เสียง · เวลา · QA'))),
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['chat','3 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );
