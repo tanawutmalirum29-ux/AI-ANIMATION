@@ -1,25 +1,25 @@
 /* Art Vault — responsive, low-overhead vector asset gallery. */
 .ai-art-filter,.ai-art-grid,.ai-art-edit-grid{display:grid;gap:10px}
 .ai-art-filter{display:flex;flex-wrap:wrap;margin:10px 0}
-.ai-art-filter button.active{background:#d9bd83;color:#14213d}
+.ai-art-filter button.active{background:#d9bd83;color:#212328}
 .ai-art-grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}
-.ai-art-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:11px;background:#192943;border:1px solid #ffffff2b;border-radius:12px}
+.ai-art-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:11px;background:#26282d;border:1px solid #ffffff2b;border-radius:12px}
 .ai-art-card strong{font-size:13px}
-.ai-art-card small{font-size:11px;line-height:1.4;color:#b8cadd;flex:1}
-.ai-art-preview{display:grid;place-items:center;aspect-ratio:1;background:radial-gradient(circle at 50% 35%,#39526d,#152136);border:1px solid #ffffff18;border-radius:10px;overflow:hidden}
+.ai-art-card small{font-size:11px;line-height:1.4;color:#c7c9ce;flex:1}
+.ai-art-preview{display:grid;place-items:center;aspect-ratio:1;background:radial-gradient(circle at 50% 35%,#46494f,#1f2025);border:1px solid #ffffff18;border-radius:10px;overflow:hidden}
 .ai-art-preview svg{width:100%;height:100%;max-height:210px;object-fit:contain}
 .ai-art-card .ai-actions{display:flex;flex-wrap:wrap;gap:6px}
 .ai-art-card button{flex:1;white-space:normal;min-height:35px;font-size:12px}
 .ai-art-edit-grid{grid-template-columns:minmax(0,1.25fr) minmax(190px,0.75fr);align-items:start}
 .ai-art-editor textarea{width:100%;min-height:260px;font:12px/1.55 ui-monospace,monospace;resize:vertical}
-.ai-art-review{display:flex;flex-direction:column;gap:10px;min-width:0;padding:10px;background:#172740;border-radius:12px}
+.ai-art-review{display:flex;flex-direction:column;gap:10px;min-width:0;padding:10px;background:#23262b;border-radius:12px}
 .ai-art-review .ai-art-preview{width:100%}
 .ai-art-review .ai-actions{display:flex;flex-wrap:wrap;gap:6px}
 .ai-art-review .ai-actions button{white-space:normal}
 @media(max-width:720px){.ai-art-edit-grid{grid-template-columns:1fr}.ai-art-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:390px){.ai-art-grid{grid-template-columns:1fr 1fr}}
 
-.ai-art-current{margin:12px 0 18px;padding:12px;background:#111f33;border:1px solid #ffffff22;border-radius:12px}
+.ai-art-current{margin:12px 0 18px;padding:12px;background:#1c1d22;border:1px solid #ffffff22;border-radius:12px}
 .ai-art-current h4{margin:0 0 9px;color:#e9c98e}
 .ai-art-placement{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:10px;padding:7px 0;border-top:1px solid #ffffff20}
 .ai-art-placement>.ai-art-preview{width:90px;height:90px}
@@ -33,6 +33,6 @@
 
 /* Free GitHub session and local AI art vault */
 #aiWorkspacePanel .ai-github-connect{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0}
-#aiWorkspacePanel .ai-github-connect input{flex:1 1 220px;min-width:0;background:#1c2d45;color:#f0f2f4;border:1px solid #64788d;border-radius:9px;padding:10px 12px;font-size:14px;min-height:43px}
+#aiWorkspacePanel .ai-github-connect input{flex:1 1 220px;min-width:0;background:#282a2f;color:#f2f2f2;border:1px solid #696b70;border-radius:9px;padding:10px 12px;font-size:14px;min-height:43px}
 #aiWorkspacePanel .ai-github-connect button{flex:0 0 auto}
 #aiWorkspacePanel .ai-github-connect input:focus-visible{outline:2px solid #ffdc88;outline-offset:2px}

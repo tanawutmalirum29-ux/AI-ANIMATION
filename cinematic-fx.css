@@ -1,25 +1,25 @@
 /* Cinematic Effects Engine / single-panel iPad-first controls */
-#studioToolNav button[data-tool="cinema"]{background:#29415b;border:1px solid #b6a47e77;color:#f0e2bc}
-#studioToolNav button[data-tool="cinema"].on{background:#d9bd83;color:#132238;border-color:#d9bd83}
+#studioToolNav button[data-tool="cinema"]{background:#373940;border:1px solid #b6a47e77;color:#f0e2bc}
+#studioToolNav button[data-tool="cinema"].on{background:#d9bd83;color:#1e2025;border-color:#d9bd83}
 #cinematicFxCanvas{pointer-events:none!important}
 #cinematicFxEditor{padding:14px 12px 26px;max-width:100%;overflow-wrap:anywhere}
 #cinematicFxEditor h3{font-size:17px;color:#f0d39b;margin:2px 0 10px}
 #cinematicFxEditor h4{font-size:13px;color:#eddaa9;margin:18px 0 8px}
-#cinematicFxEditor .cinema-help{font-size:12px;line-height:1.6;color:#b9cddd;margin:7px 0 11px}
+#cinematicFxEditor .cinema-help{font-size:12px;line-height:1.6;color:#c7c9cf;margin:7px 0 11px}
 #cinematicFxEditor .cinema-row{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}
 #cinematicFxEditor .cinema-row>label{flex:1 1 160px;min-width:0}
 #cinematicFxEditor .cinema-row>select{flex:1 1 100%;min-width:0}
-#cinematicFxEditor label{display:flex;flex-direction:column;gap:5px;font-size:12px;min-width:0;color:#d6e0ea;margin:0}
+#cinematicFxEditor label{display:flex;flex-direction:column;gap:5px;font-size:12px;min-width:0;color:#dedfe2;margin:0}
 #cinematicFxEditor label>span{font-weight:600}
-#cinematicFxEditor input:not([type="checkbox"]):not([type="range"]),#cinematicFxEditor select{width:100%;min-height:39px;background:#172a45;color:#f5eddf;padding:6px 8px;border:1px solid #526a84;border-radius:8px;font-size:14px}
+#cinematicFxEditor input:not([type="checkbox"]):not([type="range"]),#cinematicFxEditor select{width:100%;min-height:39px;background:#25282e;color:#f5eddf;padding:6px 8px;border:1px solid #5c5e65;border-radius:8px;font-size:14px}
 #cinematicFxEditor input[type="color"]{padding:3px;min-width:80px}
-#cinematicFxEditor button{min-height:39px;padding:8px 12px;border:1px solid #647b95;background:#263e58;color:#f2e8d7;white-space:normal;flex:1 1 145px;border-radius:9px}
-#cinematicFxEditor button:hover{background:#34536e}
+#cinematicFxEditor button{min-height:39px;padding:8px 12px;border:1px solid #6c6e74;background:#34373d;color:#f2e8d7;white-space:normal;flex:1 1 145px;border-radius:9px}
+#cinematicFxEditor button:hover{background:#44474e}
 #cinematicFxEditor button:focus-visible,#cinematicFxEditor select:focus-visible,#cinematicFxEditor input:focus-visible{outline:2px solid #d9bd83;outline-offset:2px}
-#cinematicFxEditor .cinema-check{display:flex;flex-direction:row;align-items:center;gap:10px;border-radius:9px;background:#18374a;border:1px solid #537082;padding:11px;margin:12px 0}
+#cinematicFxEditor .cinema-check{display:flex;flex-direction:row;align-items:center;gap:10px;border-radius:9px;background:#282a31;border:1px solid #5c5e64;padding:11px;margin:12px 0}
 #cinematicFxEditor .cinema-check input{width:20px;height:20px;accent-color:#e7cd8f;flex:none}
 #cinematicFxEditor .cinema-slider-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-#cinematicFxEditor .cinema-slider-grid label{background:#182e48;border:1px solid #405c76;border-radius:9px;padding:9px}
+#cinematicFxEditor .cinema-slider-grid label{background:#272930;border:1px solid #4d5057;border-radius:9px;padding:9px}
 #cinematicFxEditor .cinema-slider-grid input{width:100%;min-height:23px;accent-color:#e2c88f;margin:3px 0}
 #cinematicFxEditor .cinema-slider-grid output{font-size:11px;text-align:right;color:#e9ce97;font-variant-numeric:tabular-nums}
 @media(max-width:520px){

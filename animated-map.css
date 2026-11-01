@@ -1,24 +1,24 @@
 /* Animated Map editor panel for Story Studio Director */
-#studioToolNav button[data-tool="map"]{border:1px solid #d7b57670;background:#254153;color:#f5e4bb}
-#studioToolNav button[data-tool="map"].on{background:#d9bd83;color:#14213d;border-color:#d9bd83}
+#studioToolNav button[data-tool="map"]{border:1px solid #d7b57670;background:#32343a;color:#f5e4bb}
+#studioToolNav button[data-tool="map"].on{background:#d9bd83;color:#212328;border-color:#d9bd83}
 #animatedMapCanvas{pointer-events:none!important}
 #animatedMapEditor{padding:12px;max-width:100%;overflow-wrap:anywhere}
 .animated-map-editor{color:#efe9df;max-width:880px;margin:0 auto}
 .animated-map-editor h3{font-size:17px;color:#ecd39c;margin:4px 0 10px}
 .animated-map-editor h4{font-size:13px;color:#ecd39c;margin:16px 0 8px}
-.animated-map-help{color:#b9ccda;font-size:12px;line-height:1.65;margin:7px 0 13px}
+.animated-map-help{color:#c6c8cd;font-size:12px;line-height:1.65;margin:7px 0 13px}
 .animated-map-row{display:flex;flex-wrap:wrap;gap:9px;margin:9px 0}
 .animated-map-row>label{min-width:150px;flex:1 1 180px}
 .animated-map-row>select{flex:1 1 100%;min-width:0}
 .animated-map-row>button{flex:1 1 145px;white-space:normal;min-height:40px}
 .animated-map-editor label{display:flex;flex-direction:column;gap:5px;margin:0;font-size:12px;color:#e1d8ca}
-.animated-map-editor label>input:not([type="checkbox"]),.animated-map-editor label>select{width:100%;min-height:41px;font-size:14px;color:#f5efdf;background:#162740;border:1px solid #52627b;border-radius:8px;padding:8px}
-.animated-map-editor select{min-height:42px;width:100%;padding:7px;border:1px solid #60728d;border-radius:8px;background:#182d48;color:#f6ebd4}
-.animated-map-editor button{min-height:38px;background:#263f5d;border:1px solid #60728d;border-radius:8px;padding:8px}
+.animated-map-editor label>input:not([type="checkbox"]),.animated-map-editor label>select{width:100%;min-height:41px;font-size:14px;color:#f5efdf;background:#23252a;border:1px solid #595b60;border-radius:8px;padding:8px}
+.animated-map-editor select{min-height:42px;width:100%;padding:7px;border:1px solid #67696f;border-radius:8px;background:#272930;color:#f6ebd4}
+.animated-map-editor button{min-height:38px;background:#363940;border:1px solid #67696f;border-radius:8px;padding:8px}
 .animated-map-editor button:focus-visible,.animated-map-editor input:focus-visible,.animated-map-editor select:focus-visible{outline:2px solid #d9bd83;outline-offset:2px}
-.animated-map-editor .animated-map-check{display:flex;flex-direction:row;align-items:center;gap:10px;background:#1a304a;border:1px solid #53667d;border-radius:9px;padding:11px;margin:10px 0}
+.animated-map-editor .animated-map-check{display:flex;flex-direction:row;align-items:center;gap:10px;background:#292b31;border:1px solid #5a5c61;border-radius:9px;padding:11px;margin:10px 0}
 .animated-map-editor .animated-map-check input{width:20px;height:20px;accent-color:#d9bd83;flex:none}
-.animated-map-waypoint{display:grid;grid-template-columns:minmax(58px,.7fr) 1fr 1fr auto;align-items:end;gap:9px;border:1px solid #344d69;background:#1a2b42;padding:9px;margin:7px 0;border-radius:10px}
+.animated-map-waypoint{display:grid;grid-template-columns:minmax(58px,.7fr) 1fr 1fr auto;align-items:end;gap:9px;border:1px solid #42454b;background:#26282d;padding:9px;margin:7px 0;border-radius:10px}
 .animated-map-waypoint>b{font-size:12px;color:#eddaa9;align-self:center}
 .animated-map-waypoint button{color:#ffd6c5;border-color:#9b6758}
 @media(max-width:520px){
