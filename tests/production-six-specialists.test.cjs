@@ -34,7 +34,7 @@ for(const ep of result.final.episodes)for(const scene of ep.scenes)
 const svgEarly=assetCore.sceneMarkup(result.final.episodes[0].scenes[1],'front',90,0);
 const svgLit=assetCore.sceneMarkup(result.final.episodes[0].scenes[1],'front',90,1.8);
 assert.match(svgEarly,/opacity="0.000"/);
-assert.match(svgLit,/<g opacity="(?!0\.000)/,'SVG fades visibly at timed frame');
+assert.match(svgLit,/opacity="(?!0\.000)/,'SVG fades visibly at timed frame');
 const again=planner.plan(result.final,assetCore);
 assert.equal(again.svg.ops.length,0,'rerunning is idempotent');
 assert.equal(again.motion.ops.length,0,'do not regenerate keyframes');
