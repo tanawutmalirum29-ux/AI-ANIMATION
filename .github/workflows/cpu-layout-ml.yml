@@ -4,6 +4,7 @@ on:
     paths:
       - studio-layout-ml.js
       - training-lab/train-layout.py
+      - training-lab/prepare-layout-data.py
       - training-lab/test-layout-ml.py
       - training-lab/datasets/approved/**
       - tests/layout-ml-contract.test.cjs
