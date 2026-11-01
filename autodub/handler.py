@@ -139,7 +139,7 @@ def _export_action(action, body):
             result = s3.get_object(Bucket=bucket, Key=key("build.json"))
             return json.loads(result["Body"].read())
         except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404", "403", "AccessDenied"):
                 return None
             raise
     if action == "export.start":
