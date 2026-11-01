@@ -24,7 +24,7 @@ if ! aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1;then
  else aws s3api create-bucket --bucket "$BUCKET" --create-bucket-configuration "LocationConstraint=$REGION" >/dev/null;fi
 fi
 aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-configuration 'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
-printf '{"CORSRules":[{"AllowedOrigins":["%s"],"AllowedMethods":["PUT"],"AllowedHeaders":["content-type"],"MaxAgeSeconds":3600}]}' "$ORIGIN" >"$TMP/cors.json"
+printf '{"CORSRules":[{"AllowedOrigins":["%s"],"AllowedMethods":["PUT"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]}' "$ORIGIN" >"$TMP/cors.json"
 aws s3api put-bucket-cors --bucket "$BUCKET" --cors-configuration "file://$TMP/cors.json"
 cat >"$TMP/expire.json" <<'JSON'
 {"Rules":[{"ID":"RemoveRenderJobs","Filter":{"Prefix":"jobs/"},"Status":"Enabled","Expiration":{"Days":2},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":1}}]}
