@@ -58,3 +58,19 @@ deterministic renderer, narration, timing, JSON schema and QA.
 Do not report fake training success, fabricate dataset examples, promise
 continuous self-learning, or silently deploy model weights. Changes in GitHub
 must be backed by actual commits, CI results, and measurable evaluation.
+
+
+## Latest handoff — 2026-11-01, three exported episodes
+
+Review: `training-lab/evaluations/three-flashes-nov1-exports-v4.json`.
+The three MP4s have full AAC audio tracks and short <=1.22s low-level audio
+regions, but visible actor overlap persists through episodes 2/3 and episode
+1 has largely static shots. The current fix upgrades **deterministic** AI-1
+composition to separate up to 3+ unanchored actors by a portrait-safe 24%
+starting X gap while retaining basic toX travel displacement, explicit locks,
+routes and intentional contact. This does **not** add approved training labels,
+fine-tune any model, or guarantee the new render is free of overlap.
+Do not touch story meaning or uploaded original JSON to hide engine faults.
+Next inspect fresh exports after re-running the six-step producer; continue
+implementing real prop/state transitions for blackout, notebook, wrench transfer
+only against supported rendering primitives and regressions.
