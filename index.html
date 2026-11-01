@@ -3420,6 +3420,26 @@ function fxU32(list){const o=new Uint8Array(list.length*4),dv=new DataView(o.buf
 function fxU16(list){const o=new Uint8Array(list.length*2),dv=new DataView(o.buffer);list.forEach((v,i)=>dv.setUint16(i*2,v&65535));return o}
 function fxBytes(list){return Uint8Array.from(list)}
 function fxZeros(n){return new Uint8Array(n)}
+/* Safari/iPadOS WebCodecs คืน AudioEncoder decoderConfig.description เป็น ES_Descriptor ทั้งก้อน (03 80 80 80 .. 04 .. 05 .. 06 ..)
+   ไม่ใช่ AudioSpecificConfig 2 ไบต์ แล้วโค้ดเดิมเอาไปห่อ esds ซ้ำ → ไฟล์ MP4 ได้แทร็กเสียงเพี้ยน (object type 0 / 0 channels) เล่นแล้วเงียบ */
+function fxAscFromDesc(d,sr,ch){
+ try{
+  if(!d||!d.length)return null;
+  let asc=d;
+  if(d[0]===3||d[0]===4||d[0]===5){
+   let found=null;
+   const len=i=>{let n=0,k=0,b;do{b=d[i++];n=(n<<7)|(b&127);k++}while((b&128)&&k<4&&i<d.length);return [n,i]};
+   const walk=(i,end)=>{while(i<end&&!found){const tag=d[i++],r=len(i);let n=r[0];i=r[1];
+    if(tag===3){const fl=d[i+2];let skip=3;if(fl&128)skip+=2;if(fl&64){skip+=1+d[i+skip]}if(fl&32)skip+=2;walk(i+skip,Math.min(end,i+n))}
+    else if(tag===4)walk(i+13,Math.min(end,i+n));
+    else if(tag===5){found=d.subarray(i,i+n);return}
+    else i+=n}};
+   walk(0,d.length);if(!found)return null;asc=found}
+  const aot=asc[0]>>3,idx=((asc[0]&7)<<1)|(asc[1]>>7),chn=(asc[1]>>3)&15;
+  if(asc.length<2||aot<1||aot>5||idx>12||chn<1||chn>7)return null;
+  return asc
+ }catch(e){return null}
+}
 function fxAsc(sampleRate,channels){const rates=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];let i=rates.indexOf(sampleRate);if(i<0)i=3;const v=(2<<11)|(i<<7)|(channels<<3);return fxBytes([v>>8,v&255])}
 function createMp4Muxer(o){
  const vs=[],as=[];let vdesc=o.videoDesc||null,adesc=o.audioDesc||null;
@@ -3471,7 +3491,7 @@ function createMp4Muxer(o){
   return fxBox('moov',parts)
  }
  return {
-  setVideoDesc(d){vdesc=d},setAudioDesc(d){adesc=d},audioCount(){return as.length},audioBytes(){return as.reduce((a,x)=>a+x.data.length,0)},
+  setVideoDesc(d){vdesc=d},setAudioDesc(d){adesc=fxAscFromDesc(d,sr,ch)},audioCount(){return as.length},audioBytes(){return as.reduce((a,x)=>a+x.data.length,0)},
   addVideo(data,ts,key){vs.push({data,ts,key,k:0})},addAudio(data,ts){as.push({data,ts,k:1})},
   finish(){
    if(!vs.length)throw new Error('ไม่มีเฟรมวิดีโอ');if(!vdesc)throw new Error('ไม่ได้รับค่า avcC จากตัวเข้ารหัส');
