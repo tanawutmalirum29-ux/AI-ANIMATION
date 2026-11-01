@@ -59,4 +59,35 @@ assert.equal(qa.eventEvidence(missing.episodes[0].scenes[1],'flooding','coastal-
  'no action should be claimed without the effect');
 assert.equal(qa.eventEvidence(gate,'flooding','coastal-cliff'),false,
  'wrong map type cannot claim same effect');
+
+const revised=JSON.parse(fs.readFileSync(path.resolve(__dirname,
+ '../examples/three-flashes-coastal-svg-v2.json'),'utf8'));
+assert.equal(revised.episodes.length,3);
+assert.equal(revised.episodes.flatMap(e=>e.scenes).length,18);
+assert.equal(revised.locations.length,5);
+assert.deepEqual(new Set(revised.locations.map(l=>l.set.worldArt)),new Set(world.TYPES));
+assert.ok(revised.episodes.every(e=>e.scenes.every(sc=>
+ sc.camera.type==='panorama'&&sc.camera.world===3.2)));
+const srcScene=id=>revised.episodes.flatMap(e=>e.scenes).find(s=>s.id===id);
+assert.equal(srcScene('s03').worldEffects.gateLeak,true);
+assert.equal(srcScene('s08').worldEffects.toolboxFall,true);
+assert.equal(srcScene('s11').worldEffects.crankTurn,true);
+assert.equal(srcScene('s12').worldEffects.beltBreak,true);
+assert.equal(srcScene('s13').worldEffects.beltRepair,true);
+assert.equal(srcScene('s15').worldEffects.threeFlashes,true);
+assert.equal(srcScene('s16').worldEffects.evacuation,true);
+const worldOf=id=>revised.locations.find(l=>l.id===srcScene(id).location).set.worldArt;
+for(const [id,event] of [['s03','flooding'],['s08','bridge-collapse'],
+ ['s08','falling-item'],['s12','belt-break'],['s15','three-flashes']]){
+ assert.ok(qa.eventEvidence(srcScene(id),event,worldOf(id)),
+  'authored cinematic effect must be executable '+id+' '+event);
+}
+assert.match(draw('coastal-harbor',{evacuation:true}),/data-world-object="evacuating-villager"/);
+assert.match(draw('coastal-workshop',{notebookOpen:true}),/data-world-object="open-notebook"/);
+assert.match(draw('coastal-workshop',{signalDiagram:true}),/data-world-object="three-ray-diagram"/);
+assert.match(draw('lighthouse-lantern',{crankTurn:true}),/data-world-object="hand-crank"/);
+assert.notEqual(draw('coastal-harbor',{sequentialBlackout:true},0),
+ draw('coastal-harbor',{sequentialBlackout:true},8));
+assert.notEqual(draw('lighthouse-lantern',{crankTurn:true},0),
+ draw('lighthouse-lantern',{crankTurn:true},8));
 console.log('PASS: five wide SVG worlds, actual coastal landmarks, timed visual events and training JSON');
