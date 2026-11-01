@@ -49,27 +49,15 @@ json.dump({"Version":"2012-10-17","Statement":[
 PY
 aws iam put-role-policy --role-name "$ROLE" --policy-name StoryCloudRenderWorker --policy-document "file://$TMP/worker-policy.json"
 echo "[3/6] Chromium and FFmpeg render service"
-cat >"$TMP/buildspec.yml" <<'YAML'
-version: 0.2
-phases:
-  install:
-    commands:
-      - npm install --prefix /tmp/story-cloud-tools --no-audit --no-fund playwright@1.56.1
-      - /tmp/story-cloud-tools/node_modules/.bin/playwright install chromium --with-deps
-      - if ! command -v ffmpeg >/dev/null || ! command -v zip >/dev/null || ! command -v unzip >/dev/null; then apt-get update -qq && apt-get install -y ffmpeg zip unzip; fi
-  build:
-    commands:
-      - git clone --depth 1 --branch main https://github.com/tanawutmalirum29-ux/AI-ANIMATION.git /tmp/story-site
-      - cd /tmp/story-site
-      - NODE_PATH=/tmp/story-cloud-tools/node_modules node cloud-export/worker.cjs
-YAML
+cp "$ROOT/cloud-export/buildspec.yml" "$TMP/buildspec.yml"
 python3 - "$TMP/project.json" "$TMP/buildspec.yml" "$PROJECT" "$ROLE_ARN" <<'PY'
 import json,sys
 p,spec,name,role=sys.argv[1:]
 json.dump({"name":name,"source":{"type":"NO_SOURCE","buildspec":open(spec).read()},
 "artifacts":{"type":"NO_ARTIFACTS"},"environment":{"type":"LINUX_CONTAINER","image":"aws/codebuild/standard:7.0",
 "computeType":"BUILD_GENERAL1_MEDIUM","imagePullCredentialsType":"CODEBUILD","privilegedMode":False},
-"serviceRole":role,"timeoutInMinutes":120,"queuedTimeoutInMinutes":60,"concurrentBuildLimit":1},open(p,"w"))
+"serviceRole":role,"timeoutInMinutes":120,"queuedTimeoutInMinutes":60,
+"concurrentBuildLimit":1,"cache":{"type":"LOCAL","modes":["LOCAL_CUSTOM_CACHE"]}},open(p,"w"))
 PY
 if aws codebuild batch-get-projects --names "$PROJECT" --query 'projects[0].name' --output text 2>/dev/null|grep -qx "$PROJECT";then
  CODEBUILD_OPERATION="update-project"

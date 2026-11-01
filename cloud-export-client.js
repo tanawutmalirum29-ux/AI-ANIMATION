@@ -58,9 +58,18 @@
     pendingJob(null);fail(info.error||'AWS หยุดงานส่งออก ('+info.state+')');return;
    }
    setBusy(true);$('videoProgress').removeAttribute('value');
-   status(info.state==='QUEUED'||info.state==='UPLOADING'?
-    'อยู่ในคิว AWS · สามารถสลับแอปหรือกลับมาใหม่ได้ งานไม่หยุด':
-    'AWS กำลังเรนเดอร์วิดีโอ · ปิดหน้าจอหรือสลับแอปได้');
+   const phase=String(info.phase||'').toUpperCase();
+   const phaseLabels={
+    SUBMITTED:'AWS รับงานแล้ว',QUEUED:'รอคิว AWS',PROVISIONING:'AWS กำลังเปิดเครื่อง',
+    DOWNLOAD_SOURCE:'กำลังเตรียมซอร์ส',INSTALL:'กำลังเตรียม Chromium / FFmpeg',
+    PRE_BUILD:'กำลังเตรียมข้อมูล',BUILD:'กำลังสร้างวิดีโอและแปลง MP4',
+    POST_BUILD:'กำลังจัดเก็บไฟล์',UPLOAD_ARTIFACTS:'กำลังจัดเก็บไฟล์',
+    FINALIZING:'กำลังปิดงาน'
+   };
+   const detail=phaseLabels[phase]||(info.state==='QUEUED'||info.state==='UPLOADING'?
+    'อยู่ในคิว AWS':'กำลังเรนเดอร์บน AWS');
+   const elapsed=pending?.createdAt?Math.max(0,Math.floor((Date.now()-pending.createdAt)/60000)):0;
+   status(detail+' · ผ่านไป '+elapsed+' นาที · สามารถสลับแอปได้ งานบน AWS จะทำต่อ');
   }catch(err){
    if(err.status===401||err.status===403){status('เข้าสู่สตูดิโอใหม่เพื่อดูผลการส่งออก');return}
    status('กำลังเชื่อมต่อ AWS อีกครั้ง: '+String(err?.message||err));

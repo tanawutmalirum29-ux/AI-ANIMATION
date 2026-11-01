@@ -1,0 +1,24 @@
+# CodeBuild source is NO_SOURCE: this YAML is embedded into the project by
+# cloud-export/deploy.sh or cloud-export/speedup.sh.
+# Local custom cache is opportunistic: AWS may schedule a fresh host each run.
+version: 0.2
+cache:
+  paths:
+    - '/tmp/story-cloud-tools/**/*'
+    - '/root/.cache/ms-playwright/**/*'
+    - '/root/.npm/**/*'
+phases:
+  install:
+    commands:
+      - echo "[STUDIO] Browser/runtime setup started at $(date -u +%FT%TZ)"
+      - if [ ! -f /tmp/story-cloud-tools/node_modules/playwright/package.json ] || [ "$(node -p 'require("/tmp/story-cloud-tools/node_modules/playwright/package.json").version')" != "1.56.1" ]; then npm install --prefix /tmp/story-cloud-tools --no-audit --no-fund playwright@1.56.1; else echo "[STUDIO] Reusing cached Playwright 1.56.1"; fi
+      - /tmp/story-cloud-tools/node_modules/.bin/playwright install chromium
+      - if ! NODE_PATH=/tmp/story-cloud-tools/node_modules node -e 'const {chromium}=require("playwright");chromium.launch({headless:true,args:["--no-sandbox"]}).then(b=>b.close()).catch(()=>process.exit(1))'; then echo "[STUDIO] Installing missing Chromium system libraries"; /tmp/story-cloud-tools/node_modules/.bin/playwright install-deps chromium; fi
+      - if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null || ! command -v zip >/dev/null || ! command -v unzip >/dev/null; then apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg zip unzip; fi
+      - echo "[STUDIO] Browser/runtime setup ready at $(date -u +%FT%TZ)"
+  build:
+    commands:
+      - echo "[STUDIO] Starting export worker at $(date -u +%FT%TZ)"
+      - git clone --depth 1 --branch main https://github.com/tanawutmalirum29-ux/AI-ANIMATION.git /tmp/story-site
+      - cd /tmp/story-site
+      - NODE_PATH=/tmp/story-cloud-tools/node_modules node cloud-export/worker.cjs
