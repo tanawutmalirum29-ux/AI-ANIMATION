@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 const {Script}=require('node:vm');
 const fs=require('node:fs'),http=require('node:http');
 const assert=require('node:assert/strict');
-const paths=['index.html','animated-map.js','animated-map.css','cinematic-fx.js','cinematic-fx.css','character-interaction.js','character-interaction.css','narration-director.js'];
+const paths=['index.html','animated-map.js','animated-map.css','cinematic-fx.js','cinematic-fx.css','character-interaction.js','character-interaction.css','narration-director.js','studio-timing-auditor.js'];
 const html=fs.readFileSync('index.html','utf8');
 [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).forEach(x=>new Script(x));
 function wavBase64(sec=.8,rate=16000){const n=Math.floor(sec*rate),b=Buffer.alloc(44+n*2);
@@ -110,8 +110,8 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
    const original=sc().voiceover;
    const run=await autoDubRun();
    const s=sc(),clip=s.audioClips.find(c=>c.autoDub);
-   const audit=StoryTimingAuditor.audit(S,{scope:'all',rateOf:effectiveClipRate});
-   const suggestion=StoryTimingAuditor.planAutoDubTightening(S,[s],{
+   const audit=window.StoryTimingAuditor.audit(S,{scope:'all',rateOf:effectiveClipRate});
+   const suggestion=window.StoryTimingAuditor.planAutoDubTightening(S,[s],{
     rateOf:effectiveClipRate,splitNarration:StoryNarrationDirector.splitNarration
    });
    return {duration:s.duration,voicedEnd:clip?.at+safeClipDuration(clip),
