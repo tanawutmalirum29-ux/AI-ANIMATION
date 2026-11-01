@@ -106,6 +106,19 @@ def _check_session(value):
 
 # AWS cloud renderer: signed direct-to-S3 upload, queued CodeBuild worker and
 # short-lived download URLs. Never proxy multi-megabyte video through Lambda.
+def _export_s3_client():
+    # Generic boto3 S3 presigning can choose the legacy global endpoint and
+    # Signature V2. On ap-southeast-2 this may trigger an HTTP redirect for the
+    # browser's preflight request, surfaced as an opaque "Failed to fetch".
+    # Sign explicitly for the Lambda's region with SigV4 and a regional host.
+    import boto3
+    from botocore.config import Config
+    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+    return boto3.client("s3", region_name=region, config=Config(
+        signature_version="s3v4", s3={"addressing_style": "virtual"}
+    ))
+
+
 def _export_action(action, body):
     import boto3
     from botocore.exceptions import ClientError
@@ -113,7 +126,7 @@ def _export_action(action, body):
     project = os.environ.get("CLOUD_EXPORT_PROJECT", "")
     if not bucket or not project:
         return _resp(503, {"error": "ยังไม่ได้ติดตั้ง Cloud Export บน AWS"})
-    s3 = boto3.client("s3")
+    s3 = _export_s3_client()
     cb = boto3.client("codebuild")
     ident = str(body.get("jobId") or "")
     def key(suffix):
