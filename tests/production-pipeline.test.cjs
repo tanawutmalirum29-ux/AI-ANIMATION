@@ -97,7 +97,7 @@ assert.equal(timing.audit({episodes:[{id:'actor',scenes:[manualActor]}]},{scope:
 const generatedBridge=assets.item({duration:8},'bridge');
 const autoSvg=core.sceneMarkup({customAssets:[generatedBridge]},'back',50.6,0);
 const manualSvg=core.sceneMarkup({customAssets:[{...generatedBridge,producer:'manual'}]},'back',50.6,0);
-const extractScale=svg=>Number(svg.match(/scale\\(([0-9.]+) [0-9.]+\\)/)?.[1]);
+const extractScale=svg=>Number(svg.match(/scale\(([0-9.]+) [0-9.]+\)/)?.[1]);
 assert.ok(extractScale(autoSvg)<extractScale(manualSvg)*.61,
  'AI-owned shapes must shrink to portrait frame; manual art stays same');
 assert.equal(extractScale(core.sceneMarkup({customAssets:[generatedBridge]},'back',160,0)),
