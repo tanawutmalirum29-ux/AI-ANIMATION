@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "project": {
+    "title": "ฝึก AI — ประตูน้ำก่อนตลาดท่วม",
+    "aspect": "9:16",
+    "fps": 24,
+    "subMax": 28,
+    "styleSuffix": "Original clean 2D SVG coastal panorama. Visible steel floodgate and market stalls. One narrator; cinematic pan; no text baked into scene.",
+    "uiBoxStyle": {
+      "bg": "#102439",
+      "color": "#fff4df",
+      "position": "bottom",
+      "font": "system-ui"
+    }
+  },
+  "characters": [
+    {
+      "id": "pim",
+      "name": "พิม",
+      "role": "ช่างซ่อมท่าเรือ",
+      "voice": "Narrator only",
+      "rig": {
+        "style": "human",
+        "skin": "#c99067",
+        "hair": "#273340",
+        "hairStyle": "ponytail",
+        "shirt": "#db9f51",
+        "pants": "#31465b",
+        "shoes": "#293541",
+        "scale": 1
+      },
+      "promptBlock": "Pim, Thai harbor repair worker with dark ponytail, orange waterproof jacket, dark trousers and work boots. Consistent appearance, no dialogue."
+    }
+  ],
+  "locations": [
+    {
+      "id": "training-harbor",
+      "name": "ตลาดอ่าวครามและประตูระบายน้ำ",
+      "promptBlock": "One continuous wide Thai coastal harbor world: actual steel floodgate, quay, moored boats, market stalls and hill road. Night storm, rain. Reuse same geography throughout.",
+      "set": {
+        "worldArt": "coastal-harbor",
+        "bg": [
+          "#243a4d",
+          "#101b2a"
+        ],
+        "floor": "#4d5a63",
+        "floorY": 82,
+        "light": "night",
+        "anchors": {
+          "gate": {
+            "x": 52,
+            "y": 88
+          },
+          "market": {
+            "x": 78,
+            "y": 89
+          },
+          "quay": {
+            "x": 25,
+            "y": 90
+          },
+          "hillRoad": {
+            "x": 93,
+            "y": 90
+          }
+        },
+        "props": []
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "train-narrator",
+      "text": "ผู้บรรยายชายหนึ่งคนเท่านั้น ตัวละครไม่พูด และมีฉากแบบ SVG ไม่ต้องใช้บริการภาพภายนอก"
+    }
+  ],
+  "episodes": [
+    {
+      "id": "train-ep1",
+      "title": "ประตูน้ำก่อนตลาดท่วม",
+      "targetSeconds": 35,
+      "scenes": [
+        {
+          "id": "train-s01",
+          "duration": 8,
+          "characters": [],
+          "location": "training-harbor",
+          "subtitle": [],
+          "subtitleCues": [],
+          "voiceover": "ค่ำคืนนี้ฝนตกหนัก ตลาดริมอ่าวครามยังเปิดไฟอยู่ แต่ระดับน้ำทะเลค่อย ๆ สูงขึ้น",
+          "imagePrompt": "Wide procedural vector coastal harbor; execute the described visual event in worldEffects and actors; do not substitute a generic building.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 52,
+            "endX": 72,
+            "from": 1,
+            "to": 1.025,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.92,
+            "glow": 0.16,
+            "vignette": 0.12,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "actors": [],
+          "props": [],
+          "sfx": [],
+          "worldEffects": {},
+          "audioClips": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "uiBox": null,
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air."
+        },
+        {
+          "id": "train-s02",
+          "duration": 9,
+          "characters": [
+            "pim"
+          ],
+          "location": "training-harbor",
+          "subtitle": [],
+          "subtitleCues": [],
+          "voiceover": "พิมมองเห็นบานเหล็กของประตูระบายน้ำติดสนิม และมีน้ำไหลลอดผ่านช่องด้านล่าง",
+          "imagePrompt": "Wide procedural vector coastal harbor; execute the described visual event in worldEffects and actors; do not substitute a generic building.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 32,
+            "endX": 48,
+            "from": 1,
+            "to": 1.025,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.92,
+            "glow": 0.16,
+            "vignette": 0.12,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "actors": [
+            {
+              "char": "pim",
+              "x": 45,
+              "y": 88,
+              "pose": "stand",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "surprised"
+            }
+          ],
+          "props": [],
+          "sfx": [],
+          "worldEffects": {
+            "gateLeak": true
+          },
+          "audioClips": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "uiBox": null,
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air."
+        },
+        {
+          "id": "train-s03",
+          "duration": 9,
+          "characters": [
+            "pim"
+          ],
+          "location": "training-harbor",
+          "subtitle": [],
+          "subtitleCues": [],
+          "voiceover": "เธอจึงรีบวิ่งไปเตือนร้านค้าริมทาง ให้ขนของขึ้นที่สูงก่อนน้ำจะมา",
+          "imagePrompt": "Wide procedural vector coastal harbor; execute the described visual event in worldEffects and actors; do not substitute a generic building.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 42,
+            "endX": 77,
+            "from": 1,
+            "to": 1.025,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.92,
+            "glow": 0.16,
+            "vignette": 0.12,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "actors": [
+            {
+              "char": "pim",
+              "x": 44,
+              "y": 89,
+              "toX": 76,
+              "pose": "run",
+              "view": "threeQuarter",
+              "facing": "right",
+              "face": "think",
+              "endPose": "stand"
+            }
+          ],
+          "props": [],
+          "sfx": [],
+          "worldEffects": {
+            "gateLeak": true
+          },
+          "audioClips": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "uiBox": null,
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air."
+        },
+        {
+          "id": "train-s04",
+          "duration": 9,
+          "characters": [],
+          "location": "training-harbor",
+          "subtitle": [],
+          "subtitleCues": [],
+          "voiceover": "ไม่นาน น้ำก็เอ่อถึงหน้าร้าน แต่ตลาดว่างแล้ว ทุกคนหนีขึ้นที่สูงได้ทัน",
+          "imagePrompt": "Wide procedural vector coastal harbor; execute the described visual event in worldEffects and actors; do not substitute a generic building.",
+          "camera": {
+            "type": "panorama",
+            "world": 3.2,
+            "startX": 59,
+            "endX": 84,
+            "from": 1,
+            "to": 1.025,
+            "panX": 0,
+            "panY": 0,
+            "rotation": 0
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "rain",
+          "lighting": {
+            "exposure": 0.92,
+            "glow": 0.16,
+            "vignette": 0.12,
+            "focusX": 50,
+            "focusY": 42,
+            "flicker": 0
+          },
+          "actors": [],
+          "props": [],
+          "sfx": [],
+          "worldEffects": {
+            "gateLeak": true,
+            "marketFlood": true
+          },
+          "audioClips": [],
+          "art": "",
+          "image": null,
+          "video": null,
+          "audio": null,
+          "uiBox": null,
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air."
+        }
+      ]
+    }
+  ]
+}
