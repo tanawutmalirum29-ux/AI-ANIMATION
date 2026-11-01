@@ -333,7 +333,10 @@
           "audio": null,
           "audioClips": [],
           "uiBox": null,
-          "notes": "Establish quay at screen left and uphill road at right. Rain blows from left to right; lighting sequentially fades, not a static background. | Cinematic SVG panorama world=3.2; inspect preview before export."
+          "notes": "Establish quay at screen left and uphill road at right. Rain blows from left to right; lighting sequentially fades, not a static background. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "sequentialBlackout": true
+          }
         },
         {
           "id": "s02",
@@ -597,7 +600,10 @@
           "audio": null,
           "audioClips": [],
           "uiBox": null,
-          "notes": "Show notebook opening as an action, then the diagram; narrator reads the note in the same male voice, not the father’s voice. | Cinematic SVG panorama world=3.2; inspect preview before export."
+          "notes": "Show notebook opening as an action, then the diagram; narrator reads the note in the same male voice, not the father’s voice. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "notebookOpen": true
+          }
         },
         {
           "id": "s05",
@@ -680,7 +686,10 @@
           "audio": null,
           "audioClips": [],
           "uiBox": null,
-          "notes": "Same workshop, same lamp and map from previous shot. No flashback requiring an alternate costume; the memory is told by narration. | Cinematic SVG panorama world=3.2; inspect preview before export."
+          "notes": "Same workshop, same lamp and map from previous shot. No flashback requiring an alternate costume; the memory is told by narration. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "signalDiagram": true
+          }
         },
         {
           "id": "s06",
@@ -1257,7 +1266,8 @@
           "notes": "Keep beam direction away from village; show villagers cannot see it. Physically turn only the reflector when it is unlocked in next scene. | Cinematic SVG panorama world=3.2; inspect preview before export.",
           "worldEffects": {
             "beaconOn": true,
-            "beamDirection": "sea"
+            "beamDirection": "sea",
+            "crankTurn": true
           }
         },
         {
@@ -1354,7 +1364,8 @@
           "notes": "Definite change of state: reflector released, old belt snapped, beacon OFF. End on the break; no pointless black frames. | Cinematic SVG panorama world=3.2; inspect preview before export.",
           "worldEffects": {
             "reflectorTurn": true,
-            "beltBreak": true
+            "beltBreak": true,
+            "beaconOn": true
           }
         }
       ]
@@ -1457,7 +1468,10 @@
           "audio": null,
           "audioClips": [],
           "uiBox": null,
-          "notes": "The replacement belt is her waist belt, NOT the tool box or satchel; after repair the original broken belt remains unusable. | Cinematic SVG panorama world=3.2; inspect preview before export."
+          "notes": "The replacement belt is her waist belt, NOT the tool box or satchel; after repair the original broken belt remains unusable. | Cinematic SVG panorama world=3.2; inspect preview before export.",
+          "worldEffects": {
+            "beltRepair": true
+          }
         },
         {
           "id": "s14",
@@ -1553,7 +1567,8 @@
           "notes": "Keep Ta In continuously supplying human power. Beam points toward village only after Nil finishes aligning the reflector. | Cinematic SVG panorama world=3.2; inspect preview before export.",
           "worldEffects": {
             "beaconOn": true,
-            "beamDirection": "village"
+            "beamDirection": "village",
+            "crankTurn": true
           }
         },
         {
@@ -1739,7 +1754,8 @@
           "uiBox": null,
           "notes": "Evacuation moves left-to-right toward hill, not toward harbor. Keep silhouettes behind primary rig, no crowd obstructing subtitle. | Cinematic SVG panorama world=3.2; inspect preview before export.",
           "worldEffects": {
-            "marketFlood": true
+            "marketFlood": true,
+            "evacuation": true
           }
         },
         {
