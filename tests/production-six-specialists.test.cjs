@@ -20,7 +20,7 @@ assert.ok(result.svg.ops.length>=2,'SVG creates bridge/toolbox and three flashes
 assert.ok(result.motion.ops.length>=1,'jump actor gets true motion frames');
 const first=result.final.episodes[0].scenes[0];
 assert.deepEqual(first.audioClips,[]);
-assert.equal(first.voiceover,base.episodes[0].scenes[0].voiceover,'never change external author's text');
+assert.equal(first.voiceover,base.episodes[0].scenes[0].voiceover,"never change external author text");
 assert.ok(first.actors[0].motionKeys?.length>=4);
 assert.ok(Math.abs(first.actors[0].x-first.actors[1].x)>=11);
 assert.equal(base.episodes[0].scenes[0].customAssets.length,0,'plan is immutable');
