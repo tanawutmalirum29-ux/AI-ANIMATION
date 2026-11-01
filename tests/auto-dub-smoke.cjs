@@ -108,10 +108,16 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
     s.audioClips=[];s.actors=[];s.camera={type:'static',from:1,to:1};
    });
    const original=sc().voiceover;
-   await autoDubRun();
+   const run=await autoDubRun();
    const s=sc(),clip=s.audioClips.find(c=>c.autoDub);
+   const audit=StoryTimingAuditor.audit(S,{scope:'all',rateOf:effectiveClipRate});
+   const suggestion=StoryTimingAuditor.planAutoDubTightening(S,[s],{
+    rateOf:effectiveClipRate,splitNarration:StoryNarrationDirector.splitNarration
+   });
    return {duration:s.duration,voicedEnd:clip?.at+safeClipDuration(clip),
-    captionEnd:s.subtitleCues[0]?.end,original,after:s.voiceover};
+    captionEnd:s.subtitleCues[0]?.end,original,after:s.voiceover,run,
+    auditScene:audit.scenes.find(x=>x.sceneId===s.id),safeOps:suggestion.ops.length,
+    skipped:suggestion.skipped};
   });
   assert.ok(pacing.duration<5,'remove long silent 10-second JSON tail: '+JSON.stringify(pacing));
   assert.ok(pacing.duration>=pacing.voicedEnd+.1,'narration audio is not cut off');
