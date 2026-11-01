@@ -98,4 +98,16 @@ const protectedPlan=auditor.planEpisodeSplits(locked,auditor.audit(locked,{scope
 assert.equal(protectedPlan.created,0,'do not detach episode-level clue markers');
 assert.ok(protectedPlan.warnings.some(x=>x.includes('เบาะแส')));
 
+
+const keyframeProtected={episodes:[{id:'animated',scenes:[
+ {id:'manual-motion',duration:15,voiceover:'คำพากย์สั้น',
+  actors:[{char:'hero',motionKeys:[{t:0,x:40},{t:12,x:55}]}],audioClips:[voice(3)]},
+ {id:'animated-svg',duration:16,voiceover:'แสงสามวาบ',
+  customAssets:[{autoDirectorTag:'studio-auto-beacon-v1',
+   motionKeys:[{t:0,opacity:0},{t:14,opacity:1}]}],audioClips:[voice(3)]}
+]}]};
+const protectedMotion=auditor.audit(keyframeProtected,{scope:'all'});
+assert.equal(protectedMotion.stats.edits,0,'never shorten explicit actor/SVG animations past timed keys');
+assert.ok(protectedMotion.scenes.every(x=>x.kind==='review'));
+
 console.log('PASS: imported JSON live voice audit, safe shorten/extend, protect actions and music, no lost narrated text');
