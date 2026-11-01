@@ -30,9 +30,13 @@
  function hasTimedEvents(scene){
   const timed=x=>x&&typeof x==='object'&&
    ['at','time','start','end','duration'].some(k=>typeof x[k]==='number'&&x[k]>0);
+  // Retiming past a manual/auto motion key causes broken exports and invalid JSON.
+  const keyed=x=>Array.isArray(x?.motionKeys)&&x.motionKeys.some(k=>
+   k&&typeof k.t==='number'&&k.t>0);
   return !!(scene.video||
-   (scene.actors||[]).some(a=>a&&(typeof a.to==='number'&&a.to>0||
+   (scene.actors||[]).some(a=>a&&(keyed(a)||typeof a.to==='number'&&a.to>0||
      typeof a.at==='number'&&a.at>0))||
+   (scene.customAssets||[]).some(keyed)||
    (scene.graphicCards||[]).some(timed)||(scene.sfx||[]).some(timed)||
    (scene.cinematicFx&&timed(scene.cinematicFx))||
    /\[(?:HOLD|PAUSE|ค้างภาพ)\]/i.test(String(scene.notes||'')));
