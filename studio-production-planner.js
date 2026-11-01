@@ -38,46 +38,57 @@ function composition(state){
   // a wrench). Don't force actor separation for such a scene.
   const intent=String(sc.voiceover||'')+' '+String(sc.imagePrompt||'');
   if((sc.interactions||[]).length||/กอด|จับมือ|ประคอง|พยุง|ช่วย.{0,12}ทรงตัว|ส่งประแจ|ยื่นประแจ|hug|handshake|embrace|steadies|offers? (?:her|him) a wrench/i.test(intent))return;
+  const crossings=[];
   const acts=clone(sc.actors),before=JSON.stringify(acts);
-  const sorted=acts.map((a,i)=>({i,a,x:a?.x,y:a?.y,move:movable(a)}))
-   .filter(x=>Number.isFinite(x.x)&&Number.isFinite(x.y))
-   .sort((a,b)=>a.x-b.x||a.i-b.i);
-  const neighbors=(l,r)=>Math.abs(l.y-r.y)<8;
-  // A bounded local projection, not a physics/semantic model. A movement
-  // can be vetoed by author locks, custom motion keys, explicit routes,
-  // screen margins, or manually chosen depth.
-  for(let pass=0;pass<Math.max(1,sorted.length*24);pass++){
+  // Each actor is translated as a rigid unit (x and toX together), so authored
+  // travel distance, speed and direction never change. Both the START and the
+  // END of a basic toX walk must keep the portrait-safe gap.
+  const ents=acts.map((a,i)=>{
+   if(!Number.isFinite(a?.x)||!Number.isFinite(a?.y))return null;
+   const x0=a.x,e0=Number.isFinite(a.toX)?a.toX:a.x,mv=movable(a);
+   const lo=mv?Math.max(-maxShift,minPos-x0,minPos-e0):0,hi=mv?Math.min(maxShift,maxPos-x0,maxPos-e0):0;
+   return {i,x0,e0,y:a.y,s:0,lo:Math.min(lo,0),hi:Math.max(hi,0)};
+  }).filter(Boolean);
+  const pos=(en,end)=>(end?en.e0:en.x0)+en.s;
+  const startOk=en=>ents.every(o=>o===en||Math.abs(o.y-en.y)>=8||Math.abs(pos(o,false)-pos(en,false))>=minGap-.05);
+  // Pass 1 (priority): starting positions. Pass 2: arrival positions of authored
+  // toX travel; a move is rolled back if it would re-crowd any starting pair.
+  for(const end of [false,true])
+  for(let pass=0;pass<Math.max(1,ents.length*24);pass++){
    let changed=false;
-   for(let j=1;j<sorted.length;j++){
-    const left=sorted[j-1],right=sorted[j];
-    if(!neighbors(left,right))continue;
-    const gap=right.x-left.x;
+   for(let p=0;p<ents.length;p++)for(let q=p+1;q<ents.length;q++){
+    if(Math.abs(ents[p].y-ents[q].y)>=8)continue;
+    const L=pos(ents[p],end)<=pos(ents[q],end)?ents[p]:ents[q],R=L===ents[p]?ents[q]:ents[p];
+    const gap=pos(R,end)-pos(L,end);
     if(gap>=minGap-.05)continue;
-    const need=minGap-gap;
-    const lb=left.move?bounds(left.a):[left.x,left.x];
-    const rb=right.move?bounds(right.a):[right.x,right.x];
-    const leftRoom=Math.max(0,left.x-lb[0]),rightRoom=Math.max(0,rb[1]-right.x);
-    let moveLeft=Math.min(leftRoom,need/2);
-    const moveRight=Math.min(rightRoom,need-moveLeft);
-    moveLeft+=Math.min(leftRoom-moveLeft,need-moveLeft-moveRight);
-    if(moveLeft+moveRight<.02)continue;
-    left.x=Math.round((left.x-moveLeft)*10000)/10000;
-    right.x=Math.round((right.x+moveRight)*10000)/10000;
+    const need=minGap-gap,leftRoom=Math.max(0,L.s-L.lo),rightRoom=Math.max(0,R.hi-R.s);
+    let ml=Math.min(leftRoom,need/2);const mr=Math.min(rightRoom,need-ml);
+    ml+=Math.min(leftRoom-ml,need-ml-mr);
+    if(ml+mr<.02)continue;
+    const ls=L.s,rs=R.s;L.s-=ml;R.s+=mr;
+    if(end&&!(startOk(L)&&startOk(R))){L.s=ls;R.s=rs;continue;}
     changed=true;
    }
    if(!changed)break;
   }
-  for(const entry of sorted){
-   const a=acts[entry.i],original=sc.actors[entry.i];
-   const shift=Math.round((entry.x-original.x)*100)/100;
+  for(const en of ents){
+   const a=acts[en.i],original=sc.actors[en.i],shift=Math.round(en.s*100)/100;
    if(Math.abs(shift)<.01)continue;
    a.x=Math.round((original.x+shift)*100)/100;
    if(Number.isFinite(original.toX))a.toX=Math.round((original.toX+shift)*100)/100;
   }
-  const remaining=sorted.filter((r,j)=>j>0&&neighbors(sorted[j-1],r)&&
-    r.x-sorted[j-1].x<minGap-.1);
-  if(remaining.length)warnings.push(sc.id+': ยังมีตัวละครเริ่มใกล้กัน '+
+  const remaining=[];
+  for(let p=0;p<ents.length;p++)for(let q=p+1;q<ents.length;q++){
+   const A=acts[ents[p].i],B=acts[ents[q].i];
+   if(Math.abs(A.y-B.y)>=8)continue;
+   const e=v=>Number.isFinite(v.toX)?v.toX:v.x;
+   const gs=Math.abs(B.x-A.x),ge=Math.abs(e(B)-e(A));
+   if(gs<minGap-.1||ge<minGap-.1)remaining.push([A,B]);
+   else if((B.x-A.x)*(e(B)-e(A))<0)crossings.push((A.char||A.id)+'/'+(B.char||B.id));
+  }
+  if(remaining.length)warnings.push(sc.id+': ยังมีตัวละครเริ่มหรือจบใกล้กัน '+
     remaining.length+' คู่: มีขอบจอ/ตำแหน่งล็อก/เส้นทางที่ต้องให้คนตรวจ');
+  if(crossings.length)warnings.push(sc.id+': เส้นทางเดินตัดผ่านกัน ('+crossings.join(', ')+') ต้องให้คนตรวจ');
   if(JSON.stringify(acts)!==before){
    ops.push({op:'updateScene',id:sc.id,patch:{actors:acts}});
    details.push(sc.id+': ปรับตำแหน่งเริ่มต้นสำหรับจอ'+
