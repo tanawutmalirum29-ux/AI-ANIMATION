@@ -20,7 +20,7 @@ const path = require('node:path');
  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
  const browser = await chromium.launch({headless: true, args: ['--no-sandbox']});
  try {
-  for (const [width, height] of [[375,667], [390,844], [768,1024], [1024,768], [1180,820], [1440,900]]) {
+  for (const [width, height] of [[320,568], [360,640], [375,667], [390,844], [768,1024], [1024,768], [1180,820], [1440,900]]) {
    const page = await browser.newPage({viewport:{width,height}, hasTouch:width<=1024, isMobile:width<=820});
    const errors=[];
    page.on('pageerror', e=>errors.push(String(e)));
@@ -42,7 +42,8 @@ const path = require('node:path');
      scope:rect('#videoScope').toJSON(),formTop:rect('#videoDialog').top,
      turboButton:rect('#videoPipelineTurbo').toJSON(),standardButton:rect('#videoPipelineStandard').toJSON(),
      turboEnabled:!node('#videoPipelineTurbo').disabled,selectorCount:document.querySelectorAll('#videoPipeline').length,
-     selectedScope:node('#videoScope').value,stage:rect('#stage').toJSON(),
+     selectedScope:node('#videoScope').value,stage:rect('#stage').toJSON(),processor:rect('#videoProcessor').toJSON(),
+     documentWidth:document.documentElement.scrollWidth,
      isFlex:getComputedStyle(node('body')).display==='flex'
     };
    });
@@ -70,6 +71,9 @@ const path = require('node:path');
     assert.ok(state.workspace.top < height-120,'export panel starts in visible viewport');
     assert.ok(state.workspace.bottom <= height+3,'export panel does not exceed viewport');
     assert.ok(state.stage.height>=60,'video preview remains visible');
+    assert.ok(state.processor.width>80&&state.processor.top>=0&&state.processor.top<height-42,'device/AWS processing choice is visible without scrolling');
+    assert.ok(state.documentWidth<=width+2,'export must not cause horizontal page overflow');
+    assert.ok(state.toolBody.clientHeight>=Math.min(170,height*.32),'export settings must retain meaningful vertical space');
    }
    await page.evaluate(()=>{document.querySelector('#studioToolBody').scrollTop=500});
    await page.waitForTimeout(70);
