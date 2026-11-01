@@ -40,6 +40,8 @@ const path = require('node:path');
      toolBody:{clientHeight:node('#studioToolBody').clientHeight,scrollHeight:node('#studioToolBody').scrollHeight},
      videoStartPresent:!!node('#videoStart'),startButton:rect('#videoStart').toJSON(),
      scope:rect('#videoScope').toJSON(),formTop:rect('#videoDialog').top,
+     turboButton:rect('#videoPipelineTurbo').toJSON(),standardButton:rect('#videoPipelineStandard').toJSON(),
+     turboEnabled:!node('#videoPipelineTurbo').disabled,selectorCount:document.querySelectorAll('#videoPipeline').length,
      selectedScope:node('#videoScope').value,stage:rect('#stage').toJSON(),
      isFlex:getComputedStyle(node('body')).display==='flex'
     };
@@ -47,7 +49,17 @@ const path = require('node:path');
    assert.ok(state.timelineHidden && state.navHidden && state.motionHidden,'export must hide editing clutter');
    assert.ok(state.exportVisible && state.videoStartPresent,'export controls remain mounted');
    assert.ok(state.startButton.top>=-1&&state.startButton.bottom<=height+2,'primary export button visible without scrolling on every device');
-   assert.ok(state.startButton.top-state.formTop<200,'export action is adjacent to top of export form, not below video playback result');
+   assert.ok(state.startButton.top-state.formTop<245,'export action is adjacent to top of export form, not below video playback result');
+   assert.equal(state.selectorCount,1,'single source of truth for pipeline mode');
+   assert.equal(state.turboEnabled,true,'Turbo button is actionable');
+   assert.ok(state.turboButton.width>54&&state.turboButton.top>=-1&&state.turboButton.bottom<=height+2,'Turbo is visible without scrolling');
+   assert.ok(state.standardButton.top>=-1&&state.standardButton.bottom<=height+2,'Standard is visible without scrolling');
+   await page.locator('#videoPipelineTurbo').click();
+   assert.equal(await page.locator('#videoPipeline').inputValue(),'turbo','tap Turbo must switch the pipeline');
+   assert.equal(await page.locator('#videoPipelineTurbo').getAttribute('aria-pressed'),'true','Turbo selection is visually active');
+   assert.equal(await page.locator('#videoPipelineStandard').getAttribute('aria-pressed'),'false','Standard is inactive');
+   await page.locator('#videoPipelineStandard').click();
+   assert.equal(await page.locator('#videoPipeline').inputValue(),'standard','user can return to Standard with one tap');
    assert.equal(state.selectedScope,'current','legacy single-episode export remains the default');
    assert.ok(state.scope.top>=-1&&state.scope.bottom<=height+2,'mode selector is visible without scrolling');
    assert.ok(state.back.width>60 && state.back.height>=30,'visible way back to editing');
@@ -65,6 +77,8 @@ const path = require('node:path');
    assert.ok(afterScroll.back.top>=-1 && afterScroll.back.bottom<=height+2,'return control stays visible while scrolling');
    const pinned=await page.locator('#videoStart').boundingBox();
    assert.ok(pinned&&pinned.y>=-1&&pinned.y+pinned.height<=height+2,'sticky export button remains reachable while scrolling');
+   const turboPinned=await page.locator('#videoPipelineTurbo').boundingBox();
+   assert.ok(turboPinned&&turboPinned.y>=-1&&turboPinned.y+turboPinned.height<=height+2,'sticky Turbo choice remains reachable after scrolling');
    if(state.toolBody.scrollHeight > state.toolBody.clientHeight+20)assert.ok(afterScroll.scroll>0,'export form scrolls independently');
    await page.locator('#videoBack').click();
    assert.ok(!(await page.evaluate(()=>document.body.classList.contains('export-focus'))),'return clears focused mode');
