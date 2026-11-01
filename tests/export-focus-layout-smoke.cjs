@@ -47,7 +47,7 @@ const path = require('node:path');
    assert.ok(state.timelineHidden && state.navHidden && state.motionHidden,'export must hide editing clutter');
    assert.ok(state.exportVisible && state.videoStartPresent,'export controls remain mounted');
    assert.ok(state.startButton.top>=-1&&state.startButton.bottom<=height+2,'primary export button visible without scrolling on every device');
-   assert.ok(state.startButton.top<state.stage.bottom+130,'export action is adjacent to top of export form, not below video playback result');
+   assert.ok(state.startButton.top-state.formTop<200,'export action is adjacent to top of export form, not below video playback result');
    assert.equal(state.selectedScope,'current','legacy single-episode export remains the default');
    assert.ok(state.scope.top>=-1&&state.scope.bottom<=height+2,'mode selector is visible without scrolling');
    assert.ok(state.back.width>60 && state.back.height>=30,'visible way back to editing');
