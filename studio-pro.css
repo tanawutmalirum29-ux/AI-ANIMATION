@@ -202,7 +202,7 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
  header#top .export-btn{width:34px;padding:0;justify-content:center;height:34px}
  header#top .top-spacer,header#top .sep{display:none}
 
- #pre{order:1;flex:none;padding:0!important;gap:0!important;overflow:visible!important;max-height:none;min-height:0;display:flex;flex-direction:column}
+ #pre{order:1;flex:0 1 auto;padding:0!important;gap:0!important;overflow:hidden!important;max-height:none;min-height:0;display:flex;flex-direction:column}
  #pre .preview-toolbar{height:30px;min-height:30px;padding:0 6px;flex:none}
  #pre .preview-label,#pre .preview-context{display:none}
  #pre .preview-actions{width:100%;justify-content:space-between}
@@ -220,8 +220,8 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
  #welcome .intro-detail{display:none}
 
  /* tool tabs: pinned strip directly under the preview */
- #studioWorkspace{display:contents!important}
- #studioToolNav{order:2;flex:none;display:flex!important;flex-direction:row;align-items:stretch;gap:3px;height:54px;padding:4px 6px!important;overflow-x:auto;overflow-y:hidden;background:#121317;border-top:1px solid #000;border-bottom:1px solid #000;border-right:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:4}
+ #studioWorkspace{order:4;display:flex!important;flex:1 1 100px!important;flex-direction:column;min-height:75px!important;min-width:0;overflow:hidden!important;width:100%;border-left:0;border-top:1px solid var(--pro-line)}
+ #studioToolNav{order:2;flex:0 0 54px;display:flex!important;flex-direction:row;align-items:stretch;gap:3px;height:54px;min-height:54px;width:100%;padding:4px 6px!important;overflow-x:auto;overflow-y:hidden;background:#121317;border-top:1px solid #000;border-bottom:1px solid #000;border-right:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:4}
  #studioToolNav::-webkit-scrollbar{display:none}
  #studioToolNav button{flex:0 0 auto;width:60px;min-width:60px;min-height:0;height:46px;padding:3px 2px;font-size:10px}
  #studioToolNav button .pi{width:19px;height:19px}
@@ -229,7 +229,7 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
  #studioToolTitle{display:none!important}
 
  /* timeline: pinned dock */
- #tl{order:3;flex:none;height:clamp(132px,21dvh,210px);max-height:none!important;min-height:0!important;overflow:hidden!important;padding:0!important;border-top:0}
+ #tl{order:3;flex:0 1 auto;height:clamp(94px,18dvh,170px);max-height:none!important;min-height:76px!important;overflow:hidden!important;padding:0!important;border-top:0}
  .pt-bar{height:34px}.pt-btn{height:26px;padding:0 7px}.pt-btn kbd,.pt-bar .zoom-wrap{display:none}
  .pt-props.empty{display:none}.pt-props{height:36px}
  .pt-head{width:104px;padding:0 6px;gap:5px}.pt-head .nm{font-size:10.5px}.pt-head button:last-child{display:none}
@@ -238,7 +238,7 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
  #tl .motion-lane{display:none}
 
  /* tool panel: the only part that scrolls */
- #studioToolBody{order:4;flex:1 1 0!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-top:0}
+ #studioToolBody{order:0;flex:1 1 auto!important;min-height:0!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-top:0}
  #studioToolBody>*{max-width:100%}
  #jumpTop,#previewScrollTop,#workspaceJumpTop{display:none!important}
 }
@@ -251,4 +251,14 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
 @media (max-width:520px){
  #pre #ctl{grid-template-columns:minmax(0,1fr) auto auto auto auto auto auto;grid-template-areas:"scrub scrub scrub scrub scrub scrub scrub" "clock prev play next . t1 t2"}
  #pre #ctl>input[type=range]{height:20px}
+}
+
+/* Short displays and an open soft keyboard must never push the tool tabs offscreen. */
+@media (max-height:620px) and (max-width:820px),
+       (max-height:620px) and (orientation:portrait) and (max-width:1100px){
+ #studioToolNav{height:48px;min-height:48px;flex-basis:48px}
+ #studioToolNav button{height:40px}
+ #tl{height:clamp(76px,16dvh,100px);min-height:65px!important}
+ #pre{max-height:calc(100dvh - 46px - 48px - 65px - 75px)!important}
+ #pre #stageWrap{min-height:0;overflow:hidden}
 }
