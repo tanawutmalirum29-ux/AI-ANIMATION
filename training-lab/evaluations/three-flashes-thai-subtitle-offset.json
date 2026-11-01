@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-01",
+  "status": "evaluation-only",
+  "source": "User-attached combined MP4 三 episodes; no media or full story content committed",
+  "media": {
+    "filename": "สามแสงก่อนรุ่งสาง-รวมทุกตอน.mp4",
+    "width": 720,
+    "height": 1280,
+    "fps": 24
+  },
+  "visualMeasurement": {
+    "method": "decoded PNG still frames at 30, 46, and 98 seconds; RGB channels above 205 and nearly neutral; image y=86–96% to isolate white subtitle pixels",
+    "measurements": [
+      {
+        "timestampSeconds": 30,
+        "glyphMinX": 362,
+        "glyphMaxX": 578,
+        "glyphCenterX": 470,
+        "frameCenterX": 360
+      },
+      {
+        "timestampSeconds": 46,
+        "glyphMinX": 361,
+        "glyphMaxX": 600,
+        "glyphCenterX": 480.5,
+        "frameCenterX": 360
+      },
+      {
+        "timestampSeconds": 98,
+        "glyphMinX": 361,
+        "glyphMaxX": 571,
+        "glyphCenterX": 466,
+        "frameCenterX": 360
+      }
+    ],
+    "finding": "White Thai subtitle glyphs start near the midpoint of the 720px canvas and extend to the right, despite the subtitle backing card being centered. Large visible rightward offset is not caused by story JSON position.",
+    "limitations": "Sampled stills only; threshold selects near-white pixels in subtitle region, not a full video OCR. Safari Canvas Thai text alignment appears suspect; browser-specific behavior must be verified with a new export."
+  },
+  "engineering": {
+    "causeHypothesis": "canvas textAlign=center may be ignored or laid out incorrectly for these Thai glyphs on affected WebKit export path; measuring line width and drawing with textAlign=left at an explicitly centered x is robust to alignment-mode quirks",
+    "fix": "drawVideoText computes each glyph line's visual start from measureText and available canvas safe width; reduces font if needed; preview subtitle CSS gains word wrapping and border-box safety.",
+    "smoke": "tests/thai-subtitle-safe-area-smoke.cjs draws actual Thai glyphs into 720x1280 and 360x640 canvases and measures painted pixel bounds/center.",
+    "requiresReExport": true
+  },
+  "training": {
+    "approvedExampleCountAdded": 0,
+    "weightsUpdated": false,
+    "explanation": "Regression and renderer QA, not supervised training. Do not include flawed footage as positive ML labels."
+  }
+}
