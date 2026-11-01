@@ -37,6 +37,8 @@ JSON
 if ! aws iam get-role --role-name "$ROLE" >/dev/null 2>&1;then
  aws iam create-role --role-name "$ROLE" --assume-role-policy-document "file://$TMP/trust.json" >/dev/null
 fi
+# Repair stale trust policies on reruns, and make CodeBuild the trusted service.
+aws iam update-assume-role-policy --role-name "$ROLE" --policy-document "file://$TMP/trust.json"
 ROLE_ARN="$(aws iam get-role --role-name "$ROLE" --query Role.Arn --output text)"
 python3 - "$TMP/worker-policy.json" "$BUCKET" "$REGION" "$ACCOUNT" <<'PY'
 import json,sys
@@ -70,10 +72,28 @@ json.dump({"name":name,"source":{"type":"NO_SOURCE","buildspec":open(spec).read(
 "serviceRole":role,"timeoutInMinutes":120,"queuedTimeoutInMinutes":60,"concurrentBuildLimit":1},open(p,"w"))
 PY
 if aws codebuild batch-get-projects --names "$PROJECT" --query 'projects[0].name' --output text 2>/dev/null|grep -qx "$PROJECT";then
- aws codebuild update-project --cli-input-json "file://$TMP/project.json" >/dev/null
+ CODEBUILD_OPERATION="update-project"
 else
- aws codebuild create-project --cli-input-json "file://$TMP/project.json" >/dev/null
+ CODEBUILD_OPERATION="create-project"
 fi
+# Newly created or updated IAM roles can take time to propagate to CodeBuild.
+# Retry only the known transient AssumeRole error; fail fast for all other errors.
+for attempt in {1..12};do
+ if aws codebuild "$CODEBUILD_OPERATION" --cli-input-json "file://$TMP/project.json" >"$TMP/codebuild.out" 2>"$TMP/codebuild.err";then
+  break
+ fi
+ if ! grep -q 'CodeBuild is not authorized to perform: sts:AssumeRole' "$TMP/codebuild.err";then
+  cat "$TMP/codebuild.err" >&2
+  exit 1
+ fi
+ if (( attempt == 12 ));then
+  cat "$TMP/codebuild.err" >&2
+  echo "CodeBuild still cannot assume $ROLE_ARN. Verify IAM trust and that STS is enabled in $REGION." >&2
+  exit 1
+ fi
+ echo "Waiting for IAM role propagation ($attempt/12); retrying CodeBuild in 5 seconds..."
+ sleep 5
+done
 echo "[4/6] Grant authenticated Lambda access to the render queue"
 python3 - "$TMP/api-policy.json" "$BUCKET" "$REGION" "$ACCOUNT" "$PROJECT" <<'PY'
 import json,sys
