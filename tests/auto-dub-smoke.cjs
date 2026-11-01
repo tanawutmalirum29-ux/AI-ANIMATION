@@ -98,6 +98,25 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
   assert.ok(narrator.cueId.startsWith('narration-'));
   assert.equal(narrator.before,narrator.after,'author voiceover unchanged');
   assert.equal(narrator.cues,narrator.originalCues,'no extra subtitles');
+  // Regression from the user's three exported videos: complete automatic
+  // narration must shorten unused seconds after the last spoken word.
+  const pacing=await page.evaluate(async()=>{
+   AUTODUB_SMART=true;AUTODUB_SCOPE='scene';AUTODUB_SKIP=true;
+   commit(()=>{
+    const s=sc();s.duration=10;s.voiceover='คืนนี้ฝนตกหนักมาก';
+    s.subtitle=[];s.subtitleCues=[{id:'original-cue',text:'คืนนี้ฝนตก',start:5.4,end:8.4}];
+    s.audioClips=[];s.actors=[];s.camera={type:'static',from:1,to:1};
+   });
+   const original=sc().voiceover;
+   await autoDubRun();
+   const s=sc(),clip=s.audioClips.find(c=>c.autoDub);
+   return {duration:s.duration,voicedEnd:clip?.at+safeClipDuration(clip),
+    captionEnd:s.subtitleCues[0]?.end,original,after:s.voiceover};
+  });
+  assert.ok(pacing.duration<5,'remove long silent 10-second JSON tail: '+JSON.stringify(pacing));
+  assert.ok(pacing.duration>=pacing.voicedEnd+.1,'narration audio is not cut off');
+  assert.ok(pacing.captionEnd<pacing.duration,'original subtitles are kept inside scene');
+  assert.equal(pacing.original,pacing.after,'never rewrite externally authored story');
   assert.deepEqual(errors,[],'no page errors');
   console.log('PASS auto dub:',JSON.stringify({...r,requests:calls.length,undone,fail:f,smart}));
  }finally{await browser.close();server.close()}
