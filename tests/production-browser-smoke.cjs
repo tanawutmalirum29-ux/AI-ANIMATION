@@ -57,6 +57,19 @@ const path=require('node:path');
   assert.equal(second.status,'done');
   assert.equal(second.assets.filter(x=>x==='beacon').length,1,'idempotent asset generation');
   assert.equal(second.dubCalls,1,'second run must not synthesize voice that already exists');
+  // A disconnected TTS gateway must not produce false success or block QA.
+  await page.evaluate(()=>{
+   const st=StoryStudioBridge.get();
+   st.episodes[0].scenes[0].audioClips=[];
+   StoryStudioBridge.narrate=async()=>({ok:false,made:0,failed:1,error:'Gateway offline'});
+   StoryStudioBridge.persist();
+  });
+  const offline=await run();
+  assert.equal(offline.status,'done','workflow reaches QA even when TTS is offline');
+  assert.equal(offline.audio,0,'no fake voice recordings are inserted');
+  assert.equal(offline.steps.find(x=>x.id==='voice').status,'warning');
+  assert.equal(offline.steps.find(x=>x.id==='timing').status,'skipped');
+  assert.equal(offline.steps.find(x=>x.id==='qa').status,'warning');
   assert.deepEqual(errors,[],'no uncaught page JS errors');
   console.log('PASS: six-stage one button, voice before timing, persistent tasks, re-run safe, mobile viewport');
  }finally{await browser.close();}
