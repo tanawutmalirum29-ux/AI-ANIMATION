@@ -2487,7 +2487,7 @@ function syncAudioAt(t,play){
   }
   // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
   if(part<0||part>=len)continue;
-  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;a._storyPositioned=false;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a._storyPositioned=false;a.load();PREVIEW_MEDIA_RETRY_AT.delete(id)}
+  active.add(id);let a=AUDIO_PLAYERS.get(id);if(!a){a=new Audio(c.data);a.preload='auto';a._storyData=c.data;a._storyPositioned=false;AUDIO_PLAYERS.set(id,a)}else if(a._storyData!==c.data){a.pause();a.src=c.data;a._storyData=c.data;a._storyPositioned=false;a.load();PREVIEW_MEDIA_RETRY_AT.delete(id);PREVIEW_MEDIA_PLAY_PENDING.delete(id)}
    a._storyInUse=true;
    if(!a._storyErrorHooked&&typeof a.addEventListener==='function'){a._storyErrorHooked=true;a.addEventListener('error',()=>{if(a._storyInUse&&AUDIO_PLAYERS.get(id)===a)previewMediaFailed(id,c,a.error?.message||'ไฟล์เสียงเสียหายหรือโหลดไม่ได้')})}
   let n=AUDIO_PLAYER_GRAPHS.get(id);
