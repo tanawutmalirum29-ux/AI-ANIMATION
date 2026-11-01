@@ -34,6 +34,11 @@
    (scene.actors||[]).some(a=>a&&(typeof a.to==='number'&&a.to>0||
      typeof a.at==='number'&&a.at>0))||
    (scene.graphicCards||[]).some(timed)||(scene.sfx||[]).some(timed)||
+   // Actual timed poses / SVG events may finish after narration: never chop them.
+   (scene.actors||[]).some(a=>Array.isArray(a?.motionKeys)&&
+     a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0))||
+   (scene.customAssets||[]).some(a=>Array.isArray(a?.motionKeys)&&
+     a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0))||
    (scene.cinematicFx&&timed(scene.cinematicFx))||
    /\[(?:HOLD|PAUSE|ค้างภาพ)\]/i.test(String(scene.notes||'')));
  }
@@ -43,9 +48,10 @@
  function visualTail(scene){
   const actors=scene.actors||[];
   const moving=actors.some(a=>a&&(a.toX!==undefined||a.toY!==undefined||
-    Array.isArray(a.route)&&a.route.length>0||a.endPose||a.motion))||
+    Array.isArray(a.route)&&a.route.length>0||a.endPose||a.motion||
+    Array.isArray(a.motionKeys)&&a.motionKeys.length>1))||
    (scene.camera&&scene.camera.type&&scene.camera.type!=='static')||
-   (scene.customAssets||[]).some(a=>a?.animated)||!!scene.cinematicFx;
+   (scene.customAssets||[]).some(a=>a?.animated||a?.motionKeys?.length>1)||!!scene.cinematicFx;
   // Measured 2026-11-01 user exports: six ~2.5–2.7s silent tails per episode.
   // Keep only a short visual breath after completed speech. Longer dramatic
   // holds must be marked explicitly ([HOLD], [PAUSE], or timed events).
@@ -123,8 +129,8 @@
   }};
  }
 
- /* Collaboration contract: AI-3 edits narration/cues, AI-2 creates real voice clips,
-  * then AI-1 measures true audio and packs existing scenes into episodes.
+ /* Collaboration contract: upstream composition, SVG, and motion run before
+  * dubbing and audio-aware timing, followed by final QA.
   * 60 seconds is the target, 65 seconds is the allowed +5 second upper tolerance.
   * Never add filler, truncate speech, duplicate scenes or invent missing visuals to hit 60.
   */

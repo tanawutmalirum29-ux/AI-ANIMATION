@@ -6,12 +6,14 @@
   if(root)root.StoryAIWorkspaceCore=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
   'use strict';
-  // Three operators: scene timing, dubbing, and narrative/subtitle direction.
-  // Sound effects, art, camera, writing and QA remain editor tools, not AI teams.
+  // Six specialist stages with shared JSON handoffs; deterministic until a model is configured.
   const roles=Object.freeze([
-    {id:'structure',name:'AI-1 ตรวจจังหวะและระยะเวลาฉาก',instruction:'อ่านโปรเจกต์ JSON ที่ AI ภายนอกเขียนไว้และไฟล์เสียงพากย์ที่มีจริง แก้เวลาฉากซึ่งค้างหรือเสียงถูกตัด จัดความยาวตอนจากฉากเดิมโดยไม่เขียนบทใหม่'},
-    {id:'voice',name:'AI-2 พากย์เสียง',instruction:'สร้างเสียงจากบทพากย์และซับที่ AI ภายนอกเขียนไว้แล้ว แบ่งคลิปยาวเป็นช่วงพากย์สั้น วางตามเสียงจริง โดยไม่เขียนบทใหม่'},
-    {id:'narrative',name:'AI-3 ผู้กำกับบทและซับ',instruction:'ปรับบทบรรยายและจังหวะซับจาก JSON ภายนอก รักษาเหตุการณ์และตัวละครเดิม ใช้เสียงพากย์จริงกำหนดเวลาเมื่อมี'}
+    {id:'composition',name:'AI-1 จัดองค์ประกอบภาพ',instruction:'จัดตำแหน่งตัวละครและวัตถุ โดยไม่ทับ choreography ที่ผู้เขียนกำหนด'},
+    {id:'assets',name:'AI-2 สร้าง SVG',instruction:'ใช้เฉพาะเวกเตอร์รูปทรงที่เอนจินรองรับและแม่แบบที่ตรวจสอบได้'},
+    {id:'motion',name:'AI-3 กำกับการเคลื่อนไหว',instruction:'สร้างคีย์เฟรมพื้นฐานโดยไม่แก้แอนิเมชันที่ผู้เขียนล็อกไว้'},
+    {id:'voice',name:'AI-4 พากย์เสียง',instruction:'พากย์จาก JSON ภายนอกและเก็บไฟล์เสียงจริงโดยไม่เขียนบทใหม่'},
+    {id:'structure',name:'AI-5 จัดเวลาและแบ่งตอน',instruction:'วัดเสียงจริง แก้เวลาฉากและจัดตอนตามเหตุการณ์ที่ปลอดภัย'},
+    {id:'qa',name:'AI-6 ตรวจคุณภาพ',instruction:'ตรวจโครงสร้าง JSON เสียง และเหตุการณ์ที่ยังไม่มีแอนิเมชัน; ไม่อ้างว่าตรวจวิดีโอจริง'}
   ]);
   const LIMIT=180;
   const short=(x,n)=>String(x??'').trim().slice(0,n);
@@ -56,17 +58,22 @@
       characters:short(w.bible.characters,1300),timeline:short(w.bible.timeline,1300),threads:short(w.bible.threads,1300)
     },characters,episodes,currentEpisode:current?{id:current.id,title:current.title,scenes}:null};
   }
-  // Historical data compatibility; actual work is performed by the episode planner and TTS engine.
+  // Historical role "narrative" is read-only; external AI authors the story.
   function systemPrompt(role,state,epIndex){
-    const current=roles.find(r=>r.id===role)||roles[0];
-    const rule=role==='narrative'?
-      'ปรับบทบรรยายและซับได้ตามสิทธิ์ที่ผู้ใช้เลือก แต่ห้ามเปลี่ยนเหตุการณ์หรืออัตลักษณ์ตัวละคร เมื่อแก้บทแล้วต้องให้ AI-2 พากย์ใหม่ก่อน AI-1 กำหนดเวลาจริง':
-      role==='voice'?'ใช้บทล่าสุดจาก AI-3 หรือ JSON ภายนอก สร้างไฟล์เสียงจริง แล้วส่งต่อ AI-1 ให้ตรวจเวลา':
-      'ใช้ไฟล์เสียงของ AI-2 วัดเวลาจริง จัดกลุ่มฉากจาก JSON ภายนอกเป็นตอน 60–65 วินาที โดยไม่ตัดเสียง ไม่เพิ่มความเงียบปลอม และไม่ทำให้เนื้อเรื่องหาย';
-    return 'คุณเป็น '+current.name+'. '+current.instruction+
-      '. เป้าหมายเวลา 60 วินาทีต่อตอน อนุโลมเพิ่มได้สูงสุด 5 วินาที (65 วินาที). '+
-      'ต้นฉบับที่ AI ภายนอกส่งมายาวเกินได้ แต่ต้องประสานกันตามลำดับ AI-3 → AI-2 → AI-1. '+
-      rule+'. '+JSON.stringify(context(state,epIndex)).slice(0,5300);
+    const current=roles.find(r=>r.id===role)||roles[4];
+    const instructions={
+      composition:'วางองค์ประกอบภาพจากตัวละครและตำแหน่งที่มีอยู่โดยรักษาฉากเดิม',
+      assets:'สร้าง SVG จาก safe shapes เท่านั้น ห้ามส่ง HTML หรือโค้ดรันเอง',
+      motion:'สร้างจังหวะการเคลื่อนไหวจากฉากที่กำหนด ห้ามแก้ timing ที่มีอยู่ตามอำเภอใจ',
+      voice:'ใช้บทใน JSON ที่ได้รับ สร้างเสียงจริงผ่านบริการที่เชื่อมไว้เท่านั้น',
+      structure:'ใช้ไฟล์เสียงจริงกำหนดเวลา ฉากไม่เกิน 65 วิเมื่อแบ่งได้อย่างปลอดภัย',
+      qa:'ตรวจ JSON/SVG/เสียงแบบโครงสร้าง และระบุว่าต้องตรวจวิดีโอหลังส่งออกจริง'
+    };
+    return 'คุณเป็น '+current.name+'. '+current.instruction+'. '+
+      'งานเรียง AI-1 องค์ประกอบ → AI-2 SVG → AI-3 Motion → AI-4 พากย์ → AI-5 เวลา → AI-6 QA. '+
+      'ระบบปัจจุบันเป็นกฎอัตโนมัติ ไม่ใช่การฝึกน้ำหนักโมเดล ผู้เขียนเนื้อเรื่องเป็น AI ภายนอก '+
+      'เป้าหมายตอนละ 60 วินาที ยอมไม่เกิน 65 วินาทีเมื่อเป็นไปได้ ไม่เติมเสียง/ภาพค้างเพื่อให้ครบ. '+
+      (instructions[role]||instructions.structure)+'. '+JSON.stringify(context(state,epIndex)).slice(0,5300);
   }
   function parseResult(text){
     const raw=String(text||'').trim();

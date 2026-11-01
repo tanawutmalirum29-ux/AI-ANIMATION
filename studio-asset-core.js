@@ -55,18 +55,42 @@
   });
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">'+parts.join('')+'</svg>';
  }
- function sceneMarkup(scene,layer,W){
+ // Bounded SVG instance keyframes are local scene seconds. The same
+ // function is used for browser preview and MediaRecorder export.
+ function assetFrame(item,local=0){
+  const keys=(Array.isArray(item.motionKeys)?item.motionKeys:[]).filter(k=>
+   isObj(k)&&Number.isFinite(k.t)).sort((a,b)=>a.t-b.t);
+  if(!keys.length)return {x:c(item.x,0,100,50),y:c(item.y,0,100,75),
+   scale:c(item.scale,.12,3,1),rotate:c(item.rotate,-180,180,0),
+   opacity:c(item.opacity,0,1,1)};
+  const t=Math.max(0,Number(local)||0);
+  let a=keys[0],b=keys[0];
+  if(t>=keys[keys.length-1].t)a=b=keys[keys.length-1];
+  else for(let i=0;i<keys.length-1;i++)if(t>=keys[i].t&&t<=keys[i+1].t){
+   a=keys[i];b=keys[i+1];break;
+  }
+  const q=a===b?0:Math.max(0,Math.min(1,(t-a.t)/Math.max(.0001,b.t-a.t)));
+  const result={};
+  for(const [key,min,max,def] of [['x',0,100,50],['y',0,100,75],
+    ['scale',.12,3,1],['rotate',-180,180,0],['opacity',0,1,1]]){
+   const base=c(item[key],min,max,def),v0=c(a[key],min,max,base),
+    v1=c(b[key],min,max,v0);
+   result[key]=v0+(v1-v0)*q;
+  }
+  return result;
+ }
+ function sceneMarkup(scene,layer,W,local=0){
   if(!scene||!Array.isArray(scene.customAssets))return '';
   const arr=scene.customAssets.filter(x=>isObj(x)&&!!x.front===(layer==='front')).slice(0,40);
   return arr.map(item=>{
    try{
-    const a=asset(item.asset),x=c(item.x,0,100,50)*W/100,y=c(item.y,0,100,75)*.9,
-      scale=c(item.scale,.12,3,1)*.42,flip=item.flip?-1:1;
+    const a=asset(item.asset),pose=assetFrame(item,local),x=pose.x*W/100,y=pose.y*.9,
+      scale=pose.scale*.42,flip=item.flip?-1:1;
     // SVG is generated from bounded numeric primitives, never user-supplied SVG.
     const elements=svg(a).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
-    return '<g transform="translate('+x.toFixed(2)+' '+y.toFixed(2)+') scale('+(scale*flip).toFixed(3)+' '+scale.toFixed(3)+') translate(-50 -85)">'+elements+'</g>';
+    return '<g transform="translate('+x.toFixed(2)+' '+y.toFixed(2)+') rotate('+pose.rotate.toFixed(2)+') scale('+(scale*flip).toFixed(3)+' '+scale.toFixed(3)+') translate(-50 -85)" opacity="'+pose.opacity.toFixed(3)+'">'+elements+'</g>';
    }catch(e){return ''}
   }).join('');
  }
- return Object.freeze({asset,svg,sceneMarkup,categories:[...categories]});
+ return Object.freeze({asset,svg,sceneMarkup,assetFrame,categories:[...categories]});
 });

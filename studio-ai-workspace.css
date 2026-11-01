@@ -87,3 +87,17 @@
 #aiWorkspacePanel .ai-script-settings input:focus-visible,#aiWorkspacePanel .ai-script-settings select:focus-visible{outline:2px solid #e0b46e;outline-offset:2px}
 #aiWorkspacePanel .ai-audio-agent textarea{width:100%;min-height:140px;max-height:340px;resize:vertical;padding:12px;font-size:14px;line-height:1.7;background:#222327;color:#f3f3f4;border:1px solid #595b60;border-radius:9px}
 #aiWorkspacePanel .ai-audio-agent textarea:focus-visible{outline:2px solid #e0b46e;outline-offset:2px}
+
+/* Single action, six sequential local specialists. Status persists across reloads. */
+#aiWorkspacePanel .ai-production-progress{margin:10px 0 16px;padding:12px;border:1px solid #575a60;border-radius:12px;background:#24262a}
+#aiWorkspacePanel .ai-production-progress h4{font-size:13px;margin:0 0 10px;color:#e5c993}
+#aiWorkspacePanel .ai-production-step{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;padding:9px 5px;border-bottom:1px solid #45474c;align-items:center;min-width:0}
+#aiWorkspacePanel .ai-production-step:last-child{border-bottom:0}
+#aiWorkspacePanel .ai-production-step strong{font-size:12px;font-weight:650;color:#f5f1e8;overflow-wrap:anywhere}
+#aiWorkspacePanel .ai-production-step-state{font-size:11px;color:#c7c7ca;text-align:right;white-space:nowrap}
+#aiWorkspacePanel .ai-production-step small{grid-column:1/-1;color:#c4c6ca;overflow-wrap:anywhere;line-height:1.55}
+#aiWorkspacePanel .ai-production-step[data-state="running"] .ai-production-step-state{color:#e5c993}
+#aiWorkspacePanel .ai-production-step[data-state="done"] .ai-production-step-state{color:#a7d7ae}
+#aiWorkspacePanel .ai-production-step[data-state="failed"] .ai-production-step-state,
+#aiWorkspacePanel .ai-production-step[data-state="warning"] .ai-production-step-state{color:#ffd397}
+@media(max-width:480px){#aiWorkspacePanel .ai-production-progress{padding:9px}#aiWorkspacePanel .ai-production-step{gap:4px 6px}#aiWorkspacePanel .ai-production-step strong{font-size:11px}}
