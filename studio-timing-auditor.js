@@ -27,6 +27,14 @@
  // Ordinary characters, camera movement and decorative FX are visual content,
  // not a request to keep the frame alive for the entire imported JSON duration.
  // Protect only explicitly timed story beats and intentional holds.
+ // Automatically generated vector templates are relative animation, not authored
+ // wall-clock holds. Only templates we own may be time-compressed with the voice.
+ const autoAsset=a=>a?.producer==='studio-production-v1'&&a?.productionManualLock!==true;
+ const autoActor=a=>a?.motionProducer==='studio-production-v1'&&a?.lockMotion!==true;
+ const retimeKeys=(keys,oldDuration,newDuration)=>keys.map(k=>{
+  if(!k||typeof k!=='object'||!Number.isFinite(k.t))return k;
+  return {...k,t:rounded(clamp(k.t,0,oldDuration)*newDuration/oldDuration)};
+ });
  function hasTimedEvents(scene){
   const timed=x=>x&&typeof x==='object'&&
    ['at','time','start','end','duration'].some(k=>typeof x[k]==='number'&&x[k]>0);
@@ -35,9 +43,9 @@
      typeof a.at==='number'&&a.at>0))||
    (scene.graphicCards||[]).some(timed)||(scene.sfx||[]).some(timed)||
    // Actual timed poses / SVG events may finish after narration: never chop them.
-   (scene.actors||[]).some(a=>Array.isArray(a?.motionKeys)&&
+   (scene.actors||[]).some(a=>!autoActor(a)&&Array.isArray(a?.motionKeys)&&
      a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0))||
-   (scene.customAssets||[]).some(a=>Array.isArray(a?.motionKeys)&&
+   (scene.customAssets||[]).some(a=>!autoAsset(a)&&Array.isArray(a?.motionKeys)&&
      a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0))||
    (scene.cinematicFx&&timed(scene.cinematicFx))||
    /\[(?:HOLD|PAUSE|ค้างภาพ)\]/i.test(String(scene.notes||'')));
@@ -103,6 +111,20 @@
     results.push(report);
     if(Math.abs(updated-old)>.01){
      const patch={duration:rounded(updated)};
+     // Never leave generated keyframes beyond a shortened scene. Retiming our
+     // own assets preserves bridge/toolbox/flashes/flood beats and avoids the
+     // 5-second dead-air gaps measured in the user's newest video exports.
+     // Authored/manual keyframes are never re-timed by this automatic path.
+     if(kind==='shorten'){
+      if((s.customAssets||[]).some(a=>autoAsset(a)&&Array.isArray(a.motionKeys)&&a.motionKeys.length)){
+       patch.customAssets=s.customAssets.map(a=>autoAsset(a)&&Array.isArray(a.motionKeys)?
+        {...a,motionKeys:retimeKeys(a.motionKeys,old,updated)}:a);
+      }
+      if((s.actors||[]).some(a=>autoActor(a)&&Array.isArray(a.motionKeys)&&a.motionKeys.length)){
+       patch.actors=s.actors.map(a=>autoActor(a)&&Array.isArray(a.motionKeys)?
+        {...a,motionKeys:retimeKeys(a.motionKeys,old,updated)}:a);
+      }
+     }
      // Imported caption cues sometimes inherited an exaggerated scene duration.
      // Align their timing to the actual completed narration on passive scenes.
      if(kind==='shorten'&&q.length&&cueEnd>updated-.1){

@@ -54,4 +54,12 @@ const portrait={episodes:[{scenes:[
  make('hold','หยุดนิ่งดูทะเล',{notes:'[HOLD]'}),
 ]}]};
 assert.equal(qa.inspect(portrait).issues.length,0,'ambient images and authored holds are not missing action cues');
+const cramped={episodes:[{scenes:[make('portrait','สองคนยืนข้างกัน',{actors:[
+ {char:'nil',x:43,y:90},{char:'ta_in',x:29,y:90}
+ ]})]}],project:{aspect:'9:16'}};
+ assert.ok(qa.inspect(cramped).issues.some(x=>x.kind==='actor-overlap'),
+  'portrait characters 14% apart can still visually overlap');
+ cramped.project.aspect='16:9';
+ assert.ok(!qa.inspect(cramped).issues.some(x=>x.kind==='actor-overlap'),
+  'do not assume same silhouette width on landscape frames');
 console.log('PASS: visual coverage preflight protects authored events, identifies overlap, and makes no changes');

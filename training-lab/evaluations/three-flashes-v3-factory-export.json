@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "originalProject": "user-provided three_flashes_before_dawn_fixed(1).json, 3 episodes x 6 scenes (18 scenes)",
+    "newExports": [
+      "สามแสงก-อนร-งสาง-1(6).mp4",
+      "สามแสงก-อนร-งสาง-2(7).mp4",
+      "สามแสงก-อนร-งสาง-3(6).mp4"
+    ],
+    "previousExports": [
+      "สามแสงก-อนร-งสาง-1(5).mp4",
+      "สามแสงก-อนร-งสาง-2(6).mp4",
+      "สามแสงก-อนร-งสาง-3(5).mp4"
+    ],
+    "date": "2026-11-01"
+  },
+  "method": {
+    "media": "ffprobe codec/duration/resolution",
+    "quiet": "ffmpeg silencedetect=noise=-35dB:d=0.35 and volumedetect on the AAC streams",
+    "visual": "20 timestamped frames per new episode sampled at midpoint of 20 equal time intervals; notes are sampling-based, not full frame-by-frame verification"
+  },
+  "episodes": [
+    {
+      "episode": 1,
+      "secondsPrevious": 38.105,
+      "secondsLatest": 38.105,
+      "deltaSeconds": 0,
+      "streams": [
+        "h264",
+        "aac"
+      ],
+      "width": 512,
+      "height": 910,
+      "fps": 30,
+      "meanAudioDb": -18.4,
+      "peakAudioDb": -0.6,
+      "quietRegionsSeconds": [
+        1.219146,
+        1.105167,
+        1.091417,
+        1.128771,
+        1.136458,
+        0.93975
+      ],
+      "longQuietRegionsOver4s": 0
+    },
+    {
+      "episode": 2,
+      "secondsPrevious": 37.383333,
+      "secondsLatest": 49.266667,
+      "deltaSeconds": 11.883334,
+      "streams": [
+        "h264",
+        "aac"
+      ],
+      "width": 512,
+      "height": 910,
+      "fps": 30,
+      "meanAudioDb": -19.5,
+      "peakAudioDb": -0.6,
+      "quietRegionsSeconds": [
+        0.426812,
+        1.127646,
+        5.626167,
+        1.109042,
+        0.367167,
+        1.083521,
+        4.885667,
+        4.595229
+      ],
+      "longQuietRegionsOver4s": 3
+    },
+    {
+      "episode": 3,
+      "secondsPrevious": 36.941667,
+      "secondsLatest": 52.983333,
+      "deltaSeconds": 16.041666,
+      "streams": [
+        "h264",
+        "aac"
+      ],
+      "width": 512,
+      "height": 910,
+      "fps": 30,
+      "meanAudioDb": -20.4,
+      "peakAudioDb": -0.5,
+      "quietRegionsSeconds": [
+        0.444125,
+        5.523667,
+        4.800042,
+        5.146937,
+        0.385687,
+        1.167917,
+        5.119146,
+        0.9555
+      ],
+      "longQuietRegionsOver4s": 4
+    }
+  ],
+  "visualFindings": [
+    {
+      "episode": 1,
+      "sceneIds": [
+        "s01",
+        "s04",
+        "s06"
+      ],
+      "finding": "Frequent static backgrounds or held character poses remain. Scene action is not consistently enacted; visually similar to preceding export.",
+      "confidence": "sampled"
+    },
+    {
+      "episode": 2,
+      "sceneIds": [
+        "s08"
+      ],
+      "finding": "A wooden bridge-like SVG and red toolbox are now visible and move, but the bridge spans much of the portrait frame and the toolbox floats oversized in front of characters.",
+      "confidence": "sampled"
+    },
+    {
+      "episode": 2,
+      "sceneIds": [
+        "s11",
+        "s12"
+      ],
+      "finding": "A large circular reflector appears and moves; characters overlap closely in front of it and the belt appears oversized near their torsos.",
+      "confidence": "sampled"
+    },
+    {
+      "episode": 3,
+      "sceneIds": [
+        "s13",
+        "s14",
+        "s15"
+      ],
+      "finding": "Large belt/reflector props overlap characters. A very large flashing disc sometimes dominates the frame; the number of flashes cannot be verified from 20 sampled frames.",
+      "confidence": "sampled"
+    },
+    {
+      "episode": 3,
+      "sceneIds": [
+        "s17"
+      ],
+      "finding": "Rising water treatment covers a large fraction of the image, weakening legibility of the flooded location.",
+      "confidence": "sampled"
+    }
+  ],
+  "diagnosis": {
+    "confirmed": "All three latest MP4s contain AAC audio tracks. The newest episodes 2 and 3 have substantial new low-level audio gaps; episode 1 is unchanged.",
+    "codeFinding": "studio-timing-auditor.js treats every customAssets[].motionKeys as a manually timed event, preventing shortening factory-created SVG beats to match completed narration; auto-generated templates use the old full scene duration.",
+    "fix": "Retiming only producer='studio-production-v1' keyframes when complete voiced scenes can shorten, retaining authored/manual holds and timed effects; shrink factory vector drafts by viewport width only for portrait.",
+    "limitation": "Audio threshold measures low-level signal, not transcript accuracy. An actual re-export must confirm sound and visual improvements."
+  },
+  "trainingStatus": "Evaluation and deterministic implementation feedback only. No neural model weights trained, no claim that any corrected result is verified."
+}
