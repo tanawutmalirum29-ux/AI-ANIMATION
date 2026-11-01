@@ -88,7 +88,7 @@
       scale=pose.scale*.42,flip=item.flip?-1:1;
     // SVG is generated from bounded numeric primitives, never user-supplied SVG.
     const elements=svg(a).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
-    return '<g opacity="'+pose.opacity.toFixed(3)+'" transform="translate('+x.toFixed(2)+' '+y.toFixed(2)+') rotate('+pose.rotate.toFixed(2)+') scale('+(scale*flip).toFixed(3)+' '+scale.toFixed(3)+') translate(-50 -85)">'+elements+'</g>';
+    return '<g transform="translate('+x.toFixed(2)+' '+y.toFixed(2)+') rotate('+pose.rotate.toFixed(2)+') scale('+(scale*flip).toFixed(3)+' '+scale.toFixed(3)+') translate(-50 -85)" opacity="'+pose.opacity.toFixed(3)+'">'+elements+'</g>';
    }catch(e){return ''}
   }).join('');
  }
