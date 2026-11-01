@@ -14,28 +14,75 @@ function eachScene(state,fn){(state?.episodes||[]).forEach((ep,ei)=>(ep.scenes||
 function canEdit(sc){return !sc.image&&!sc.video&&sc.productionManualLock!==true;}
 function composition(state){
  const ops=[],warnings=[],details=[];
+ const ratio=String(state?.project?.aspect||'16:9').split(':').map(Number);
+ const portrait=ratio.length===2&&ratio[0]>0&&ratio[1]>0&&ratio[0]<ratio[1];
+ // Verified 720x1280 exports: 10-12% x spacing still produces intersecting
+ // character silhouettes. Preserve room for their arms and their screen edges.
+ const minGap=portrait?24:12,minPos=portrait?11:5,maxPos=portrait?89:95,maxShift=24;
+ const movable=a=>a&&Number.isFinite(a.x)&&Number.isFinite(a.y)&&
+   !a.at&&!a.to&&!a.route?.length&&!a.motionKeys?.length&&
+   !a.depth&&!a.lockPosition&&!a.lockMotion;
+ function bounds(a){
+  let lo=Math.max(minPos,a.x-maxShift),hi=Math.min(maxPos,a.x+maxShift);
+  // For a basic authored toX walk/run, translate BOTH endpoints equally:
+  // changing the start alone would change speed, direction or travel distance.
+  if(Number.isFinite(a.toX)){
+   lo=Math.max(lo,a.x+(minPos-a.toX));
+   hi=Math.min(hi,a.x+(maxPos-a.toX));
+  }
+  return [lo,hi];
+ }
  eachScene(state,sc=>{
   if(!canEdit(sc)||!Array.isArray(sc.actors)||sc.actors.length<2)return;
-  if((sc.interactions||[]).length||/กอด|จับมือ|ประคอง|hug|handshake/i.test(String(sc.voiceover||'')+' '+String(sc.imagePrompt||'')))return;
-  const acts=clone(sc.actors);let count=0;
-  for(let i=0;i<acts.length;i++)for(let j=i+1;j<acts.length;j++){
-   const a=acts[i],b=acts[j];
-   // A short linear walk can be offset without modifying its travel distance.
-   // Explicit routes, motion keys, anchors, physical interactions and locks win.
-   const free=x=>Number.isFinite(x.x)&&Number.isFinite(x.y)&&
-     !x.at&&!x.to&&!x.route?.length&&!x.motionKeys?.length&&!x.depth&&!x.lockPosition;
-   if(!free(a)||!free(b)||Math.abs(a.x-b.x)>=10||Math.abs(a.y-b.y)>=8)continue;
-   const prefer=b.x<a.x?a.x-12:a.x+12;
-   const alternate=b.x<a.x?a.x+12:a.x-12;
-   const good=nx=>nx>=5&&nx<=95&&(!Number.isFinite(b.toX)||
-     b.toX+nx-b.x>=5&&b.toX+nx-b.x<=95);
-   const nx=good(prefer)?prefer:good(alternate)?alternate:null;
-   if(nx===null){warnings.push(sc.id+': ตำแหน่งชนกัน ต้องตรวจเอง');continue;}
-   const delta=nx-b.x;
-   if(Number.isFinite(b.toX))b.toX=Math.round((b.toX+delta)*100)/100;
-   b.x=Math.round(nx*100)/100;count++;
+  // Physical contact may be deliberate (embracing, steadying or handing over
+  // a wrench). Don't force actor separation for such a scene.
+  const intent=String(sc.voiceover||'')+' '+String(sc.imagePrompt||'');
+  if((sc.interactions||[]).length||/กอด|จับมือ|ประคอง|พยุง|ช่วย.{0,12}ทรงตัว|ส่งประแจ|ยื่นประแจ|hug|handshake|embrace|steadies|offers? (?:her|him) a wrench/i.test(intent))return;
+  const acts=clone(sc.actors),before=JSON.stringify(acts);
+  const sorted=acts.map((a,i)=>({i,a,x:a?.x,y:a?.y,move:movable(a)}))
+   .filter(x=>Number.isFinite(x.x)&&Number.isFinite(x.y))
+   .sort((a,b)=>a.x-b.x||a.i-b.i);
+  const neighbors=(l,r)=>Math.abs(l.y-r.y)<8;
+  // A bounded local projection, not a physics/semantic model. A movement
+  // can be vetoed by author locks, custom motion keys, explicit routes,
+  // screen margins, or manually chosen depth.
+  for(let pass=0;pass<Math.max(1,sorted.length*24);pass++){
+   let changed=false;
+   for(let j=1;j<sorted.length;j++){
+    const left=sorted[j-1],right=sorted[j];
+    if(!neighbors(left,right))continue;
+    const gap=right.x-left.x;
+    if(gap>=minGap-.05)continue;
+    const need=minGap-gap;
+    const lb=left.move?bounds(left.a):[left.x,left.x];
+    const rb=right.move?bounds(right.a):[right.x,right.x];
+    const leftRoom=Math.max(0,left.x-lb[0]),rightRoom=Math.max(0,rb[1]-right.x);
+    let moveLeft=Math.min(leftRoom,need/2);
+    const moveRight=Math.min(rightRoom,need-moveLeft);
+    moveLeft+=Math.min(leftRoom-moveLeft,need-moveLeft-moveRight);
+    if(moveLeft+moveRight<.02)continue;
+    left.x=Math.round((left.x-moveLeft)*10000)/10000;
+    right.x=Math.round((right.x+moveRight)*10000)/10000;
+    changed=true;
+   }
+   if(!changed)break;
   }
-  if(count){ops.push({op:'updateScene',id:sc.id,patch:{actors:acts}});details.push(sc.id+': แยกตำแหน่ง '+count+' คู่');}
+  for(const entry of sorted){
+   const a=acts[entry.i],original=sc.actors[entry.i];
+   const shift=Math.round((entry.x-original.x)*100)/100;
+   if(Math.abs(shift)<.01)continue;
+   a.x=Math.round((original.x+shift)*100)/100;
+   if(Number.isFinite(original.toX))a.toX=Math.round((original.toX+shift)*100)/100;
+  }
+  const remaining=sorted.filter((r,j)=>j>0&&neighbors(sorted[j-1],r)&&
+    r.x-sorted[j-1].x<minGap-.1);
+  if(remaining.length)warnings.push(sc.id+': ยังมีตัวละครเริ่มใกล้กัน '+
+    remaining.length+' คู่: มีขอบจอ/ตำแหน่งล็อก/เส้นทางที่ต้องให้คนตรวจ');
+  if(JSON.stringify(acts)!==before){
+   ops.push({op:'updateScene',id:sc.id,patch:{actors:acts}});
+   details.push(sc.id+': ปรับตำแหน่งเริ่มต้นสำหรับจอ'+
+    (portrait?'แนวตั้ง':'แนวนอน')+' โดยรักษาเส้นทางและข้อกำหนดที่ล็อก');
+  }
  });
  return {ops,warnings,details};
 }

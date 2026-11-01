@@ -57,4 +57,20 @@ assert.equal(newest.comparisons.episode2VersionsConsideredIndependentStories,fal
 assert.equal(newest.trainingAssessment.approvedTrainingLabels,0);
 assert.equal(newest.trainingAssessment.weightUpdateFromTheseMP4s,false);
 
+
+// Export follow-up: all three episodes, 720x1280/24fps, audio present,
+// with short measured audio quiet regions. This is evaluation, not ML labels.
+const followup=JSON.parse(fs.readFileSync(path.resolve(__dirname,
+ '../training-lab/evaluations/three-flashes-nov1-exports-v4.json'),'utf8'));
+assert.equal(followup.status,'evaluation-only');
+assert.deepEqual(followup.episodes.map(x=>x.episode),[1,2,3]);
+assert.ok(followup.episodes.every(x=>x.frame.width===720&&x.frame.height===1280&&
+ x.frame.fps===24&&x.audio.codec==='aac'));
+assert.ok(followup.episodes.every(x=>x.longQuietOver4Seconds===0&&
+ Math.max(...x.quietRegionsSeconds)<1.3));
+assert.equal(followup.training.approvedHumanExamples,0);
+assert.equal(followup.training.trainedWeightUpdates,0);
+assert.equal(followup.training.modelPromoted,false);
+assert.equal(followup.engineering.requiresReExport,true);
+
 console.log('PASS: measured latest 3 exported videos and six factory animation types no longer create voice-tail silence');

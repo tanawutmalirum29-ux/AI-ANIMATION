@@ -21,17 +21,55 @@ assert.equal(planner.stages.length,6);
 assert.deepEqual(planner.stages.map(s=>s.id),['composition','assets','motion','voice','timing','qa']);
 const layout=planner.plan(src,'composition',assets);
 assert.equal(layout.ops.length,1);
-assert.equal(layout.ops[0].patch.actors[1].x,42);
+assert.ok(layout.ops[0].patch.actors[1].x-layout.ops[0].patch.actors[0].x>=12-.05,
+ 'landscape composer must create at least 12 units between actors');
 assert.equal(JSON.stringify(src),original,'composition planner is read-only');
-const walking={episodes:[{scenes:[scene('s07','นิลและตาอินวิ่งฝ่าฝน',{actors:[
+const walking={project:{aspect:'9:16'},episodes:[{scenes:[scene('s07','นิลและตาอินวิ่งฝ่าฝน',{actors:[
  {char:'nil',x:18,y:90,toX:57,pose:'run'},
  {char:'ta_in',x:12,y:90,toX:48,pose:'walk'}
 ]})]}]};
 const fixedWalk=planner.plan(walking,'composition',assets);
 assert.equal(fixedWalk.ops.length,1,'real source overlap can be safely corrected');
-assert.equal(fixedWalk.ops[0].patch.actors[1].x,6);
-assert.equal(fixedWalk.ops[0].patch.actors[1].toX,42,
- 'moving the track must preserve its authored displacement');
+const movedWalk=fixedWalk.ops[0].patch.actors;
+assert.ok(Math.abs(movedWalk[0].x-movedWalk[1].x)>=23.9,
+ 'portrait characters must start 24 units apart rather than old 12');
+assert.equal(movedWalk[0].toX-movedWalk[0].x,39,
+ 'Nil retains her authored walk displacement');
+assert.equal(movedWalk[1].toX-movedWalk[1].x,36,
+ 'Ta In retains his authored walk displacement');
+assert.ok(movedWalk.every(a=>a.x>=11&&a.toX<=89),
+ 'portrait endpoints must stay within visible margins');
+const appliedWalk=structuredClone(walking);
+Object.assign(appliedWalk.episodes[0].scenes[0],fixedWalk.ops[0].patch);
+assert.equal(planner.plan(appliedWalk,'composition').ops.length,0,
+ 'repeated production must not keep shifting actors');
+
+const three={project:{aspect:'9:16'},episodes:[{scenes:[scene('three','ตัวละครสามคนขึ้นเขา',{actors:[
+ {char:'ta_in',x:12,y:90,toX:48,pose:'walk'},
+ {char:'nil',x:18,y:90,toX:57,pose:'run'},
+ {char:'moss',x:37,y:90,pose:'point'}
+]})]}]};
+const triple=planner.plan(three,'composition');
+assert.equal(triple.ops.length,1);
+const sorted=triple.ops[0].patch.actors.map(a=>a.x).sort((a,b)=>a-b);
+assert.ok(sorted.every((x,i)=>i===0||x-sorted[i-1]>=23.9),
+ 'all three characters are separated, not just the first colliding pair');
+assert.ok(triple.ops[0].patch.actors.every(a=>a.x>=11&&a.x<=89));
+const contact={project:{aspect:'9:16'},episodes:[{scenes:[
+ scene('transfer','ตาอินช่วยนิลทรงตัวและส่งประแจให้นิล',{actors:[
+  {char:'nil',x:54,y:90},{char:'ta_in',x:57,y:90}
+ ]})]}]};
+assert.equal(planner.plan(contact,'composition').ops.length,0,
+ 'intentional actor contact must remain authored');
+const frozen={project:{aspect:'9:16'},episodes:[{scenes:[
+ scene('fixed','ยืนข้างกัน',{actors:[
+  {char:'a',x:40,y:90,lockPosition:true},
+  {char:'b',x:44,y:90,route:[{x:44,y:90},{x:60,y:90}]}
+ ]})]}]};
+const lockedPlan=planner.plan(frozen,'composition');
+assert.equal(lockedPlan.ops.length,0);
+assert.ok(lockedPlan.warnings.some(x=>x.includes('fixed')),
+ 'locked author choreography must produce a review warning, never an edit');
 const applied=structuredClone(src);
 for(const op of layout.ops)Object.assign(applied.episodes[0].scenes.find(s=>s.id===op.id),op.patch);
 const drawable=planner.plan(applied,'assets',assets);
