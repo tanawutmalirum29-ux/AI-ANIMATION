@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "source": "User-supplied three_flashes_before_dawn_fixed(1).json and three exported MP4s, reviewed 2026-11-01",
+  "purpose": "Evaluation fixture for scene-timing and narration director; not model weight fine-tuning",
+  "episodes": [
+    {
+      "id": "ep1",
+      "sourcePlannedSeconds": 60,
+      "exportSeconds": 47.105,
+      "deltaSeconds": -12.895,
+      "audioStreamPresent": true,
+      "audioCodec": "aac",
+      "audioMeanDb": -19.3,
+      "audioPeakDb": -0.4,
+      "silenceRunsAtMinus35dBMinHalfSecond": [
+        2.711,
+        2.597,
+        2.582,
+        2.627,
+        2.625,
+        2.446
+      ],
+      "longSilenceSeconds": 15.588
+    },
+    {
+      "id": "ep2",
+      "sourcePlannedSeconds": 60,
+      "exportSeconds": 46.383333,
+      "deltaSeconds": -13.617,
+      "audioStreamPresent": true,
+      "audioCodec": "aac",
+      "audioMeanDb": -19.2,
+      "audioPeakDb": -0.5,
+      "silenceRunsAtMinus35dBMinHalfSecond": [
+        2.641,
+        2.666,
+        2.669,
+        2.542,
+        2.635,
+        2.447
+      ],
+      "longSilenceSeconds": 15.6
+    },
+    {
+      "id": "ep3",
+      "sourcePlannedSeconds": 60,
+      "exportSeconds": 45.933333,
+      "deltaSeconds": -14.067,
+      "audioStreamPresent": true,
+      "audioCodec": "aac",
+      "audioMeanDb": -19.8,
+      "audioPeakDb": -0.6,
+      "silenceRunsAtMinus35dBMinHalfSecond": [
+        2.642,
+        2.684,
+        2.565,
+        2.66,
+        2.627,
+        2.458
+      ],
+      "longSilenceSeconds": 15.636
+    }
+  ],
+  "sourceJson": {
+    "scenes": 18,
+    "scenesPerEpisode": 6,
+    "sceneDurationsSeconds": 10,
+    "hasEmbeddedAudioClips": false,
+    "hasVoiceoverText": true
+  },
+  "labels": [
+    {
+      "issue": "repeated_silence_between_scenes",
+      "severity": "high",
+      "evidence": "~2.5–2.7 s low-level audio at every scene boundary across all three exported videos",
+      "expectedBehavior": "Avoid unintended >0.8 s silence between narration segments unless explicitly marked as intentional; preserve dramatic pauses"
+    },
+    {
+      "issue": "planned_vs_export_duration_mismatch",
+      "severity": "high",
+      "evidence": "60 s authored per episode, exports 45.93–47.11 s",
+      "expectedBehavior": "Report mismatch and align timeline to measured audio; never pad with silence merely to hit 60 seconds"
+    },
+    {
+      "issue": "source_json_has_no_audio_clips",
+      "severity": "medium",
+      "evidence": "All 18 source scenes have empty audioClips; exported MP4s do contain AAC audio",
+      "expectedBehavior": "Do not infer speech timing from JSON alone; analyze actual audio or imported clips"
+    }
+  ],
+  "limits": [
+    "Silence detection is amplitude-based and does not prove speech absence when music or effects exist",
+    "Visual animation quality and precise spoken-word alignment require further frame-by-frame review",
+    "No neural network training has been run"
+  ]
+}
