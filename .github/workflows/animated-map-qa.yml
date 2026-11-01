@@ -215,6 +215,7 @@ jobs:
           node tests/character-interaction-smoke.cjs
           node tests/mobile-scroll-smoke.cjs
           node tests/export-focus-layout-smoke.cjs
+          node tests/multi-episode-export-smoke.cjs
           node tests/auto-dub-smoke.cjs
           node tests/site-auth-smoke.cjs
           node tests/local-ai-workspace-smoke.cjs
