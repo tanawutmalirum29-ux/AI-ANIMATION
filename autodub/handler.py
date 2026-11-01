@@ -124,7 +124,7 @@ def _export_action(action, body):
             s3.put_object(Bucket=bucket, Key=key("prepared"), Body=b"ready", ContentType="text/plain")
             url = s3.generate_presigned_url("put_object", Params={
                 "Bucket": bucket, "Key": key("input.json"), "ContentType": "application/json"
-            }, ExpiresIn=600)
+            }, ExpiresIn=1800)
             return _resp(200, {"jobId": ident, "uploadUrl": url, "maxBytes": 100 * 1024 * 1024})
         except ClientError:
             return _resp(503, {"error": "สร้างงานบนพื้นที่เก็บข้อมูลไม่สำเร็จ"})
