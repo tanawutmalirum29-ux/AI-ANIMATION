@@ -20,12 +20,19 @@ function composition(state){
   const acts=clone(sc.actors);let count=0;
   for(let i=0;i<acts.length;i++)for(let j=i+1;j<acts.length;j++){
    const a=acts[i],b=acts[j];
+   // A short linear walk can be offset without modifying its travel distance.
+   // Explicit routes, motion keys, anchors, physical interactions and locks win.
    const free=x=>Number.isFinite(x.x)&&Number.isFinite(x.y)&&
-     !x.at&&!x.to&&!Number.isFinite(x.toX)&&!Number.isFinite(x.toY)&&
-     !x.route?.length&&!x.motionKeys?.length&&!x.depth&&!x.lockPosition;
+     !x.at&&!x.to&&!x.route?.length&&!x.motionKeys?.length&&!x.depth&&!x.lockPosition;
    if(!free(a)||!free(b)||Math.abs(a.x-b.x)>=10||Math.abs(a.y-b.y)>=8)continue;
-   const nx=b.x+13<=95?b.x+13:b.x-13;
-   if(nx<5||nx>95){warnings.push(sc.id+': ตำแหน่งชนกัน ต้องตรวจเอง');continue;}
+   const prefer=b.x<a.x?a.x-12:a.x+12;
+   const alternate=b.x<a.x?a.x+12:a.x-12;
+   const good=nx=>nx>=5&&nx<=95&&(!Number.isFinite(b.toX)||
+     b.toX+nx-b.x>=5&&b.toX+nx-b.x<=95);
+   const nx=good(prefer)?prefer:good(alternate)?alternate:null;
+   if(nx===null){warnings.push(sc.id+': ตำแหน่งชนกัน ต้องตรวจเอง');continue;}
+   const delta=nx-b.x;
+   if(Number.isFinite(b.toX))b.toX=Math.round((b.toX+delta)*100)/100;
    b.x=Math.round(nx*100)/100;count++;
   }
   if(count){ops.push({op:'updateScene',id:sc.id,patch:{actors:acts}});details.push(sc.id+': แยกตำแหน่ง '+count+' คู่');}
