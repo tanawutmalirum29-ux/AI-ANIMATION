@@ -3876,13 +3876,130 @@ async function exportOneEpisode(){
   ACTIVE_EXPORT=null;job.finished=true;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
  }
 }
+// Batch export is ephemeral: never add compilation scenes to saved user projects.
+const EXPORT_SEPARATOR_SECONDS=2.5;
+function buildExportCompilation(episodes){
+ const scenes=[],musicClips=[];let elapsed=0;
+ for(let i=0;i<episodes.length;i++){
+  const E=episodes[i],length=E.scenes.reduce((n,x)=>n+Number(x.duration||0),0);
+  if(i){const divider=newScene();divider.duration=EXPORT_SEPARATOR_SECONDS;
+   divider.transition={type:'cut',duration:0};divider.__exportChapterSeparator={number:i+1,title:E.title||'ตอนที่ '+(i+1)};
+   scenes.push(divider);elapsed+=EXPORT_SEPARATOR_SECONDS}
+  const boundary=elapsed+length;
+  for(let j=0;j<E.scenes.length;j++){
+   const scene=E.scenes[j];
+   scenes.push({...scene,id:'compile-'+i+'-'+j,
+    ...(j===0&&i>0?{transition:{type:'cut',duration:0}}:{}),
+    audioClips:(scene.audioClips||[]).map((c,k)=>({...c,id:'compile-'+i+'-'+j+'-'+k,__exportStopAt:boundary}))});
+  }
+  for(let k=0;k<(E.musicClips||[]).length;k++){
+   const c=E.musicClips[k];musicClips.push({...c,id:'compile-music-'+i+'-'+k,at:elapsed+cleanNum(c.at),__exportStopAt:boundary});
+  }
+  elapsed=boundary;
+ }
+ return {id:'virtual-export',title:'รวมทุกตอน',scenes,musicClips};
+}
+function exportFilePrefix(){return (S.project.title||'story-studio').replace(/[^\p{L}\p{N}_-]+/gu,'-').slice(0,50)}
+function renderExportBatchResults(){
+ const root=$('#videoBatchResults');if(!root)return;
+ root.hidden=!EXPORT_BATCH_FILES.length&&!EXPORT_BATCH_ZIP;if(root.hidden)return;
+ const heading=h('strong',{},'ไฟล์ที่ส่งออกแล้ว '+EXPORT_BATCH_FILES.length+' ตอน');
+ const list=h('div',{className:'batch-files'});
+ EXPORT_BATCH_FILES.forEach(file=>list.append(h('button',{type:'button',onclick:()=>dlBlob(file.filename,file.blob)},'↓ '+file.filename+' · '+(file.blob.size/1048576).toFixed(1)+' MB')));
+ const info=h('p',{className:'sum'},'ไฟล์อยู่ในหน่วยความจำของแท็บนี้จนกว่าจะปิดหน้า · ควรดาวน์โหลดก่อนปิดหรือรีเฟรช');
+ const children=[heading,list,info];
+ if(EXPORT_BATCH_ZIP)children.unshift(h('button',{className:'batch-download',type:'button',onclick:()=>dlBlob(EXPORT_BATCH_ZIP.name,EXPORT_BATCH_ZIP.blob)},
+  '↓ ดาวน์โหลดทุกตอนใน ZIP · '+(EXPORT_BATCH_ZIP.blob.size/1048576).toFixed(1)+' MB'));
+ root.replaceChildren(...children);
+}
+async function makeExportZip(files){
+ const encoder=new TextEncoder(),parts=[],central=[];
+ const header=(n)=>{const buf=new Uint8Array(n);return {buf,v:new DataView(buf.buffer)}};
+ let offset=0,centralBytes=0;
+ for(const file of files){
+  if(EXPORT_BATCH_ABORTED)throw new Error('ผู้ใช้ยกเลิกการรวม ZIP');
+  if(file.blob.size>0xffffffff)throw new Error('ไฟล์หนึ่งใหญ่เกินข้อจำกัด ZIP 4 GB');
+  const name=encoder.encode(file.filename);if(name.length>65535)throw new Error('ชื่อไฟล์ยาวเกินไป');
+  let crc=0xffffffff;const sliceSize=1024*1024;
+  for(let pos=0;pos<file.blob.size;pos+=sliceSize){
+   if(EXPORT_BATCH_ABORTED)throw new Error('ผู้ใช้ยกเลิกการรวม ZIP');
+   const bytes=new Uint8Array(await file.blob.slice(pos,pos+sliceSize).arrayBuffer());
+   for(let i=0;i<bytes.length;i++){crc^=bytes[i];for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}
+  }
+  crc=(crc^0xffffffff)>>>0;
+  const l=header(30);l.v.setUint32(0,0x04034b50,true);l.v.setUint16(4,20,true);l.v.setUint16(6,0x800,true);
+  l.v.setUint16(12,33,true);l.v.setUint32(14,crc,true);l.v.setUint32(18,file.blob.size,true);l.v.setUint32(22,file.blob.size,true);l.v.setUint16(26,name.length,true);
+  parts.push(l.buf,name,file.blob);
+  const c=header(46);c.v.setUint32(0,0x02014b50,true);c.v.setUint16(4,20,true);c.v.setUint16(6,20,true);c.v.setUint16(8,0x800,true);
+  c.v.setUint16(14,33,true);c.v.setUint32(16,crc,true);c.v.setUint32(20,file.blob.size,true);c.v.setUint32(24,file.blob.size,true);
+  c.v.setUint16(28,name.length,true);c.v.setUint32(42,offset,true);
+  central.push(c.buf,name);centralBytes+=46+name.length;offset+=30+name.length+file.blob.size;
+  if(offset+centralBytes>0xffffffff)throw new Error('ZIP เกิน 4 GB · ดาวน์โหลดแยกตอนด้านล่าง');
+ }
+ if(files.length>65535)throw new Error('จำนวนไฟล์ ZIP เกินขีดจำกัด');
+ const end=header(22);end.v.setUint32(0,0x06054b50,true);end.v.setUint16(8,files.length,true);end.v.setUint16(10,files.length,true);
+ end.v.setUint32(12,centralBytes,true);end.v.setUint32(16,offset,true);
+ return new Blob([...parts,...central,end.buf],{type:'application/zip'});
+}
+async function startVideoExport(){
+ if(ACTIVE_EXPORT||EXPORT_BATCH_RUNNING)return;
+ const mode=$('#videoScope')?.value||'current';
+ EXPORT_BATCH_FILES=[];EXPORT_BATCH_ZIP=null;EXPORT_BATCH_ABORTED=false;EXPORT_COMBINED_LABEL=false;
+ renderExportBatchResults();
+ if(mode==='current'){await exportOneEpisode();return}
+ const episodes=S.episodes;
+ if(!episodes.length||episodes.some(E=>!Array.isArray(E.scenes)||!E.scenes.length)){exportStatus('ไม่มีตอนที่ส่งออกได้',0);return}
+ const saved={episodes,selEp,sel,T,playing};EXPORT_BATCH_RUNNING=true;$('#videoScope').disabled=true;
+ $('#videoStart').disabled=true;$('#videoCancel').disabled=false;$('#videoClose').disabled=true;$('#videoBack').disabled=true;
+ let completed=0,failed=false;
+ try{
+  if(mode==='combined'){
+   const compilation=buildExportCompilation(episodes),duration=compilation.scenes.reduce((a,x)=>a+Number(x.duration||0),0);
+   if(!(duration>0&&duration<=1800))throw new Error('วิดีโอรวมยาว '+duration.toFixed(1)+' วินาที เกินเพดาน 30 นาทีของตัวเข้ารหัส · เลือกส่งออกแยกตอน');
+   S.episodes=[...episodes,compilation];selEp=episodes.length;sel=0;T=0;EXPORT_COMBINED_LABEL=true;
+   await exportOneEpisode();
+   if(!EXPORT_JOB_OUTCOME)throw new Error($('#videoStatus').textContent||'รวมวิดีโอไม่สำเร็จ');
+   completed=episodes.length;
+  }else{
+   for(let i=0;i<episodes.length;i++){
+    if(EXPORT_BATCH_ABORTED)break;
+    S.episodes=episodes;selEp=i;sel=0;T=0;
+    exportStatus('เริ่มตอนที่ '+(i+1)+'/'+episodes.length+' · '+(episodes[i].title||''),i/episodes.length*100);
+    await exportOneEpisode();
+    if(!EXPORT_JOB_OUTCOME){failed=true;break}
+    completed++;renderExportBatchResults();
+    $('#videoStart').disabled=true;$('#videoCancel').disabled=false;$('#videoClose').disabled=true;$('#videoBack').disabled=true;
+   }
+   if(EXPORT_BATCH_FILES.length){
+    exportStatus('กำลังจัดชุดวิดีโอ '+EXPORT_BATCH_FILES.length+' ตอนเป็น ZIP …',96);
+    EXPORT_BATCH_ZIP={name:exportFilePrefix()+'-ทุกตอน.zip',blob:await makeExportZip(EXPORT_BATCH_FILES)};
+    renderExportBatchResults();
+    // iOS browsers may reject a download after an async encode. Keep a
+    // prominent user-click download button regardless of automatic attempts.
+    if(!EXPORT_BATCH_ABORTED&&!failed)dlBlob(EXPORT_BATCH_ZIP.name,EXPORT_BATCH_ZIP.blob);
+   }
+   if(!failed&&!EXPORT_BATCH_ABORTED)exportStatus('ส่งออกครบ '+completed+'/'+episodes.length+' ตอน · ไฟล์ ZIP พร้อมดาวน์โหลด',100);
+   else exportStatus('ส่งออกได้ '+completed+'/'+episodes.length+' ตอน · '+(EXPORT_BATCH_ABORTED?'ยกเลิกแล้ว':'หยุดเพราะพบข้อผิดพลาด')+' · ดาวน์โหลดไฟล์ที่สำเร็จด้านล่าง');
+  }
+ }catch(e){exportStatus('ส่งออกไม่สำเร็จ: '+String(e?.message||e));}
+ finally{
+  S.episodes=saved.episodes;selEp=saved.selEp;sel=saved.sel;T=saved.T;playing=false;
+  EXPORT_COMBINED_LABEL=false;EXPORT_BATCH_RUNNING=false;EXPORT_BATCH_ABORTED=false;
+  $('#videoScope').disabled=false;$('#videoStart').disabled=false;$('#videoCancel').disabled=true;$('#videoClose').disabled=false;$('#videoBack').disabled=false;
+  resetTransitionCache();render();updateExportScopeHint();
+ }
+}
 let LAST_VIDEO=null;
-function showExportResult(blob,filename){if(LAST_VIDEO?.url)URL.revokeObjectURL(LAST_VIDEO.url);const url=URL.createObjectURL(blob);LAST_VIDEO={blob,filename,url};
+function showExportResult(blob,filename){
+ if(EXPORT_COMBINED_LABEL)filename=exportFilePrefix()+'-รวมทุกตอน.'+filename.split('.').pop();
+ if(EXPORT_BATCH_RUNNING&&$('#videoScope').value==='separate')EXPORT_BATCH_FILES.push({blob,filename});
+ if(LAST_VIDEO?.url)URL.revokeObjectURL(LAST_VIDEO.url);const url=URL.createObjectURL(blob);LAST_VIDEO={blob,filename,url};
  const panel=$('#videoResult');panel.classList.add('ready');$('#videoResultInfo').textContent=filename+' · '+(blob.size/1048576).toFixed(2)+' MB';$('#videoResultPreview').src=url;
  $('#videoSaveAs').style.display=typeof window.showSaveFilePicker==='function'?'':'none';
  $('#videoShare').style.display=navigator.share?'':'none';
- // Download automatically once, while retaining a visible recovery action.
- dlBlob(filename,blob);
+ // For batches, download one ZIP when the queue completes. Safari often blocks
+ // multiple automatic downloads; keep explicit download buttons for recovery.
+ if(!(EXPORT_BATCH_RUNNING&&$('#videoScope').value==='separate'))dlBlob(filename,blob);
 }
 function videoDownloadAgain(){if(!LAST_VIDEO)return;dlBlob(LAST_VIDEO.filename,LAST_VIDEO.blob)}
 async function videoShare(){if(!LAST_VIDEO)return;try{
@@ -3898,11 +4015,12 @@ async function videoSaveAs(){if(!LAST_VIDEO||!window.showSaveFilePicker)return;t
  }catch(e){if(e.name!=='AbortError')alert(e.message)}
 }
 $('#videoDownload').onclick=videoDownloadAgain;$('#videoShare').onclick=videoShare;$('#videoSaveAs').onclick=videoSaveAs;
-function cancelVideoExport(){if(ACTIVE_EXPORT){ACTIVE_EXPORT.aborted=true;exportStatus('กำลังยกเลิก…')}else $('#videoDialog').close()}
+function cancelVideoExport(){if(EXPORT_BATCH_RUNNING)EXPORT_BATCH_ABORTED=true;if(ACTIVE_EXPORT){ACTIVE_EXPORT.aborted=true;exportStatus('กำลังยกเลิก…')}else if(EXPORT_BATCH_RUNNING)exportStatus('ยกเลิกคิวที่เหลือแล้ว · กำลังหยุดงานปัจจุบัน…');else $('#videoDialog').close()}
 $('#videoQuick').onclick=openVideoExport;
+$('#videoScope').addEventListener('change',updateExportScopeHint);
 $('#videoStart').onclick=startVideoExport;
 $('#videoCancel').onclick=cancelVideoExport;
-function exitVideoExport(){if(ACTIVE_EXPORT)return;$('#videoDialog').close();if(STUDIO_WORKSPACE_READY)switchStudioTool('scene');}
+function exitVideoExport(){if(ACTIVE_EXPORT||EXPORT_BATCH_RUNNING)return;$('#videoDialog').close();if(STUDIO_WORKSPACE_READY)switchStudioTool('scene');}
 $('#videoClose').onclick=exitVideoExport;
 $('#videoBack').onclick=exitVideoExport;
 $('#videoDialog').addEventListener('cancel',e=>{if(ACTIVE_EXPORT){e.preventDefault();cancelVideoExport()}});
