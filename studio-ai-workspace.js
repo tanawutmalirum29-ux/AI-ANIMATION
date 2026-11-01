@@ -332,10 +332,20 @@ async function applyProductionPlan(stage,ensureBackup){
 }
 function countVoiceCoverage(state){
  let expected=0,voiced=0;
+ const director=root.StoryNarrationDirector;
  for(const ep of state.episodes||[])for(const sc of ep.scenes||[]){
-  if(!String(sc.voiceover||(sc.subtitle||[]).join(' ')).trim())continue;
+  const narration=String(sc.voiceover||'').trim();
+  if(!String(narration||(sc.subtitle||[]).join(' ')).trim())continue;
   expected++;
-  if((sc.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&!c.mute&&!c.staleNarration))voiced++;
+  const clips=(sc.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute&&!c.staleNarration);
+  if(!clips.length)continue;
+  // A manually recorded take is explicitly authored, never overwrite it.
+  if(clips.some(c=>!c.autoDub)){voiced++;continue;}
+  if(!narration){voiced++;continue;}
+  const parts=director?.splitNarration?.(narration,175)||[narration];
+  const provided=new Set(clips.flatMap(c=>(c.cueIds?.length?c.cueIds:[c.cueId]).filter(Boolean)));
+  if(parts.length&&parts.every((part,i)=>provided.has('narration-'+sc.id+'-part'+(i+1))))
+   voiced++;
  }
  return {expected,voiced,missing:Math.max(0,expected-voiced)};
 }
