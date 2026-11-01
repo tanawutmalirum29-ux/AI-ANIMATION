@@ -20,6 +20,8 @@ const path=require('node:path');
    first.scenes[0].audioClips=[{id:'voice-test',kind:'voice',data:'data:audio/wav;base64,AA==',duration:12,at:0,rate:1,volume:1,trimStart:0,trimEnd:0}];
    first.musicClips=[{id:'music-test',kind:'music',data:'data:audio/wav;base64,AA==',duration:2,at:0,rate:1,volume:1,loop:true,trimStart:0,trimEnd:0}];
    second.musicClips=[{id:'music-next',kind:'music',data:'data:audio/wav;base64,AA==',duration:2,at:0,rate:1,volume:1,loop:true,trimStart:0,trimEnd:0}];
+   S.project.title='สามแสงก่อนรุ่งสาง';
+   const thaiPrefix=exportFilePrefix();
    S.episodes=[first,second];selEp=0;sel=1;T=1.2;
    const original=S.episodes,originalJSON=JSON.stringify(S),combined=buildExportCompilation(original);
    const divider=combined.scenes.find(c=>c.__exportChapterSeparator);
@@ -35,7 +37,7 @@ const path=require('node:path');
    window.exportOneEpisode=async()=>{
     const current=ep(),id=selEp;
     window.__batchCalls.push({id,scenes:current.scenes.length,separator:current.scenes.filter(s=>!!s.__exportChapterSeparator).length});
-    showExportResult(new Blob([new Uint8Array(1024).fill(id+1)],{type:'video/mp4'}),'chapter-'+(id+1)+'.mp4');
+    showExportResult(new Blob([new Uint8Array(1024).fill(id+1)],{type:'video/mp4'}),exportFilePrefix()+'-'+(id+1)+'.mp4');
     EXPORT_JOB_OUTCOME=true;
    };
    document.querySelector('#videoScope').value='separate';
@@ -51,6 +53,7 @@ const path=require('node:path');
    }
    const ending=view?.getUint32(z.length-22,true),count=view?.getUint16(z.length-12,true);
    const separate={calls:window.__batchCalls.slice(),results:EXPORT_BATCH_FILES.length,files,ending,count,
+    zipFilename:EXPORT_BATCH_ZIP?.name,thaiPrefix,
     zipButton:!!document.querySelector('#videoBatchResults .batch-download'),restored:S.episodes===original&&selEp===0&&sel===1,
     untouched:JSON.stringify(S)===originalJSON,downloads:window.__batchDownloads||[]};
    window.__batchCalls=[];
@@ -66,18 +69,22 @@ const path=require('node:path');
   assert.equal(report.separate.calls.length,2);
   assert.deepEqual(report.separate.calls.map(c=>c.id),[0,1]);
   assert.equal(report.separate.results,2);
+  assert.equal(report.separate.thaiPrefix,'สามแสงก่อนรุ่งสาง');
+  assert.equal(report.separate.zipFilename,'สามแสงก่อนรุ่งสาง-ทุกตอน.zip');
   assert.equal(report.separate.count,2);
   assert.equal(report.separate.ending,0x06054b50);
   assert.ok(report.separate.files.every(f=>f.signature===0x04034b50&&f.size===1024));
   assert.equal(report.separate.files[0].payload,1);
   assert.equal(report.separate.files[1].payload,2);
+  assert.deepEqual(report.separate.files.map(f=>f.fileName),[
+   'สามแสงก่อนรุ่งสาง-1.mp4','สามแสงก่อนรุ่งสาง-2.mp4']);
   assert.equal(report.separate.zipButton,true);
   assert.equal(report.separate.restored,true);
   assert.equal(report.separate.untouched,true);
   assert.equal(report.merged.calls.length,1);
   assert.equal(report.merged.calls[0].scenes,4);
   assert.equal(report.merged.calls[0].separator,1);
-  assert.match(report.merged.download,/รวมทุกตอน\.mp4$/);
+  assert.equal(report.merged.download,'สามแสงก่อนรุ่งสาง-รวมทุกตอน.mp4');
   assert.equal(report.merged.divider.number,2);
   assert.equal(report.merged.divider.title,'บทสรุป');
   assert.equal(report.merged.dividerDuration,2.5);
