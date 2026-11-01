@@ -347,7 +347,7 @@ async function runCoordinatedProduction(){
  }
  const job={id:core.id(),role:'production',scope:'all',
   prompt:'ผลิตจาก JSON เดิม: จัดองค์ประกอบ → SVG → Motion → พากย์ → จัดเวลา → QA',
-  status:'running',createdAt:now(),updatedAt:now(),steps,response:'',ops:[]};
+  status:'running',createdAt:now(),updatedAt:now(),steps:stages,response:'',ops:[]};
  try{persist(w=>{w.tasks.push(job);if(w.tasks.length>MAX_TASKS)w.tasks.splice(0,w.tasks.length-MAX_TASKS)});}
  catch(err){status('บันทึกงานผลิตไม่ได้: '+err.message,true);return}
  const oldScope=audioScope;let backedUp=false;
