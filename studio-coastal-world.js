@@ -159,7 +159,7 @@
    snapped=effect(scene,'beltBreak'),facing=scene.worldEffects?.beamDirection==='village'?'left':'right',
    flashes=effect(scene,'threeFlashes');
   if(front)return R(0,84,W,1.4,'#b1a292',.4,.65);
-  const flashPhase=flashes?(t>=.1&&t<.75?Math.floor((t-.1)/.22)%1===0&&((t-.1)%.22)<.105?1:0:0):1;
+  const flashPhase=flashes?([.12,.34,.56].some(start=>t>=start&&t<start+.1)?1:0):1;
   const lit=on?flashPhase:0;
   let o=R(0,12,W,64,'#344452',0,.46)+
    // Lantern room CURVED window bays + heavy steel mullions.
