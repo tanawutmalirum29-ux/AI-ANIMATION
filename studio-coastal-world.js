@@ -152,6 +152,12 @@
    lighthouse(x(.85),70,.9,effect(scene,'beaconOn'),'left',.85)+
    Array.from({length:6},(_,i)=>E(x(.05+i*.16),80+(i%2)*4,9,4,'#3b4c55',.9)).join('')+
    boat(x(.18),68,.4);
+  if(effect(scene,'toolboxFall')){
+   const q=clamp((t-.22)/.65,0,1),boxX=x(.49)+q*11,boxY=48+q*q*41;
+   o+='<g data-world-object="falling-toolbox" transform="translate('+f(boxX)+' '+f(boxY)+') rotate('+f(q*70)+')" opacity="'+f(1-q*.95)+'">'+
+    R(-4,-4,8,5,'#9f5149',.8)+R(-4,-5,8,1.4,'#db8169')+
+    R(-1.4,-7,3,2,'#aeb4aa',.3)+'</g>';
+  }
   return o;
  }
  function lantern(W,local,scene,front){
@@ -177,6 +183,11 @@
     const yy=18+i*4;return L(x(.63)-13,yy,x(.63)+13,yy,i%2?'#d4d3bd':'#9be3ef',.8,.75);
    }).join('')+
    E(x(.63),31,9,12,'#ecd8a3',.52)+C(x(.63),31,5.4,'#fff1bc',lit*.9)+'</g>'+
+   // An articulated reflector redirects the signal, not a stationary lamp.
+   '<g data-world-object="reflector-mirror" transform="rotate('+
+    f(effect(scene,'reflectorTurn')? -35+65*t:-35)+' '+f(x(.63))+' 31)">'+
+    L(x(.63)-10,25,x(.63)+10,25,'#d9e9e4',1.8)+
+    L(x(.63)-10,25,x(.63)-10,39,'#e4d3b0',.8)+'</g>'+
    // Large gear train + manual crank assembly at left.
    R(x(.16),53,x(.45),4,'#9c8875')+R(x(.28),48,3,35,'#5e6267')+
    C(x(.32),51,7,'#535c62')+C(x(.32),51,4.8,'#ac9f86')+C(x(.32),51,2,'#51616a')+
