@@ -48,7 +48,9 @@
    scene.image?.data||typeof scene.image==='string'&&scene.image);
   const namedProps=propList.length+assets.length;
   const timeDriven=anyMotion(propList)||anyMotion(assets)||anyMotion(graphics)||
-   anyMotion(actors)||!!(fx&&(anyMotion(fx.keyframes)||anyMotion(fx.keys)||
+   anyMotion(actors)||!!(fx&&(
+      (Array.isArray(fx.keyframes)&&fx.keyframes.length>=2)||
+      (Array.isArray(fx.keys)&&fx.keys.length>=2)||
       Number.isFinite(fx.duration)&&fx.duration>0));
   return {visualMedia:!!visualMedia,namedProps,timeDriven,actorCount:actors.length};
  }
