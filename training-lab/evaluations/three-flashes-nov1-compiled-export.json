@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "status": "evaluation-only",
+  "date": "2026-11-01",
+  "filenameObserved": "สามแสงก-อนร-งสาง-รวมทุกตอน.mp4",
+  "filenameExpected": "สามแสงก่อนรุ่งสาง-รวมทุกตอน.mp4",
+  "fileNameDiagnosis": "Export filename regex kept Unicode letters and numbers but omitted Unicode combining marks, including Thai vowel/tone signs. Unified exportFilePrefix retains \\p{M} and avoids slicing a grapheme cluster when available.",
+  "source": "User-uploaded compiled MP4; video/audio never committed",
+  "media": {
+    "durationSeconds": 117.406667,
+    "width": 720,
+    "height": 1280,
+    "fps": 24,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioHz": 48000,
+    "channels": 2
+  },
+  "separator": {
+    "authoredDurationSeconds": 2.5,
+    "betweenEpisodesCount": 2,
+    "titleCardsVisibleAtApproxSeconds": [
+      38.5,
+      78.5
+    ],
+    "intent": "intentional chapter separators requested by user"
+  },
+  "audio": {
+    "method": "ffmpeg silencedetect=noise=-35dB:d=0.35",
+    "boundaryLowLevelIntervals": [
+      {
+        "startSeconds": 37.166854,
+        "endSeconds": 40.796729,
+        "lengthSeconds": 3.629875
+      },
+      {
+        "startSeconds": 77.022167,
+        "endSeconds": 80.638542,
+        "lengthSeconds": 3.616375
+      }
+    ],
+    "otherLowLevelIntervalsTypicallySeconds": "0.4–1.2",
+    "limitation": "Low-level signal measures neither complete narration nor perceptual audio quality; separator cards account for most duration in two long intervals."
+  },
+  "visual": {
+    "method": "29 sampled decoded frames at ~4s intervals plus sampled boundary frames around each title card",
+    "observations": [
+      "Chapter separator cards are actually rendered between episodes; they should not be deleted.",
+      "Episode 1 workshop pose is largely unchanged across multiple sampled frames.",
+      "Episode 2 path opening groups actors closely, obscuring silhouettes.",
+      "Episode 3 lighthouse scenes show actors' arms and silhouettes overlapping in some sampled frames.",
+      "Final hill scene groups three figures close together; overall composition needs independent visual QA."
+    ],
+    "limitations": "Sampled frames are not exhaustive visual validation; screenshot-based issues are review leads, not approved ground-truth labels."
+  },
+  "training": {
+    "approvedSamplesAdded": 0,
+    "modelWeightsUpdated": false,
+    "modelPromoted": false,
+    "action": "Regression feedback and Unicode export filename correction; preserve existing CPU ML training gate and avoid auto-approval."
+  },
+  "repeatability": {
+    "baseline": "User provided compiled file generated with prior code",
+    "reexportNeeded": true
+  }
+}
