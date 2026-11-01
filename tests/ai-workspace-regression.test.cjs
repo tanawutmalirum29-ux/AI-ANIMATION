@@ -166,7 +166,7 @@ test('six-stage coordinated production safely creates two ~60s episodes',async()
   'root.__productionTest={setup:b=>{bridge=b},run:runCoordinatedProduction,state:()=>({busy,progress,lastError})};');
  const original=Array.from({length:6},(_,i)=>({
   id:'s'+i,duration:20,voiceover:'รถไฟมาถึงสถานี เวลาเที่ยงคืน',
-  subtitle:['รถไฟมาถึงสถานี'],subtitleCues:[{id:'c'+i,text:'รถไฟมาถึงสถานี',start:0,end:18}],
+  subtitle:['รถไฟมาถึงสถานี'],subtitleCues:[{id:'c'+i,text:'รถไฟมาถึงสถานี',start:0,end:20}],
   audioClips:[]
  }));
  const state={project:{title:'Episode QA',aiWorkspace:{}},episodes:[{id:'e1',title:'ต้นฉบับยาวเกิน',scenes:structuredClone(original)}],characters:[]};

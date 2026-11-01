@@ -103,6 +103,54 @@
       Number.isFinite(fx.duration)&&fx.duration>0));
   return {visualMedia:!!visualMedia,namedProps,timeDriven,actorCount:actors.length};
  }
+
+ // Match explicit animated assets to the *same* narrated event.
+ // Generic props or unrelated actor movement cannot prove story-action coverage.
+ const EVENT_TAGS=Object.freeze({
+  'bridge-collapse':/bridge|สะพาน/i,'falling-item':/toolbox|เครื่องมือ|ประแจ/i,
+  'light-switch':/light|beacon|lamp|โคม|ไฟ|ประภาคาร/i,
+  'reflector-motion':/reflector|mirror|กระจก|แผ่นสะท้อน/i,
+  'belt-break':/belt|strap|สายพาน|เข็มขัด/i,
+  'three-flashes':/beacon|flash|light|แสง|โคม/i,
+  flooding:/flood|water|น้ำท่วม|น้ำ/i
+ });
+ function eventEvidence(scene,event){
+  if(coverage(scene).visualMedia)return true; // Needs real exported-frame review.
+  const tag=EVENT_TAGS[event];if(!tag)return false;
+  const items=[...(Array.isArray(scene.props)?scene.props:[]),
+   ...(Array.isArray(scene.customAssets)?scene.customAssets:[]),
+   ...(Array.isArray(scene.graphicCards)?scene.graphicCards:[])];
+  if(items.some(item=>isObject(item)&&tag.test([item.eventKind,item.kind,
+   item.type,item.id,item.name,item.asset?.id,item.asset?.name].filter(Boolean).join(' '))&&
+   anyMotion([item])))return true;
+  if(event==='three-flashes'||event==='light-switch'){
+   const fx=scene.cinematicFx;
+   const light=isObject(fx)&&/light|flash|beacon|ไฟ|แสง/i.test(String(fx.type||'')+' '+String(fx.name||''));
+   const keys=Array.isArray(fx?.keyframes)?fx.keyframes:Array.isArray(fx?.keys)?fx.keys:[];
+   if(light&&keys.length>=(event==='three-flashes'?4:2))return true;
+  }
+  return false;
+ }
+ // Compare existing real voice clips and timed cues, not text-only estimates.
+ function captionVoiceGaps(scene){
+  const clips=(Array.isArray(scene.audioClips)?scene.audioClips:[]).filter(c=>
+   c?.kind==='voice'&&c.data&&!c.mute&&!c.loop&&Number.isFinite(+c.duration)&&+c.duration>0);
+  const cues=(Array.isArray(scene.subtitleCues)?scene.subtitleCues:[]).filter(c=>
+   c&&typeof c.text==='string'&&c.text.trim()&&
+   Number.isFinite(+c.start)&&Number.isFinite(+c.end)&&+c.end>+c.start);
+  if(!clips.length||!cues.length)return null;
+  const voiceStart=Math.min(...clips.map(c=>Math.max(0,Number(c.at)||0)));
+  const voiceEnd=Math.max(...clips.map(c=>Math.max(0,Number(c.at)||0)+
+   Math.max(0,(Number(c.duration)||0)-(Number(c.trimStart)||0)-(Number(c.trimEnd)||0))/
+   Math.max(.2,Math.min(4,Number(c.rate)||1))));
+  const captionStart=Math.min(...cues.map(c=>Number(c.start)));
+  const captionEnd=Math.max(...cues.map(c=>Number(c.end)));
+  const lateStart=Math.max(0,captionStart-voiceStart);
+  const earlyEnd=Math.max(0,voiceEnd-captionEnd);
+  return lateStart>.75||earlyEnd>.85?
+   {lateStart:Math.round(lateStart*100)/100,earlyEnd:Math.round(earlyEnd*100)/100,
+    voiceStart,voiceEnd,captionStart,captionEnd}:null;
+ }
  function inspect(state,options={}){
   const episodes=Array.isArray(state?.episodes)?state.episodes:[],issues=[],scenes=[];
   const scope=options.scope||'all',episodeIndex=Math.max(0,Number(options.episodeIndex)||0),
@@ -134,11 +182,7 @@
     const text=narration+' '+prompt,sceneIssues=[];
     for(const event of EVENTS){
      if(!event.test.test(text))continue;
-     const lacksAction=event.id==='falling-item'||event.id==='bridge-collapse'?
-       data.namedProps===0&&!data.visualMedia:
-       event.id==='three-flashes'?
-       !data.timeDriven&&!data.visualMedia:
-       data.namedProps===0&&!data.timeDriven&&!data.visualMedia;
+     const lacksAction=!eventEvidence(scene,event.id);
      if(lacksAction)sceneIssues.push({kind:'unverified-event',event:event.id,title:event.title,
        episode:ei+1,scene:si+1,sceneId:scene.id,
        message:event.hint,source:'authored-script',confidence:'needs-visual-review'});
@@ -175,6 +219,12 @@
        '"; ตรวจเฟรมจริง แล้วนับความกว้างแบบไม่รวมสระ/วรรณยุกต์ หรือสมดุลสองบรรทัด',
       detail:hit,source:'caption-text',confidence:'high'});
     }
+    const voiceGaps=captionVoiceGaps(scene);
+    if(voiceGaps)sceneIssues.push({kind:'caption-voice-misalignment',event:'caption-voice-misalignment',
+     title:'ซับไตเติลไม่ครอบคลุมช่วงเสียงพากย์',episode:ei+1,scene:si+1,sceneId:scene.id,
+     message:'ซับเริ่มช้ากว่าเสียง '+voiceGaps.lateStart+' วินาที และจบก่อนเสียง '+
+      voiceGaps.earlyEnd+' วินาที; ตรวจเสียงจริงและแบ่ง subtitleCues ตามวลี ไม่ยืดซับโดยเดาเวลา',
+     detail:voiceGaps,source:'voice-cue-timing',confidence:'needs-audio-review'});
     // Production-owned SVG drafts can obscure nearby actors in portrait
     // exports (oversized toolbox/reflector seen in sampled MP4 frames).
     // Position is an approximation, not a pixel-level collision test.
@@ -202,8 +252,9 @@
    actorOverlap:issues.filter(i=>i.kind==='actor-overlap').length,
    draftAssetClearance:issues.filter(i=>i.kind==='draft-asset-clearance').length,
    captionWrap:issues.filter(i=>i.kind==='caption-wrap').length,
+   captionVoiceMisalignment:issues.filter(i=>i.kind==='caption-voice-misalignment').length,
    chapterTitleDuplicate:issues.filter(i=>i.kind==='chapter-title-duplicate').length
   },limits:'Static JSON preflight; sampled/exported frames must still be reviewed. No automatic visual changes.'};
  }
- return Object.freeze({inspect,coverage,EVENTS,captionLimit,captionWrapFinding,clusterLen});
+ return Object.freeze({inspect,coverage,eventEvidence,captionVoiceGaps,EVENTS,captionLimit,captionWrapFinding,clusterLen});
 });

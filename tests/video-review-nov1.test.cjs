@@ -71,4 +71,54 @@ assert.equal(ev.training.modelWeightsUpdated,false);
 assert.equal(ev.findings.filter(f=>f.detectableFromJson).length,3);
 assert.ok(ev.findings.every(f=>f.rendererFixApplied!==true),'record must match what was actually changed');
 
+
+// New 2026-11-02 export feedback: a random prop/actor motion cannot satisfy
+// the narrated event; the *matching* asset must have executable animation.
+const eventScene=(id,voiceover,extra={})=>scene(id,{voiceover,...extra});
+const eventReport=s=>qa.inspect({project:portrait,episodes:[{title:'x',scenes:[s]}]});
+const unrelated=eventScene('unrelated','สะพานขาดและพังลงในน้ำ',{
+ props:[{kind:'toolbox',motionKeys:[{t:0,x:0},{t:2,x:20}]}]});
+assert.ok(eventReport(unrelated).issues.some(i=>i.event==='bridge-collapse'),
+ 'an animated toolbox cannot verify a bridge collapse');
+assert.ok(eventReport(eventScene('static','สะพานพังลงน้ำ',{
+ props:[{kind:'bridge',id:'old'}]})).issues.some(i=>i.event==='bridge-collapse'),
+ 'a static bridge cannot prove a collapse animation');
+assert.equal(eventReport(eventScene('moving','สะพานพังลงน้ำ',{
+ props:[{kind:'bridge',motionKeys:[{t:0,y:50},{t:2,y:90}]}]})).byKind.unverifiedEvents,0);
+assert.ok(eventReport(eventScene('generic-walk','หนึ่งวาบ สองวาบ สามวาบ',{
+ actors:[{char:'a',x:50,y:88,motionKeys:[{t:0,x:50},{t:5,x:60}]}]
+})).issues.some(i=>i.event==='three-flashes'),
+ 'a walk does not count as three visible light pulses');
+assert.equal(eventReport(eventScene('lit','หนึ่งวาบ สองวาบ สามวาบ',{
+ customAssets:[{eventKind:'beacon',motionKeys:[{t:0,opacity:0},{t:1,opacity:1},{t:2,opacity:0}]}]
+})).byKind.unverifiedEvents,0);
+
+// Check exported voice time and caption time only when real clip data/cues
+// exist. This is timing metadata QA, not speech-to-text.
+const voice={kind:'voice',data:'data:audio/mpeg;base64,AAAA',at:0,duration:5};
+const late=eventReport(scene('late',{
+ audioClips:[voice],subtitleCues:[{text:'เสียงมาแล้ว',start:2.2,end:4.9}]
+}));
+assert.equal(late.byKind.captionVoiceMisalignment,1);
+assert.ok(late.issues.some(i=>i.kind==='caption-voice-misalignment'&&
+ i.detail.lateStart>2));
+const aligned=eventReport(scene('aligned',{
+ audioClips:[voice],subtitleCues:[{text:'พากย์ทั้งฉาก',start:.1,end:5}]
+}));
+assert.equal(aligned.byKind.captionVoiceMisalignment,0);
+assert.equal(eventReport(scene('no-voice',{
+ subtitleCues:[{text:'พากย์ทั้งฉาก',start:2,end:3}]
+})).byKind.captionVoiceMisalignment,0,
+ 'do not guess audio timing when no clip exists');
+assert.equal(eventReport(scene('no-timed-captions',{
+ audioClips:[voice],subtitle:['ข้อความไม่มีช่วงเวลา']
+})).byKind.captionVoiceMisalignment,0,
+ 'do not invent caption alignment from untimed text');
+
+const aiCore=require('../studio-ai-core.js');
+const trainingState={project:{title:'Video quality',aiWorkspace:{}},episodes:[{id:'e1',title:'ทดลอง',scenes:[scene('s')]}]};
+assert.match(aiCore.systemPrompt('motion',trainingState),/Story-to-Action/);
+assert.match(aiCore.systemPrompt('structure',trainingState),/subtitleCues/);
+assert.match(aiCore.systemPrompt('qa',trainingState),/event-specific/);
+
 console.log('PASS: video review rules (caption wrap, chapter title, portrait actor gap)');
