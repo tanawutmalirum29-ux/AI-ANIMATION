@@ -3571,6 +3571,15 @@ function drawExportChapterSeparator(ctx,part,loc,w,h){
  if(current)lines.push(current);for(let i=0;i<Math.min(3,lines.length);i++)ctx.fillText(lines[i],w/2,h*.53+i*h*.065,w*.82);
  ctx.restore();
 }
+// Turbo only reuses a decoded image when its complete SVG payload matches.
+// Animated scenes, camera changes and lighting produce a new payload, so quality
+// and timing are identical to the standard renderer; cache holds at most one image.
+async function exportFrameImage(svg,info){
+ if(info?.turbo&&info.frameCache?.svg===svg){info.frameCacheHits=(info.frameCacheHits||0)+1;return info.frameCache.image}
+ const image=await imageFromVector(svg);
+ if(info?.turbo)info.frameCache={svg,image};
+ return image;
+}
 async function renderVideoFrame(ctx,t,info){
  const scenes=ep().scenes,st=starts();let index=scenes.findIndex((s,i)=>t<st[i]+s.duration);if(index<0)index=scenes.length-1;
  T=t;const scene=scenes[index],loc=Math.max(0,Math.min(scene.duration,t-st[index])),w=info.w,h=info.h;
@@ -3586,7 +3595,7 @@ async function renderVideoFrame(ctx,t,info){
    info.previous.set(key,await imageFromVector(svgFrameFromWorld($('#priorWorld'),scenes[index-1],w,h)));
   }old=info.previous.get(key);if(redraw)exportDraw();
  }
- const im=await imageFromVector(svgFrameFromWorld(currentWorld,scene,w,h));
+ const im=await exportFrameImage(svgFrameFromWorld(currentWorld,scene,w,h),info);
  drawTransitionToCanvas(ctx,scene,loc,index,im,old,w,h);
  filmSceneLight(ctx,scene,w,h,loc);
  drawGraphicCards(ctx,scene,loc,w,h);
@@ -3709,13 +3718,17 @@ function fxSleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function fastAvcCodec(w,h){const mb=Math.ceil(w/16)*Math.ceil(h/16);return mb<=3600?'avc1.42E01F':mb<=8192?'avc1.42E028':'avc1.42E033'}
 function fastFrameSize(requested,aspect){let [ar,br]=String(aspect||'16:9').split(':').map(Number);if(!ar||!br){ar=16;br=9}
  let w=ar>=br?Math.round(requested*ar/br):requested,h=ar>=br?requested:Math.round(requested*br/ar);return [w+(w&1),h+(h&1)]}
-async function fastExportCheck(w,h,fps,bitrate,needAudio,duration){
+async function fastExportCheck(w,h,fps,bitrate,needAudio,duration,turbo=false){
  if(typeof VideoEncoder==='undefined'||typeof VideoFrame==='undefined')return null;
- const cfg={codec:fastAvcCodec(w,h),width:w,height:h,bitrate,framerate:fps,avc:{format:'avc'}};
- try{const s=await VideoEncoder.isConfigSupported(cfg);if(!s||!s.supported)return null;
-  if(needAudio){if(typeof AudioEncoder==='undefined'||typeof OfflineAudioContext==='undefined'||duration>600)return null;
-   const a=await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000});if(!a||!a.supported)return null}
-  return cfg}catch(e){return null}
+ const base={codec:fastAvcCodec(w,h),width:w,height:h,bitrate,framerate:fps,avc:{format:'avc'}};
+ if(needAudio){if(typeof AudioEncoder==='undefined'||typeof OfflineAudioContext==='undefined'||duration>600)return null;
+  try{const a=await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000});if(!a||!a.supported)return null}catch(e){return null}}
+ // Hardware is a preference, not a guarantee. Fall back to the exact legacy
+ // configuration if the browser doesn't recognize the hint.
+ for(const cfg of (turbo?[{...base,hardwareAcceleration:'prefer-hardware'},base]:[base])){
+  try{const s=await VideoEncoder.isConfigSupported(cfg);if(s?.supported)return cfg}catch(e){}
+ }
+ return null;
 }
 function fxScheduleAudio(off,buffers){
  for(const b of buffers){const source=off.createBufferSource();source.buffer=b.buffer;source.playbackRate.value=b.rate;let feed=source,xg=null;if(b.xin>0||b.xout>0){xg=off.createGain();source.connect(xg);feed=xg}
@@ -3756,7 +3769,7 @@ async function startFastExport(f,cfg,o){
   // 2) วิดีโอ: เรนเดอร์ทีละเฟรมตามเวลาที่กำหนดเอง (ไม่ผูกกับนาฬิกาจริง)
   venc=new VideoEncoder({output:(chunk,meta)=>{const d=meta?.decoderConfig?.description;if(d)mux.setVideoDesc(fxCopy(d));const buf=new Uint8Array(chunk.byteLength);chunk.copyTo(buf);mux.addVideo(buf,chunk.timestamp,chunk.type==='key')},error:e=>{encErr=e}});
   venc.configure(cfg);
-  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map()},N=Math.max(1,Math.round(duration*fps)),keyEvery=Math.max(1,Math.round(fps*2));
+  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map(),turbo:exportPipelineTurbo(),frameCacheHits:0},N=Math.max(1,Math.round(duration*fps)),keyEvery=Math.max(1,Math.round(fps*2));
   let lastUi=0;
   for(let i=0;i<N;i++){
    if(job.aborted)throw new Error('ยกเลิกการส่งออกแล้ว');if(encErr)throw new Error('เข้ารหัสวิดีโอผิดพลาด: '+(encErr.message||encErr));
@@ -3822,7 +3835,7 @@ async function exportOneEpisode(){
  if(f.id==='fastmp4'){
   const needAudio=audioEvents().some(ev=>ev.c.data&&!ev.c.mute),[fw,fh]=fastFrameSize(requested,aspect),bitrate=Math.round((requested>=1080?5e6:requested>=720?3e6:1.3e6)*(fps>12?1.3:1));
   exportStatus('ตรวจการเข้ารหัสแบบเร็ว…',0);
-  const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration);
+  const cfg=await fastExportCheck(fw,fh,fps,bitrate,needAudio,duration,exportPipelineTurbo());
   if(cfg)return startFastExport(f,cfg,{w:fw,h:fh,fps,duration,needAudio,audioContext:earlyAudio});
   const alt=supported.find(x=>x.id!=='fastmp4');
   if(!alt){if(earlyAudio!==EXPORT_BATCH_AUDIO_CTX)closeAudioCtx(earlyAudio);exportStatus('เบราว์เซอร์นี้เข้ารหัสแบบเร็วไม่ได้ และไม่มีโหมดสำรอง');return}
@@ -3847,7 +3860,7 @@ async function exportOneEpisode(){
   rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
   rec.onerror=e=>{mediaError=new Error(e.error?.message||'เข้ารหัสวิดีโอผิดพลาด');job.aborted=true};
   const stopped=new Promise((resolve,reject)=>{rec.onstop=resolve});
-  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map()};
+  const info={w,h,captions:$('#videoCaptions').checked,previous:new Map(),turbo:exportPipelineTurbo(),frameCacheHits:0};
   await renderVideoFrame(ctx,0,info);
   rec.start(1000);pushFrame();
   /* heartbeat: iOS/Safari writes frames at the nominal fps, so when rendering is slower than real time the file gets time-compressed. Re-send the last canvas at fps while a slow frame is still rendering. */
