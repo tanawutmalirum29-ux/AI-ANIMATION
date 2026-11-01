@@ -25,7 +25,7 @@ function remux(src,out,needAudio) {
  run('ffmpeg',['-nostdin','-hide_banner','-loglevel','error','-y','-i',src,
   '-map','0:v:0','-map','0:a:0?', '-c:v','libx264','-preset','veryfast',
   '-crf','23','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k',
-  '-movflags','+faststart','-shortest',out]);
+  '-movflags','+faststart',...(needAudio?['-af','apad','-shortest']:[]),out]);
  const streams=run('ffprobe',['-v','error','-show_entries','stream=codec_type',
   '-of','csv=p=0',out]).trim().split(/\r?\n/);
  if(!streams.includes('video'))fail('Output video track missing');
@@ -56,7 +56,7 @@ async function main(){
   // Our site is static. Running it from a local HTTP server preserves canvas,
   // asset fetching, and the same render functions as the production website.
   const http=require('node:http');
-  const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml'};
+  const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.woff2':'font/woff2'};
   const server=http.createServer((req,res)=>{
    const raw=decodeURIComponent((req.url||'/').split('?')[0]);
    const file=path.resolve(root,raw==='/'?'index.html':raw.slice(1));
