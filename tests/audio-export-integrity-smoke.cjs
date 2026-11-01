@@ -48,7 +48,20 @@ const server=http.createServer((req,res)=>{
    ep().scenes[0].audioClips[0].data='data:audio/wav;base64,YmFk';
    let rejectsBadAudio=false;
    try{const broken=await prepareExportAudio(ep(),{id:'webm'});await broken.audio.close()}catch(e){rejectsBadAudio=true}
-   return{missing,status,playingWebAudio,htmlVoice,clips,tracks,rejectsBadAudio,exportGuardLoaded:typeof StoryExportIntegrity?.requireAudio==='function',silentMp4Exposed:VIDEO_FORMATS.some(f=>f.id==='mp4video'||f.name.includes('ไม่มีเสียง'))};
+   // Exercise a real browser-recorded WebM with a 1-second synthesized WAV.
+   // Merely counting MediaStream tracks does not prove the encoder muxed sound.
+   const format=compatibleVideoFormats().find(f=>f.id==='webm8')||compatibleVideoFormats().find(f=>f.id==='webmauto');
+   let actualExport=null;
+   if(format){
+    const realVoice={...voice,id:'verified-output',data:wav(),duration:1,at:0};
+    commit(()=>{ep().scenes=[Object.assign(newScene(),{duration:1.4,voiceover:'ทดสอบเสียงจริง',audioClips:[realVoice]})];sel=0;T=0});
+    document.querySelector('#videoFormat').value=format.id;
+    document.querySelector('#videoResolution').value='540';
+    document.querySelector('#videoFPS').value='12';
+    await startVideoExport();
+    actualExport={size:LAST_VIDEO?.blob.size||0,hasAudio:LAST_VIDEO?await StoryExportIntegrity.probeAudio(LAST_VIDEO.blob,'webm'):false,status:document.querySelector('#videoStatus').textContent};
+   }
+   return{missing,status,playingWebAudio,htmlVoice,clips,tracks,rejectsBadAudio,actualExport,exportGuardLoaded:typeof StoryExportIntegrity?.requireAudio==='function',silentMp4Exposed:VIDEO_FORMATS.some(f=>f.id==='mp4video'||f.name.includes('ไม่มีเสียง'))};
   });
   assert.deepEqual(result.missing,[2],'a narrated scene without its actual audio is flagged');
   assert.match(result.status,/ยังส่งออกไม่ได้/,'export is blocked instead of silently omitting narration');
@@ -59,6 +72,8 @@ const server=http.createServer((req,res)=>{
   assert.equal(result.rejectsBadAudio,true,'unreadable audio must abort instead of exporting silent video');
   assert.equal(result.exportGuardLoaded,true,'export must load output audio verifier');
   assert.equal(result.silentMp4Exposed,false,'video-only MP4 option must not be offered');
+  assert.ok(result.actualExport?.size>2000,'actual browser encoder should produce an output video');
+  assert.equal(result.actualExport?.hasAudio,true,'real exported WebM must contain a muxed audio track');
   assert.deepEqual(errors,[],'no browser exceptions');
   console.log('PASS audio preview / export integrity',result);
  }finally{await browser.close();await new Promise(done=>server.close(done))}
