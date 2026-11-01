@@ -25,6 +25,7 @@ on:
       - studio-production-planner.js
       - studio-layout-ml.js
       - tests/layout-ml-contract.test.cjs
+      - tests/layout-ml-browser-smoke.cjs
       - training-lab/train-layout.py
       - training-lab/test-layout-ml.py
       - tests/production-pipeline.test.cjs
@@ -85,6 +86,7 @@ on:
       - studio-production-planner.js
       - studio-layout-ml.js
       - tests/layout-ml-contract.test.cjs
+      - tests/layout-ml-browser-smoke.cjs
       - training-lab/train-layout.py
       - training-lab/test-layout-ml.py
       - tests/production-pipeline.test.cjs
@@ -216,6 +218,7 @@ jobs:
           node tests/auto-dub-smoke.cjs
           node tests/site-auth-smoke.cjs
           node tests/local-ai-workspace-smoke.cjs
+          node tests/layout-ml-browser-smoke.cjs
           node tests/production-browser-smoke.cjs
           node tests/art-vault-browser-smoke.cjs
           node tests/voice-preview-smoke.cjs
