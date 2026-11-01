@@ -3295,14 +3295,27 @@ function filmAtmosphere(ctx,type,w,h,clock,alpha){
  }
  ctx.restore()
 }
+/* Full-screen rain across a closed room is a visual continuity error.
+ * Auto-detect obvious indoor location metadata only; authors can override
+ * weatherExposure per scene. One decision is used for preview AND export. */
+function sceneWeatherType(scene){
+ const requested=scene?.atmosphere||'none';
+ if(!['rain','storm','snow'].includes(requested))return requested;
+ if(scene?.weatherExposure==='outdoor')return requested;
+ if(scene?.weatherExposure==='indoor')return 'none';
+ const loc=S.locations?.find(x=>x.id===scene?.location);
+ const hint=String(loc?.name||'')+' '+String(loc?.promptBlock||'');
+ const indoors=/(?:interior|indoor|inside (?:a |the )?(?:room|house|building|workshop)|(?:lantern|repair|engine|bed|living|class) room|(?:room|workshop) interior|ห้อง(?:ซ่อม|โคม|นอน|รับแขก|ครัว|เรียน)?|ภายในอาคาร|ด้านในอาคาร|โรงซ่อม)/i.test(hint);
+ return indoors?'none':requested;
+}
 function paintSceneAtmosphere(ctx,scene,loc,index,w,h){
- const cur=scene.atmosphere||'none',b=sceneBlend(scene,loc,index,FILM_FADE),prev=b?(b.prev.atmosphere||'none'):cur,clock=atmoClock();
+ const cur=sceneWeatherType(scene),b=sceneBlend(scene,loc,index,FILM_FADE),prev=b?sceneWeatherType(b.prev):cur,clock=atmoClock();
  if(b&&prev!==cur){filmAtmosphere(ctx,prev,w,h,clock,1-b.e);filmAtmosphere(ctx,cur,w,h,clock,b.e);return true}
  filmAtmosphere(ctx,cur,w,h,clock,1);return cur!=='none'
 }
 function paintWeatherPreview(s,loc,i){
  const cv=$('#weatherCv'),weather=$('#weather'),stg=$('#stage');if(!cv||!stg)return;
- const atmo=s.atmosphere||'none';
+ const atmo=sceneWeatherType(s);
  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches){cv.style.display='none';if(weather.dataset.type!==atmo){weather.className=atmo==='none'?'':atmo;weather.dataset.type=atmo}return}
  cv.style.display='';if(weather.dataset.type){weather.className='';weather.dataset.type=''}
  const w=stg.clientWidth,hh=stg.clientHeight;if(w<2||hh<2)return;
@@ -4697,4 +4710,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-ai-workspace.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script></body></html>
+</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-ai-workspace.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script></body></html>

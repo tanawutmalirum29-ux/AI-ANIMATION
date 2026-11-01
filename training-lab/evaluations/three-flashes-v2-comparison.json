@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "source": "User-supplied latest exported MP4s, episode 1(5), 2(6), 3(5), compared with episode 1(4), 2(5), 3(4), 2026-11-01",
+  "sourceStory": "Previously supplied three_flashes_before_dawn_fixed(1).json; no fresh JSON accompanied this comparison",
+  "purpose": "Measured after-change QA feedback, not ground truth for neural network fine tuning",
+  "method": {
+    "video": "ffprobe duration, codecs, resolution",
+    "audio": "ffmpeg volumedetect and silencedetect=noise=-35dB:d=0.5",
+    "visual": "12 timestamped frames from each new episode (2 per inferred scene), qualitative review, not exhaustive video QA"
+  },
+  "items": [
+    {
+      "episode": 1,
+      "beforeSeconds": 47.105,
+      "afterSeconds": 38.105,
+      "reductionSeconds": 9,
+      "reductionPercent": 19.1,
+      "silencesBefore": [
+        2.711,
+        2.597,
+        2.582,
+        2.627,
+        2.625
+      ],
+      "silencesAfter": [
+        1.226,
+        1.091,
+        1.098,
+        1.121,
+        1.13
+      ],
+      "tailAfterSeconds": 0.945,
+      "aacPresent": true,
+      "audioMeanDbBefore": -19.3,
+      "audioMeanDbAfter": -18.4,
+      "audioPeakDbAfter": -0.6
+    },
+    {
+      "episode": 2,
+      "beforeSeconds": 46.383333,
+      "afterSeconds": 37.383333,
+      "reductionSeconds": 9,
+      "reductionPercent": 19.4,
+      "silencesBefore": [
+        2.641,
+        2.666,
+        2.669,
+        2.542,
+        2.635
+      ],
+      "silencesAfter": [
+        1.134,
+        1.16,
+        1.137,
+        1.097,
+        1.146
+      ],
+      "tailAfterSeconds": 0.936,
+      "aacPresent": true,
+      "audioMeanDbBefore": -19.2,
+      "audioMeanDbAfter": -18.3,
+      "audioPeakDbAfter": -0.6
+    },
+    {
+      "episode": 3,
+      "beforeSeconds": 45.933333,
+      "afterSeconds": 36.941667,
+      "reductionSeconds": 8.991666,
+      "reductionPercent": 19.6,
+      "silencesBefore": [
+        2.642,
+        2.684,
+        2.565,
+        2.66,
+        2.627
+      ],
+      "silencesAfter": [
+        1.156,
+        1.187,
+        1.08,
+        1.16,
+        1.142
+      ],
+      "tailAfterSeconds": 0.968,
+      "aacPresent": true,
+      "audioMeanDbBefore": -19.8,
+      "audioMeanDbAfter": -18.8,
+      "audioPeakDbAfter": -0.5
+    }
+  ],
+  "visualFindings": [
+    {
+      "scene": "s08",
+      "episode": 2,
+      "status": "needs review",
+      "finding": "Bridge collapse and dropped toolbox are not clearly depicted by sampled frames; source JSON has zero scene props and no timed animation",
+      "action": "Create a visible animated bridge and toolbox with time/keyframes; review actual playback"
+    },
+    {
+      "scene": "s11-s12",
+      "episode": 2,
+      "status": "needs review",
+      "finding": "Lamp activation, reflector rotation and belt snap are not clearly depicted by sampled frames; images mainly show two people in a generic room",
+      "action": "Use explicit action/prop timeline or rendered media for changes"
+    },
+    {
+      "scene": "s15",
+      "episode": 3,
+      "status": "needs review",
+      "finding": "Three distinct flashes not demonstrated in sampled frames; characters mainly point/hold",
+      "action": "Add timed light flash sequence (three beats) to supported FX"
+    },
+    {
+      "scene": "s07,s10",
+      "episode": 2,
+      "status": "needs review",
+      "finding": "Characters stand too close and overlap; the previously supplied JSON has actor positions x18/x12 and x18/x13",
+      "action": "Separate actors or specify depth/occlusion where intentional"
+    },
+    {
+      "scene": "s17",
+      "episode": 3,
+      "status": "needs review",
+      "finding": "Flood overtaking an empty market not clearly depicted in sampled frames",
+      "action": "Review actual render and add animated water/scene overlays if missing"
+    }
+  ],
+  "limits": [
+    "Amplitude-based silence detector does not separate speech from music/sound effects; quiet tails are not proof of silence specifically",
+    "No fresh project JSON was uploaded; cannot verify actual post-export subtitle Cues or clip trim metadata",
+    "Frame sampling cannot prove an effect is never visible between samples",
+    "Current output durations remain well below 60s; never insert filler or repeat narration merely to force a 60-second target",
+    "No model weights were retrained"
+  ],
+  "audioContentComparison": {
+    "method": "Decode each MP4 to 8 kHz mono PCM; compare ~3 s overlapping voiced audio from each of the six inferred scene segments using normalized cross-correlation with +/-250 ms alignment. This is a sample-based continuity check, not speech recognition.",
+    "peakNormalizedCorrelationsByEpisode": [
+      [
+        0.998,
+        0.986,
+        0.995,
+        0.998,
+        0.998,
+        0.996
+      ],
+      [
+        0.998,
+        0.996,
+        0.998,
+        0.994,
+        0.997,
+        0.992
+      ],
+      [
+        0.998,
+        0.997,
+        0.991,
+        0.997,
+        0.996,
+        0.991
+      ]
+    ],
+    "overallMin": 0.986,
+    "interpretation": "High waveform correlation in selected speech samples supports that the same soundtrack segments were retained after scene tightening. It does not establish that every spoken word or every frame is present."
+  }
+}
