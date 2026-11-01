@@ -2217,6 +2217,9 @@ let PREVIEW_AUDIO_CTX=null,PREVIEW_MEDIA_ERROR='';
 // Other browsers retain WebAudio's frame-independent scheduling.
 const PREVIEW_DIRECT_VOICE=/iPad|iPhone|iPod/i.test(navigator.userAgent||'')||
  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+// Safari rejects Audio.play() from a future requestAnimationFrame. After the user
+// taps Play, keep one unlocked AudioContext and schedule decoded audio on its clock.
+const PREVIEW_MOBILE_BUFFERED=PREVIEW_DIRECT_VOICE&&!!(window.AudioContext||window.webkitAudioContext);
 const PREVIEW_MEDIA_RETRY_AT=new Map(),PREVIEW_MEDIA_PLAY_PENDING=new Set();
 function previewVoiceClips(){return ep().scenes.flatMap(sc=>(sc.audioClips||[]).filter(c=>c.kind==='voice'&&c.data))}
 function showPreviewAudioProblem(message){PREVIEW_MEDIA_ERROR=message;updateAudioHint()}
@@ -2241,7 +2244,7 @@ function previewAudioReport(){
  const storage=STORAGE_DB?'IndexedDB พร้อมใช้งาน':
   STORAGE_READY?'IndexedDB ไม่พร้อม (ควรสำรอง JSON)':'กำลังโหลดฐานข้อมูล';
  return {voices:voices.length,playable:playable.length,issues:issues.slice(0,12),
-  route:PREVIEW_DIRECT_VOICE?'HTML Audio (iPad/iPhone)':'WebAudio + HTML Audio สำรอง',
+  route:PREVIEW_MOBILE_BUFFERED?'WebAudio (ปลดล็อกจากปุ่มเล่นบน iOS)':PREVIEW_DIRECT_VOICE?'HTML Audio (สำรองบน iOS)':'WebAudio + HTML Audio สำรอง',
   contextState,storage,playing};
 }
 function showPreviewAudioReport(){
@@ -2315,9 +2318,9 @@ function unlockPreviewAudio(){
   VOICE_PREVIEW_BAD.clear();VOICE_PREVIEW_FAILS.clear();
  }
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
- // Native HTMLAudio is the only preview audio session on iOS. Do not
- // create a suspended WebAudio graph in response to unrelated gestures.
- if(!PREVIEW_DIRECT_VOICE){
+ // Unlock only from the trusted Play tap. Unlike HTMLAudio.play() invoked
+ // from animation frames, AudioBufferSource.start() needs no new gesture.
+ if(!PREVIEW_DIRECT_VOICE||PREVIEW_MOBILE_BUFFERED){
   try{const ctx=previewContext();if(ctx.state!=='closed'){const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0)}}catch(e){}
  }
  updateAudioHint();
@@ -2365,7 +2368,7 @@ function setSmoothGain(n,ctx,v){const g=n.gain.gain;try{g.setTargetAtTime(v,ctx.
 // เก็บแคชเฉพาะเสียงพากย์ล่าสุด เพื่อไม่ให้ iPad ต้องถอดรหัสซ้ำและไม่กิน RAM ไม่จำกัด
 const VOICE_PREVIEW_BUFFERS=new Map(),VOICE_PREVIEW_PENDING=new Map(),VOICE_PREVIEW_BAD=new Set(),VOICE_PREVIEW_SOURCES=new Map(),VOICE_PREVIEW_FAILS=new Map();
 let VOICE_PREVIEW_BUFFER_BYTES=0;
-const VOICE_PREVIEW_BUFFER_LIMIT=PREVIEW_DIRECT_VOICE?0:((navigator.deviceMemory||4)<=2?20:48)*1024*1024;
+const VOICE_PREVIEW_BUFFER_LIMIT=PREVIEW_DIRECT_VOICE&&!PREVIEW_MOBILE_BUFFERED?0:((navigator.deviceMemory||4)<=2?20:48)*1024*1024;
 let VOICE_PREVIEW_CLOCK=null;
 function rememberVoicePreviewBuffer(data,buffer){
  if(!data||!buffer)return;
@@ -2399,8 +2402,8 @@ function primeVoicePreview(c){
 let VOICE_LOOKAHEAD_AT=0;
 function prefetchVoiceAhead(t,events,span=20){
  const now=performance.now();if(now-VOICE_LOOKAHEAD_AT<250)return;VOICE_LOOKAHEAD_AT=now;
- let n=0;for(const ev of events){const c=ev.c;if(c.kind!=='voice'||!c.data||!c.duration)continue;
-  if(ev.start+safeClipDuration(c)<t||ev.start>t+span)continue;primeVoicePreview(c).catch(()=>{});if(++n>=6)break}
+ let n=0;for(const ev of events){const c=ev.c;if((!PREVIEW_MOBILE_BUFFERED&&c.kind!=='voice')||!c.data||!c.duration)continue;
+  if(ev.start+safeClipDuration(c)<t||ev.start>t+span)continue;primeVoicePreview(c).catch(()=>{});if(++n>=(PREVIEW_MOBILE_BUFFERED?16:6))break}
 }
 function stopVoicePreview(){
  for(const entry of VOICE_PREVIEW_SOURCES.values()){try{entry.source.stop()}catch(e){}try{entry.source.disconnect()}catch(e){}}
@@ -2437,7 +2440,7 @@ function syncAudioAt(t,play){
  const events=audioEvents(),active=new Set(),voiceActive=new Set();
  // เวลาเสียงเป็นอิสระจากการวาด SVG/เอฟเฟกต์: หน้าจอหน่วงไม่ทำให้ตำแหน่ง MP3 กระโดด
  let ctx=null;
- if(!PREVIEW_DIRECT_VOICE&&events.some(ev=>ev.c.kind==='voice'&&ev.c.data&&t>=ev.start-.55&&t<ev.start+safeClipDuration(ev.c))){
+ if(events.some(ev=>(PREVIEW_MOBILE_BUFFERED||(!PREVIEW_DIRECT_VOICE&&ev.c.kind==='voice'))&&ev.c.data&&t>=ev.start-.55&&t<ev.start+safeClipDuration(ev.c))){
   try{ctx=previewContext()}catch(e){}
  }
  if(ctx){
@@ -2447,12 +2450,17 @@ function syncAudioAt(t,play){
   if(VOICE_PREVIEW_CLOCK&&Math.abs(t-(VOICE_PREVIEW_CLOCK.t+ctx.currentTime-VOICE_PREVIEW_CLOCK.audioTime))>.45)stopVoicePreview();
   VOICE_PREVIEW_CLOCK={t,audioTime:ctx.currentTime};
  }
- if(!PREVIEW_DIRECT_VOICE)prefetchVoiceAhead(t,events);
+ if(!PREVIEW_DIRECT_VOICE||PREVIEW_MOBILE_BUFFERED)prefetchVoiceAhead(t,events);
+ if(PREVIEW_MOBILE_BUFFERED&&!ctx){
+  playing=false;PREVIEW_START_GENERATION++;pauseAudioPlayers();ctl();
+  showPreviewAudioProblem('Safari พักระบบเสียงไว้ · กด ▶ อีกครั้งเพื่อเปิดเสียงจากการแตะของคุณ');
+  return;
+ }
  for(const ev of events){
   const {c,start,cycle=0,limit=Infinity}=ev;if(!c.data||!c.id||!c.duration)continue;
   const len=Math.min(safeClipDuration(c),limit-start),part=t-start;if(!(len>0))continue;
   const id=c.id+':'+cycle;
-  if(c.kind==='voice'&&ctx&&!VOICE_PREVIEW_BAD.has(c.data)&&part>=-.4&&part<len){
+  if((c.kind==='voice'||PREVIEW_MOBILE_BUFFERED)&&ctx&&!VOICE_PREVIEW_BAD.has(c.data)&&part>=-.4&&part<len){
    let entry=VOICE_PREVIEW_SOURCES.get(id),rate=effectiveClipRate(c);
    if(entry&&(entry.data!==c.data||entry.start!==start||Math.abs(entry.rate-rate)>.001)){
     try{entry.source.stop()}catch(e){}VOICE_PREVIEW_SOURCES.delete(id);entry=null;
@@ -2481,9 +2489,17 @@ function syncAudioAt(t,play){
     setSmoothGain(entry.nodes,ctx,vol);
     continue;
    }
-   if(!buffer&&!VOICE_PREVIEW_BAD.has(c.data))primeVoicePreview(c);
-   // Buffer still decoding, unsupported, or schedule failed: do NOT discard
-   // the voice frame. Fall through to HTMLAudio and surface play() errors.
+   if(!buffer&&!VOICE_PREVIEW_BAD.has(c.data))primeVoicePreview(c).catch(()=>{});
+   // iOS may not call HTMLMediaElement.play() in an animation frame: the
+   // user activation is gone. Stop rather than advancing through silence.
+   if(PREVIEW_MOBILE_BUFFERED&&part>=0){
+    playing=false;PREVIEW_START_GENERATION++;pauseAudioPlayers();ctl();
+    showPreviewAudioProblem(VOICE_PREVIEW_BAD.has(c.data)?
+     'ไฟล์เสียงนี้ถอดรหัสไม่ได้บน Safari · ตรวจเสียงต้นฉบับด้วยปุ่ม 🔊':
+     'กำลังเตรียมเสียงก่อนเล่นต่อ · กด ▶ เมื่อไฟล์เสียงพร้อม');
+    return;
+   }
+   // Desktop: decoding/unsupported voices may use HTMLAudio fallback.
   }
   // เพลงและบรรยากาศยังใช้ element เดิม; เสียงพากย์ที่เบราว์เซอร์ถอดรหัสไม่ได้ใช้ fallback นี้
   if(part<0||part>=len)continue;
@@ -3195,12 +3211,32 @@ function toggle(){
  if(playing){PREVIEW_START_GENERATION++;playing=false;ctl();draw();return}
  if(T>=total())T=0;
  unlockPreviewAudio();
- prewarmNativePreview(T);PREVIEW_MEDIA_RETRY_AT.clear();
+ if(!PREVIEW_MOBILE_BUFFERED)prewarmNativePreview(T);
+ PREVIEW_MEDIA_RETRY_AT.clear();
  const generation=++PREVIEW_START_GENERATION,start=T;
  const first=audioEvents().filter(ev=>ev.c.kind==='voice'&&ev.c.data&&!ev.c.mute&&ev.start<=start+2&&ev.start+safeClipDuration(ev.c)>start).slice(0,6);
  const begin=()=>{if(generation!==PREVIEW_START_GENERATION)return;playing=true;last=performance.now();ctl();draw();
   if(!previewVoiceClips().length)showPreviewAudioProblem('ยังไม่มีไฟล์พากย์จริงในตอนนี้ · ต้องเพิ่มเสียงใน Sound Desk หรือสร้างเสียงด้วย AI-2')};
- // iOS requires media.play() while the original tap is active. Deferring begin()
+ if(PREVIEW_MOBILE_BUFFERED){
+  // resume() is issued during this tap. Decoding may finish asynchronously:
+  // buffer sources still work after the gesture because the context is unlocked.
+  let ctx;try{ctx=previewContext()}catch(e){showPreviewAudioProblem('เปิดระบบเสียงไม่ได้: '+e.message);return}
+  const relevant=audioEvents().filter(ev=>ev.c?.data&&!ev.c.mute&&safeClipDuration(ev.c)>.05&&ev.start<=start+8&&ev.start+safeClipDuration(ev.c)>start-.1);
+  const unique=[...new Map(relevant.map(ev=>[ev.c.data,ev.c])).values()].slice(0,18);
+  const resume=ctx.state==='running'?Promise.resolve():ctx.resume();
+  playing=false;ctl();showPreviewAudioProblem('กำลังเตรียมเสียงก่อนเริ่มพรีวิว เพื่อไม่ให้ Safari บล็อกเสียงระหว่างฉาก…');
+  Promise.allSettled([resume,...unique.map(c=>primeVoicePreview(c))]).then(results=>{
+   if(generation!==PREVIEW_START_GENERATION)return;
+   if(ctx.state!=='running'){showPreviewAudioProblem('Safari ไม่อนุญาตเปิดเสียง · แตะ ▶ อีกครั้งเพื่อปลดล็อก');return}
+   if(results.some(x=>x.status==='rejected')||unique.some(c=>!VOICE_PREVIEW_BUFFERS.has(c.data))){
+    showPreviewAudioProblem('ถอดรหัสเสียงบางคลิปไม่ได้หรือหน่วยความจำไม่พอ · ใช้ 🔊 ตรวจเสียงและลดขนาดไฟล์ก่อนเล่น');return;
+   }
+   PREVIEW_MEDIA_ERROR='';updateAudioHint();begin();
+  }).catch(err=>showPreviewAudioProblem('เตรียมเสียงไม่สำเร็จ: '+String(err?.message||err)));
+  return;
+ }
+ // iOS fallback (no AudioContext) requires media.play() while the original
+ // tap is active. Deferring begin()
 // until decodeAudioData resolves loses user activation and can silently block audio.
 if(!PREVIEW_DIRECT_VOICE&&first.length&&first.some(ev=>!VOICE_PREVIEW_BUFFERS.has(ev.c.data)&&!VOICE_PREVIEW_BAD.has(ev.c.data))){
   playing=false;ctl();showPreviewAudioProblem('กำลังโหลดเสียงพากย์ก่อนเริ่มเล่น เพื่อไม่ให้ขาดช่วง…');
