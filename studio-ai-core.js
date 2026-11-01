@@ -25,7 +25,7 @@
     if(!w.summaries||typeof w.summaries!=='object'||Array.isArray(w.summaries))w.summaries={};
     if(!roles.some(r=>r.id===w.role))w.role='structure';
     if(typeof w.projectId!=='string'||!w.projectId)w.projectId='story'+id();
-    if(typeof w.engineModel!=='string')w.engineModel='Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+    w.engineModel='standard';
     if(!w.production||typeof w.production!=='object'||Array.isArray(w.production))w.production={};
     if(!['imported','script_ready','dub_ready','timing_review','ready','needs_attention'].includes(w.production.stage))
       w.production.stage='imported';
