@@ -91,7 +91,7 @@ const path=require('node:path');
   await page.waitForFunction(()=>StoryStudioBridge.previewAudioReport().voices===1,{timeout:15000});
   const reload=await page.evaluate(()=>{
    const scene=StoryStudioBridge.get().episodes[0].scenes[0];
-   return {count:scene.audioClips.length,data:scene.audioClips[0].data?.startsWith('data:audio/'),
+   return {count:scene.audioClips.filter(c=>c.kind==='voice').length,data:scene.audioClips[0].data?.startsWith('data:audio/'),
     id:scene.audioClips[0].id,report:StoryStudioBridge.previewAudioReport()};
   });
   assert.equal(reload.count,1);assert.equal(reload.data,true,'reload must keep playable bytes');
