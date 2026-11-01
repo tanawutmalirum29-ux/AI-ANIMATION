@@ -103,6 +103,17 @@ assert.ok(extractScale(autoSvg)<extractScale(manualSvg)*.61,
 assert.equal(extractScale(core.sceneMarkup({customAssets:[generatedBridge]},'back',160,0)),
  extractScale(core.sceneMarkup({customAssets:[{...generatedBridge,producer:'manual'}]},'back',160,0)),
  'wide frame shape sizes are unchanged');
+// Measured 2026-11-01 portrait MP4 frames: toolbox covered a face and
+// reflector crowded the characters. Only production-owned drafts change.
+const factoryToolbox=assets.item({duration:8},'toolbox');
+const factoryReflector=assets.item({duration:8},'reflector');
+assert.ok(factoryToolbox.scale<=.7,'factory toolbox should not dominate a character head');
+assert.equal(factoryToolbox.front,false,'factory toolbox must not draw in front of a character face');
+assert.ok(factoryReflector.scale<=.85,'factory reflector should be a supporting prop');
+assert.equal(factoryReflector.front,false);
+assert.ok(factoryToolbox.motionKeys.length>=3,'smaller prop retains full drop animation');
+assert.ok(factoryReflector.motionKeys.length>=2,'smaller reflector retains rotation');
+
 const move=planner.plan(applied,'motion',assets);
 assert.equal(move.ops.length,1);
 assert.equal(move.ops[0].id,'s18');
