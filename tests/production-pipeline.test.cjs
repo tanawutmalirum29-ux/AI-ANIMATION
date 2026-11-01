@@ -51,6 +51,32 @@ const three={project:{aspect:'9:16'},episodes:[{scenes:[scene('three','ตัว
 ]})]}]};
 const triple=planner.plan(three,'composition');
 assert.equal(triple.ops.length,1);
+
+// Arrival gap: two walkers that START apart but CONVERGE must also be separated
+// at the end, with authored travel distances unchanged and the result idempotent.
+const converge={project:{aspect:'9:16'},episodes:[{scenes:[scene('converge','สองคนเดินเข้าหากัน',{actors:[
+ {char:'nil',x:15,y:90,toX:50,pose:'walk'},
+ {char:'ta_in',x:60,y:90,toX:55,pose:'walk'}
+]})]}]};
+const conv=planner.plan(converge,'composition');
+assert.equal(conv.ops.length,1,'arrival overlap is corrected');
+const ca=conv.ops[0].patch.actors;
+assert.ok(Math.abs(ca[0].x-ca[1].x)>=23.9&&Math.abs(ca[0].toX-ca[1].toX)>=23.9,
+ 'start and arrival gaps are both portrait-safe');
+assert.equal(ca[0].toX-ca[0].x,35,'authored travel distance is kept');
+assert.equal(ca[1].toX-ca[1].x,-5,'authored travel distance is kept');
+const convApplied=structuredClone(converge);
+Object.assign(convApplied.episodes[0].scenes[0],conv.ops[0].patch);
+assert.equal(planner.plan(convApplied,'composition').ops.length,0,'arrival fix is idempotent');
+// Unfixable crossing path is reported for a human, never silently rewritten.
+const cross={project:{aspect:'9:16'},episodes:[{scenes:[scene('cross','เดินสวนกัน',{actors:[
+ {char:'nil',x:30,y:90,toX:70,pose:'walk',lockPosition:true},
+ {char:'ta_in',x:70,y:90,toX:30,pose:'walk',lockPosition:true}
+]})]}]};
+const crossPlan=planner.plan(cross,'composition');
+assert.equal(crossPlan.ops.length,0,'locked actors are untouched');
+assert.ok(crossPlan.warnings.some(w=>/เส้นทางเดินตัดผ่านกัน/.test(w)),'crossing paths are flagged');
+
 const sorted=triple.ops[0].patch.actors.map(a=>a.x).sort((a,b)=>a-b);
 assert.ok(sorted.every((x,i)=>i===0||x-sorted[i-1]>=23.9),
  'all three characters are separated, not just the first colliding pair');

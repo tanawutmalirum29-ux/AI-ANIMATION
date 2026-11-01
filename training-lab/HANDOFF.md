@@ -91,3 +91,12 @@ joined MP4, ZIP). The currently attached combined MP4 was renamed for download
 without reencoding. Keep chapter dividers; further image/motion improvements
 need correct labeled examples and independent visual QA. No neural weights
 were trained from this export.
+
+
+## Arrival-gap fix (2026-11-01)
+
+AI-1 composition now also separates the ARRIVAL position of authored `toX`
+travel (start gaps keep priority) and warns on crossing paths. See
+`training-lab/evaluations/three-flashes-nov1-arrival-gap-fix.json`. s07 of the
+uploaded story still needs human review (Moss stands on the run path). No ML
+training was possible: zero approved labels.

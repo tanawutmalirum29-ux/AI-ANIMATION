@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "status": "evaluation-only",
+  "date": "2026-11-01",
+  "source": "User-supplied three_flashes_before_dawn_fixed.json + compiled MP4 (media never committed)",
+  "media": {"durationSeconds": 117.406667, "width": 540, "height": 960, "fps": 24, "videoCodec": "h264", "audioCodec": "aac"},
+  "audio": {
+    "method": "ffmpeg silencedetect=noise=-35dB:d=0.35",
+    "finding": "Low-level intervals at ~37.2s and ~77.0s are the intentional 2.5s chapter cards; other intervals are 0.4-1.2s. No audio fault found."
+  },
+  "defect": {
+    "id": "composition-arrival-gap",
+    "description": "AI-1 enforced the 24% portrait gap only for STARTING x. Authored toX walks could still end overlapping or pass through a standing actor (e.g. s07: Nil 18->57 and Ta In 12->48 ended 9 units apart).",
+    "fix": "studio-production-planner.js composition() now also separates arrival positions (rigid x+toX translation, authored travel distance unchanged), never re-crowds starting pairs, and warns for crossing paths and unresolved start/arrival pairs.",
+    "storyMeaningChanged": false
+  },
+  "afterFixOnUploadedJson": {
+    "scenesAdjusted": ["s03","s07","s08","s10","s11","s12","s13","s18"],
+    "scenesNeedingHumanReview": ["s07 (Moss stands on the run path; Nil/Ta In arrival still near Moss)"]
+  },
+  "tests": "tests/production-pipeline.test.cjs: convergence arrival gap, travel distance preserved, idempotence, locked crossing flagged",
+  "training": {"approvedSamplesAdded": 0, "modelWeightsUpdated": false, "modelPromoted": false,
+    "note": "No real approved layout labels exist, so no ML training was run; no synthetic data was created."}
+}
