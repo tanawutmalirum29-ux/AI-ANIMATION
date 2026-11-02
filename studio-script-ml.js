@@ -89,15 +89,25 @@ function classifyIntent(text,context={}){
  const uncertain=mode==='unknown'||/uncertain|unknown|ไม่แน่ใจ/u.test(emotion)||
   /…|\.{3}/u.test(text);
  const indicators=intentFeatures(text,context);
- const hasRepetition=indicators.slice(0,5).some(Boolean)||!!indicators[11];
+ // A quoted sentence or dramatic punctuation alone is NOT evidence of repetition.
+ // Word/phrase repetitions can be intentional; the classification is context-aware.
+ const hasRepetition=!!(indicators[0]||indicators[1]||indicators[2]||indicators[11]||
+  /([\p{Script=Thai}]{2,20})(?:\s+|[!！?？…]|\.{3})\s*\1/u.test(text));
+ const emotionalNarration=mode==='narration'&&
+  (/fear|anger|sad|surprise|hesitat|emphas|กลัว|ตกใจ|โกรธ|เศร้า|ลังเล|ย้ำ/u.test(emotion)||
+   /danger|confront|panic|threat|argument|ทะเลาะ|วิกฤต/u.test(situation));
  let decision='review';
- if(!hasRepetition)decision='keep';
+ if(!hasRepetition)decision='clean';
+ else if(mode==='dialogue'||/[“”"'«»]/u.test(text))decision='keep';
+ else if(emotionalNarration)decision='review'; // No silent removal or unjustified certainty.
  else if(protectedExpression)decision='keep';
  else if(uncertain)decision='review';
  else if(label==='remove'&&best>=.85)decision='remove';
- return {label,decision,confidence:best,probabilities,
-  reason:decision==='keep'?(hasRepetition?'มีสัญญาณบทพูด/อารมณ์/เหตุการณ์ที่อาจตั้งใจย้ำ — เก็บคำซ้ำไว้':'ไม่พบรูปแบบคำซ้ำที่ต้องเสนอแก้'):
-   decision==='review'?'บริบทกำกวมหรือความมั่นใจไม่พอ — ต้องให้ผู้เขียนพิจารณา':
+ return {label,decision,hasRepetition,confidence:best,probabilities,
+  reason:decision==='clean'?'ไม่พบรูปแบบคำซ้ำที่ต้องเสนอแก้':
+   decision==='keep'?'พบคำซ้ำในบทพูดหรือการเน้นที่ควรรักษาไว้':
+   decision==='review'?(emotionalNarration?'บทบรรยายมีคำซ้ำพร้อมอารมณ์หรือเหตุการณ์กดดัน ต้องตรวจเจตนาของผู้เขียน':
+    'บริบทกำกวมหรือความมั่นใจไม่พอ — ต้องให้ผู้เขียนพิจารณา'):
    'บทบรรยายปกติและโมเดลทดลองประเมินว่าคำซ้ำอาจเป็นข้อผิดพลาด'};
 }
 function trainIntent(rows,epochs=380){
@@ -172,11 +182,12 @@ function review(value,context={}){
  const text=String(value||''),risk=probability(text),intent=classifyIntent(text,context),proposed=propose(text,context);
  const hasEdit=proposed!==text;
  const issues=[...warnings(text),...subtitleAudit(context.subtitle)];
- if(intent.decision==='review'&&intentFeatures(text,context).some((x,i)=>i<5&&x))
+ if(intent.decision==='review'&&intent.hasRepetition)
   issues.push('คำซ้ำอาจเป็นลีลาการพูด: โปรดตรวจอารมณ์และสถานการณ์ก่อนแก้');
- return {risk,intent,needsReview:hasEdit||issues.length>0||(risk>=0.6&&intent.decision!=='keep'),hasEdit,proposed,warnings:issues,
+ return {risk,intent,needsReview:hasEdit||issues.length>0||(risk>=0.6&&intent.decision==='review'),hasEdit,proposed,warnings:issues,
   explanation:hasEdit?'เสนอแก้คำหรือเครื่องหมายซ้ำเฉพาะจุด โดยให้คุณอนุมัติก่อน':
-  intent.decision==='keep'?'เก็บคำซ้ำไว้ตามบริบทการพูดและอารมณ์':
+  intent.decision==='clean'?'ไม่พบคำซ้ำที่จำเป็นต้องแก้':
+  intent.decision==='keep'?'รักษาคำซ้ำที่อาจตั้งใจใช้แสดงอารมณ์หรือเน้นความหมาย':
   issues.length?'ไม่แก้บทอัตโนมัติ แต่พบจุดต้องตรวจคุณภาพ':
   risk>=.6?'โมเดลทดลองพบความเสี่ยง แต่ยังไม่มีคำแก้ปลอดภัย':
   'ข้อความผ่านการตรวจเบื้องต้น — ไม่มีข้อเสนอแก้ซ้ำ (idempotent)'};
@@ -204,7 +215,7 @@ function train(rows,epochs=300){
 // and keeps a per-scene snapshot so later changes cannot be silently overwritten.
 function reviewProject(project){
  const entries=[],episodes=Array.isArray(project?.episodes)?project.episodes:[];
- let withNarration=0,changes=0,attention=0,passed=0;
+ let withNarration=0,changes=0,attention=0,passed=0,clean=0,kept=0;
  for(let ei=0;ei<episodes.length;ei++){
   const ep=episodes[ei]||{},scenes=Array.isArray(ep.scenes)?ep.scenes:[];
   for(let si=0;si<scenes.length;si++){
@@ -215,14 +226,14 @@ function reviewProject(project){
     withNarration++;
     if(result.hasEdit)changes++;
     else if(result.needsReview)attention++;
-    else passed++;
+    else {passed++;if(result.intent?.decision==='clean')clean++;else if(result.intent?.decision==='keep')kept++;}
    }
    entries.push({key,episodeIndex:ei,sceneIndex:si,episodeTitle:String(ep.title||('ตอนที่ '+(ei+1))),
     sceneId:scene.id,original,subtitleSnapshot:JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[]),
     hasText,contextSnapshot:JSON.stringify(sceneContext(scene)),result});
   }
  }
- return {entries,stats:{scenes:entries.length,withNarration,changes,attention,passed,missing:entries.length-withNarration}};
+ return {entries,stats:{scenes:entries.length,withNarration,changes,attention,passed,clean,kept,missing:entries.length-withNarration}};
 }
 function verifyBatchSelection(project,entries,selectedKeys){
  const chosen=new Set(selectedKeys||[]),selected=[];
