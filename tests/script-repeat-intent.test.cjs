@@ -55,7 +55,7 @@ test('batch review applies scene metadata and detects stale emotion or role',()=
  const approved=ml.verifyBatchSelection(p,batch.entries,['1:0']);
  assert.equal(approved.length,1);
  p.episodes[1].scenes[0].emotion='fear';
- assert.throws(()=>ml.verifyBatchSelection(p,batch.entries,['0:1']),/เปลี่ยนหลังวิเคราะห์/);
+ assert.throws(()=>ml.verifyBatchSelection(p,batch.entries,['1:0']),/เปลี่ยนหลังวิเคราะห์/);
 });
 test('workflow/UI contain contextual intent details but human approval is still mandatory',()=>{
  const src=fs.readFileSync(path.join(__dirname,'../studio-ai-workspace.js'),'utf8');
