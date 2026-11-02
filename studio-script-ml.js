@@ -29,9 +29,102 @@ function probability(value,model=MODEL){
 }
 // Every proposed edit is a conservative rule. The SGD MODEL predicts risk only.
 // Do not claim that model weights generate new words or understand story meaning.
-function propose(value){
+// Three-way CPU-trained intent model. The weights were fitted to 200 assistant-authored
+// demonstration examples (40 story groups), NOT human-approved real-world data.
+// It predicts edit suitability, but NEVER writes text: propose() stays rule-limited.
+const INTENT_LABELS=Object.freeze(['remove','keep','review']);
+const INTENT_NAMES=Object.freeze(['duplicateConnector','repeatPunctuation','repeatFiller','ellipsis','quotes','dialogue','narration','unknownMode','emotion','uncertainEmotion','tenseSituation','emphasisWords']);
+const INTENT_MODEL=Object.freeze({schema:1,task:'thai-repetition-intent',status:'synthetic-demo-not-approved',
+ features:[...INTENT_NAMES],labels:[...INTENT_LABELS],
+ weights:[[0.456032,0.384369,0.3835,-0.396176,-0.805042,-0.805042,2.656392,-1.418734,-0.805042,-1.418734,-0.805042,-0.395109],
+ [-0.404409,-0.180629,-0.180098,-0.304172,1.318056,1.318056,-1.077522,-0.58181,1.318056,-0.58181,1.318056,0.728032],
+ [-0.051623,-0.20374,-0.203402,0.700348,-0.513014,-0.513014,-1.57887,2.000544,-0.513014,2.000544,-0.513014,-0.332923]],
+ bias:[1.221252,-0.961776,-0.259476],trainRows:160,heldOutRows:40,assistantDemoAccuracy:1});
+function sceneContext(scene){
+ const voice=scene?.voiceDirection||{};
+ return {
+  mode:String(scene?.scriptMode||scene?.narrativeMode||voice.mode||'narration'),
+  emotion:String(scene?.emotion||scene?.voiceEmotion||voice.emotion||''),
+  situation:String(scene?.situation||scene?.eventKind||scene?.event?.kind||''),
+  subtitle:Array.isArray(scene?.subtitle)?scene.subtitle:[]
+ };
+}
+function intentFeatures(value,context={}){
+ const text=String(value||'');
+ const mode=String(context.mode||'narration').toLowerCase(),
+  emotion=String(context.emotion||'').toLowerCase(),
+  situation=String(context.situation||'').toLowerCase();
+ return [
+  /(?:แล้วก็\s*){2,}|(?:จากนั้น\s*){2,}|(?:เพราะว่า\s*){2,}|(?:ในตอนนั้น\s*){2,}/u.test(text)?1:0,
+  /[!?]{2,}|[.]{4,}/u.test(text)?1:0,
+  /(?:เอ่อ\s*){2,}|(?:คือว่า\s*){2,}|(?:แบบว่า\s*){2,}/u.test(text)?1:0,
+  /…|\.{3}|มะ\.\.\.|มะ…/u.test(text)?1:0,
+  /[“”"'«»]/u.test(text)?1:0,
+  mode==='dialogue'?1:0,
+  mode==='narration'?1:0,
+  mode==='unknown'?1:0,
+  /fear|anger|sad|surprise|hesitat|emphas|กลัว|ตกใจ|โกรธ|เศร้า|ลังเล|ย้ำ/u.test(emotion)?1:0,
+  /uncertain|unknown|ไม่แน่ใจ/u.test(emotion)?1:0,
+  /danger|confront|panic|threat|argument|กลัว|ทะเลาะ|วิกฤต/u.test(situation)?1:0,
+  /มันมาแล้ว! มันมาแล้ว|ออกไป! ฉันบอกให้ออกไป|รอแล้วรอเล่า/u.test(text)?1:0
+ ];
+}
+function intentProbability(text,context={},model=INTENT_MODEL){
+ if(!model||model.task!=='thai-repetition-intent'||model.features.join('|')!==INTENT_NAMES.join('|')||
+  model.weights.length!==3)return null;
+ const v=intentFeatures(text,context),scores=model.weights.map((w,i)=>w.reduce((z,val,j)=>z+val*v[j],model.bias[i]));
+ const max=Math.max(...scores),values=scores.map(x=>Math.exp(x-max)),sum=values.reduce((a,b)=>a+b,0);
+ return values.map(x=>x/sum);
+}
+function classifyIntent(text,context={}){
+ const probabilities=intentProbability(text,context),best=Math.max(...probabilities),
+  label=INTENT_LABELS[probabilities.indexOf(best)];
+ const mode=String(context.mode||'narration').toLowerCase(),
+  emotion=String(context.emotion||'').toLowerCase(),
+  situation=String(context.situation||'').toLowerCase();
+ // Safety policy: explicit expression/quotation outranks the synthetic classifier.
+ const protectedExpression=/[“”"'«»]/u.test(text)||
+  mode==='dialogue'||/fear|anger|sad|surprise|hesitat|emphas|กลัว|ตกใจ|โกรธ|เศร้า|ลังเล|ย้ำ/u.test(emotion)||
+  /danger|confront|panic|threat|argument|ทะเลาะ|วิกฤต/u.test(situation);
+ const uncertain=mode==='unknown'||/uncertain|unknown|ไม่แน่ใจ/u.test(emotion)||
+  /…|\.{3}/u.test(text);
+ let decision='review';
+ if(protectedExpression)decision='keep';
+ else if(uncertain)decision='review';
+ else if(label==='remove'&&best>=.85)decision='remove';
+ return {label,decision,confidence:best,probabilities,
+  reason:decision==='keep'?'มีสัญญาณบทพูด/อารมณ์/เหตุการณ์ที่อาจตั้งใจย้ำ — เก็บคำซ้ำไว้':
+   decision==='review'?'บริบทกำกวมหรือความมั่นใจไม่พอ — ต้องให้ผู้เขียนพิจารณา':
+   'บทบรรยายปกติและโมเดลทดลองประเมินว่าคำซ้ำอาจเป็นข้อผิดพลาด'};
+}
+function trainIntent(rows,epochs=380){
+ const weights=Array.from({length:3},()=>Array(INTENT_NAMES.length).fill(0)),bias=Array(3).fill(0);
+ const groupIndex=x=>Number(String(x.group||'').slice(-2));
+ const train=rows.filter(x=>groupIndex(x)%5!==0),test=rows.filter(x=>groupIndex(x)%5===0);
+ for(let ep=0;ep<epochs;ep++){
+  const lr=.09/(1+ep/150);
+  for(const row of train){
+   const v=intentFeatures(row.text,row),scores=weights.map((w,k)=>w.reduce((z,val,j)=>z+val*v[j],bias[k]));
+   const max=Math.max(...scores),exps=scores.map(z=>Math.exp(z-max)),sum=exps.reduce((a,b)=>a+b,0);
+   for(let k=0;k<3;k++){
+    const err=exps[k]/sum-(INTENT_LABELS[k]===row.label?1:0);
+    for(let j=0;j<INTENT_NAMES.length;j++)weights[k][j]-=lr*(err*v[j]+.0005*weights[k][j]);
+    bias[k]-=lr*err;
+   }
+  }
+ }
+ const candidate={task:INTENT_MODEL.task,features:INTENT_NAMES,weights,bias};
+ const correct=test.filter(row=>{
+  const probs=intentProbability(row.text,row,candidate),choice=INTENT_LABELS[probs.indexOf(Math.max(...probs))];
+  return choice===row.label;
+ }).length;
+ return {weights:weights.map(w=>w.map(v=>+v.toFixed(6))),bias:bias.map(v=>+v.toFixed(6)),
+  trainRows:train.length,testRows:test.length,correct,holdoutAccuracy:test.length?correct/test.length:0};
+}
+
+function propose(value,context={}){
  const original=String(value||'');
- if(!original.trim()||/[“”"']/.test(original))return original; // Quoted speech may intentionally stutter.
+ if(!original.trim()||classifyIntent(original,context).decision!=='remove')return original;
  let after=original;
  const edits=[
   [/(?:แล้วก็\s*){2,}/gu,'แล้วก็ '],
@@ -73,11 +166,14 @@ function subtitleAudit(lines){
  return messages;
 }
 function review(value,context={}){
- const text=String(value||''),risk=probability(text),proposed=propose(text);
+ const text=String(value||''),risk=probability(text),intent=classifyIntent(text,context),proposed=propose(text,context);
  const hasEdit=proposed!==text;
  const issues=[...warnings(text),...subtitleAudit(context.subtitle)];
- return {risk,needsReview:hasEdit||risk>=0.6||issues.length>0,hasEdit,proposed,warnings:issues,
+ if(intent.decision==='review'&&intentFeatures(text,context).some((x,i)=>i<5&&x))
+  issues.push('คำซ้ำอาจเป็นลีลาการพูด: โปรดตรวจอารมณ์และสถานการณ์ก่อนแก้');
+ return {risk,intent,needsReview:hasEdit||issues.length>0||(risk>=0.6&&intent.decision!=='keep'),hasEdit,proposed,warnings:issues,
   explanation:hasEdit?'เสนอแก้คำหรือเครื่องหมายซ้ำเฉพาะจุด โดยให้คุณอนุมัติก่อน':
+  intent.decision==='keep'?'เก็บคำซ้ำไว้ตามบริบทการพูดและอารมณ์':
   issues.length?'ไม่แก้บทอัตโนมัติ แต่พบจุดต้องตรวจคุณภาพ':
   risk>=.6?'โมเดลทดลองพบความเสี่ยง แต่ยังไม่มีคำแก้ปลอดภัย':
   'ข้อความผ่านการตรวจเบื้องต้น — ไม่มีข้อเสนอแก้ซ้ำ (idempotent)'};
@@ -111,7 +207,7 @@ function reviewProject(project){
   for(let si=0;si<scenes.length;si++){
    const scene=scenes[si]||{},original=String(scene.voiceover||'');
    const key=ei+':'+si,hasText=!!original.trim();
-   const result=hasText?review(original,{subtitle:scene.subtitle}):null;
+   const result=hasText?review(original,sceneContext(scene)):null;
    if(hasText){
     withNarration++;
     if(result.hasEdit)changes++;
@@ -120,7 +216,7 @@ function reviewProject(project){
    }
    entries.push({key,episodeIndex:ei,sceneIndex:si,episodeTitle:String(ep.title||('ตอนที่ '+(ei+1))),
     sceneId:scene.id,original,subtitleSnapshot:JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[]),
-    hasText,result});
+    hasText,contextSnapshot:JSON.stringify(sceneContext(scene)),result});
   }
  }
  return {entries,stats:{scenes:entries.length,withNarration,changes,attention,passed,missing:entries.length-withNarration}};
@@ -140,14 +236,15 @@ function verifyBatchSelection(project,entries,selectedKeys){
   const scene=episodes[entry.episodeIndex]?.scenes?.[entry.sceneIndex];
   if(!scene||scene.id!==entry.sceneId||
      String(scene.voiceover||'')!==entry.original||
-     JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[])!==entry.subtitleSnapshot)
+     JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[])!==entry.subtitleSnapshot||
+     JSON.stringify(sceneContext(scene))!==entry.contextSnapshot)
    throw Error('บทหรือซับมีการเปลี่ยนหลังวิเคราะห์ กรุณาวิเคราะห์ใหม่: '+entry.key);
-  const fresh=review(scene.voiceover,{subtitle:scene.subtitle});
+  const fresh=review(scene.voiceover,sceneContext(scene));
   if(!fresh.hasEdit||fresh.proposed!==entry.result?.proposed)
    throw Error('ข้อเสนอไม่ตรงกับโมเดลปัจจุบัน กรุณาวิเคราะห์ใหม่: '+entry.key);
   selected.push({entry,scene,proposed:fresh.proposed});
  }
  return selected;
 }
-return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection});
+return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection,INTENT_MODEL,intentFeatures,intentProbability,classifyIntent,trainIntent,sceneContext});
 });
