@@ -92,8 +92,8 @@
           "camera": {
             "type": "panorama",
             "world": 3.2,
-            "startX": 83,
-            "endX": 56,
+            "startX": 88,
+            "endX": 75,
             "from": 1,
             "to": 1.02,
             "panX": 0,
@@ -125,7 +125,7 @@
           "video": null,
           "audio": null,
           "uiBox": null,
-          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Establish coastal market with occupied stalls and readable rising water gauge. Rain visual + ambient bed. Establish market in first two seconds, then track back toward rising tide gauge; no premature gate closeup.\nVerified camera: first market crowd, then reveal left inlet water gauge; no close gate crop until scene 2."
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Establish coastal market with occupied stalls and readable rising water gauge. Rain visual + ambient bed. Establish market in first two seconds, then track back toward rising tide gauge; no premature gate closeup.\nVerified camera: first market crowd, then reveal left inlet water gauge; no close gate crop until scene 2.\nV6 accepted-shot target: water/market establishing only; do not frame full gate before narration mentions the gate. Animate market tide gauge visibly at the right waterfront."
         },
         {
           "id": "train-s02",
@@ -185,7 +185,7 @@
           "video": null,
           "audio": null,
           "uiBox": null,
-          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Push in to concrete sluice + hoist, clear rust, upstream waterline and pressure jet under gate."
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Push in to concrete sluice + hoist, clear rust, upstream waterline and pressure jet under gate.\nV6 accepted-shot target: real water-control sluice with outgoing discharge channel; steel shutter/garage door is not acceptable."
         },
         {
           "id": "train-s03",
@@ -248,7 +248,7 @@
           "video": null,
           "audio": null,
           "uiBox": null,
-          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Pim warns visible market sellers; people answer and lift crates towards elevated road. Track from gate to market. Reveal a larger shopkeeper near Pim with crate clearly moving out of danger.\nFollow Pim first; bring 2.05x merchant into frame for acknowledge → lift → carry beats."
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Pim warns visible market sellers; people answer and lift crates towards elevated road. Track from gate to market. Reveal a larger shopkeeper near Pim with crate clearly moving out of danger.\nFollow Pim first; bring 2.05x merchant into frame for acknowledge → lift → carry beats.\nV6 accepted-shot target: seller first sees Pim, then grabs box and carries it uphill; all sellers must not be carrying before warning."
         },
         {
           "id": "train-s04",
@@ -298,7 +298,7 @@
           "video": null,
           "audio": null,
           "uiBox": null,
-          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Flood confined to lower street; established market now empty, finish on living evacuees up high. Keep safe figures at center-right in last 1.5 seconds rather than clipped edge.\nDo not let the tall sluice gate enter the finale. Frame street flooding below stalls and show all three safe villagers in the right-middle of shot."
+          "notes": "TRAINING: inspect visible event, framing, audio and captions after dubbing. Preserve the geography and do not extend dead air.\nVisual contract: Flood confined to lower street; established market now empty, finish on living evacuees up high. Keep safe figures at center-right in last 1.5 seconds rather than clipped edge.\nDo not let the tall sluice gate enter the finale. Frame street flooding below stalls and show all three safe villagers in the right-middle of shot.\nV6 accepted-shot target: shallow low-street flood with no full-height background wall; multiple people on high ground visible inside frame."
         }
       ]
     }

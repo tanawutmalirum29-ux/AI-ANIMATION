@@ -1,0 +1,68 @@
+{
+  "schema": "story-visual-qa-v1",
+  "source": {
+    "name": "ฝึก-AI-ประตูน้ำก่อนตลาดท่วม-1(6).mp4",
+    "comparison": "ฝึก-AI-ประตูน้ำก่อนตลาดท่วม-1(5).mp4",
+    "videoSeconds": 20.208333,
+    "audioSeconds": 20.285333,
+    "resolution": [
+      540,
+      960
+    ],
+    "fps": 24,
+    "frames": 485,
+    "material": "user-uploaded MP4; media not copied to repository"
+  },
+  "review": {
+    "date": "2026-11-02",
+    "approvedForTraining": false,
+    "trainingMode": "evaluation-only",
+    "method": "12 visual moments compared side by side and audio PCM decoded at mono 16 kHz",
+    "evidence": "Some visible camera/framing changes; main story defects remain at 540x960."
+  },
+  "audio": {
+    "correlationToPrevious": 0.9990311427,
+    "previousRMS": 0.24035011,
+    "currentRMS": 0.24036305,
+    "rmsDifference": 0.010580322,
+    "note": "Rain bed continues through narration gaps. Correlation and RMS do not verify spoken words."
+  },
+  "issues": [
+    {
+      "scene": "train-s01",
+      "severity": "P0",
+      "evidence": "Dark sky dominates and water gauge is outside most of opening composition; tide rise does not read clearly.",
+      "action": "Market-side water gauge, front waterline, opening camera stay near the stalls."
+    },
+    {
+      "scene": "train-s02",
+      "severity": "P0",
+      "evidence": "Gate still resembles corrugated garage shutter rather than sluice machinery.",
+      "action": "Add concrete buttresses, visible outgoing water channel and water-pressure geography."
+    },
+    {
+      "scene": "train-s03",
+      "severity": "P0",
+      "evidence": "Market figures remain small and already holding goods at start of the warning.",
+      "action": "Respect event sequence: acknowledgement -> lift -> carry; evacuation starts only after warning."
+    },
+    {
+      "scene": "train-s04",
+      "severity": "P0",
+      "evidence": "Tall blue translucent vertical block remains along left side of the market and masks visual meaning of water level.",
+      "action": "Remove long filled background roof polygon; replace with low bounded strip and shallow street flood."
+    }
+  ],
+  "changes": [
+    "SVG coastal harbor: short roofline vs former giant polygon",
+    "Market-side tide gauge and foreground ripples",
+    "Sluice buttresses",
+    "Delayed evacuation",
+    "Opening camera reframing and AI-1..AI-6 story QA lessons"
+  ],
+  "limitations": [
+    "No full speech transcription",
+    "New code not yet judged via resulting MP4",
+    "No model weights updated without human-approved labels"
+  ]
+}
