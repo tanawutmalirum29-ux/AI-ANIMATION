@@ -175,16 +175,27 @@
       warning||evac?'warn':'rest',evac||warning,warning?1.36:1.08);
    }).join('')+'</g>';
    if(warning||evac){
-    o+='<g data-world-object="merchant-acknowledgment">'+
-     person(x(.748),81.5,'#e3b076','warn',true,1.72)+'</g>';
+    // Three readable beats within the SAME camera shot: the shopkeeper
+    // acknowledges Pim -> reaches down/lifts a box -> carries it uphill.
+    // The old implementation drew a box in their hands on frame zero,
+    // so even a perfect camera could not show a causal response.
+    const lift=Math.max(0,Math.min(1,(t-.20)/.30));
+    const escape=Math.max(0,Math.min(1,(t-.53)/.45));
+    const phase=t<.20?'acknowledge':t<.53?'lift':'carry';
+    const mx=x(.735+.105*escape),my=81-9*escape;
+    o+='<g data-world-object="merchant-acknowledgment" data-story-phase="'+phase+'">'+
+     person(mx,my,'#e3b076',phase==='acknowledge'?'warn':'rest',phase==='carry',2.05)+'</g>';
+    // The same crate is on the floor, lifted into the hands, then carried.
+    // A second crate follows later so the movement remains legible at 540p.
     o+='<g data-world-object="merchant-response">'+
-     // Box visibly LIFTS and MOVES uphill as the warning is acted on.
-     [0,1].map((i)=>{
-      const u=Math.max(0,Math.min(1,(t-.15-i*.14)*1.55)),xx=x(.705+i*.11)+u*x(.08);
-      return '<g data-world-object="moving-crates">'+
-       R(xx,76-u*11,7.5,5.2,'#a57e52',.3)+
-       L(xx,77-u*11,xx+7.5,77-u*11,'#e7c18a',.75)+'</g>';
-     }).join('')+'</g>';
+      [0,1].map(i=>{
+       const u=Math.max(0,Math.min(1,(t-.20-i*.13)/.30));
+       const move=Math.max(0,Math.min(1,(t-.53-i*.14)/.45));
+       const xx=x(.725+i*.032+.105*move),yy=79-9*u-9*move;
+       return '<g data-world-object="moving-crates">'+
+        R(xx,yy,7.5,5.2,'#a57e52',.3)+
+        L(xx,yy+1,xx+7.5,yy+1,'#e7c18a',.75)+'</g>';
+      }).join('')+'</g>';
    }
   }
   // Water jet has source and destination; no giant transparent triangle.
