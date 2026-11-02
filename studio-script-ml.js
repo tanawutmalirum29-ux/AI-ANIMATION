@@ -217,7 +217,16 @@ function classifyIntent(text,context={}){
  else if(protectedExpression)decision='keep';
  else if(uncertain)decision='review';
  else if(label==='remove'&&best>=.85)decision='remove';
- return {label,decision,hasRepetition,confidence:best,probabilities,
+ // Approved memory / actively reviewed CPU weights can veto unsafe deletion.
+ // They never create automatic new edits; an advisory mismatch escalates to review.
+ const memoryAdvice=typeof globalThis!=='undefined'?
+  globalThis.StoryStudentLearning?.advise?.(text,context):null;
+ if(decision==='remove'&&memoryAdvice?.label&&memoryAdvice.label!=='remove'&&
+    (memoryAdvice.source==='approved-example'&&memoryAdvice.similarity>=.90||
+     memoryAdvice.source==='active-cpu-model'&&memoryAdvice.margin>=2)){
+  decision='review';
+ }
+ return {label,decision,hasRepetition,confidence:best,probabilities,memoryAdvice,
   emotion:inferredEmotion,
   reason:decision==='clean'?'ไม่พบรูปแบบคำซ้ำที่ต้องเสนอแก้':
    decision==='keep'?'พบคำซ้ำในบทพูดหรือการเน้นที่ควรรักษาไว้':
