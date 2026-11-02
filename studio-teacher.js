@@ -13,7 +13,7 @@ const MODES=[
 ];
 let bridge,container,tab='chat',provider='openrouter',statusData=null,thread=[],pending=[],busy=false,notice='',noticeError=false,lastResponse=null;
 let connectionDraft={url:'',model:''};
-let studentReview=null,studentChoice='review',studentOwnerReason='',lastStudentCandidate=null;
+let studentReview=null,studentChoice='review',studentOwnerReason='',lastStudentCandidate=null,studentCandidates=[];
 const el=(tag,attrs={},...children)=>{
  const n=$doc.createElement(tag);
  for(const [key,value] of Object.entries(attrs)){
@@ -408,7 +408,10 @@ async function refreshStudentMemory(){
  if(busy)return;
  busy=true;render();
  try{
-  const state=await root.StoryStudentLearning.load(true);
+  const [state,versions]=await Promise.all([
+   root.StoryStudentLearning.load(true),api('student.candidates')]);
+  studentCandidates=Array.isArray(versions?.candidates)?versions.candidates:[];
+  if(!lastStudentCandidate)lastStudentCandidate=studentCandidates.find(x=>x.metrics?.qaPassed)||null;
   setNotice('โหลดความจำจาก AWS '+state.lessonCount+' ตัวอย่าง · โมเดล '+(state.activeVersion||'ยังไม่เปิดใช้'));
  }catch(e){setNotice('โหลดความจำไม่สำเร็จ: '+e.message,true)}
  finally{busy=false;render()}
@@ -421,6 +424,7 @@ async function trainStudentModel(){
   const result=await api('student.train');
   if(!result.trained)throw Error('ระบบยังไม่ยืนยันว่าฝึกโมเดล');
   lastStudentCandidate=result.candidate;
+  studentCandidates.unshift(result.candidate);
   const m=result.candidate?.metrics||{};
   setNotice('ฝึกน้ำหนักแล้ว รุ่น '+result.candidate.version+
    ' · Holdout '+Math.round(Number(m.accuracy||0)*100)+'%'+
@@ -476,6 +480,13 @@ function studentPanel(){
    button('ฝึกโมเดลรุ่นใหม่',trainStudentModel,'',busy),
    button('เปิดใช้รุ่นที่ผ่าน QA',activateStudentModel,'teacher-primary',
      busy||!lastStudentCandidate?.metrics?.qaPassed)),
+  ...(studentCandidates.length?[el('label',{className:'teacher-field'},
+   el('span',{},'โมเดลย้อนหลัง (เลือกรุ่นที่ผ่าน QA เพื่อเปิดใช้หรือย้อนกลับ)'),
+   el('select',{onchange:ev=>{
+     lastStudentCandidate=studentCandidates.find(c=>c.version===ev.target.value)||null;render();
+    }},...studentCandidates.map(c=>el('option',{
+       value:c.version,selected:lastStudentCandidate?.version===c.version},
+       c.version+(c.metrics?.qaPassed?' · ผ่าน QA':' · ไม่ผ่าน QA')))))]:[]),
   ...(lastStudentCandidate?[el('p',{className:'teacher-muted'},'รุ่น '+lastStudentCandidate.version+
    ' · ความถูกต้องชุดทดสอบ '+Math.round(Number(lastStudentCandidate.metrics.accuracy)*100)+'%'+
    ' · '+(lastStudentCandidate.metrics.qaPassed?'ผ่าน QA':'ไม่ผ่าน QA'))]:[])));
