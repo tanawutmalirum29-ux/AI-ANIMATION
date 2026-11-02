@@ -4334,6 +4334,27 @@ if(out.length>1&&typeof Intl!=='undefined'&&Intl.Segmenter){
   out[i-1]=left;out[i]=right;
  }
 }
+// Choose a meaningful boundary between TWO timed Thai caption lines. The
+// earlier orphan-tail fix counted letters, but still broke "ที่สูง" into
+// "ที่ / สูง" and "หน้าร้าน" into "หน้า / ร้าน". Word boundaries alone
+// do not guarantee natural spoken phrases. Preserve the exact cue text.
+if(out.length===2&&typeof Intl!=='undefined'&&Intl.Segmenter){
+ const joined=out.join(''),units=[...new Intl.Segmenter('th',{granularity:'word'})
+  .segment(joined)].map(p=>p.segment);
+ let cursor='',best=null;
+ const len=v=>[...v].length;
+ for(let k=0;k<units.length-1;k++){
+  cursor+=units[k];const left=cursor.trimEnd(),right=joined.slice(cursor.length).trimStart();
+  if(len(left)<6||len(right)<6||len(left)>max||len(right)>max)continue;
+  let cost=Math.abs(len(left)-len(right));
+  // Avoid awkward Thai connective/compound word splits at a shot cue.
+  if(/(ที่|หน้า|ด้าน|ขึ้น|ถึง|ของ|เพื่อ|ให้)$/.test(left))cost+=24;
+  if(/^(สูง|ร้าน|ด้าน|หน้า|ทัน|ของ|และ|หรือ|ได้)/.test(right))cost+=22;
+  if(/[,.;:]$/.test(left))cost-=2;
+  if(!best||cost<best.cost)best={left,right,cost};
+ }
+ if(best){out[0]=best.left;out[1]=best.right}
+}
 return out}
 
 /* Screen-safe captions: author can keep an entire paragraph; viewer shows only two short lines at once. */
