@@ -8,6 +8,33 @@
 - เมื่ออยากลบคีย์จริง ๆ ให้เข้า **AI ครู / API → เชื่อม API → ยกเลิกเชื่อมต่อ** และยืนยัน การลบมีผลเฉพาะผู้ให้บริการที่เลือก
 - ไม่ต้องเก็บ AWS Access Key/Secret Key ใน GitHub อีกต่อไป
 
+## แก้กรณี GitHub Actions ขึ้น `Not authorized to perform sts:AssumeRoleWithWebIdentity`
+
+GitHub เปลี่ยนค่า OIDC `sub` ให้รวม **Owner ID + Repository ID** สำหรับ repository ใหม่ตั้งแต่ 15 ก.ค. 2026 ดังนั้น IAM Role ที่ตั้ง Trust Policy แบบชื่ออย่างเดียวจะไม่ผ่านการตรวจสิทธิ์
+
+สำหรับ AI-ANIMATION ข้อมูลที่ยืนยันจาก GitHub Repository API คือ:
+
+- Owner: `tanawutmalirum29-ux` (Owner ID `225819900`)
+- Repository: `AI-ANIMATION` (Repository ID `1440864911`)
+- GitHub Actions branch: `main`
+- Subject ที่ IAM Trust Policy ต้องอนุญาต: `repo:tanawutmalirum29-ux@225819900/AI-ANIMATION@1440864911:ref:refs/heads/main`
+
+สคริปต์ `autodub/setup-github-deploy.sh` รุ่นล่าสุดจะอัปเดต Trust Policy เป็นแบบนี้โดยอัตโนมัติ และตรวจว่าบันทึกใน AWS ถูกต้อง ไม่ต้องสร้าง Role ใหม่ ไม่แตะ API Key ไม่ต้องให้สิทธิ์ทุก Branch
+
+รัน CloudShell *อีกครั้งเพื่อซ่อม Trust Policy ครั้งเดียว*:
+
+```bash
+cd ~/AI-ANIMATION && git pull --ff-only origin main && bash autodub/setup-github-deploy.sh
+```
+
+หลังจากนั้นเปิด GitHub Actions → **Deploy AWS Studio automatically → Run workflow → main** เพื่อทดสอบอีกครั้ง
+
+GitHub Actions รุ่นแก้ไขจะตรวจและแสดงเฉพาะค่า **OIDC subject/audience/issuer** ก่อนเรียก AWS โดยไม่แสดง Token หรือ API Key หากการตรวจผ่านแต่ AWS ยังปฏิเสธ ให้ตรวจ OIDC provider/Role ARN/Trust Policy ใน IAM เพิ่มเติม
+
+GitHub Docs: https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws
+
+---
+
 ## เปิด Deploy AWS อัตโนมัติครั้งแรกเท่านั้น
 
 ก่อนเริ่ม ตรวจว่า AWS Lambda `story-studio-autodub` ที่ Sydney และ Amplify app `d1wc6w01kiwpnk` มีอยู่แล้วตามการติดตั้งเดิม (สคริปต์ไม่สร้าง Lambda/Amplify ใหม่)

@@ -17,13 +17,29 @@ test('GitHub deploy uses OIDC rather than static keys, on pushes to main',()=>{
 test('One-time IAM OIDC bootstrap restricts role to repository main and specific Lambda',()=>{
  const script=read('autodub/setup-github-deploy.sh');
  assert.match(script,/token\.actions\.githubusercontent\.com/);
- assert.match(script,/repo:"\+repo\+":ref:refs\/heads\/main/);
+ assert.match(script,/OWNER_ID="225819900"/);
+ assert.match(script,/REPOSITORY_ID="1440864911"/);
+ assert.match(script,/EXPECTED_SUB="repo:tanawutmalirum29-ux@/);
+ assert.ok(script.includes('AI-ANIMATION@${REPOSITORY_ID}:ref:refs/heads/main'));
+ assert.match(script,/expected_sub/);
+ assert.match(script,/IAM Trust Policy verified/);
+ assert.ok(!script.includes('"token.actions.githubusercontent.com:sub":"repo:"+repo'));
  assert.match(script,/sts:AssumeRoleWithWebIdentity/);
  assert.match(script,/aws iam put-role-policy/);
  assert.match(script,/story-studio-gha-limited-deploy/);
  assert.match(script,/aws sts get-caller-identity/);
  assert.match(script,/gh variable set AWS_DEPLOY_ROLE_ARN/);
  assert.doesNotMatch(script,/iam:\*|ssm:GetParameter|ssm:PutParameter|dynamodb:|secretsmanager:/);
+});
+test('GitHub OIDC identity diagnostics validate immutable subject without leaking token',()=>{
+ const workflow=read('.github/workflows/deploy-aws-studio.yml');
+ assert.match(workflow,/Verify GitHub immutable OIDC claims/);
+ assert.ok(workflow.includes('repo:tanawutmalirum29-ux@225819900/AI-ANIMATION@1440864911:ref:refs/heads/main'));
+ assert.match(workflow,/ACTIONS_ID_TOKEN_REQUEST_URL/);
+ assert.match(workflow,/ACTIONS_ID_TOKEN_REQUEST_TOKEN/);
+ assert.ok(workflow.includes('claims.get("aud")=="sts.amazonaws.com"'));
+ assert.ok(workflow.includes('actual!=os.environ["EXPECTED_SUB"]'));
+ assert.match(workflow,/The sensitive signed token and signature are deliberately never printed/);
 });
 test('AI mother keys live in AWS not localStorage; selection automatically restores',()=>{
  const server=read('autodub/teacher.py'),ui=read('studio-teacher.js');
