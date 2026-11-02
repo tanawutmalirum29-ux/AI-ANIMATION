@@ -79,7 +79,13 @@
   const context=cueText(scene)+' '+labelLocation(state,scene);
   const script=cueText(scene);
   const sounds=[],D=limit(scene.duration,0.5,3600);
-  const ambient=AMBIENT.find(([id,rx])=>available.has(id)&&has(context,rx));
+  // "storm, rain" is a common location descriptor in authored story JSON:
+  // recognize the two words together instead of treating all storm scenes as
+  // soft rain. Never add weather to a scene without an authored rain condition.
+  const stormRain=/ฝน|rain/i.test(context)&&/พายุ|storm/i.test(context)&&
+   /^(rain|storm)$/i.test(String(scene.atmosphere||''));
+  const ambient=AMBIENT.find(([id,rx])=>available.has(id)&&
+   ((id==='rain-heavy'&&stormRain)||has(context,rx)));
   if(ambient)sounds.push({presetId:ambient[0],at:0,volume:.18,loop:true,kind:'ambience'});
   // Sound effects attach to caption timestamps where present, otherwise a conservative
   // midpoint estimate. No effects inferred solely from location name.
