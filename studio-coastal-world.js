@@ -65,67 +65,154 @@
   }
   return body+'</g>';
  }
+ // Tiny animated background people live inside the same wide world as the market.
+ // Each pose is driven from scene time, not from screen dimensions or browser FPS.
+ function person(x,y,shirt='#c8a46f',arm='rest',carry=false){
+  const hands=arm==='warn'?
+   L(x-1.1,y-6,x-3.3,y-11,'#c79a7f',.85)+L(x+1.2,y-6,x+4.2,y-9,'#c79a7f',.85):
+   L(x-1.1,y-6,x-2.6,y-2.2,'#c79a7f',.85)+L(x+1.2,y-6,x+2.7,y-2.2,'#c79a7f',.85);
+  return '<g data-world-object="market-person">'+
+   E(x,y+.5,3,1,'#182f40',.32)+
+   L(x-.8,y-2.3,x-1.5,y,'#324756',1.15)+L(x+.8,y-2.3,x+1.6,y,'#324756',1.15)+
+   P('M'+f(x-1.6)+' '+f(y-7.5)+'L'+f(x+1.6)+' '+f(y-7.5)+'L'+f(x+1.3)+' '+f(y-2)+'L'+f(x-1.3)+' '+f(y-2)+'Z',shirt)+
+   C(x,y-9,1.6,'#c79a7f')+P('M'+f(x-1.8)+' '+f(y-9.5)+'Q'+f(x)+' '+f(y-13)+' '+f(x+1.8)+' '+f(y-9.5),'#343b44')+
+   hands+(carry?'<g data-world-object="evacuation-crate">'+R(x-3.2,y-7.7,6.4,4.4,'#b38a60',.25)+
+   L(x-2.8,y-5.5,x+2.8,y-5.5,'#e1b87a',.6)+'</g>':'')+'</g>';
+ }
  function harbor(W,local,scene,front){
-  const t=clock(local,scene.duration),leak=effect(scene,'gateLeak'),flood=effect(scene,'marketFlood');
-  const blackout=effect(scene,'blackout'),sequence=effect(scene,'sequentialBlackout');
-  const x=q=>W*q;
+  const t=Math.min(1,clock(local,scene.duration)),x=q=>W*q;
+  const leak=effect(scene,'gateLeak'),flood=effect(scene,'marketFlood');
+  const waterRise=effect(scene,'waterRise')||effect(scene,'gateLeak')||flood;
+  const warning=effect(scene,'marketWarning'),evac=effect(scene,'evacuation');
+  const empty=effect(scene,'marketEmpty')||(flood&&!warning&&!evac);
+  const safeHill=effect(scene,'safeHill'),blackout=effect(scene,'blackout'),seq=effect(scene,'sequentialBlackout');
+  const surface=76-(waterRise?Math.min(7,t*7):0);
   if(front){
-   // Shallow shoreline shimmer, never a solid band across actors.
-   return Array.from({length:14},(_,i)=>{
-    const xx=x(.025+i*.034), yy=81+(i%3)*1.5;
-    return L(xx,yy,xx+3.5,yy,'#a6cfd2',.32,.2+(.15*Math.sin(local*1.5+i)));
+   // Shore highlights belong at the feet, not as a rectangle over the actors.
+   let foam=Array.from({length:12},(_,i)=>{
+    const xx=x(.04+i*.035),yy=surface+1+(i%3);
+    return L(xx,yy,xx+2+(i%3),yy,'#b6d9de',.28,.3+.2*Math.sin(local*1.4+i));
    }).join('');
+   if(leak){
+    for(let j=0;j<6;j++){
+     const xx=x(.585)+j*1.4+.7*Math.sin(local*4+j);
+     foam+=C(xx,76+j*.23,Math.max(.22,.55-j*.04),'#d9f4eb',.36);
+    }
+   }
+   return foam;
   }
-  let o=P('M0 48Q'+f(x(.18))+' 39 '+f(x(.35))+' 46T'+f(W)+' 45L'+f(W)+' 67L0 67Z','#253f51',.8)+
-   P('M0 67Q'+f(x(.25))+' 64 '+f(x(.52))+' 68L'+f(W)+' 69L'+f(W)+' 90L0 90Z','#24485a')+
-   Array.from({length:26},(_,i)=>L(x(i/25),72+(i%5)*2,x(i/25)+2.5,72+(i%5)*2,'#6aa4b4',.25,.45)).join('')+
-   boat(x(.13),70,.62)+boat(x(.29),74,.8)+
-   // Low stone quay on the left, with bollards and water-level marks.
-   R(x(.19),67,x(.28),15,'#545e66')+R(x(.19),64,x(.28),3,'#a0a1a0')+
-   Array.from({length:9},(_,i)=>L(x(.19+i*.033),67,x(.19+i*.033),82,'#394852',.45,.8)).join('')+
-   Array.from({length:4},(_,i)=>R(x(.23+i*.07),63,1,3.5,'#313e45',.3)).join('')+
-   // Floodgate: concrete piers, hoist, rusted SLIDING IRON PANEL and leaking sea water.
-   '<g data-world-object="floodgate">'+R(x(.47)-6,46,5.5,37,'#7e8585')+R(x(.58),46,5.5,37,'#7e8585')+
-   R(x(.47)-7,43,x(.11)+15,5,'#a4a29e')+
-   R(x(.475),51,x(.1),27,'#6a7378')+
-   Array.from({length:7},(_,i)=>L(x(.478),54+i*3.3,x(.573),54+i*3.3,'#a77d6b',.72,.9)).join('')+
-   Array.from({length:3},(_,i)=>R(x(.492+i*.032),54,1.4,24,'#4f5964')).join('')+
-   C(x(.522),42,3,'#4c515b')+C(x(.522),42,1.4,'#cfb394')+
-   L(x(.522),43,x(.522),51,'#c2b8a3',.9)+
-   R(x(.474),72,x(.104),7,'#53636d')+'</g>'+
-   // Street and market building silhouettes sit BEHIND the stalls.
-   P('M'+f(x(.60))+' 65L'+f(x(.64))+' 60L'+f(x(.75))+' 61L'+f(x(.8))+' 56L'+f(W)+' 58L'+f(W)+' 82L'+f(x(.6))+' 82Z','#384953')+
-   [0.64,0.77,0.9].map((v,i)=>tinyHouse(x(v),66,.58+i*.1,['#506275','#625e65','#4d6970'][i])).join('')+
-   P('M'+f(x(.6))+' 82L'+f(W)+' 82L'+f(W)+' 90L'+f(x(.58))+' 90Z','#626b69')+
-   market(x(.65),79,.86,'#ac665d',!blackout&&(!sequence||t<.5))+
-   market(x(.77),79,.9,'#66918a',!blackout&&(!sequence||t<.7))+
-   market(x(.9),79,.85,'#9a7d5f',!blackout&&(!sequence||t<.9))+
-   // Distant recognizable lighthouse, not a generic tower.
-   lighthouse(x(.97),60,.5,!blackout||effect(scene,'signalVisible'),'left',.8)+
-   // Pier lamps with pools of amber light.
-   [0.24,0.4,0.62].map((v,i)=>{
-    const xx=x(v),lampOn=!blackout&&(!sequence||t<(.2+i*.28));return R(xx-.4,51,.8,13,'#3a4650')+
-     P('M'+f(xx-2)+' 52L'+f(xx+2)+' 52L'+f(xx+1.3)+' 49L'+f(xx-1.3)+' 49Z','#bdac88')+
-     (lampOn?C(xx,50,5,'#f7d79c',.11)+C(xx,50,.8,'#ffe9af'):'');
+  let o=
+   // Distant coast and sea: a quiet upper horizon, not a giant dark sky panel.
+   P('M0 49Q'+f(x(.18))+' 45 '+f(x(.34))+' 48T'+f(W)+' 47L'+f(W)+' 64L0 64Z','#29485a',.65)+
+   P('M0 61Q'+f(x(.22))+' 58 '+f(x(.42))+' 63L'+f(W)+' 67L'+f(W)+' 90L0 90Z','#243b4c')+
+   R(0,66,x(.48),24,'#2c5c70')+
+   Array.from({length:17},(_,i)=>L(x(i*.027),70+(i%5)*3,x(i*.027)+3,70+(i%5)*3,'#91bcc1',.3,.7)).join('')+
+   boat(x(.13),72,.7)+boat(x(.3),72,.57)+
+   // Concrete quay kept ABOVE the water. This establishes two real elevation levels.
+   R(x(.17),66,x(.27),16,'#717878')+R(x(.17),64,x(.27),2.5,'#a4a49b')+
+   Array.from({length:9},(_,i)=>L(x(.17+i*.03),69,x(.17+i*.03),81,'#445057',.55,.7)).join('')+
+   // A water gauge: five tick marks plus a MOVING level pointer.
+   '<g data-world-object="water-level-gauge">'+
+   R(x(.421),63,2.2,19,'#d4d0be',.3)+
+   Array.from({length:5},(_,i)=>L(x(.421),66+i*3.2,x(.421)+1.5,66+i*3.2,'#324a5a',.5)).join('')+
+   tri([x(.422),surface],[x(.417),surface-1.25],[x(.417),surface+1.25],'#f7cb78')+'</g>'+
+   // Upstream water RISES visibly against the concrete and gate-left threshold.
+   '<g data-world-object="upstream-water">'+
+   P('M'+f(x(.365))+' '+f(surface)+'Q'+f(x(.39))+' '+f(surface-1.2)+' '+f(x(.417))+' '+f(surface)+
+    'L'+f(x(.465))+' '+f(surface-.9)+'L'+f(x(.465))+' 83L'+f(x(.365))+' 83Z','#43899e',.94)+
+   L(x(.368),surface,x(.463),surface-1,'#c2e4df',.85,.75)+'</g>'+
+   // Flood-control *sluice*, not a house door: an open water channel flanked
+   // by massive concrete piers, hoist housing, steel slide and pressure jets.
+   '<g data-world-object="floodgate">'+
+   R(x(.453),42,5.2,42,'#939995')+R(x(.602),42,5.2,42,'#939995')+
+   R(x(.45),40,x(.163),5.4,'#b4b0a4',.6)+
+   P('M'+f(x(.454))+' 43L'+f(x(.454)+5)+' 43L'+f(x(.454)+5)+' 83L'+f(x(.454))+' 86Z','#5f7277')+
+   R(x(.459),48,x(.14),31,'#334a55')+
+   // Nested vertical steel rails and corrugated water-stopping SLIDE panel.
+   R(x(.471),49,x(.112),28,'#697982')+
+   Array.from({length:9},(_,i)=>L(x(.472),51+i*2.85,x(.581),51+i*2.85,i%2?'#bf7966':'#3b5765',.66)).join('')+
+   R(x(.473),49,1.4,30,'#b8b9ad')+R(x(.58),49,1.4,30,'#b8b9ad')+
+   // Rust flaking on the lower slide, and a hoist gear/shaft on TOP.
+   Array.from({length:7},(_,i)=>R(x(.479+i*.016),56+(i%3)*5,1.1,1.6,'#a96754',.15, .82)).join('')+
+   C(x(.528),38.3,4,'#465461')+C(x(.528),38.3,2.7,'#bdaf95')+
+   Array.from({length:8},(_,i)=>{const a=i*Math.PI/4;return L(x(.528)+Math.cos(a),38.3+Math.sin(a),x(.528)+Math.cos(a)*3.5,38.3+Math.sin(a)*3.5,'#51646b',.8)}).join('')+
+   R(x(.525),42,1.5,9,'#d0bb9e')+
+   // Channel banks visibly funnel water through the gate.
+   P('M'+f(x(.44))+' 78L'+f(x(.48))+' 80L'+f(x(.61))+' 80L'+f(x(.64))+' 89L'+f(x(.42))+' 89Z','#556970')+
+   '</g>'+
+   // The lowland market is elevated above the shoreline with a street in front.
+   P('M'+f(x(.605))+' 63L'+f(x(.72))+' 57L'+f(x(.85))+' 61L'+f(W)+' 57L'+f(W)+' 82L'+f(x(.60))+' 82Z','#465763')+
+   [0.65,0.76,0.89].map((v,i)=>tinyHouse(x(v),66,.55+i*.08,['#5a6770','#746b6c','#566c70'][i])).join('')+
+   P('M'+f(x(.595))+' 81L'+f(x(.88))+' 81L'+f(x(.95))+' 69L'+f(W)+' 65L'+f(W)+' 90L'+f(x(.595))+' 90Z','#73746d')+
+   L(x(.61),83,x(.89),83,'#b9b1a0',.5,.7)+
+   market(x(.66),79,.86,'#ad685e',!blackout&&(!seq||t<.5))+
+   market(x(.77),79,.9,'#63918d',!blackout&&(!seq||t<.7))+
+   market(x(.88),79,.86,'#a0845f',!blackout&&(!seq||t<.9))+
+   lighthouse(x(.97),62,.44,!blackout||effect(scene,'signalVisible'),'left',.7)+
+   [0.24,0.39,0.61].map((v,i)=>{
+    const xx=x(v),on=!blackout&&(!seq||t<.2+i*.28);
+    return R(xx-.4,50,.8,14,'#45545a')+
+     P('M'+f(xx-2)+' 52L'+f(xx+2)+' 52L'+f(xx+1.3)+' 49L'+f(xx-1.3)+' 49Z','#baae8e')+
+     (on?C(xx,50,4,'#f8d79d',.12)+C(xx,50,.8,'#ffe6ae'):'');
    }).join('');
-  if(effect(scene,'evacuation')){
-   const q=clamp(t*1.1,0,1);
-   o+=[.66,.76,.85].map((v,i)=>{
-    const xx=x(v+.09*q),yy=71+(i%2)*2;
-    return '<g data-world-object="evacuating-villager" opacity="'+f(Math.max(0,1-q*.92))+'">'+
-     C(xx,yy-8,1.3,'#c29f82')+L(xx,yy-6.5,xx,yy-2,'#d2af7e',1.6)+
-     L(xx,yy-2,xx-1.7,yy+2,'#293943',1.2)+
-     L(xx,yy-2,xx+1.5,yy+2,'#293943',1.2)+
-     L(xx,yy-5,xx-2.4,yy-1,'#9c8d75',.85)+
-     L(xx,yy-5,xx+2.4,yy-2,'#9c8d75',.85)+'</g>';
-   }).join('');
+  // Market must be OCCUPIED before the warning. Evacuation is a causal event,
+  // not an unmotivated empty row of stalls.
+  if(!empty&&!safeHill){
+   const q=evac?Math.min(1,t*1.4):0;
+   const crowd=[.645,.752,.865];
+   o+='<g data-world-object="populated-market">'+crowd.map((v,i)=>{
+    const px=x(v+.065*q),py=79-q*(3.5+i*.8);
+    return person(px,py,['#d8a15a','#9bb0a3','#c17d75'][i],
+      warning||evac?'warn':'rest',evac||warning);
+   }).join('')+'</g>';
+   if(warning||evac){
+    o+='<g data-world-object="merchant-response">'+
+     // Box visibly LIFTS and MOVES uphill as the warning is acted on.
+     [0,1].map((i)=>{
+      const u=Math.max(0,Math.min(1,(t-.15-i*.14)*1.55)),xx=x(.705+i*.11)+u*x(.08);
+      return '<g data-world-object="moving-crates">'+
+       R(xx,76-u*10,5.4,4,'#a57e52',.3)+
+       L(xx,77-u*10,xx+5.4,77-u*10,'#e7c18a',.55)+'</g>';
+     }).join('')+'</g>';
+   }
   }
+  // Water jet has source and destination; no giant transparent triangle.
   if(leak){
    const intensity=.4+.6*t;
-   o+=P('M'+f(x(.54))+' 76Q'+f(x(.58))+' 73 '+f(x(.62))+' 81L'+f(x(.69))+' 90L'+f(x(.52))+' 90Z','#66a6b8',.5*intensity)+
-     Array.from({length:5},(_,i)=>L(x(.54+i*.015),77+i*1.5,x(.59+i*.02),81+i*1.6,'#bce7df',.65,.55*intensity)).join('');
+   o+='<g data-world-object="gate-leak-jet">'+
+    P('M'+f(x(.582))+' 75.2Q'+f(x(.612))+' '+f(73+Math.sin(local*4)*.7)+' '+f(x(.645))+
+     ' 80L'+f(x(.638))+' 82Q'+f(x(.6))+' 77 '+f(x(.582))+' 78Z','#72bed1',intensity)+
+    Array.from({length:5},(_,i)=>L(x(.585+i*.01),76+i*.5,x(.62+i*.009),79+i*.5,'#d6f7f0',.35,.9)).join('')+
+    Array.from({length:6},(_,i)=>C(x(.62+i*.006),80+Math.sin(local*5+i)*1.5,.5,'#bbefeb',.58)).join('')+'</g>';
   }
-  if(flood)o+=R(x(.59),83-(t*5),W*.4,5+t*5,'#477c8f',0,.35+.15*t);
+  // Evacuation itself moves figures from lowland to uphill; unlike the old
+  // disappearing silhouettes, the market is clearly shown populated first.
+  if(effect(scene,'evacuation')&&!empty){
+   const q=Math.min(1,t*1.2);
+   o+='<g data-world-object="evacuating-villager">'+
+    person(x(.73+.17*q),78-9*q,'#d49d6e','warn',true)+
+    person(x(.79+.12*q),77-8*q,'#83b2a3','rest',true)+'</g>';
+  }
+  // Water fills the LOWER street surface with a wavy shoreline; the top
+  // stays below stall counters until the concluding moment, not over roofs.
+  if(flood){
+   const top=88-8*t,land=x(.605),end=x(.925);
+   o+='<g data-world-object="market-street-flood">'+
+    P('M'+f(land)+' '+f(top+2)+'Q'+f(x(.68))+' '+f(top-1)+' '+f(x(.74))+' '+f(top)+
+      'T'+f(end)+' '+f(top+1)+'L'+f(end)+' 90L'+f(land)+' 90Z','#387a91',.81)+
+    Array.from({length:10},(_,i)=>L(x(.615+i*.031),top+1+(i%3)*1.6,x(.63+i*.031),top+1+(i%3)*1.6,'#a2d8d8',.35)).join('')+
+    '</g>';
+  }
+  // End-state reveal: high-ground path and visible SAFE group, not an empty
+  // market at the start. This sits at the far end of the same wide panorama.
+  if(safeHill){
+   o+='<g data-world-object="safe-hill">'+
+    P('M'+f(x(.885))+' 76Q'+f(x(.94))+' 58 '+f(W)+' 61L'+f(W)+' 90L'+f(x(.885))+' 90Z','#6f8776')+
+    L(x(.895),76,x(.99),62,'#c0b294',.8)+
+    person(x(.948),65,'#d79e55','rest',false)+
+    person(x(.965),63,'#8bbaa7','rest',false)+
+    person(x(.982),65,'#ba8581','rest',false)+'</g>';
+  }
   return o;
  }
  function workshop(W,local,scene,front){
