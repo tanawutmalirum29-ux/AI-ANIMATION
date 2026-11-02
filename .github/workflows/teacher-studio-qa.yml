@@ -16,6 +16,7 @@ on:
       - 'studio-story-only-ui.js'
       - 'tests/story-only-json.test.cjs'
       - 'tests/teacher-auto-teach.test.cjs'
+      - 'tests/teacher-auto-teach-failfast.test.cjs'
       - 'tests/test_teacher_auto_teach.py'
       - 'training-lab/datasets/thai-narrative-editor-foundation-v1.json'
       - 'training-lab/train-story-foundation.cjs'
@@ -47,6 +48,7 @@ on:
       - 'studio-story-only-ui.js'
       - 'tests/story-only-json.test.cjs'
       - 'tests/teacher-auto-teach.test.cjs'
+      - 'tests/teacher-auto-teach-failfast.test.cjs'
       - 'tests/test_teacher_auto_teach.py'
       - 'training-lab/datasets/thai-narrative-editor-foundation-v1.json'
       - 'training-lab/train-story-foundation.cjs'
@@ -86,7 +88,7 @@ jobs:
           node --check studio-story-only-ui.js
           node --check studio-script-ml.js
           python3 -m py_compile autodub/teacher.py autodub/handler.py autodub/student_learning.py
-          node --test tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs tests/story-continuity-coach.test.cjs tests/story-foundation-cpu.test.cjs tests/teacher-auto-teach.test.cjs tests/story-only-json.test.cjs
+          node --test tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs tests/story-continuity-coach.test.cjs tests/story-foundation-cpu.test.cjs tests/teacher-auto-teach.test.cjs tests/teacher-auto-teach-failfast.test.cjs tests/story-only-json.test.cjs
           node training-lab/train-story-foundation.cjs
           python3 tests/test_teacher_backend.py
           python3 tests/test_student_learning.py
