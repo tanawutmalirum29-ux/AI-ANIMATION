@@ -12,6 +12,7 @@ import re
 import time
 import unicodedata
 import uuid
+from decimal import Decimal
 from collections import Counter
 
 LABELS = ("keep", "remove", "review")
@@ -24,7 +25,7 @@ MAX_LESSONS = 500
 def _resp(code, value):
     return {"statusCode": code, "headers": {
         "Content-Type": "application/json", "Cache-Control": "no-store"},
-        "body": json.dumps(value, ensure_ascii=False)}
+        "body": json.dumps(value, ensure_ascii=False, default=lambda v: float(v) if isinstance(v, Decimal) else str(v))}
 
 
 def _table():
@@ -211,7 +212,7 @@ def _training():
         "stories": len(groups), "accuracy": round(accuracy, 4),
         "majorityBaseline": round(majority, 4), "qaPassed": qa_passed}
     sk = "model#" + model["version"]
-    _table().put_item(Item={"pk": PK, "sk": sk, "model": model,
+    _table().put_item(Item={"pk": PK, "sk": sk, "model": json.loads(json.dumps(model), parse_float=Decimal),
                             "createdAt": int(time.time()), "status": "candidate"})
     return _resp(200, {"trained": True, "activated": False,
                        "candidate": {"version": model["version"], "metrics": model["metrics"]},
