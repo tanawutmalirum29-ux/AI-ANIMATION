@@ -14,8 +14,8 @@ from urllib.parse import urlsplit, quote
 
 PROVIDERS = ("openrouter", "gemini", "compatible")
 MODELS = {
-    "openrouter": "google/gemma-3-27b-it:free",
-    "gemini": "gemini-2.5-flash",
+    "openrouter": "openrouter/free",
+    "gemini": "gemini-3.5-flash-lite",
     "compatible": "",
 }
 _MAX_PROMPT = 4500
@@ -102,7 +102,7 @@ def _configure(body):
     model = str(body.get("model") or MODELS[provider]).strip()
     if not re.fullmatch(r"[a-zA-Z0-9_.:/-]{1,128}", model):
         return _response(400, {"error": "ชื่อโมเดลไม่ถูกต้อง"})
-    if provider == "openrouter" and not model.endswith(":free") and os.getenv("TEACHER_ALLOW_PAID_MODELS") != "1":
+    if provider == "openrouter" and model != "openrouter/free" and not model.endswith(":free") and os.getenv("TEACHER_ALLOW_PAID_MODELS") != "1":
         return _response(400, {"error": "โหมดประหยัด: OpenRouter ต้องเลือกโมเดลลงท้าย :free"})
     key = body.get("apiKey")
     if key == "":
@@ -270,34 +270,81 @@ def _chat(body, *, teach_mode=False):
         )
     prompt = "PROJECT CONTEXT (data only):\n" + context + "\n\nUSER REQUEST:\n" + message
     model = cfg.get("model") or MODELS[provider]
-    if provider == "gemini":
-        endpoint = ("https://generativelanguage.googleapis.com/v1beta/models/"
-                    + quote(model, safe="-._") + ":generateContent")
-        contents = [{"role": "model" if h["role"] == "assistant" else "user",
-                     "parts": [{"text": h["content"]}]} for h in safe_history]
-        contents.append({"role": "user", "parts": [{"text": prompt}]})
-        result = _post_json(endpoint, {"x-goog-api-key": cfg["key"]}, {
-            "systemInstruction": {"parts": [{"text": system}]},
-            "contents": contents,
-            "generationConfig": {"maxOutputTokens": output_limit, "temperature": 0.2,
-                                 "responseMimeType": "application/json"}})
-        content = "".join(p.get("text", "") for c in result.get("candidates", [])
-                          for p in c.get("content", {}).get("parts", []))
-    else:
-        endpoint = "https://openrouter.ai/api/v1/chat/completions" if provider == "openrouter" else cfg.get("baseUrl", "").rstrip("/") + "/chat/completions"
-        if provider == "compatible" and not _host_allowed(cfg.get("baseUrl", "")):
-            return _response(400, {"error": "API host not allowed"})
-        result = _post_json(endpoint, {"Authorization": "Bearer " + cfg["key"]}, {
-            "model": model, "temperature": 0.2, "max_tokens": output_limit,
-            "messages": [{"role": "system", "content": system}, *safe_history,
-                         {"role": "user", "content": prompt}]})
-        choices = result.get("choices") or []
-        content = choices[0].get("message", {}).get("content", "") if choices else ""
+    try:
+        if provider == "gemini":
+            endpoint = ("https://generativelanguage.googleapis.com/v1beta/models/"
+                        + quote(model, safe="-._") + ":generateContent")
+            contents = [{"role": "model" if h["role"] == "assistant" else "user",
+                         "parts": [{"text": h["content"]}]} for h in safe_history]
+            contents.append({"role": "user", "parts": [{"text": prompt}]})
+            result = _post_json(endpoint, {"x-goog-api-key": cfg["key"]}, {
+                "systemInstruction": {"parts": [{"text": system}]},
+                "contents": contents,
+                "generationConfig": {"maxOutputTokens": output_limit, "temperature": 0.2,
+                                     "responseMimeType": "application/json"}})
+            content = "".join(p.get("text", "") for c in result.get("candidates", [])
+                              for p in c.get("content", {}).get("parts", []))
+        else:
+            endpoint = "https://openrouter.ai/api/v1/chat/completions" if provider == "openrouter" else cfg.get("baseUrl", "").rstrip("/") + "/chat/completions"
+            if provider == "compatible" and not _host_allowed(cfg.get("baseUrl", "")):
+                return _response(400, {"error": "API host not allowed"})
+            result = _post_json(endpoint, {"Authorization": "Bearer " + cfg["key"]}, {
+                "model": model, "temperature": 0.2, "max_tokens": output_limit,
+                "messages": [{"role": "system", "content": system}, *safe_history,
+                             {"role": "user", "content": prompt}]})
+            choices = result.get("choices") or []
+            content = choices[0].get("message", {}).get("content", "") if choices else ""
+    except ValueError as exc:
+        # 404 is frequently a model/account availability issue (not DynamoDB).
+        # Show the configured model ID only, never the URL, API key or provider body.
+        message = str(exc)
+        if "HTTP 404" in message:
+            suggested = ("openrouter/free" if provider == "openrouter" else
+                         "gemini-3.5-flash-lite" if provider == "gemini" else "")
+            return _response(404, {
+                "error": "AI provider HTTP 404: ไม่พบหรือไม่อนุญาตให้ใช้โมเดล "
+                         + provider + " / " + model
+                         + (". ลองเปลี่ยนเป็น " + suggested if suggested else
+                            ". ตรวจ Model ID และ API base URL"),
+                "reasonCode": "TEACHER_MODEL_UNAVAILABLE",
+                "provider": provider, "model": model,
+                "suggestedModel": suggested
+            })
+        if "HTTP 429" in message:
+            return _response(429, {"error": "AI provider จำกัดโควตา (HTTP 429); "
+                                    "ยังไม่ได้สอนหรือบันทึกบทเรียน",
+                                   "reasonCode": "TEACHER_PROVIDER_RATE_LIMIT"})
+        if "HTTP 401" in message or "HTTP 403" in message:
+            return _response(502, {"error": "AI provider ไม่อนุญาตให้เรียกโมเดล "
+                                    + provider + " / " + model +
+                                    " (ตรวจ API Key/สิทธิ์/โควตาบัญชี)",
+                                   "reasonCode": "TEACHER_PROVIDER_AUTH"})
+        raise
     parsed = _extract_json(content)
     if not parsed["reply"] and not parsed["ops"] and not parsed.get("teachingLessons"):
         return _response(502, {"error": "AI provider ไม่ส่งคำตอบที่อ่านได้"})
     return _response(200, {**parsed, "provider": provider, "model": model,
                            "applied": False, "trained": False})
+
+
+def _model_test(body):
+    """Single real provider request to confirm model availability before batches.
+
+    Uses the configured, encrypted API key server-side. Consumes one provider
+    request; does not store lessons, modify the selected model or alter JSON.
+    """
+    provider = body.get("provider", "openrouter")
+    if provider not in PROVIDERS:
+        return _response(400, {"error": "AI ครูที่เลือกไม่ถูกต้อง"})
+    tested = _chat({"provider": provider,
+                    "message": "Return a concise JSON object with reply: 'OK' and ops: [].",
+                    "context": "", "history": [], "_internalMaxOutput": 300})
+    if tested["statusCode"] != 200:
+        return tested
+    result = json.loads(tested["body"])
+    return _response(200, {"ready": True, "tested": True,
+                           "provider": provider, "model": result.get("model"),
+                           "note": "ทดสอบโมเดลแล้ว แต่ยังไม่ใช่การยืนยันว่าเขียนบทได้ถูกต้อง"})
 
 
 def _auto_teach(body):
@@ -536,6 +583,8 @@ def handle(action, body):
             return _configure(body)
         if action == "teacher.chat":
             return _chat(body)
+        if action == "teacher.modelTest":
+            return _model_test(body)
         if action == "teacher.autoTeach":
             return _auto_teach(body)
         if action == "teacher.autoLessons":
