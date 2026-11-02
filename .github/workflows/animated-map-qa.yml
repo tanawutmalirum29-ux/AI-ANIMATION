@@ -24,6 +24,7 @@ on:
       - studio-production-assets.js
       - studio-coastal-world.js
       - tests/coastal-world-svg.test.cjs
+      - tests/coastal-story-action-regression.test.cjs
       - tests/coastal-world-browser-smoke.cjs
       - examples/coastal-gate-ml-training-one-episode.json
       - studio-production-planner.js
@@ -91,6 +92,7 @@ on:
       - studio-production-assets.js
       - studio-coastal-world.js
       - tests/coastal-world-svg.test.cjs
+      - tests/coastal-story-action-regression.test.cjs
       - tests/coastal-world-browser-smoke.cjs
       - examples/coastal-gate-ml-training-one-episode.json
       - studio-production-planner.js
@@ -168,6 +170,7 @@ jobs:
           node --check studio-production-assets.js
           node --check studio-coastal-world.js
           node tests/coastal-world-svg.test.cjs
+          node tests/coastal-story-action-regression.test.cjs
           node --check studio-production-planner.js
           node --check studio-layout-ml.js
           node tests/layout-ml-contract.test.cjs
