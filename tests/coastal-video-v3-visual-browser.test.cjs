@@ -1,0 +1,55 @@
+'use strict';
+const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const path=require('node:path'),fs=require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ try{
+  const page=await browser.newPage({viewport:{width:820,height:1180},deviceScaleFactor:1});
+  const errs=[];page.on('pageerror',e=>errs.push(e.message));
+  const story=JSON.parse(fs.readFileSync(path.resolve(__dirname,
+   '../examples/coastal-gate-ml-training-one-episode.json'),'utf8'));
+  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  const inspect=await page.evaluate(story=>{
+   const S=StoryStudioBridge.get();
+   S.project.aspect='9:16';S.project.subMax=28;S.characters=story.characters;S.locations=story.locations;
+   S.episodes=[story.episodes[0]];selEp=0;sel=0;T=0;fit();
+   const boxes=()=>{
+    const stage=document.querySelector('#stage').getBoundingClientRect();
+    const find=q=>[...document.querySelectorAll(q)].map(el=>{
+     const b=el.getBoundingClientRect(),h=Math.max(0,Math.min(stage.bottom,b.bottom)-Math.max(stage.top,b.top)),
+       w=Math.max(0,Math.min(stage.right,b.right)-Math.max(stage.left,b.left));
+     return {h,bh:b.height,w,bw:b.width,
+      top:(b.top-stage.top)/stage.height,visible:h>5&&w>5};
+    });
+    return {hill:find('[data-world-object="safe-hill"] [data-world-object="market-person"]'),
+      warning:find('[data-world-object="merchant-acknowledgment"] [data-world-object="market-person"]'),
+      flood:find('[data-world-object="market-street-flood"]'),
+      caption:document.getElementById('sub').textContent};
+   };
+   const sets=[];
+   for(const [i,q] of [[0,.20],[1,.7],[2,.58],[3,.86]]){
+    const start=S.episodes[0].scenes.slice(0,i).reduce((sum,sc)=>sum+sc.duration,0);
+    sel=i;T=start+S.episodes[0].scenes[i].duration*q;draw();sets.push(boxes());
+   }
+   const phrases=['ค่ำคืนนี้ฝนตกหนัก ตลาด','ทุกคนหนีขึ้นที่สูงได้ทัน','พิมมองเห็นบานเหล็ก ของประตูระบายน้ำ'];
+   const captions=phrases.map(x=>formatTimedCaption(x));
+   return {sets,captions};
+  },story);
+  const [opening,leak,warning,ending]=inspect.sets;
+  assert.ok(warning.warning.some(x=>x.visible&&x.h>25),
+   'acknowledging merchant must be visible and readable in portrait frame: '+JSON.stringify(warning.warning));
+  assert.ok(ending.hill.filter(x=>x.visible&&x.h>22).length>=2,
+   'safe hill needs at least two readable visible villagers: '+JSON.stringify(ending.hill));
+  assert.ok(ending.flood.length,'bounded street flood exists');
+  assert.ok(ending.flood.every(x=>x.top>.66),
+   'flood may not form a tall blue sheet above market: '+JSON.stringify(ending.flood));
+  for(const txt of inspect.captions){
+   const lines=txt.split('\n');
+   assert.ok(lines.length<=2,'never more than 2 lines');
+   if(lines.length>1)assert.ok([...lines[1]].length>=6,'no stranded Thai word: '+JSON.stringify(lines));
+   assert.ok(lines.every(l=>[...l].length<=19),'portrait safe line width');
+  }
+  assert.deepEqual(errs,[]);
+  console.log('PASS: merchant and hill readable at portrait preview size, flooding stays below shopfronts, Thai captions balanced');
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
