@@ -13,6 +13,7 @@ const MODES=[
 ];
 let bridge,container,tab='chat',provider='openrouter',statusData=null,thread=[],pending=[],busy=false,notice='',noticeError=false,lastResponse=null;
 let connectionDraft={url:'',model:''};
+let studentReview=null,studentChoice='review',studentOwnerReason='',lastStudentCandidate=null;
 const el=(tag,attrs={},...children)=>{
  const n=$doc.createElement(tag);
  for(const [key,value] of Object.entries(attrs)){
@@ -172,6 +173,12 @@ async function sendMessage(value){
   const reply=String(result.reply||'').trim();
   addMessage('assistant',reply||'AI ครูส่งเฉพาะข้อเสนอแก้ไข');
   lastResponse={prompt,reply,model:result.model,provider:result.provider};
+  if(studentReview?.awaitingTeacher){
+   studentReview.awaitingTeacher=false;
+   studentReview.teacherReason=String(result.lessonDecision?.reason||reply).slice(0,600);
+   if(['keep','remove','review'].includes(result.lessonDecision?.label))
+    studentChoice=result.lessonDecision.label;
+  }
   const safeOps=Array.isArray(result.ops)?result.ops.filter(x=>x?.op==='updateScene'
    && typeof x.id==='string'&&x.patch&&typeof x.patch==='object'&&!Array.isArray(x.patch)
    && Object.keys(x.patch).every(k=>['notes','voiceover','subtitle','duration'].includes(k))).slice(0,6):[];
@@ -328,6 +335,152 @@ async function showHistory(){
  }catch(e){setNotice('อ่านความจำไม่สำเร็จ: '+e.message,true)}
  finally{busy=false}
 }
+
+function currentStudentScene(){
+ const state=bridge.get(),scene=bridge.scene?.();
+ if(!scene?.id||!String(scene.voiceover||'').trim())throw Error('กรุณาเลือกฉากที่มีบทพากย์ก่อน');
+ const episode=state.episodes?.[bridge.episodeIndex?.()||0];
+ return {scene,episode};
+}
+async function reviewStudent(){
+ if(busy)return;
+ let current;
+ try{current=currentStudentScene()}catch(e){setNotice(e.message,true);return}
+ const ml=root.StoryScriptML;
+ if(!ml?.review||!ml?.sceneContextById){setNotice('Script ML ยังไม่พร้อม โปรดรีโหลดหน้าเว็บ',true);return}
+ busy=true;
+ try{
+  // Read long-term memory before making the student's next decision.
+  try{await root.StoryStudentLearning?.load?.()}catch(_){}
+  const ctx=ml.sceneContextById(bridge.get(),current.scene.id)||{};
+  const original=String(current.scene.voiceover);
+  const child=ml.review(original,ctx);
+  studentChoice=child?.intent?.decision==='clean'?'keep':
+   child?.intent?.decision==='remove'?'remove':
+   child?.intent?.decision==='keep'?'keep':'review';
+  studentOwnerReason='';
+  studentReview={sceneId:current.scene.id,episodeId:current.episode?.id||'',
+   original,context:{mode:String(ctx.mode||'narration'),
+   emotion:String(ctx.emotion||''),situation:String(ctx.situation||'')},
+   childDecision:child?.intent?.decision||'review',
+   childProposed:String(child?.proposed||original).slice(0,1200),
+   childReason:String(child?.intent?.reason||'').slice(0,500),
+   memory:child?.intent?.memoryAdvice||null,
+   teacherReason:'',awaitingTeacher:!!modelOptions().find(x=>x.id===provider&&x.ready)};
+  setNotice('AI ลูกวิเคราะห์ฉากแล้ว · '+studentReview.childDecision+
+   ' · '+(studentReview.memory?'พบความจำก่อนหน้า':'ยังไม่มีความจำที่ตรงกัน'));
+ }catch(e){setNotice('วิเคราะห์ AI ลูกไม่สำเร็จ: '+e.message,true)}
+ finally{busy=false;render()}
+ if(!studentReview?.awaitingTeacher)return;
+ const prompt='Evaluate the student AI repetition decision for this Thai script. '+
+  'Preserve author intent and emotion. Return JSON reply, ops:[], '+
+  'and lessonDecision:{label:"keep|remove|review",reason:"..."} '+
+  'as a recommendation only. Student decision: '+studentReview.childDecision+
+  '. Student reason: '+studentReview.childReason+
+  '. Student proposed: '+studentReview.childProposed+
+  '. Context: '+JSON.stringify(studentReview.context)+
+  '. Original Thai narration: '+studentReview.original.slice(0,800);
+ await sendMessage(prompt.slice(0,4400));
+}
+async function saveStudentLesson(){
+ if(busy||!studentReview)return;
+ const current=bridge.get().episodes.flatMap(e=>e.scenes||[]).find(s=>s.id===studentReview.sceneId);
+ if(!current||String(current.voiceover||'')!==studentReview.original){
+  setNotice('บทเปลี่ยนไปหลังวิเคราะห์ กรุณาวิเคราะห์ใหม่ก่อนสอน',true);return;
+ }
+ if(!root.confirm('ยืนยันสอน AI ลูกว่า "'+studentChoice+
+  '" ถูกต้องสำหรับฉากนี้? เก็บบทเรียนนี้บน AWS เพื่อใช้กับเรื่องถัดไป (ยังไม่ฝึกน้ำหนัก)'))return;
+ busy=true;render();
+ try{
+  const result=await api('student.lesson',{projectId:projectId(),lesson:{
+   reviewedByOwner:true,text:studentReview.original,label:studentChoice,
+   sceneId:studentReview.sceneId,episodeId:studentReview.episodeId,
+   context:studentReview.context,studentDecision:studentReview.childDecision,
+   teacherReason:studentReview.teacherReason,ownerReason:studentOwnerReason}});
+  if(!result.saved)throw Error('AWS ยังไม่ยืนยันการจัดเก็บบทเรียน');
+  studentReview=null;
+  await root.StoryStudentLearning?.load?.(true);
+  setNotice('บันทึกบทเรียนบน AWS แล้ว · AI ลูกสามารถค้นคืนได้ในงานถัดไป (ยังไม่ได้เปลี่ยนน้ำหนักโมเดล)');
+ }catch(e){setNotice('สอน AI ลูกไม่สำเร็จ: '+e.message,true)}
+ finally{busy=false;render()}
+}
+async function refreshStudentMemory(){
+ if(busy)return;
+ busy=true;render();
+ try{
+  const state=await root.StoryStudentLearning.load(true);
+  setNotice('โหลดความจำจาก AWS '+state.lessonCount+' ตัวอย่าง · โมเดล '+(state.activeVersion||'ยังไม่เปิดใช้'));
+ }catch(e){setNotice('โหลดความจำไม่สำเร็จ: '+e.message,true)}
+ finally{busy=false;render()}
+}
+async function trainStudentModel(){
+ if(busy)return;
+ if(!root.confirm('เริ่มฝึกโมเดลคำซ้ำ CPU จากข้อมูลที่คุณอนุมัติแล้ว? ต้องมีอย่างน้อย 60 ตัวอย่าง จาก 5 เรื่อง และแต่ละ label อย่างน้อย 10 ตัวอย่าง'))return;
+ busy=true;render();
+ try{
+  const result=await api('student.train');
+  if(!result.trained)throw Error('ระบบยังไม่ยืนยันว่าฝึกโมเดล');
+  lastStudentCandidate=result.candidate;
+  const m=result.candidate?.metrics||{};
+  setNotice('ฝึกน้ำหนักแล้ว รุ่น '+result.candidate.version+
+   ' · Holdout '+Math.round(Number(m.accuracy||0)*100)+'%'+
+   (m.qaPassed?' · ผ่านเกณฑ์ QA รออนุมัติ':' · ยังไม่ผ่าน QA ห้ามเปิดใช้'));
+ }catch(e){setNotice('ฝึกไม่สำเร็จ: '+e.message,true)}
+ finally{busy=false;render()}
+}
+async function activateStudentModel(){
+ const model=lastStudentCandidate;
+ if(busy||!model?.metrics?.qaPassed)return;
+ if(!root.confirm('อนุมัติโมเดล '+model.version+
+  ' สำหรับให้คำแนะนำเท่านั้น? โมเดลจะไม่แก้บทหรือส่งออกโดยอัตโนมัติ'))return;
+ busy=true;render();
+ try{
+  const result=await api('student.activate',{version:model.version,approvedByOwner:true});
+  if(!result.activated)throw Error('AWS ไม่ยืนยันการเปิดใช้โมเดล');
+  await root.StoryStudentLearning.load(true);
+  setNotice('เปิดใช้โมเดล '+model.version+' เป็นที่ปรึกษา AI ลูกแล้ว · ยังคงตรวจและอนุมัติก่อนแก้บท');
+ }catch(e){setNotice('เปิดใช้โมเดลไม่สำเร็จ: '+e.message,true)}
+ finally{busy=false;render()}
+}
+function studentPanel(){
+ const summary=root.StoryStudentLearning?.summary?.()||{};
+ const content=el('div',{className:'teacher-content'},
+  el('strong',{},'AI ลูกเรียนรู้จากงานจริง'),
+  el('p',{className:'teacher-muted'},
+   '1. นำเข้า JSON แล้วเลือกฉาก · 2. ให้ AI ลูกวิเคราะห์และ AI แม่ตรวจ · 3. เลือกผลที่ถูกต้องและบันทึกบน AWS · 4. สะสมหลายเรื่องเพื่อฝึกน้ำหนัก'),
+  el('div',{className:'teacher-row'},button('AI ลูกวิเคราะห์ → AI แม่ตรวจ',reviewStudent,'teacher-primary',busy),
+    button('โหลดความจำ AWS',refreshStudentMemory,'',busy)),
+  el('p',{className:'teacher-muted'},'ตัวอย่างในหน่วยความจำ '+(summary.lessonCount||0)+
+   ' · โมเดลปัจจุบัน '+(summary.activeVersion||'ยังไม่มีรุ่นอนุมัติ')));
+ if(studentReview){
+  content.append(el('article',{className:'teacher-draft'},
+   el('strong',{},'ผลวิเคราะห์ฉาก '+studentReview.sceneId),
+   el('p',{},'บทต้นฉบับ: '+studentReview.original.slice(0,900)),
+   el('p',{},'AI ลูก: '+studentReview.childDecision+' · '+studentReview.childReason),
+   ...(studentReview.memory?[el('p',{},'ความจำเดิม: '+studentReview.memory.label+
+     ' · ที่มา '+studentReview.memory.source)]:[]),
+   el('p',{},'AI แม่: '+(studentReview.teacherReason||'ยังไม่ตรวจ / ใช้การตัดสินใจของคุณ')),
+   el('label',{className:'teacher-field'},el('span',{},'คำตอบที่ถูกต้อง (คุณเป็นผู้อนุมัติ)'),
+    el('select',{id:'studentLessonChoice',onchange:ev=>{studentChoice=ev.target.value}},
+     ...[['keep','ควรเก็บคำซ้ำ'],['remove','ควรลบคำซ้ำ'],['review','ยังไม่แน่ใจ ต้องตรวจ']].map(([value,label])=>
+      el('option',{value,selected:value===studentChoice},label)))),
+   el('label',{className:'teacher-field'},el('span',{},'เหตุผลเพิ่มเติม (ไม่บังคับ)'),
+    el('textarea',{rows:2,maxLength:700,oninput:ev=>{studentOwnerReason=ev.target.value}},studentOwnerReason)),
+   button('อนุมัติและบันทึกเป็นบทเรียนถาวร',saveStudentLesson,'teacher-primary',busy)));
+ }
+ content.append(el('div',{className:'teacher-memory-training'},
+  el('strong',{},'ฝึกน้ำหนักโมเดล CPU'),
+  el('p',{className:'teacher-muted'},
+   'ฝึกจากตัวอย่างที่คุณอนุมัติอย่างน้อย 60 ตัวอย่าง / 5 เรื่อง มีชุดทดสอบแยกตามเรื่อง โมเดลจะไม่เปิดใช้เอง'),
+  el('div',{className:'teacher-row'},
+   button('ฝึกโมเดลรุ่นใหม่',trainStudentModel,'',busy),
+   button('เปิดใช้รุ่นที่ผ่าน QA',activateStudentModel,'teacher-primary',
+     busy||!lastStudentCandidate?.metrics?.qaPassed)),
+  ...(lastStudentCandidate?[el('p',{className:'teacher-muted'},'รุ่น '+lastStudentCandidate.version+
+   ' · ความถูกต้องชุดทดสอบ '+Math.round(Number(lastStudentCandidate.metrics.accuracy)*100)+'%'+
+   ' · '+(lastStudentCandidate.metrics.qaPassed?'ผ่าน QA':'ไม่ผ่าน QA'))]:[])));
+ return content;
+}
 function memoryPanel(){
  const content=el('div',{className:'teacher-content'},
   el('strong',{},'Training Feedback Memory'),
@@ -345,10 +498,10 @@ function render(reset=true){
  if(!reset&&active&&container.contains(active))active.blur();
  container.replaceChildren(header(),
   el('nav',{className:'teacher-tabs','aria-label':'AI Teacher Studio'},
-    ...[['chat','คุย / สั่งงาน'],['connect','เชื่อม API'],['memory','ความจำ AI ลูก']].map(([id,label])=>
+    ...[['chat','คุย / สั่งงาน'],['connect','เชื่อม API'],['student','สอน AI ลูก'],['memory','ประวัติ']].map(([id,label])=>
      button(label,()=>{tab=id;render()},tab===id?'active':''))),
   el('p',{className:'teacher-notice',role:'status','aria-live':'polite','data-error':String(noticeError)},notice||'AI ครูต้องเชื่อมต่อ API ก่อนใช้งาน'),
-  tab==='connect'?connectPanel():tab==='memory'?memoryPanel():chatPanel());
+  tab==='connect'?connectPanel():tab==='memory'?memoryPanel():tab==='student'?studentPanel():chatPanel());
 }
 function mount(target,source){
  container=target;bridge=source;getWorkspace();
