@@ -105,7 +105,7 @@ function buildAiMenu(){
  const menu=q('#menu');
  if(!menu||!aiOn())return;
  menu.replaceChildren(
-  el('div',{className:'menu-head'},el('div',{},el('strong',{},'สตูดิโอ AI'),el('small',{},'พรีวิว · JSON · สั่งงาน')),
+  el('div',{className:'menu-head','data-ai-menu':'1'},el('div',{},el('strong',{},'สตูดิโอ AI'),el('small',{},'พรีวิว · JSON · สั่งงาน')),
    el('button',{type:'button',className:'menu-close',onclick:()=>root.setMenuOpen(false),'aria-label':'ปิดเมนู'},'×')),
   el('section',{className:'menu-group'},el('div',{className:'menu-grid'},
    menuButton('กลับพื้นที่สั่งงาน AI',()=>root.switchStudioTool('ai'),'✦'),
@@ -169,5 +169,14 @@ if(aiOn()){
  origSwitch.call(root,'ai');
 }
 root.renderTop();
+const top=q('#top');
+if(top&&typeof MutationObserver!=='undefined'){
+ const observer=new MutationObserver(()=>{
+  if(!aiOn())return;
+  if(summaryNode)summaryNode.textContent=summary();
+  if(!q('#menu [data-ai-menu]'))buildAiMenu();
+ });
+ observer.observe(top,{childList:true});
+}
 requestAnimationFrame(()=>{if(aiOn())root.fit()});
 })(window);
