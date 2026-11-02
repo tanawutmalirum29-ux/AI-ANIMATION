@@ -43,7 +43,9 @@ test('web integration exposes student feedback actions, imports runtime before t
  const teacher=fs.readFileSync(require('node:path').join(__dirname,'../studio-teacher.js'),'utf8');
  const backend=fs.readFileSync(require('node:path').join(__dirname,'../autodub/handler.py'),'utf8');
  assert.ok(html.indexOf('src="./studio-student-learning.js"')<html.indexOf('src="./studio-teacher.js"'));
- for(const action of ['student.lesson','student.lessons','student.train','student.activate'])
+ for(const action of ['student.lesson','student.train','student.activate'])
   assert.ok(teacher.includes(action),'teacher UI must call '+action);
+ assert.ok(fs.readFileSync(require('node:path').join(__dirname,'../studio-student-learning.js'),'utf8')
+  .includes('student.lessons'),'memory module must load approved lessons');
  assert.match(backend,/action\.startswith\("student\."\)/);
 });
