@@ -45,6 +45,8 @@ async function copyOrFile(content,label,name,mime='text/plain'){
 function openImport(){
  const details=q('#aihImportDetails');
  if(details)details.open=true;
+ const dlg=q('#dlg');
+ if(dlg?.classList.contains('aih-embedded')&&!dlg.open)dlg.show();
  const input=q('#imp');
  if(input){input.focus();input.scrollIntoView({block:'nearest',behavior:'smooth'})}
 }
@@ -82,7 +84,16 @@ function embedImport(){
  dlg.append(adv);
  dlg.classList.add('aih-embedded');
  slot.append(dlg);
- dlg.show();
+ const details=q('#aihImportDetails');
+ if(details&&!details.dataset.importToggle){
+  details.dataset.importToggle='1';
+  details.addEventListener('toggle',()=>{
+   if(!aiOn()||!dlg.classList.contains('aih-embedded'))return;
+   if(details.open&&!dlg.open)dlg.show();
+   if(!details.open&&dlg.open){ignoreClose++;dlg.close()}
+  });
+ }
+ if(details?.open&&!dlg.open)dlg.show();
 }
 function restoreImport(){
  const dlg=q('#dlg');
