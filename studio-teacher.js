@@ -22,6 +22,7 @@ const el=(tag,attrs={},...children)=>{
   else if(key==='onchange')n.addEventListener('change',value);
   else if(key==='oninput')n.addEventListener('input',value);
   else if(key==='disabled')n.disabled=!!value;
+  else if(key==='selected')n.selected=!!value;
   else if(key==='value')n.value=value;
   else if(key==='type')n.type=value;
   else n.setAttribute(key,String(value));
@@ -183,7 +184,7 @@ function chatPanel(){
  const providerSelect=el('select',{onchange:ev=>{provider=ev.target.value;render()}},
   ...modelOptions().map(p=>el('option',{value:p.id,selected:p.id===provider},p.id+' · '+(p.ready?'พร้อมใช้งาน':'ยังไม่เชื่อม'))));
  content.append(el('label',{className:'teacher-field'},'AI ครูที่เลือก',providerSelect));
- const commands=el('div',{className:'teacher-commands'},...MODES.map(m=>button(m.title,()=>{const box=container.querySelector('#teacherPrompt');if(box){box.value=m.prompt;box.focus()}},'',busy)));
+ const commands=el('div',{className:'teacher-commands'},...MODES.map(m=>button(m.title,()=>sendMessage(m.prompt),'',busy)));
  content.append(el('strong',{},'คำสั่งลัด'),commands);
  const log=el('div',{className:'teacher-log',role:'log','aria-live':'polite'});
  if(!thread.length)log.append(el('p',{className:'teacher-muted'},'พิมพ์คำสั่งภาษาไทยหรืออังกฤษได้ AI ครูจะอ่านบทภาษาไทยตามต้นฉบับ'));
@@ -222,11 +223,11 @@ function connectPanel(){
   textField('API key (ใส่ตอนเชื่อมหรือเปลี่ยนคีย์เท่านั้น)','',{id:'teacherApiKey',type:'password',autocomplete:'off',placeholder:item.ready?'เว้นว่างเพื่อใช้คีย์บน AWS':'วาง API key ที่นี่'}));
  if(provider==='compatible')content.append(textField('API Base URL · ต้องอนุญาต host บน AWS ก่อน',item.baseUrl||'',{id:'teacherBaseUrl',placeholder:'https://approved-host.example/v1'}));
  content.append(el('p',{className:'teacher-muted'},
-  'คีย์ส่งผ่าน HTTPS ไปยัง Lambda ที่ยืนยันตัวตน และบันทึกไว้ใน AWS Secrets Manager เท่านั้น ไม่ถูกเก็บในไฟล์โปรเจกต์/เบราว์เซอร์/GitHub'),
+  'คีย์ส่งผ่าน HTTPS ไปยัง Lambda ที่ยืนยันตัวตน และบันทึกไว้ใน AWS SSM SecureString หรือ Secrets Manager เท่านั้น ไม่ถูกเก็บในไฟล์โปรเจกต์/เบราว์เซอร์/GitHub'),
   el('div',{className:'teacher-row'},button('บันทึกและเชื่อมต่อ',saveConnection,'teacher-primary',busy||!session()),
     button('ตรวจสถานะ',loadStatus,'',busy)),
-  el('p',{className:'teacher-muted'},'ต้องตั้งค่า TEACHER_SETTINGS_SECRET_ID และสิทธิ์ AWS Lambda ก่อน ปิดการเชื่อมต่อหรือหมุนคีย์จาก AWS Secrets Manager ได้'));
- if(!statusData?.settingsReady)content.append(el('p',{className:'teacher-warning'},'ยังไม่พบที่เก็บคีย์บน AWS โปรดติดตั้ง Teacher Backend ก่อน'));
+  el('p',{className:'teacher-muted'},'ต้องตั้งค่า TEACHER_SETTINGS_PARAMETER หรือ TEACHER_SETTINGS_SECRET_ID และสิทธิ์ AWS Lambda ก่อน ปิดการเชื่อมต่อหรือหมุนคีย์จาก AWS Secrets Manager ได้'));
+ if(!statusData?.settingsReady)content.append(el('p',{className:'teacher-warning'},'ยังไม่พบที่เก็บคีย์บน AWS โปรดรัน setup-teacher.sh หลังติดตั้ง Lambda'));
  return content;
 }
 async function showHistory(){
