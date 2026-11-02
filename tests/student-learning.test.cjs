@@ -44,6 +44,6 @@ test('web integration exposes student feedback actions, imports runtime before t
  const backend=fs.readFileSync(require('node:path').join(__dirname,'../autodub/handler.py'),'utf8');
  assert.ok(html.indexOf('src="./studio-student-learning.js"')<html.indexOf('src="./studio-teacher.js"'));
  for(const action of ['student.lesson','student.lessons','student.train','student.activate'])
-  assert.match(teacher, new RegExp(action.replace('.','\\.'),'i').test(teacher)?new RegExp(action.replace('.','\\.')):new RegExp('student'));
+  assert.ok(teacher.includes(action),'teacher UI must call '+action);
  assert.match(backend,/action\.startswith\("student\."\)/);
 });
