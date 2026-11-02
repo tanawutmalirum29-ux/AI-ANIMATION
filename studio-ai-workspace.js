@@ -730,6 +730,48 @@ async function applyBatchScriptReview(){
  finally{busy=false;render()}
 }
 
+/* Command desk: dispatches only to existing tools, never pretends to be an LLM. */
+let commandDraft='';
+const commandExamples=[['ตรวจ QA','ตรวจเวลาและ QA'],['ตรวจคำซ้ำ','วิเคราะห์คำซ้ำ'],['แก้เวลา','จัดจังหวะให้ตรงเสียง'],['พากย์','พากย์เสียงตอนนี้'],['ผลิตทุกขั้น','ผลิตอัตโนมัติ'],['จัดซับ','จัดซับไตเติล']];
+function runCommand(){
+ const prompt=commandDraft.trim().slice(0,1200);
+ if(!prompt){status('พิมพ์คำสั่งหรือเลือกตัวอย่างก่อน',true);return}
+ if(busy){status('ยังมีงาน AI กำลังประมวลผล',true);return}
+ const value=prompt.toLocaleLowerCase('th');
+ let action='';
+ if(/คำซ้ำ|คำฟุ่มเฟือย|script ml/i.test(value)){action='ตรวจคำซ้ำ';analyzeAllScripts()}
+ else if(/จัดซับ|แบ่งวรรค|ปรับซับ|subtitle/i.test(value)){
+  action='จัดซับ';
+  if(!root.confirm('ปรับซับตามบทปัจจุบันและสำรองก่อนแก้ไข?'))return;
+  void runNarrative();
+ }else if(/ผลิตอัตโนมัติ|ผลิตทั้ง|ผลิตทุกขั้น|ทุกผู้ช่วย|6\s*ผู้ช่วย/i.test(value)){
+  action='ผลิตทุกขั้น';
+  if(!root.confirm('เริ่มผลิตทุกขั้นที่ระบบรองรับจาก JSON ปัจจุบัน?'))return;
+  void runCoordinatedProduction();
+ }else if(/พากย์|สร้างเสียง|tts|dub/i.test(value)){action='พากย์';queueWork('voice')}
+ else if(/แก้เวลา|ปรับเวลา|จัดจังหวะ|ยืดฉาก|ภาพค้าง|แบ่งตอน|ซิงก์เสียง/i.test(value)){action='แก้เวลา';queueWork('structure')}
+ else if(/ตรวจ|วิเคราะห์|qa|audit|ภาพทะลุ|ทับกัน/i.test(value)){action='ตรวจเวลาและ QA';previewAudit()}
+ else if(/ส่งออก|export|mp4/i.test(value)){action='ส่งออก';root.document?.querySelector('#videoQuick')?.click()}
+ else {status('ยังไม่มี LLM สำหรับคำสั่งอิสระนี้ · ใช้ตรวจคำซ้ำ, ตรวจ QA, แก้เวลา, พากย์, จัดซับ หรือผลิตทุกขั้น หรือส่งบริบทให้ AI ภายนอก',true);return}
+ persist(state=>core.historyPush(state,{speaker:'user',role:'structure',text:'สั่งงาน: '+prompt+' → '+action}));
+ commandDraft='';
+ const input=rootElement?.querySelector('#aiCommandText');
+ if(input)input.value='';
+}
+function commandDesk(){
+ const field=e('textarea',{id:'aiCommandText',rows:2,'aria-label':'ข้อความสั่งงาน AI',
+  placeholder:'พิมพ์งาน เช่น ตรวจ QA ทั้งโปรเจกต์ / แก้เวลาตามเสียง / พากย์ / ตรวจคำซ้ำ',
+  oninput:ev=>{commandDraft=ev.target.value}});
+ field.value=commandDraft;
+ return e('section',{className:'ai-command-desk','aria-label':'สั่งงาน AI'},
+  e('div',{className:'ai-command-title'},e('strong',{},'สั่งงานด้วย AI'),e('small',{},'คำสั่งภาษาไทยเรียกโมดูลจริง · ไม่ใช่แชต LLM')),
+  field,
+  e('div',{className:'ai-command-actions'},
+   button('สั่งงาน',runCommand,{className:'ai-primary',disabled:busy}),
+   ...commandExamples.map(([label,text])=>button(label,()=>{commandDraft=text;const input=rootElement?.querySelector('#aiCommandText');if(input){input.value=text;input.focus()}},{className:'ai-command-preset',disabled:busy}))
+  )
+ );
+}
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
  pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
@@ -1027,6 +1069,7 @@ function render(){
    e('p',{},'จัดองค์ประกอบ · SVG · Motion · เสียง · เวลา · QA'))),
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
+  commandDesk(),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
    ...[['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
