@@ -289,6 +289,68 @@ def _activate(body):
                        "mode": "advisory-only-no-auto-script-edit"})
 
 
+
+# Editor-approved examples for narrative coherence; NOT generative weights.
+STORY_PK = "learning#story-coherence"
+STORY_ISSUES = ("continuity", "clarity", "expand", "pacing", "keep")
+
+
+def _story_lesson(body):
+    project_id, lesson = body.get("projectId"), body.get("lesson")
+    if not _valid_project(project_id) or not isinstance(lesson, dict):
+        return _resp(400, {"error": "ข้อมูลโปรเจกต์/บทเรียนไม่ถูกต้อง"})
+    if lesson.get("reviewedByOwner") is not True or lesson.get("issue") not in STORY_ISSUES:
+        return _resp(400, {"error": "ต้องให้เจ้าของตรวจและเลือกประเภทบทเรียน"})
+    original, revised = lesson.get("original"), lesson.get("revised")
+    if (not isinstance(original, str) or not isinstance(revised, str)
+            or not 4 <= len(original.strip()) <= 1200
+            or not 4 <= len(revised.strip()) <= 1200):
+        return _resp(400, {"error": "บทก่อนและหลังแก้ต้องมี 4–1200 ตัวอักษร"})
+    previous, next_text = lesson.get("previous", ""), lesson.get("next", "")
+    if (not isinstance(previous, str) or not isinstance(next_text, str)
+            or len(previous) > 1000 or len(next_text) > 1000):
+        return _resp(400, {"error": "บริบทก่อนและหลังยาวเกินไป"})
+    record = {
+        "projectId": project_id, "episodeId": str(lesson.get("episodeId") or "")[:90],
+        "sceneId": str(lesson.get("sceneId") or "")[:90],
+        "issue": lesson["issue"], "original": original.strip(), "revised": revised.strip(),
+        "previous": previous, "next": next_text,
+        "ownerReason": str(lesson.get("ownerReason") or "")[:700],
+        "teacherReason": str(lesson.get("teacherReason") or "")[:700],
+        "source": "owner-approved-story-edit", "usedForWeightTraining": False
+    }
+    ident = "lesson#" + str(int(time.time())).zfill(12) + "#" + str(uuid.uuid4())
+    _table().put_item(Item={"pk": STORY_PK, "sk": ident, "record": record,
+                            "status": "editorial-memory-only", "createdAt": int(time.time())})
+    return _resp(200, {"saved": True, "id": ident, "trained": False,
+                       "memory": "editorial-few-shot-dataset"})
+
+
+def _story_lessons(body):
+    from boto3.dynamodb.conditions import Key
+    limit, cursor = body.get("limit", 40), body.get("cursor")
+    if type(limit) is not int or not 1 <= limit <= 80:
+        return _resp(400, {"error": "limit ต้องมีค่า 1–80"})
+    if cursor is not None and (not isinstance(cursor, str)
+            or not re.fullmatch(r"lesson#[0-9]{12}#[0-9a-f-]{36}", cursor)):
+        return _resp(400, {"error": "cursor ไม่ถูกต้อง"})
+    options = {"KeyConditionExpression": Key("pk").eq(STORY_PK)
+               & Key("sk").begins_with("lesson#"),
+               "ScanIndexForward": False, "Limit": limit}
+    if cursor:
+        options["ExclusiveStartKey"] = {"pk": STORY_PK, "sk": cursor}
+    response = _table().query(**options)
+    rows = [{"id": item["sk"], "createdAt": item.get("createdAt"),
+             **item["record"]} for item in response.get("Items", [])
+            if item.get("status") == "editorial-memory-only"
+            and isinstance(item.get("record"), dict)]
+    last = response.get("LastEvaluatedKey") or {}
+    return _resp(200, {"lessons": rows,
+                      "nextCursor": last.get("sk") if last.get("pk") == STORY_PK else None,
+                      "trained": False, "type": "story-coherence"})
+
+
+
 def handle(action, body):
     try:
         if action == "student.lesson":
@@ -303,6 +365,10 @@ def handle(action, body):
             return _activate(body)
         if action == "student.candidates":
             return _candidates()
+        if action == "student.storyLesson":
+            return _story_lesson(body)
+        if action == "student.storyLessons":
+            return _story_lessons(body)
     except Exception as exc:
         # Never leak raw text, storage contents, environment variables or API keys.
         return _resp(503, {"error": "AI Student service unavailable: " + type(exc).__name__})
