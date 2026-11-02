@@ -355,7 +355,9 @@ async function reviewStudent(){
   const ctx=ml.sceneContextById(bridge.get(),current.scene.id)||{};
   const original=String(current.scene.voiceover);
   const child=ml.review(original,ctx);
-  studentChoice=child?.intent?.decision==='clean'?'keep':
+  if(child?.intent?.hasRepetition===false)
+   throw Error('ฉากนี้ไม่พบคำซ้ำที่ต้องเรียนรู้ กรุณาเลือกฉากที่มีคำซ้ำหรือข้อสงสัย');
+  studentChoice=child?.intent?.decision==='clean'?'review':
    child?.intent?.decision==='remove'?'remove':
    child?.intent?.decision==='keep'?'keep':'review';
   studentOwnerReason='';
