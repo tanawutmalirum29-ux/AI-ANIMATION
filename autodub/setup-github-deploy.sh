@@ -5,6 +5,11 @@ set -euo pipefail
 export AWS_DEFAULT_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-ap-southeast-2}}"
 REGION="$AWS_DEFAULT_REGION"
 REPO="tanawutmalirum29-ux/AI-ANIMATION"
+# GitHub introduced immutable OIDC subjects for repos created after 2026-07-15.
+# IDs independently verified using GitHub get_repo on 2026-11-03.
+OWNER_ID="225819900"
+REPOSITORY_ID="1440864911"
+EXPECTED_SUB="repo:tanawutmalirum29-ux@${OWNER_ID}/AI-ANIMATION@${REPOSITORY_ID}:ref:refs/heads/main"
 ROLE="story-studio-gha-deploy"
 FN="${STORY_STUDIO_LAMBDA_NAME:-story-studio-autodub}"
 APP="d1wc6w01kiwpnk"
@@ -30,15 +35,15 @@ PY
   fi
 fi
 echo "[2/4] สร้าง IAM Role ที่อนุญาตเฉพาะ branch main..."
-python3 - "$TMP_DIR/trust.json" "$PROVIDER" "$REPO" <<'PY'
+python3 - "$TMP_DIR/trust.json" "$PROVIDER" "$EXPECTED_SUB" <<'PY'
 import json,sys
-path,provider,repo=sys.argv[1:]
+path,provider,expected_sub=sys.argv[1:]
 policy={"Version":"2012-10-17","Statement":[{
  "Effect":"Allow","Principal":{"Federated":provider},
  "Action":"sts:AssumeRoleWithWebIdentity",
  "Condition":{"StringEquals":{
    "token.actions.githubusercontent.com:aud":"sts.amazonaws.com",
-   "token.actions.githubusercontent.com:sub":"repo:"+repo+":ref:refs/heads/main"
+   "token.actions.githubusercontent.com:sub":expected_sub
  }}}]}
 with open(path,"w") as f:json.dump(policy,f)
 PY
@@ -49,6 +54,24 @@ else
   aws iam create-role --role-name "$ROLE" \
     --assume-role-policy-document "file://$TMP_DIR/trust.json" >/dev/null
 fi
+echo "ตั้งค่า GitHub OIDC sub แบบ immutable สำหรับ repo ID ${REPOSITORY_ID} (main เท่านั้น)"
+# Verify IAM persisted the exact expected trust conditions before continuing.
+aws iam get-role --role-name "$ROLE" --query 'Role.AssumeRolePolicyDocument' --output json > "$TMP_DIR/current-trust.json"
+python3 - "$TMP_DIR/current-trust.json" "$EXPECTED_SUB" "$PROVIDER" <<'PY'
+import json,sys
+doc=json.load(open(sys.argv[1]))
+expected,provider=sys.argv[2:]
+statements=doc.get("Statement",[])
+assert any(
+ st.get("Effect")=="Allow"
+ and st.get("Action")=="sts:AssumeRoleWithWebIdentity"
+ and st.get("Principal",{}).get("Federated")==provider
+ and st.get("Condition",{}).get("StringEquals",{}).get("token.actions.githubusercontent.com:sub")==expected
+ and st.get("Condition",{}).get("StringEquals",{}).get("token.actions.githubusercontent.com:aud")=="sts.amazonaws.com"
+ for st in statements
+), "AWS Trust Policy ไม่ตรงกับ GitHub immutable subject"
+print("IAM Trust Policy verified: main-only immutable GitHub repository identity")
+PY
 echo "[3/4] จำกัด IAM permissions เฉพาะ Lambda และ Amplify ของโปรเจกต์..."
 python3 - "$TMP_DIR/access.json" "$REGION" "$ACCOUNT" "$FN" "$APP" <<'PY'
 import json,sys
@@ -78,5 +101,6 @@ else
   echo "Value: $ARN"
 fi
 echo "GitHub-to-AWS OIDC role ready: $ARN"
+echo "Expected OIDC sub: $EXPECTED_SUB"
 echo "หลังตั้ง variable แล้วรัน Deploy AWS Studio จาก GitHub Actions ได้"
 echo "ต่อไปทุก push เข้า main จะอัปเดต Lambda และ Amplify โดยไม่ต้องเปิด CloudShell"
