@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),
  fs=require('node:fs'),path=require('node:path');
-const module=require('../studio-auto-teach.js');
+const auto=require('../studio-auto-teach.js');
 const repo=path.resolve(__dirname,'..');
 function read(name){return fs.readFileSync(path.join(repo,name),'utf8')}
 const project={project:{title:'บทฝนตก'},episodes:[{
@@ -11,7 +11,7 @@ const project={project:{title:'บทฝนตก'},episodes:[{
  {id:'s3',voiceover:'เมื่อฝนหยุด คนขายของเริ่มสำรวจร้าน',location:'ตลาด'}
  ]}]};
 test('child preflight reads every narration scene, sets contextual neighbors',()=>{
- const result=module.childScan(project,null,null);
+ const result=auto.childScan(project,null,null);
  assert.equal(result.rows.length,3);
  assert.equal(result.skipped.length,0);
  assert.equal(result.rows[0].previous,'');
@@ -25,7 +25,7 @@ test('invalid/ambiguous scenes skipped, not silently truncated or invented',()=>
   {id:'same',voiceover:'ประโยคที่หนึ่ง'},
   {id:'same',voiceover:'ประโยคที่สอง'}
  ]}]};
- const res=module.childScan(bad,null,null);
+ const res=auto.childScan(bad,null,null);
  assert.equal(res.rows.length,1);
  assert.equal(res.skipped.length,2);
 });
