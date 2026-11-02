@@ -114,14 +114,38 @@ def _add_lesson(body):
 
 
 def _lessons(body):
+    """Bounded, newest-first DynamoDB pagination for the private Studio memory UI.
+
+    Search/filter runs client-side on already loaded pages; no table-wide scans.
+    The cursor is an opaque-ish sort key, not arbitrary DynamoDB access.
+    """
+    from boto3.dynamodb.conditions import Key
     limit = body.get("limit", 120)
-    if not isinstance(limit, int) or not 1 <= limit <= 150:
+    cursor = body.get("cursor")
+    if type(limit) is not int or not 1 <= limit <= 150:
         return _resp(400, {"error": "limit ต้องเป็น 1–150"})
-    items = _get_lessons(limit)
-    return _resp(200, {"lessons": [
-        {"id": r["sk"], **r["record"]} for r in items
-        if r.get("status") == "approved-for-training" and isinstance(r.get("record"), dict)
-    ], "trained": False})
+    if cursor is not None and (not isinstance(cursor, str) or
+                               not re.fullmatch(r"lesson#[0-9]{12}#[0-9a-f-]{36}", cursor)):
+        return _resp(400, {"error": "cursor ไม่ถูกต้อง"})
+    options = {
+        "KeyConditionExpression": _key() & Key("sk").begins_with("lesson#"),
+        "ScanIndexForward": False,
+        "Limit": limit,
+    }
+    if cursor:
+        options["ExclusiveStartKey"] = {"pk": PK, "sk": cursor}
+    result = _table().query(**options)
+    rows = []
+    for item in result.get("Items", []):
+        record = item.get("record")
+        if item.get("status") != "approved-for-training" or not isinstance(record, dict):
+            continue
+        rows.append({"id": item["sk"], "createdAt": item.get("createdAt"),
+                     **record})
+    last = result.get("LastEvaluatedKey") or {}
+    next_cursor = last.get("sk") if last.get("pk") == PK else None
+    return _resp(200, {"lessons": rows, "nextCursor": next_cursor,
+                       "trained": False, "pageLimit": limit})
 
 
 def _filtered_rows(items):
