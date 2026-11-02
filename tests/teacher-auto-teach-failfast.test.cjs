@@ -37,9 +37,9 @@ test('141 scenes: one failed backend call stops immediately and reports root cau
  assert.deepEqual(calls,['teacher.status','teacher.autoLessons','teacher.modelTest','teacher.autoTeach']);
  assert.equal(result.scenes,141);
  assert.equal(result.completed,0);
- assert.equal(result.results.length,1);
- assert.equal(result.results[0].failed,2);
- assert.ok(result.progress.includes('ยังไม่ได้ประมวลผล 139'));
+ assert.equal(result.results.length,0);
+ assert.equal(result.readyExport,false);
+ assert.ok(result.progress.includes('AWS ยืนยัน 0/141'));
  assert.ok(result.failReasons[0].includes('HTTP 502'));
  assert.ok(!result.progress.includes('สอนครบทุกชุด'));
 });
@@ -57,7 +57,7 @@ test('stale Lambda is detected before any inference requests',async()=>{
  await assert.rejects(()=>auto.teach(),/Unknown action/);
  assert.deepEqual(calls,['teacher.status','teacher.autoLessons']);
  assert.equal(auto.getState().completed,0);
- assert.match(auto.getState().progress,/การสอนยังไม่สำเร็จ/);
+ assert.match(auto.getState().progress,/ไม่อ้างว่าสอนครบ/);
 });
 test('missing API key fails before the first paid provider request',async()=>{
  await setupScan(10);
@@ -79,7 +79,7 @@ test('adaptive grouping caps each model request at two short or one long scene',
  assert.match(source,/item\.text\.length>500/);
  assert.match(source,/length\+item\.text\.length>800/);
  assert.match(source,/if\(!payload\)\{/);
- assert.match(source,/stopEarly=true;break/);
+ assert.match(source,/if\(!rateLimited&&!lessonFormatError\)\{critical=true;break\}/);
  assert.match(source,/teacher\.autoLessons/);
  assert.match(source,/teacher\.status/);
 });
