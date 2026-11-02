@@ -203,7 +203,8 @@ function classifyIntent(text,context={}){
  // A quoted sentence or dramatic punctuation alone is NOT evidence of repetition.
  // Word/phrase repetitions can be intentional; the classification is context-aware.
  const hasRepetition=!!(indicators[0]||indicators[1]||indicators[2]||indicators[11]||
-  /([\p{Script=Thai}]{2,20})(?:\s+|[!！?？…]|\.{3})\s*\1/u.test(text));
+  /([\p{Script=Thai}]{2,20})(?:\s+|[!！?？…]|\.{3})\s*\1/u.test(text)||
+  /(ออกไป|ถอยไป|หลบไป|กลับมา|ไม่จริง|ช่วยด้วย)[!！?？]?[^\n]{0,45}\1/u.test(text));
  const emotionalNarration=mode==='narration'&&
   (/fear|anger|sad|surprise|hesitat|emphas|กลัว|ตกใจ|โกรธ|เศร้า|ลังเล|ย้ำ/u.test(emotion)||
    /danger|confront|panic|threat|argument|ทะเลาะ|วิกฤต/u.test(situation));
