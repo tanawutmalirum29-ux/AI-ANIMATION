@@ -31,6 +31,10 @@ on:
       - studio-production-planner.js
       - studio-layout-ml.js
       - studio-shot-ml.js
+      - studio-script-ml.js
+      - tests/script-ml.test.cjs
+      - training-lab/train-script-ml.cjs
+      - training-lab/datasets/script-review-assistant-demo.json
       - tests/shot-ml-contract.test.cjs
       - tests/shot-ml-browser.test.cjs
       - tests/layout-ml-contract.test.cjs
@@ -103,6 +107,10 @@ on:
       - studio-production-planner.js
       - studio-layout-ml.js
       - studio-shot-ml.js
+      - studio-script-ml.js
+      - tests/script-ml.test.cjs
+      - training-lab/train-script-ml.cjs
+      - training-lab/datasets/script-review-assistant-demo.json
       - tests/shot-ml-contract.test.cjs
       - tests/shot-ml-browser.test.cjs
       - tests/layout-ml-contract.test.cjs
@@ -235,7 +243,7 @@ jobs:
           test -f dist/studio-timing-auditor.js && test -f dist/studio-visual-qa.js
           test -f dist/studio-coastal-world.js
           test -f dist/studio-production-assets.js && test -f dist/studio-production-planner.js && test -f dist/studio-layout-ml.js && test -f dist/studio-shot-ml.js
-          test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
+          test -f dist/studio-script-ml.js && test -f dist/studio-ai-core.js && test -f dist/studio-ai-workspace.js && test -f dist/studio-ai-workspace.css
           test -f dist/studio-github-art.js
           test -f dist/studio-asset-core.js && test -f dist/studio-art-vault.js && test -f dist/studio-art-vault.css && test -f dist/assets/library.json
       - name: Install browser test dependencies
