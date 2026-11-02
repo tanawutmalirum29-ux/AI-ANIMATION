@@ -76,6 +76,27 @@ const path=require('node:path');
    await page.locator('.ai-command-desk').getByRole('button',{name:'สั่งงาน',exact:true}).click();
    assert.match(await page.locator('#aiWorkspaceStatus').textContent(),/ยังไม่มี LLM/);
 
+
+   // Story-only editor uses the same application, without any visual JSON requirement.
+   await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'เนื้อเรื่องล้วน'}).click();
+   assert.equal(await visible('.story-only-workspace'),true,'text-only workspace visible');
+   await page.locator('#storyOnlyPaste').fill(JSON.stringify({
+    type:'story-only',title:'ทดสอบบทล้วน',chapters:[{title:'ตอนแรก',
+     text:'ฝนเริ่มตกกลางตลาด\n\nคนขายของรีบยกกล่องขึ้นที่สูง'}]}));
+   await page.getByRole('button',{name:'นำเข้าข้อความ JSON'}).click();
+   await page.waitForFunction(()=>StoryStudioBridge.get().project.mode==='story-only');
+   const story=await page.evaluate(()=>StoryStudioBridge.get());
+   assert.equal(story.characters.length,0);
+   assert.equal(story.episodes[0].scenes.length,2);
+   assert.equal(story.episodes[0].scenes[0].imagePrompt,'');
+   assert.equal(await visible('#storyOnlyVoiceover'),true,'story text editable');
+   await page.locator('#storyOnlyVoiceover').fill('ฝนตกในตลาดอย่างหนัก');
+   await page.getByRole('button',{name:'บันทึกบทฉาก'}).click();
+   await page.waitForFunction(()=>StoryStudioBridge.get().episodes[0].scenes[0].voiceover==='ฝนตกในตลาดอย่างหนัก');
+   assert.equal(await visible('#pre'),true,'video preview remains unaffected');
+   await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'AI ครู / API'}).click();
+   await page.locator('.teacher-tabs').getByRole('button',{name:'คุย / สั่งงาน'}).click();
+   assert.equal(await visible('.teacher-auto-teach'),true,'teacher remains available with text-only project');
    await openMenu();
    await page.locator('#menu .menu-action',{hasText:'เปิดสตูดิโอตัดต่อเต็ม'}).click();
    await page.waitForFunction(()=>!document.documentElement.classList.contains('ai-only'));

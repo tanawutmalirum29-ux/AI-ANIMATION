@@ -4640,14 +4640,18 @@ function parseAiJSON(raw){
  throw new Error('รูปแบบ JSON ไม่สมบูรณ์: '+(err&&err.message||'อ่านไม่ได้'))
 }
 function plan(){let parsed;try{parsed=parseAiJSON($('#imp').value)}catch(x){return{issues:[E1('$',x.message,'ถ้า AI ส่งมาไม่ครบ ให้คัดลอก JSON ทั้งก้อนใหม่')],log:[],note:''}}
-let d=parsed.data;const detected=detectImportMode(d),requested=$('#mode').value,mode=requested==='auto'?detected:requested;
-const note=[parsed.note,detected&&requested==='auto'?'ตรวจพบ: '+MODE_LABELS[detected]:''].filter(Boolean).join(' · ');
+let d=parsed.data;let isTextOnly=false;
+ try{isTextOnly=!!window.StoryOnlyJSON?.appearsTextOnly(d);
+  if(isTextOnly)d=window.StoryOnlyJSON.convert(d)
+ }catch(err){return {issues:[E1('$',err.message)],log:[],note:'นำเข้าเนื้อเรื่องล้วน',mode:'replace'}}
+ const detected=detectImportMode(d),requested=$('#mode').value,mode=requested==='auto'?detected:requested;
+const note=[parsed.note,isTextOnly?'แปลงเนื้อเรื่องล้วนแล้ว (ไม่สร้างภาพ/ตัวละคร Rig)':'',detected&&requested==='auto'?'ตรวจพบ: '+MODE_LABELS[detected]:''].filter(Boolean).join(' · ');
 const fail=(msg,fix)=>({issues:[E1('$',msg,fix)],log:[],note,mode});
 if(!mode)return fail('ไม่ทราบว่า JSON ที่วางมาเป็นรูปแบบไหน','ใช้ {"ops":[...]} สำหรับแก้ไข หรือ JSON ทั้งโปรเจกต์สำหรับสร้างใหม่');
 if(detected==='patch'&&mode!=='patch')return fail('ข้อมูลนี้เป็นคำสั่ง ops ไม่ใช่โปรเจกต์ใหม่','เลือก "ตรวจจับรูปแบบอัตโนมัติ" หรือ "แก้ด้วยคำสั่ง (ops)"');
 if(mode==='patch'&&detected!=='patch')return fail('ข้อมูลนี้ไม่ใช่คำสั่ง ops','ใช้โหมดอัตโนมัติ หรือให้ AI ส่ง {"ops":[...]}');
 if(mode==='merge'&&detected!=='merge'&&detected!=='replace')return fail('ข้อมูลนี้ไม่ใช่ชุดตัวละคร/สถานที่/กฎ','เลือกโหมดอัตโนมัติหรือตรวจ JSON ที่วาง');
-const done=(issues,C,log=[])=>{const draft=smartRepairProject(C);const yes=!!$('#smartImportApply')?.checked&&smartEnabled('import');const data=yes?draft.data:C;
+const done=(issues,C,log=[])=>{const draft=C?.project?.mode==='story-only'?{data:C,changes:[]}:smartRepairProject(C);const yes=!!$('#smartImportApply')?.checked&&smartEnabled('import');const data=yes?draft.data:C;
  const normalizedAliases=repairCommonJsonAliases(data);
  const checked=[...issues.filter(i=>i.level==='error'),...diagnose(data)];
  const unique=new Map();checked.forEach(i=>unique.set(i.path+'|'+i.msg,i));const report=[...unique.values()];
@@ -5130,6 +5134,23 @@ window.StoryStudioBridge={
  soundCatalog:()=>SOUND_PRESETS.map(p=>({id:p.id,name:p.name,group:p.group})),
 
  get:()=>S,episodeIndex:()=>selEp,episode:()=>S?.episodes?.[selEp],
+ loadStoryOnly:(input)=>{
+  if(!window.StoryOnlyJSON)throw Error('Story Only module unavailable');
+  const project=window.StoryOnlyJSON.convertIfNeeded(input);
+  if(project?.project?.mode!=='story-only')throw Error('ไม่ใช่ JSON เนื้อเรื่องล้วน');
+  const errors=diagnose(project).filter(x=>x.level==='error');
+  if(errors.length)throw Error(errors[0].path+': '+errors[0].msg);
+  commit(()=>{S=normalize(project);selEp=0;sel=0;T=0});
+ },
+ updateStoryOnlyScene:(id,text)=>{
+  if(S?.project?.mode!=='story-only')throw Error('ต้องอยู่ในโหมดเนื้อเรื่องล้วน');
+  if(typeof text!=='string'||!text.trim()||text.length>1200)throw Error('บทต้องมีความยาว 1–1200 ตัวอักษร');
+  const scene=S.episodes.flatMap(ep=>ep.scenes||[]).find(x=>x.id===id);
+  if(!scene)throw Error('ไม่พบฉากนี้');
+  if(scene.voiceover===text)return;
+  commit(()=>{scene.voiceover=text;scene.subtitle=[];scene.subtitleCues=[];
+   scene.audioClips=[];scene.audio=null});
+ },
  layoutFeedback:(action)=>{
   const ML=window.StoryLayoutML;
   if(!ML)throw Error('โมดูล ML Feedback ยังไม่โหลด');
@@ -5205,7 +5226,8 @@ function fit(){
  w.style.height=cinema?'':mob?(sh+(phone?pad:24))+'px':'';
 }
 function render(){const savedScroll=window.scrollY;pauseAudioPlayers();hydrateAudioDurations();resetTransitionCache();renderTop();lib();inspector();timeline();ctl();renderMotionBar();showWelcome();const p=$('#previewContext');if(p)p.textContent=`ฉาก ${sel+1}/${ep().scenes.length} · ${S.project.aspect}`;fit();draw();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='record')renderDubDesk();if(innerWidth<=820&&!THEATER_ACTIVE&&Math.abs(window.scrollY-savedScroll)>4)requestAnimationFrame(()=>window.scrollTo({top:savedScroll,behavior:'instant'}));if(THEATER_ACTIVE)updateTheaterTitle();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='ai')window.StoryAIWorkspace?.render()}
-document.body.append(h('input',{type:'file',id:'file',accept:'.json',style:'display:none',onchange:e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(x){alert('ไฟล์ JSON ไม่ถูกต้อง');return}const importedSmart=d?.project?.smartDirector?.mode||smartMode();const repairs=importedSmart==='auto'&&smartEnabled('import')?smartRepairProject(d):{data:d,changes:[]};d=repairs.data;const er=diagnose(d).filter(i=>i.level==='error');if(er.length&&!(Array.isArray(d.episodes)&&d.episodes.length&&d.episodes.every(E=>E&&Array.isArray(E.scenes)&&E.scenes.length))){alert('เปิดไฟล์ไม่ได้: '+er[0].path+' — '+er[0].msg);return}if(er.length&&!confirm('พบ error '+er.length+' รายการ (เช่น '+er[0].path+': '+er[0].msg+') เปิดต่อไหม?'))return;commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});if(repairs.changes.length){openSmartDirector();smartSetStatus(`ปรับข้อมูลที่ขาดอัตโนมัติ ${repairs.changes.length} รายการ · Undo ได้`)} })}}));
+document.body.append(h('input',{type:'file',id:'file',accept:'.json',style:'display:none',onchange:e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(x){alert('ไฟล์ JSON ไม่ถูกต้อง');return}try{d=window.StoryOnlyJSON?.convertIfNeeded(d)||d}catch(err){alert('ไฟล์เนื้อเรื่องล้วนไม่ถูกต้อง: '+err.message);return}
+ const importedSmart=d?.project?.smartDirector?.mode||smartMode();const repairs=d?.project?.mode==='story-only'?{data:d,changes:[]}:importedSmart==='auto'&&smartEnabled('import')?smartRepairProject(d):{data:d,changes:[]};d=repairs.data;const er=diagnose(d).filter(i=>i.level==='error');if(er.length&&!(Array.isArray(d.episodes)&&d.episodes.length&&d.episodes.every(E=>E&&Array.isArray(E.scenes)&&E.scenes.length))){alert('เปิดไฟล์ไม่ได้: '+er[0].path+' — '+er[0].msg);return}if(er.length&&!confirm('พบ error '+er.length+' รายการ (เช่น '+er[0].path+': '+er[0].msg+') เปิดต่อไหม?'))return;commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});if(repairs.changes.length){openSmartDirector();smartSetStatus(`ปรับข้อมูลที่ขาดอัตโนมัติ ${repairs.changes.length} รายการ · Undo ได้`)} })}}));
 $('#smartImportApply').checked=smartMode()==='auto';$('#bChk').onclick=()=>{const r=plan();showIssues(r.issues,r.log,r.note)};$('#bCtx').onclick=copyCtx;$('#bImp').onclick=importIt;$('#bClose').onclick=()=>$('#dlg').close();
 $('#bAi').onclick=copyAiGuide;$('#bAiFile').onclick=downloadAiGuide;$('#bAiPack').onclick=downloadAiPackage;$('#dlgX').onclick=()=>$('#dlg').close();
 function updateImportHint(){const v=$('#imp').value;let txt='วาง JSON แล้วระบบจะเลือกวิธีนำเข้าให้อัตโนมัติ';try{const r=parseAiJSON(v),mode=detectImportMode(r.data);txt=(r.note?r.note+' · ':'')+(mode?'ตรวจพบ: '+MODE_LABELS[mode]:'ไม่ทราบประเภท JSON');if(mode&&$('#mode').value!=='auto'&&$('#mode').value!==mode)txt+=' · โหมดที่เลือกไม่ตรงกับข้อมูล'}catch(x){if(v.trim())txt='ต้องตรวจรูปแบบ JSON ก่อนนำเข้า'}$('#impHint').textContent=txt}
@@ -5227,4 +5249,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script></body></html>
+</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script></body></html>

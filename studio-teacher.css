@@ -112,3 +112,20 @@
 .teacher-auto-teach .teacher-row button{flex:1 1 165px}
 .teacher-auto-teach-progress{padding:10px 12px;border-radius:9px;background:#1e344c}
 .teacher-auto-teach-stats{font-weight:700}
+
+/* Script-first editing: mobile layout, no video/image production required. */
+.story-only-workspace{display:grid;gap:11px;padding:12px;min-width:0}
+.story-only-workspace h3{margin:0}
+.story-only-workspace label{display:grid;gap:6px;font-size:13px;min-width:0}
+.story-only-workspace :is(select,textarea,input[type=file]){width:100%;min-width:0;max-width:100%;font-size:14px}
+.story-only-workspace textarea{line-height:1.7;resize:vertical}
+.story-only-workspace input[type=file]{padding:9px;border-radius:9px}
+.story-only-import{display:grid;gap:10px;border:1px solid #778da580;border-radius:10px;padding:12px}
+.story-only-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.story-only-actions button{flex:1 1 155px;min-width:0;min-height:39px}
+.story-only-actions strong{overflow-wrap:anywhere}
+.story-only-notice{border:1px solid #8c9cb06a;background:#1a2b3f;border-radius:8px;
+ padding:10px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.story-only-notice[data-error="true"]{border-color:#bf8a5b;color:#ffd9a8}
+@media(max-width:530px){.story-only-workspace{padding:8px}
+.story-only-import{padding:9px}.story-only-actions button{flex:1 1 135px}}

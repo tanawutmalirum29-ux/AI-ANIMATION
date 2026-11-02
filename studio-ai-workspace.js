@@ -1077,12 +1077,13 @@ function render(){
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
   commandDesk(),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['teacher','AI ครู / API'],['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['story-only','เนื้อเรื่องล้วน'],['teacher','AI ครู / API'],['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );
  const area=rootElement.querySelector('#aiWorkspaceContent');
- if(view==='teacher'){if(root.StoryTeacherStudio)root.StoryTeacherStudio.mount(area,bridge);else area.append(e('p',{className:'ai-error'},'ไม่พบโมดูล AI ครู'))}
+ if(view==='story-only'){if(root.StoryOnlyWorkspace)root.StoryOnlyWorkspace.render(area,bridge);else area.append(e('p',{className:'ai-error'},'ยังไม่โหลดโหมดเนื้อเรื่องล้วน'))}
+ else if(view==='teacher'){if(root.StoryTeacherStudio)root.StoryTeacherStudio.mount(area,bridge);else area.append(e('p',{className:'ai-error'},'ไม่พบโมดูล AI ครู'))}
  else if(view==='chat')renderChat(area);
  else if(view==='tasks')renderTasks(area);
  else if(view==='bible')renderBible(area);
