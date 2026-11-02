@@ -33,6 +33,7 @@ on:
       - studio-shot-ml.js
       - studio-script-ml.js
       - tests/script-ml.test.cjs
+      - tests/script-ml-batch.test.cjs
       - training-lab/train-script-ml.cjs
       - training-lab/datasets/script-review-assistant-demo.json
       - tests/shot-ml-contract.test.cjs
@@ -109,6 +110,7 @@ on:
       - studio-shot-ml.js
       - studio-script-ml.js
       - tests/script-ml.test.cjs
+      - tests/script-ml-batch.test.cjs
       - training-lab/train-script-ml.cjs
       - training-lab/datasets/script-review-assistant-demo.json
       - tests/shot-ml-contract.test.cjs
@@ -192,6 +194,7 @@ jobs:
           node --check studio-shot-ml.js
           node --check studio-script-ml.js
           node --test tests/script-ml.test.cjs
+          node --test tests/script-ml-batch.test.cjs
           node training-lab/train-script-ml.cjs
           node tests/shot-ml-contract.test.cjs
           node tests/layout-ml-contract.test.cjs
