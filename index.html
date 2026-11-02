@@ -4296,7 +4296,23 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 function merge(t,p){for(const[k,v]of Object.entries(p||{})){if(isObj(v)&&isObj(t[k]))merge(t[k],v);else t[k]=v}return t}
 function wrapOne(line,max){line=String(line);if([...line].length<=max)return[line];
 const seg=(typeof Intl!=='undefined'&&Intl.Segmenter)?[...new Intl.Segmenter('th',{granularity:'word'}).segment(line)].map(x=>x.segment):line.split(/(?<=\s)/);
-const out=[];let cur='';for(const w of seg){if(cur.trim()&&[...(cur+w)].length>max){out.push(cur.trim());cur=w.trimStart()}else cur+=w}if(cur.trim())out.push(cur.trim());return out}
+const out=[];let cur='';for(const w of seg){if(cur.trim()&&[...(cur+w)].length>max){out.push(cur.trim());cur=w.trimStart()}else cur+=w}if(cur.trim())out.push(cur.trim());
+// Thai captions: avoid starting the next line with a stranded linking word
+// (e.g. "พิมมองเห็นบานเหล็ก / ของประตู..."). Rebalance only if both lines
+// still fit their original limit. Do not alter the underlying narration.
+if(out.length>1&&typeof Intl!=='undefined'&&Intl.Segmenter){
+ const tokenizer=new Intl.Segmenter('th',{granularity:'word'});
+ for(let i=1;i<out.length;i++){
+  if(!/^(ของ|และ|หรือ|ที่|กับ|เพื่อ|จาก|ให้|ใน|ก่อน)(?=\S)/.test(out[i]))continue;
+  const previous=out[i-1],parts=[...tokenizer.segment(previous)].map(x=>x.segment).filter(Boolean);
+  if(parts.length<2)continue;
+  const last=parts[parts.length-1],left=previous.slice(0,-last.length).trimEnd(),right=last+out[i];
+  if([...left].length>=Math.min(7,max*.35)&&[...right].length<=max){
+   out[i-1]=left;out[i]=right;
+  }
+ }
+}
+return out}
 
 /* Screen-safe captions: author can keep an entire paragraph; viewer shows only two short lines at once. */
 const CAPTION_CACHE=new WeakMap();
