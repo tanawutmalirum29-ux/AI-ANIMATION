@@ -31,7 +31,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าตลาด!”"
     },
     {
       "group": "story-01",
@@ -47,7 +47,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากตลาดไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากตลาด"
     },
     {
       "group": "story-02",
@@ -63,7 +63,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าประตูน้ำ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าประตูน้ำปลอดภัย!!!!!"
     },
     {
       "group": "story-02",
@@ -103,7 +103,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าท่าเรือ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-03",
@@ -143,7 +143,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าสะพาน จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ สะพานมีปัญหา"
     },
     {
       "group": "story-04",
@@ -167,7 +167,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากสะพานไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากสะพาน"
     },
     {
       "group": "story-05",
@@ -191,7 +191,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอคอยเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าหอคอย!”"
     },
     {
       "group": "story-05",
@@ -223,7 +223,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าชุมชน จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าชุมชนปลอดภัย!!!!!"
     },
     {
       "group": "story-06",
@@ -263,7 +263,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าโรงเรียน จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-07",
@@ -287,7 +287,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากโรงเรียนไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากโรงเรียน"
     },
     {
       "group": "story-08",
@@ -303,7 +303,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าโรงพยาบาล จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ โรงพยาบาลมีปัญหา"
     },
     {
       "group": "story-08",
@@ -351,7 +351,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากอาคารเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าอาคาร!”"
     },
     {
       "group": "story-09",
@@ -383,7 +383,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าสถานี จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าสถานีปลอดภัย!!!!!"
     },
     {
       "group": "story-10",
@@ -407,7 +407,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากสถานีไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากสถานี"
     },
     {
       "group": "story-11",
@@ -423,7 +423,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าเรือ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-11",
@@ -463,7 +463,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าโกดัง จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ โกดังมีปัญหา"
     },
     {
       "group": "story-12",
@@ -511,7 +511,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตรอกเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าตรอก!”"
     },
     {
       "group": "story-13",
@@ -527,7 +527,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากตรอกไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากตรอก"
     },
     {
       "group": "story-14",
@@ -543,7 +543,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าเนินเขา จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าเนินเขาปลอดภัย!!!!!"
     },
     {
       "group": "story-14",
@@ -583,7 +583,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าปากคลอง จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-15",
@@ -623,7 +623,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าอุโมงค์ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ อุโมงค์มีปัญหา"
     },
     {
       "group": "story-16",
@@ -647,7 +647,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากอุโมงค์ไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากอุโมงค์"
     },
     {
       "group": "story-17",
@@ -671,7 +671,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องเครื่องเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าห้องเครื่อง!”"
     },
     {
       "group": "story-17",
@@ -703,7 +703,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าศาลา จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าศาลาปลอดภัย!!!!!"
     },
     {
       "group": "story-18",
@@ -743,7 +743,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าชายหาด จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-19",
@@ -767,7 +767,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากชายหาดไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากชายหาด"
     },
     {
       "group": "story-20",
@@ -783,7 +783,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าป้อมยาม จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ป้อมยามมีปัญหา"
     },
     {
       "group": "story-20",
@@ -831,7 +831,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโรงงานเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าโรงงาน!”"
     },
     {
       "group": "story-21",
@@ -863,7 +863,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าทุ่งนา จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าทุ่งนาปลอดภัย!!!!!"
     },
     {
       "group": "story-22",
@@ -887,7 +887,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากทุ่งนาไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากทุ่งนา"
     },
     {
       "group": "story-23",
@@ -903,7 +903,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าลานจอดรถ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-23",
@@ -943,7 +943,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าป่าชายเลน จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ป่าชายเลนมีปัญหา"
     },
     {
       "group": "story-24",
@@ -991,7 +991,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากเขื่อนเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าเขื่อน!”"
     },
     {
       "group": "story-25",
@@ -1007,7 +1007,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากเขื่อนไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากเขื่อน"
     },
     {
       "group": "story-26",
@@ -1023,7 +1023,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าบ้านพัก จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าบ้านพักปลอดภัย!!!!!"
     },
     {
       "group": "story-26",
@@ -1063,7 +1063,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าห้องประชุม จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-27",
@@ -1103,7 +1103,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าท่าเทียบเรือ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ท่าเทียบเรือมีปัญหา"
     },
     {
       "group": "story-28",
@@ -1127,7 +1127,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากท่าเทียบเรือไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากท่าเทียบเรือ"
     },
     {
       "group": "story-29",
@@ -1151,7 +1151,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากซอยด้านหลังเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าซอยด้านหลัง!”"
     },
     {
       "group": "story-29",
@@ -1183,7 +1183,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าห้องสื่อสาร จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าห้องสื่อสารปลอดภัย!!!!!"
     },
     {
       "group": "story-30",
@@ -1223,7 +1223,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าถนนเลียบคลอง จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-31",
@@ -1247,7 +1247,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากถนนเลียบคลองไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากถนนเลียบคลอง"
     },
     {
       "group": "story-32",
@@ -1263,7 +1263,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าเขตอพยพ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ เขตอพยพมีปัญหา"
     },
     {
       "group": "story-32",
@@ -1311,7 +1311,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอส่งสัญญาณเร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าหอส่งสัญญาณ!”"
     },
     {
       "group": "story-33",
@@ -1343,7 +1343,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าลานตลาด จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าลานตลาดปลอดภัย!!!!!"
     },
     {
       "group": "story-34",
@@ -1367,7 +1367,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากลานตลาดไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากลานตลาด"
     },
     {
       "group": "story-35",
@@ -1383,7 +1383,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าร้านกาแฟ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-35",
@@ -1423,7 +1423,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าห้องเก็บของ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ห้องเก็บของมีปัญหา"
     },
     {
       "group": "story-36",
@@ -1471,7 +1471,7 @@
       "mode": "dialogue",
       "emotion": "surprise",
       "situation": "danger approaching",
-      "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากลิฟต์เร็ว!”"
+      "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าลิฟต์!”"
     },
     {
       "group": "story-37",
@@ -1487,7 +1487,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากลิฟต์ไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากลิฟต์"
     },
     {
       "group": "story-38",
@@ -1503,7 +1503,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าสถานีสูบน้ำ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "หัวหน้ารายงานว่าสถานีสูบน้ำปลอดภัย!!!!!"
     },
     {
       "group": "story-38",
@@ -1543,7 +1543,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าทางเดินริมน้ำ จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน"
     },
     {
       "group": "story-39",
@@ -1583,7 +1583,7 @@
       "mode": "narration",
       "emotion": "neutral",
       "situation": "calm sequence",
-      "text": "หลังฝนซา คนเฝ้าจุดรวมพล จากนั้น จากนั้น ก็กลับไปทำงาน"
+      "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ จุดรวมพลมีปัญหา"
     },
     {
       "group": "story-40",
@@ -1607,7 +1607,7 @@
       "mode": "unknown",
       "emotion": "uncertain",
       "situation": "ambiguous narration",
-      "text": "แล้วก็...แล้วก็มีคนเดินออกจากจุดรวมพลไป"
+      "text": "แล้วก็ แล้วก็ เขาหายไปจากจุดรวมพล"
     }
   ]
 }
