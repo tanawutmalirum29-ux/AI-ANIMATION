@@ -144,7 +144,7 @@
    Array.from({length:7},(_,i)=>R(x(.479+i*.016),56+(i%3)*5,1.1,1.6,'#a96754',.15, .82)).join('')+
    C(x(.528),38.3,4,'#465461')+C(x(.528),38.3,2.7,'#bdaf95')+
    Array.from({length:8},(_,i)=>{const a=i*Math.PI/4;return L(x(.528)+Math.cos(a),38.3+Math.sin(a),x(.528)+Math.cos(a)*3.5,38.3+Math.sin(a)*3.5,'#51646b',.8)}).join('')+
-   R(x(.525),42,1.5,9,'#d0bb9e')+
+   R(x(.525),42,1.5,9,'#d0bb9e')+'</g>'+
    // Concrete sluice discharge is a physical waterway, not a doorway
    // leading directly into the market building.
    '<g data-world-object="sluice-discharge-channel">'+
@@ -152,7 +152,6 @@
    P('M'+f(x(.579))+' 78L'+f(x(.61))+' 80L'+f(x(.675))+' 87L'+f(x(.685))+' 90L'+f(x(.595))+' 90L'+f(x(.576))+' 80Z','#2b667c',.95)+
    L(x(.602),80,x(.665),87,'#b4dbdf',.55,.85)+
    Array.from({length:5},(_,i)=>L(x(.614+i*.012),82+i*.5,x(.632+i*.012),83.1+i*.75,'#b7e4e8',.4,.55)).join('')+'</g>'+
-   '</g>'+
    // The lowland market is elevated above the shoreline with a street in front.
    P('M'+f(x(.605))+' 63L'+f(x(.72))+' 57L'+f(x(.85))+' 61L'+f(W)+' 57L'+f(W)+' 82L'+f(x(.60))+' 82Z','#465763')+
    [0.65,0.76,0.89].map((v,i)=>tinyHouse(x(v),66,.55+i*.08,['#5a6770','#746b6c','#566c70'][i])).join('')+
