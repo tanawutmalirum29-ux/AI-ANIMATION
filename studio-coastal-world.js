@@ -145,8 +145,13 @@
    C(x(.528),38.3,4,'#465461')+C(x(.528),38.3,2.7,'#bdaf95')+
    Array.from({length:8},(_,i)=>{const a=i*Math.PI/4;return L(x(.528)+Math.cos(a),38.3+Math.sin(a),x(.528)+Math.cos(a)*3.5,38.3+Math.sin(a)*3.5,'#51646b',.8)}).join('')+
    R(x(.525),42,1.5,9,'#d0bb9e')+
-   // Channel banks visibly funnel water through the gate.
-   P('M'+f(x(.44))+' 78L'+f(x(.48))+' 80L'+f(x(.61))+' 80L'+f(x(.64))+' 89L'+f(x(.42))+' 89Z','#556970')+
+   // Concrete sluice discharge is a physical waterway, not a doorway
+   // leading directly into the market building.
+   '<g data-world-object="sluice-discharge-channel">'+
+   P('M'+f(x(.44))+' 78L'+f(x(.48))+' 80L'+f(x(.61))+' 80L'+f(x(.68))+' 87L'+f(x(.70))+' 90L'+f(x(.42))+' 90Z','#536770')+
+   P('M'+f(x(.579))+' 78L'+f(x(.61))+' 80L'+f(x(.675))+' 87L'+f(x(.685))+' 90L'+f(x(.595))+' 90L'+f(x(.576))+' 80Z','#2b667c',.95)+
+   L(x(.602),80,x(.665),87,'#b4dbdf',.55,.85)+
+   Array.from({length:5},(_,i)=>L(x(.614+i*.012),82+i*.5,x(.632+i*.012),83.1+i*.75,'#b7e4e8',.4,.55)).join('')+'</g>'+
    '</g>'+
    // The lowland market is elevated above the shoreline with a street in front.
    P('M'+f(x(.605))+' 63L'+f(x(.72))+' 57L'+f(x(.85))+' 61L'+f(W)+' 57L'+f(W)+' 82L'+f(x(.60))+' 82Z','#465763')+
