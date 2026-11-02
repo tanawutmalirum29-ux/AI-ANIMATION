@@ -19,9 +19,12 @@ const path=require('node:path'),fs=require('node:fs');
      const b=el.getBoundingClientRect(),h=Math.max(0,Math.min(stage.bottom,b.bottom)-Math.max(stage.top,b.top)),
        w=Math.max(0,Math.min(stage.right,b.right)-Math.max(stage.left,b.left));
      return {h,bh:b.height,w,bw:b.width,
-      top:(b.top-stage.top)/stage.height,visible:h>5&&w>5};
+      top:(b.top-stage.top)/stage.height,left:(b.left-stage.left)/stage.width,
+      visible:h>5&&w>5};
     });
-    return {hill:find('[data-world-object="safe-hill"] [data-world-object="market-person"]'),
+    return {gate:find('[data-world-object="floodgate"]'),
+      merchantPhase:document.querySelector('[data-world-object="merchant-acknowledgment"]')?.getAttribute('data-story-phase')||'',
+      hill:find('[data-world-object="safe-hill"] [data-world-object="market-person"]'),
       warning:find('[data-world-object="merchant-acknowledgment"] [data-world-object="market-person"]'),
       flood:find('[data-world-object="market-street-flood"]'),
       caption:document.getElementById('sub').textContent};
@@ -31,7 +34,7 @@ const path=require('node:path'),fs=require('node:fs');
     const start=S.episodes[0].scenes.slice(0,i).reduce((sum,sc)=>sum+sc.duration,0);
     sel=i;T=start+S.episodes[0].scenes[i].duration*q;draw();sets.push(boxes());
    }
-   const phrases=['ค่ำคืนนี้ฝนตกหนัก ตลาด','ทุกคนหนีขึ้นที่สูงได้ทัน','พิมมองเห็นบานเหล็ก ของประตูระบายน้ำ'];
+   const phrases=['ค่ำคืนนี้ฝนตกหนัก ตลาด','ทุกคนหนีขึ้นที่สูงได้ทัน','พิมมองเห็นบานเหล็ก ของประตูระบายน้ำ','ไม่นาน น้ำก็เอ่อถึงหน้าร้าน'];
    const captions=phrases.map(x=>formatTimedCaption(x));
    return {sets,captions};
   },story);
@@ -40,10 +43,18 @@ const path=require('node:path'),fs=require('node:fs');
    'acknowledging merchant must be visible and readable in portrait frame: '+JSON.stringify(warning.warning));
   assert.ok(ending.hill.filter(x=>x.visible&&x.h>22).length>=2,
    'safe hill needs at least two readable visible villagers: '+JSON.stringify(ending.hill));
+  assert.ok(!ending.gate.some(x=>x.visible&&x.w>12),
+   'huge blue panel is the sluice gate leaking into the final shot, not flood water: '+JSON.stringify(ending.gate));
+  assert.ok(ending.hill.filter(x=>x.visible&&x.left>.15&&x.left<.85).length>=2,
+   'safe villagers must not sit at the cropped right edge: '+JSON.stringify(ending.hill));
+  assert.equal(warning.merchantPhase,'carry','warning scene must reach crate-carry phase');
   assert.ok(ending.flood.length,'bounded street flood exists');
   assert.ok(ending.flood.every(x=>x.top>.66),
    'flood may not form a tall blue sheet above market: '+JSON.stringify(ending.flood));
   for(const txt of inspect.captions){
+   const flat=txt.replace(/\n/g,'');
+   if(flat.includes('ที่สูง'))assert.ok(!/ที่\nสูง/.test(txt),'must never split Thai compound ที่สูง: '+txt);
+   if(flat.includes('หน้าร้าน'))assert.ok(!/หน้า\nร้าน/.test(txt),'must never split หน้าร้าน: '+txt);
    const lines=txt.split('\n');
    assert.ok(lines.length<=2,'never more than 2 lines');
    if(lines.length>1)assert.ok([...lines[1]].length>=6,'no stranded Thai word: '+JSON.stringify(lines));
