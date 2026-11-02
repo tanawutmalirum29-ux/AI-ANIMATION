@@ -728,7 +728,7 @@ function renderChat(container){
 
  pane.append(e('details',{className:'ai-task',open:!!scriptBatch||!!scriptReview},
   e('summary',{},'Script ML · วิเคราะห์บททั้งโปรเจกต์ในครั้งเดียว'),
-  e('p',{className:'ai-help'},'ตรวจคำซ้ำ 4 สถานะ และช่วยประเมินอารมณ์ 6 ประเภทจากบท ฉากก่อน/หลัง และหมายเหตุด้วยโมเดล CPU ทดลอง 432 ตัวอย่างสังเคราะห์ · ไม่ได้ฟังเสียงหรือเข้าใจเหตุการณ์เหมือน LLM'),
+  e('p',{className:'ai-help'},'ตรวจคำซ้ำ 4 สถานะ และช่วยประเมินอารมณ์ 6 ประเภทจากบท ฉากก่อน/หลัง และหมายเหตุด้วยโมเดล CPU ทดลอง 576 ตัวอย่างสังเคราะห์ · ไม่ได้ฟังเสียงหรือเข้าใจเหตุการณ์เหมือน LLM'),
   e('small',{className:'ai-help'},'ใส่ scriptMode และ emotion เพื่อระบุเจตนาชัดเจนได้ แต่แม้ไม่มี emotion ระบบก็อ่านคำบ่งชี้อารมณ์จากบทและบริบทฉากใกล้เคียง ถ้าไม่แน่ใจจะเตือนให้ตรวจเอง ไม่ลบคำซ้ำโดยพลการ'),
   e('div',{className:'ai-actions'},
    button('วิเคราะห์ทุกฉาก · ทุกตอน',analyzeAllScripts,{disabled:busy,className:'ai-primary'}),
