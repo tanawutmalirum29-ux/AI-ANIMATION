@@ -5,9 +5,9 @@
  */
 (function(root,factory){
 'use strict';
-const module=factory(root);
-if(typeof exports==='object'&&typeof module!=='undefined'&&module.exports)module.exports=module;
-if(root)root.StoryAutoTeach=module;
+const api=factory(root);
+if(typeof module==='object'&&module.exports)module.exports=api;
+if(root)root.StoryAutoTeach=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(root){
 'use strict';
 let bridge=null,host=null,provider='openrouter',scanned=null,running=false,
