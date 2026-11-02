@@ -51,16 +51,27 @@ def _rows(table):
         scanned += len(items)
         for item in items:
             rec = item.get("record", {})
-            if (item.get("status") != "teacher-qa-approved" or not isinstance(rec, dict)
-                or rec.get("ownerDelegatedTraining") is not True
-                or rec.get("trainingEligible") is not True
-                or rec.get("source") != "teacher-owner-delegated-qa"
-                or rec.get("issue") not in LABELS
+            if not isinstance(rec, dict):
+                continue
+            current = (item.get("status") == "teacher-qa-approved"
+                       and rec.get("ownerDelegatedTraining") is True
+                       and rec.get("trainingEligible") is True
+                       and rec.get("source") == "teacher-owner-delegated-qa"
+                       and isinstance(rec.get("qa"), dict)
+                       and rec["qa"].get("structurePassed") is True)
+            # User's newly granted blanket delegation also applies to prior
+            # successfully saved AI-mother lessons. Revalidate their structure
+            # instead of pretending they were human-reviewed or bypassing QA.
+            legacy = (item.get("status") == "teacher-reviewed-unverified"
+                      and rec.get("source") == "teacher-auto-unverified")
+            if (not (current or legacy) or rec.get("issue") not in LABELS
                 or not isinstance(rec.get("original"), str)
                 or len(rec["original"]) < 4
+                or not isinstance(rec.get("revised"), str)
+                or not 4 <= len(rec["revised"]) <= 1200
                 or not isinstance(rec.get("projectId"), str)
-                or len(rec.get("teacherReason", "")) < 12
-                or rec.get("qa", {}).get("structurePassed") is not True):
+                or not isinstance(rec.get("teacherReason"), str)
+                or len(rec["teacherReason"]) < 12):
                 continue
             if (rec["issue"] == "keep") != (rec["original"] == rec.get("revised")):
                 continue
@@ -69,7 +80,9 @@ def _rows(table):
             if group_key in seen:
                 continue
             seen.add(group_key)
-            rows.append(rec)
+            rows.append(rec if current else {**rec, "ownerDelegatedTraining": True,
+                "trainingEligible": True, "qa": {"structurePassed": True,
+                 "legacyDelegated": True, "contentHumanVerified": False}})
         cursor = page.get("LastEvaluatedKey")
         if not cursor:
             break
