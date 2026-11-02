@@ -36,24 +36,22 @@ const INTENT_LABELS=Object.freeze(['remove','keep','review']);
 const INTENT_NAMES=Object.freeze(['duplicateConnector','repeatPunctuation','repeatFiller','ellipsis','quotes','dialogue','narration','unknownMode','emotion','uncertainEmotion','tenseSituation','emphasisWords']);
 const INTENT_MODEL=Object.freeze({schema:1,task:'thai-repetition-intent',status:'synthetic-demo-not-approved',
  features:[...INTENT_NAMES],labels:[...INTENT_LABELS],
- weights:[[0.456032,0.384369,0.3835,-0.396176,-0.805042,-0.805042,2.656392,-1.418734,-0.805042,-1.418734,-0.805042,-0.395109],
- [-0.404409,-0.180629,-0.180098,-0.304172,1.318056,1.318056,-1.077522,-0.58181,1.318056,-0.58181,1.318056,0.728032],
- [-0.051623,-0.20374,-0.203402,0.700348,-0.513014,-0.513014,-1.57887,2.000544,-0.513014,2.000544,-0.513014,-0.332923]],
- bias:[1.221252,-0.961776,-0.259476],trainRows:160,heldOutRows:40,assistantDemoAccuracy:1});
+ weights:[[0.032789,0.17706,0.576461,-0.660547,-0.433492,-0.433492,2.039315,-1.508002,-2.429294,-1.508002,-2.027099,-0.027942],[-0.195922,-0.121412,-0.380609,0.534472,0.936176,0.936176,-0.36701,-0.633159,3.103757,-0.633159,2.277976,0.099478],[0.163133,-0.055649,-0.195852,0.126075,-0.502684,-0.502684,-1.672305,2.141161,-0.674463,2.141161,-0.250877,-0.071536]],
+ bias:[1.737617,-1.094103,-0.643513],trainRows:529,heldOutRows:130,assistantDemoAccuracy:1});
 // Real CPU-trained softmax parameters, fitted to synthetic Thai scene examples.
 // The model detects lexical evidence, NOT general emotion comprehension.
 const EMOTION_LABELS=Object.freeze(["neutral","fear","anger","sadness","surprise","hesitation"]);
 const EMOTION_SOURCES=Object.freeze(['text','previous','next','notes']);
 const EMOTION_PATTERN=Object.freeze([/ตามปกติ|เรียบร้อย|ไม่มีเหตุผิดปกติ|เป็นระเบียบ|ดำเนินงานต่ออย่างปกติ|ทำงานตามขั้นตอน/u,
-/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น|หอบหายใจ|ร้องช่วยด้วย|ผวา|หนีเร็ว|ประตูพัง/u,
-/กำหมัด|โกรธ|โมโห|ตบโต๊ะ|ตำหนิ|ขึ้นเสียง|เดือดดาล|โวยวาย|ทะเลาะ|เถียง|ต่อว่า|หลบไป|อย่ามาขวาง|เกรี้ยวกราด|ถอยไปอย่าง/u,
-/น้ำตา|ร้องไห้|เสียใจ|สูญเสีย|เศร้า|อาลัย|สะอื้น|จากไป|คิดถึง/u,
-/สะดุ้ง|ตกใจ|ตะลึง|อุทาน|อะไรนะ|คาดไม่ถึง|ไม่คาดฝัน|ประหลาดใจ|กะทันหัน|โผล่|ไม่น่าเชื่อ|จริงเหรอ|ตกตะลึง/u,
-/เอ่อ|ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า|หยุดคิด|ไม่ลง/u]);
+/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น|หอบหายใจ|ร้องช่วยด้วย|ผวา|หนีเร็ว|ประตูพัง|ขนลุก|สยอง|ขาอ่อน|หวาดผวา|หลอน/u,
+/กำหมัด|โกรธ|โมโห|ตบโต๊ะ|ตำหนิ|ขึ้นเสียง|เดือดดาล|โวยวาย|ทะเลาะ|เถียง|ต่อว่า|หลบไป|อย่ามาขวาง|เกรี้ยวกราด|ถอยไปอย่าง|แค้นเคือง|กัดฟัน|ตวาด|เดือด|คับแค้น/u,
+/น้ำตา|ร้องไห้|เสียใจ|สูญเสีย|เศร้า|อาลัย|สะอื้น|จากไป|คิดถึง|ใจสลาย|โศกเศร้า|น้ำตาคลอ|บอกลา|เหงา|หัวใจหนักอึ้ง/u,
+/สะดุ้ง|ตกใจ|ตะลึง|อุทาน|อะไรนะ|คาดไม่ถึง|ไม่คาดฝัน|ประหลาดใจ|กะทันหัน|โผล่|ไม่น่าเชื่อ|จริงเหรอ|ตกตะลึง|อึ้ง|ช็อก|ไม่คาดคิด/u,
+/เอ่อ|ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า|หยุดคิด|ไม่ลง|ชั่งใจ|ลังเลใจ|ไม่กล้าก้าว/u]);
 const EMOTION_NAMES=Object.freeze(EMOTION_SOURCES.flatMap(f=>EMOTION_LABELS.map(l=>f+'_'+l)).concat(['repetition','interruption','quoted']));
 const EMOTION_MODEL=Object.freeze({schema:2,task:'thai-scene-emotion',status:'assistant-synthetic-demo-only',
- labels:[...EMOTION_LABELS],features:[...EMOTION_NAMES],weights:[[2.541124,-1.85699,-1.866836,-1.885582,-1.864508,-1.843207,3.975047,0.826757,-0.17485,-0.565679,-0.173705,-0.876568,3.548427,-0.153004,-1.560651,-0.935233,-1.555868,-1.833923,2.459448,-1.919452,-1.946954,-1.924898,-1.944337,-1.922867,-0.326303,0,0],[-0.534677,4.331511,-0.698897,-0.67624,-0.698154,-0.684855,0.390569,4.049366,-1.382418,0.255422,-1.379092,-0.407419,-0.566465,3.28974,-1.539778,-0.819684,-1.536947,-0.695831,-0.535696,4.37264,-0.698135,-0.686935,-0.697128,-0.684079,-0.183786,0,0],[-0.423481,-0.557407,4.600838,-0.576899,-0.570531,-0.559168,-0.721867,-0.58488,4.339971,-0.426507,-0.668085,-0.676714,-0.977998,-0.311772,4.862335,-0.698244,-0.486561,-0.548696,-0.457423,-0.585174,4.56297,-0.593589,-0.604482,-0.592734,0.038858,0,0],[-0.687444,-0.74461,-0.842546,4.343503,-0.84336,-0.827304,-2.582604,-2.481686,-1.585182,1.582313,-1.588658,-1.727813,-0.926444,-1.393244,-0.790378,3.914385,-0.793646,-0.875456,-0.500316,-0.638199,-0.653932,4.444916,-0.656663,-0.644252,0.433776,0,0],[-0.424429,-0.558154,-0.567755,-0.573755,4.600723,-0.559976,-0.72317,-0.586688,-0.667345,-0.426238,4.339025,-0.678186,-0.977662,-0.311889,-0.483113,-0.695479,4.861156,-0.549514,-0.4583,-0.585884,-0.602324,-0.590477,4.563295,-0.593485,0.039016,0,0],[-0.471093,-0.614351,-0.624805,-0.631028,-0.62417,4.47451,-0.337975,-1.22287,-0.530176,-0.419311,-0.529485,4.3667,-0.099858,-1.11983,-0.488415,-0.765745,-0.488134,4.503419,-0.507714,-0.643931,-0.661625,-0.649017,-0.660685,4.437417,-0.001562,0,0]],
- bias:[-1.553494,-0.631947,0.182288,1.825693,0.184049,-0.00659],trainRows:462,heldOutRows:114,syntheticHoldoutAccuracy:0.9736842105263158});
+ labels:[...EMOTION_LABELS],features:[...EMOTION_NAMES],weights:[[6.572682,-0.92836,-0.926006,-0.453988,-0.924985,-1.191199,1.999373,-0.095452,-0.516901,-0.799988,-0.768961,-0.930251,2.903489,0.01191,-1.275914,-0.185782,-1.573391,-1.112462,2.481412,-1.523681,-1.537479,-1.493566,-1.72243,-1.24514,0.222885,0,-0.494438],[-1.579107,4.179799,-0.830972,-0.618848,-1.037537,-0.566053,0.418767,3.966385,-1.256016,0.097198,-1.479109,-0.308247,-0.593171,3.078731,-1.443026,-0.700233,-1.632962,-0.513775,-0.545017,4.173947,-0.698759,-0.679169,-0.883817,-0.594182,-0.532887,0,0.009931],[-1.700804,-0.707568,4.368403,-0.538325,-0.897156,-0.508909,-0.310329,-0.467445,4.283349,-0.398858,-0.888127,-0.453442,-0.771994,-0.374993,4.64558,-0.621111,-0.706589,-0.455518,-0.488215,-0.633599,4.178501,-0.583379,-0.783444,-0.497779,0.125444,0,0.156758],[-2.259265,-1.143007,-1.197518,4.562164,-1.40948,-0.76635,-1.373127,-1.779325,-1.200386,2.362307,-0.657366,-0.950467,-0.727682,-1.412429,-0.938213,3.932754,-0.495423,-0.940281,-0.496371,-0.781,-0.729771,4.296884,-0.683234,-0.740562,-0.254808,0,-0.370616],[-0.775121,-0.747338,-0.74244,-2.36398,4.189863,-1.907464,-0.633882,-0.612093,-0.803784,-0.882731,3.455674,-1.884367,-0.910322,-0.318248,-0.533237,-1.80131,4.085597,-1.761431,-0.516674,-0.666122,-0.652397,-0.999977,3.844245,-1.731312,0.454227,0,0.453001],[-0.258385,-0.653525,-0.671467,-0.587023,0.079295,4.939975,-0.100802,-1.01207,-0.506262,-0.377929,0.337889,4.526773,0.09968,-0.984971,-0.455189,-0.624319,0.322767,4.783467,-0.435135,-0.569546,-0.560096,-0.540793,0.228681,4.808976,-0.014861,0,0.245365]],
+ bias:[-0.715436,-0.165281,-0.116023,1.420069,-0.056382,-0.366947],trainRows:749,heldOutRows:184,syntheticHoldoutAccuracy:0.9836956521739131});
 function emotionFeatures(value,context={}){
  const parts=[String(value||''),String(context.previous||''),String(context.next||''),String(context.notes||'')];
  const result=[];
@@ -148,6 +146,7 @@ function sceneContext(scene,previous=null,next=null){
   emotion:topEmotion||voiceEmotion,
   emotionSource:topEmotion?'scene':voiceEmotion&&voiceEmotion.toLowerCase()!=='neutral'?'voice-direction':'default',
   situation:String(scene?.situation||scene?.eventKind||scene?.event?.kind||''),
+  genre:String(scene?.genre||''),
   subtitle:Array.isArray(scene?.subtitle)?scene.subtitle:[],
   notes:String(scene?.notes||'').slice(0,400),previous:String(previous?.voiceover||'').slice(0,400),
   next:String(next?.voiceover||'').slice(0,400)
@@ -214,6 +213,7 @@ function classifyIntent(text,context={}){
  else if(mode==='dialogue'||/[“”"'«»]/u.test(text))decision='keep';
  else if(emotionalNarration||impliedEmotion&&mode==='narration'&&
   (indicators[0]||indicators[2]||indicators[11]||emotionFeatures(text,context).slice(1,6).some(Boolean)))decision='review'; // Inferred danger => human review, never delete.
+ else if(magicChant(text,context))decision='keep'; // spells/chants repeat on purpose
  else if(protectedExpression)decision='keep';
  else if(uncertain)decision='review';
  else if(label==='remove'&&best>=.85)decision='remove';
@@ -268,14 +268,39 @@ function propose(value,context={}){
  if(after===original)return original; // Perfect no-op on repeated review.
  return after.replace(/ {2,}/gu,' ').trim();
 }
-function warnings(value){
+// Miraculous / mysterious events may CONTRADICT ordinary logic on purpose
+// ("แม้ไฟจะดับ แต่ยังมีแสงสว่างสาดส่องเข้ามา ไม่รู้จากที่ใด"). Detect the author's
+// signal in the line itself or in the scene metadata and do not flag it as an error.
+const MAGIC_TEXT=/ปาฏิหาริย์|มหัศจรรย์|อัศจรรย์|เวทมนตร์|วิเศษ|ลึกลับ|เหนือธรรมชาติ|น่าประหลาด|ประหลาดยิ่ง|ไม่รู้(?:ว่า)?(?:มา)?จาก(?:ที่ใด|ไหน|แห่งใด|ที่ไหน)|ไม่รู้ที่มา|ไร้ที่มา|ไม่มีที่มา|ราวกับ(?:มี|ว่า)|ราวกับปาฏิหาริย์|ไม่มีใครอธิบายได้|อธิบายไม่ได้|ไม่มีใครรู้(?:ที่มา|ว่า)|ราวกับ|เสมือน|พระเจ้า|พระเป็นเจ้า|ศักดิ์สิทธิ์|เทพ|เทวดา|นางฟ้า|วิญญาณ|ภูตผี|มังกร|เหมือนฝัน|ปริศนา|ลอยอยู่กลางอากาศ|ส่องแสงเอง|เรืองแสง|ในใจ|ในดวงตา|ในหัวใจ|ในความฝัน/u;
+const MAGIC_META=/magic|miracle|mystic|mystery|supernatural|fantasy|wonder|surreal|ปาฏิหาริย์|มหัศจรรย์|อัศจรรย์|เวทมนตร์|ลึกลับ|เหนือธรรมชาติ|แฟนตาซี|เหนือจริง/u;
+const CONCESSIVE=/(?:แม้|ถึงแม้|ทั้งที่|ทั้ง ๆ ที่)[\s\S]{0,60}(?:แต่|ก็ยัง|กลับ|ยังคง)/u;
+function intentionalContrast(value,context={}){
+ const text=String(value||'');
+ const meta=[context.situation,context.emotion,context.genre,context.eventKind,context.notes,context.tags&&[].concat(context.tags).join(' ')].map(x=>String(x||'')).join(' ');
+ if(MAGIC_META.test(meta))return true;
+ if(MAGIC_TEXT.test(text))return true;
+ return CONCESSIVE.test(text)&&/ไม่รู้|ปริศนา|ประหลาด|แปลก/u.test(text);
+}
+const CHANT=/คาถา|มนตร์|ร่ายเวท|ร่ายคาถา|ท่องคาถา|สวดมนต์|บทสวด|ร่ายรำ|เปิดเถิด|จงตื่น|จงมา/u;
+function magicChant(text,context={}){
+ const meta=[context.situation,context.emotion,context.genre,context.eventKind,context.notes].map(x=>String(x||'')).join(' ');
+ return CHANT.test(String(text||''))||MAGIC_META.test(meta);
+}
+function warnings(value,context={}){
  const text=String(value||'');
  const issues=[];
+ const magical=intentionalContrast(text,context);
  // These are simple conservative HEURISTICS, not learned semantic understanding.
- if(/ฝนหยุดตก[\s\S]{0,100}ฝนยังตก|ฝนยังตก[\s\S]{0,100}ฝนหยุดตก/u.test(text))
-  issues.push('อาจขัดแย้ง: ฝนหยุดตกและยังตกในช่วงเดียวกัน — ตรวจลำดับเหตุการณ์');
- if(/ไฟดับ[\s\S]{0,100}ไฟยังสว่าง|ไฟยังสว่าง[\s\S]{0,100}ไฟดับ/u.test(text))
-  issues.push('อาจขัดแย้ง: ไฟดับแต่ยังสว่าง — ตรวจบริบท');
+ const PAIRS=[
+  [/ฝนหยุดตก/u,/ฝนยังตก/u,'ฝนหยุดตกและยังตกในช่วงเดียวกัน — ตรวจลำดับเหตุการณ์'],
+  [/ไฟดับ/u,/ไฟยังสว่าง|ยังมีแสง|ยังสว่าง/u,'ไฟดับแต่ยังสว่าง — ตรวจบริบท'],
+  [/มืดสนิท/u,/เห็นชัด|สว่างจ้า|เห็นได้ทุกอย่าง/u,'มืดสนิทแต่เห็นชัด — ตรวจบริบท'],
+  [/เงียบสนิท|ไม่มีเสียง/u,/เสียงดังลั่น|เสียงกึกก้อง/u,'เงียบสนิทแต่เสียงดัง — ตรวจบริบท'],
+  [/ประตูปิดสนิท|ประตูล็อก/u,/ประตูเปิดอยู่|เดินผ่านประตูเข้ามา/u,'ประตูปิดแต่เปิดอยู่ — ตรวจลำดับเหตุการณ์'],
+  [/เสียชีวิตแล้ว|ตายแล้ว|สิ้นใจ/u,/ยังหายใจ|ลุกขึ้นเดิน|พูดขึ้น/u,'ตายแล้วแต่ยังเคลื่อนไหว — ตรวจบริบท'],
+  [/ไม่มีใครอยู่|ห้องว่างเปล่า/u,/ทุกคนอยู่ในห้อง|คนเต็มห้อง/u,'ว่างเปล่าแต่มีคนเต็ม — ตรวจบริบท']];
+ if(!magical)for(const [x,y,msg] of PAIRS)
+  if(new RegExp(x.source+'[\\s\\S]{0,100}'+y.source+'|'+y.source+'[\\s\\S]{0,100}'+x.source,'u').test(text))issues.push('อาจขัดแย้ง: '+msg);
  if([...text].length>190)
   issues.push('ข้อความพากย์ยาวมาก ตรวจการแบ่งจังหวะและความยาวเสียงจริง');
  if(/[“”"']/.test(text)&&/(?:เอ่อ\s*){2,}|(?:แล้วก็\s*){2,}/u.test(text))
@@ -296,10 +321,10 @@ function subtitleAudit(lines){
 function review(value,context={}){
  const text=String(value||''),risk=probability(text),intent=classifyIntent(text,context),proposed=propose(text,context);
  const hasEdit=proposed!==text;
- const issues=[...warnings(text),...subtitleAudit(context.subtitle)];
+ const issues=[...warnings(text,context),...subtitleAudit(context.subtitle)];
  if(intent.decision==='review'&&intent.hasRepetition)
   issues.push('คำซ้ำอาจเป็นลีลาการพูด: โปรดตรวจอารมณ์และสถานการณ์ก่อนแก้');
- return {risk,intent,needsReview:hasEdit||issues.length>0||(risk>=0.6&&intent.decision==='review'),hasEdit,proposed,warnings:issues,
+ return {risk,intent,intentionalContrast:intentionalContrast(text,context),needsReview:hasEdit||issues.length>0||(risk>=0.6&&intent.decision==='review'),hasEdit,proposed,warnings:issues,
   explanation:hasEdit?'เสนอแก้คำหรือเครื่องหมายซ้ำเฉพาะจุด โดยให้คุณอนุมัติก่อน':
   intent.decision==='clean'?'ไม่พบคำซ้ำที่จำเป็นต้องแก้':
   intent.decision==='keep'?'รักษาคำซ้ำที่อาจตั้งใจใช้แสดงอารมณ์หรือเน้นความหมาย':
@@ -351,6 +376,108 @@ function reviewProject(project){
  }
  return {entries,stats:{scenes:entries.length,withNarration,changes,attention,passed,clean,kept,missing:entries.length-withNarration}};
 }
+
+// ---- Comparison package helpers (pure, testable). They never mutate the source project.
+// buildProposedProject returns a COPY with every AI proposal applied exactly as the
+// editor would (voiceover + regenerated subtitles + stale-voice flags when `prepare` is given).
+function buildProposedProject(project,entries,options={}){
+ const copy=JSON.parse(JSON.stringify(project||{})),applied=[],skipped=[];
+ const scenes=new Map();
+ for(const ep of Array.isArray(copy.episodes)?copy.episodes:[])
+  for(const scene of Array.isArray(ep?.scenes)?ep.scenes:[])if(scene?.id!=null)scenes.set(scene.id,scene);
+ for(const entry of entries||[]){
+  const proposed=entry?.result?.proposed;
+  if(!entry?.result?.hasEdit||typeof proposed!=='string')continue;
+  const scene=scenes.get(entry.sceneId);
+  if(!scene){skipped.push({key:entry.key,sceneId:entry.sceneId,reason:'scene-missing'});continue}
+  if(String(scene.voiceover||'')!==entry.original){skipped.push({key:entry.key,sceneId:entry.sceneId,reason:'text-changed-since-analysis'});continue}
+  let patch={voiceover:proposed};
+  if(typeof options.prepare==='function'){
+   try{const prepared=options.prepare({...scene,voiceover:proposed,subtitle:[],subtitleCues:[]});
+    if(prepared){patch.subtitle=prepared.subtitle;patch.subtitleCues=prepared.subtitleCues}
+    else patch.subtitleNote='subtitle-not-regenerated'}
+   catch(_){patch.subtitleNote='subtitle-not-regenerated'}
+  }
+  const note=patch.subtitleNote;delete patch.subtitleNote;
+  Object.assign(scene,patch);
+  if((scene.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&!c.mute))
+   scene.audioClips=scene.audioClips.map(c=>c.kind==='voice'&&c.data?{...c,mute:true,staleNarration:true}:c);
+  applied.push({key:entry.key,sceneId:entry.sceneId,subtitleRegenerated:!note&&typeof options.prepare==='function'});
+ }
+ return {project:copy,applied,skipped};
+}
+function mdCell(x){return String(x==null?'':x).replace(/\|/g,'\\|').replace(/\r?\n/g,' ⏎ ')}
+function comparisonMarkdown(report){
+ const st=report?.stats||{},entries=Array.isArray(report?.entries)?report.entries:[];
+ const out=['# รายงานเทียบบท: ต้นฉบับ vs ที่เอไอเสนอ','',
+  `- สร้างเมื่อ: ${mdCell(report?.createdAt)}`,
+  `- โมเดล: ${mdCell(JSON.stringify(report?.models||{}))}`,
+  `- สถิติ: ${mdCell(JSON.stringify(st))}`,
+  '- หมายเหตุ: โมเดลฝึกจากข้อมูลสังเคราะห์ที่ผู้ช่วยเขียนเอง ไม่ใช่ข้อมูลจริงที่อนุมัติแล้ว ใช้เพื่อตรวจโดยคนเท่านั้น',''];
+ const changed=entries.filter(e=>e.hasEdit);
+ out.push(`## ข้อเสนอแก้ (${changed.length} ฉาก)`,'');
+ if(changed.length){out.push('| ตอน | ฉาก | id | ต้นฉบับ | เอไอเสนอ | เหตุผล/การตัดสิน |','|---|---|---|---|---|---|');
+  for(const e of changed)out.push(`| ${mdCell(e.episodeTitle||e.episodeIndex)} | ${e.sceneIndex+1} | ${mdCell(e.sceneId)} | ${mdCell(e.original)} | ${mdCell(e.proposed)} | ${mdCell(e.intent?.decision+': '+(e.intent?.reason||''))} |`)}
+ else out.push('_ไม่มีข้อเสนอแก้_');
+ const attn=entries.filter(e=>!e.hasEdit&&(e.needsReview||(e.warnings||[]).length));
+ out.push('',`## ฉากที่ต้องคนตรวจ ไม่แก้อัตโนมัติ (${attn.length} ฉาก)`,'');
+ for(const e of attn)out.push(`- ตอน ${mdCell(e.episodeTitle||e.episodeIndex)} ฉาก ${e.sceneIndex+1} (${mdCell(e.sceneId)}): "${mdCell(e.original)}" — ${mdCell((e.warnings||[]).join(' / ')||e.intent?.decision)}`);
+ const kept=entries.filter(e=>!e.hasEdit&&e.intent?.decision==='keep');
+ out.push('',`## ที่เอไอตั้งใจเก็บไว้ (${kept.length} ฉาก)`,'');
+ for(const e of kept)out.push(`- ฉาก ${e.sceneIndex+1} (${mdCell(e.sceneId)}): "${mdCell(e.original)}"`);
+ return out.join('\n')+'\n';
+}
+
+// One text-only file with EVERY script word: original next to the AI proposal, per scene.
+// No images, audio or other heavy project data, so it is small enough to send in one go.
+function scriptOnlyMarkdown(project,entries,report,proposedResult){
+ const byId=new Map((entries||[]).map(e=>[e.sceneId,e]));
+ const proposedScenes=new Map();
+ for(const ep of Array.isArray(proposedResult?.project?.episodes)?proposedResult.project.episodes:[])
+  for(const s of Array.isArray(ep?.scenes)?ep.scenes:[])proposedScenes.set(s.id,s);
+ const list=a=>(Array.isArray(a)?a:[]).map(x=>typeof x==='string'?x:(x?.name||x?.id||'')).filter(Boolean).join(', ');
+ const lines=(a)=>(Array.isArray(a)?a:[]).map(x=>typeof x==='string'?x:JSON.stringify(x));
+ const out=['# ไฟล์บทเดียว: ต้นฉบับ vs ที่เอไอเสนอ (ทุกฉาก ทุกคำ)','',
+  `- สร้างเมื่อ: ${mdCell(report?.createdAt||'')}`,
+  `- โปรเจกต์: ${mdCell(project?.project?.title||project?.title||project?.project?.name||'')}`,
+  `- โมเดล: ${mdCell(JSON.stringify(report?.models||{}))}`,
+  `- สถิติ: ${mdCell(JSON.stringify(report?.stats||{}))}`,
+  '- โมเดลฝึกจากข้อมูลสังเคราะห์ที่ผู้ช่วยเขียนเอง ใช้ช่วยตรวจโดยคนเท่านั้น',
+  '- วิธีอ่าน: "ต้นฉบับ" = บทปัจจุบัน · "เอไอเสนอ" = ข้อเสนอแก้ (ถ้าเขียนว่า "ไม่แก้" แปลว่าเอไอไม่เสนอเปลี่ยน)',''];
+ const chars=list(project?.characters);if(chars)out.push(`- ตัวละคร: ${mdCell(chars)}`,'');
+ const json=[];let total=0,changed=0;
+ (Array.isArray(project?.episodes)?project.episodes:[]).forEach((ep,ei)=>{
+  out.push(`## ตอน ${ei+1}: ${mdCell(ep?.title||ep?.id||'')}`,'');
+  for(const k of ['hiddenMistake','cliffhanger'])if(ep?.[k])out.push(`- ${k}: ${mdCell(typeof ep[k]==='string'?ep[k]:JSON.stringify(ep[k]))}`);
+  if(Array.isArray(ep?.clues)&&ep.clues.length)out.push(`- clues: ${mdCell(ep.clues.map(c=>typeof c==='string'?c:(c?.text||c?.id||JSON.stringify(c))).join(' | '))}`);
+  out.push('');
+  (Array.isArray(ep?.scenes)?ep.scenes:[]).forEach((scene,si)=>{
+   total++;
+   const entry=byId.get(scene?.id),res=entry?.result,ps=proposedScenes.get(scene?.id);
+   const original=String(scene?.voiceover||''),proposed=res?.hasEdit&&typeof res.proposed==='string'?res.proposed:null;
+   if(proposed!==null)changed++;
+   const vd=scene?.voiceDirection||{};
+   out.push(`### ตอน ${ei+1} · ฉาก ${si+1} (${mdCell(scene?.id)})`,'',
+    `- ตัวละคร: ${mdCell(list(scene?.characters)||'-')} · สถานที่: ${mdCell(scene?.location||'-')} · ความยาว: ${mdCell(scene?.duration||'-')} วิ`,
+    `- โหมด: ${mdCell(scene?.scriptMode||scene?.narrativeMode||vd.mode||'narration')} · อารมณ์ที่ระบุ: ${mdCell(scene?.emotion||vd.emotion||'-')} · สถานการณ์: ${mdCell(scene?.situation||'-')}`,
+    '',`**ต้นฉบับ:** ${original||'_(ไม่มีบทพากย์)_'}`,'',
+    `**เอไอเสนอ:** ${proposed!==null?proposed:'_ไม่แก้_'}`,'');
+   const subO=lines(scene?.subtitle),subP=ps&&proposed!==null?lines(ps.subtitle):null;
+   if(subO.length)out.push(`ซับต้นฉบับ: ${mdCell(subO.join(' / '))}`);
+   if(subP&&subP.length&&JSON.stringify(subP)!==JSON.stringify(subO))out.push(`ซับที่เอไอเสนอ: ${mdCell(subP.join(' / '))}`);
+   if(res){
+    out.push(`การตัดสินใจ: ${mdCell(res.intent?.decision||'-')}${res.intent?.reason?' — '+mdCell(res.intent.reason):''}${res.intentionalContrast?' · (เหตุการณ์มหัศจรรย์/ตั้งใจขัดแย้ง)':''}`);
+    if((res.warnings||[]).length)out.push(`คำเตือน: ${mdCell(res.warnings.join(' / '))}`);
+   }
+   if(scene?.notes)out.push(`โน้ต: ${mdCell(scene.notes)}`);
+   out.push('');
+   json.push({episode:ei+1,scene:si+1,id:scene?.id,original,proposed,decision:res?.intent?.decision||null,warnings:res?.warnings||[]});
+  });
+ });
+ out.push('---','',`รวม ${total} ฉาก · เอไอเสนอแก้ ${changed} ฉาก`,'',
+  '<details><summary>ข้อมูลดิบ (JSON) สำหรับเทียบอัตโนมัติ</summary>','','```json',JSON.stringify(json,null,1),'```','','</details>','');
+ return out.join('\n');
+}
 function verifyBatchSelection(project,entries,selectedKeys){
  const chosen=new Set(selectedKeys||[]),selected=[];
  const episodes=Array.isArray(project?.episodes)?project.episodes:[];
@@ -378,5 +505,5 @@ function verifyBatchSelection(project,entries,selectedKeys){
  }
  return selected;
 }
-return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection,INTENT_MODEL,intentFeatures,intentProbability,classifyIntent,trainIntent,sceneContext,sceneContextById,EMOTION_MODEL,EMOTION_LABELS,emotionFeatures,emotionProbabilities,inferEmotion,trainEmotion});
+return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection,buildProposedProject,comparisonMarkdown,scriptOnlyMarkdown,intentionalContrast,INTENT_MODEL,intentFeatures,intentProbability,classifyIntent,trainIntent,sceneContext,sceneContextById,EMOTION_MODEL,EMOTION_LABELS,emotionFeatures,emotionProbabilities,inferEmotion,trainEmotion});
 });

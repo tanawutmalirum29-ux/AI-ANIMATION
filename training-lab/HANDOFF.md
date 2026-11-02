@@ -110,3 +110,13 @@ counts Thai combining marks as width, chapter titles that repeat the card's
 `tests/video-review-nov1.test.cjs`. The chapter-card text offset is inferred from
 code (index.html ~3609 vs the caption workaround ~3555) and is NOT fixed yet; it
 needs a Chromium pixel test. No ML labels were created and no weights changed.
+
+## 2026-11-02 — Script ML v3 (multi-genre synthetic)
+- Emotion lexicon (EMOTION_PATTERN) widened: ขนลุก/สยอง, แค้นเคือง/กัดฟัน/ตวาด, ใจสลาย/โศกเศร้า/บอกลา, อึ้ง/ช็อก, ชั่งใจ ฯลฯ.
+- New datasets `*-demo-v3.json` = v1 + 16 generated genres (fantasy, sci-fi, horror, school, romance, detective, war, sports, office, family, historical, cyberpunk, village, medical, adventure, animal, comedy; 51 stories) incl. negation traps.
+- Retrain: `node training-lab/train-script-ml-v3.cjs --write` (emotion 933 rows, intent 659 rows).
+- Numbers are SYNTHETIC (assistant-authored, shared templates) — not real-world accuracy. Real gain needs user-approved scripts.
+- Magical/mysterious events: `warnings(text,context)` no longer flags "ไฟดับแต่ยังสว่าง"-style contrasts when the line says แม้…แต่… + ไม่รู้จากที่ใด/ปาฏิหาริย์/มหัศจรรย์ etc., or scene situation/notes/genre mark magic/mystery (`intentionalContrast()`; test: tests/script-ml-magic-event.test.cjs).
+- Contradiction checks generalised to a pair table (light/rain/dark/silence/door/dead/empty); magical cues widened (spirits, gods, simile "ราวกับ", metaphor "ในใจ/ในดวงตา"). Spells/chants ("จงตื่น จงตื่น", "เปิดเถิด เปิดเถิด") are KEPT by classifyIntent. Dev/held-out check: 15 magical + 11 ordinary + 3 chants, all correct — small hand-written sets, the second one partly used for tuning, so not real-world accuracy.
+- AI Workspace → script batch review now has download buttons: ชุดเทียบครบ 1 ไฟล์ (originalProject + proposedProject + report), ไฟล์ต้นฉบับ, ไฟล์ที่เอไอเสนอ, รายงานอ่านง่าย .md, รายงาน JSON. Logic: `buildProposedProject` / `comparisonMarkdown` in studio-script-ml.js (tests/script-ml-comparison-package.test.cjs). Downloading never modifies the open project.
+- Primary download is now ONE text-only file `story-script-only-*.md` (`scriptOnlyMarkdown`): every scene's original voiceover next to the AI proposal, subtitles, mode/emotion, decision, warnings, notes + JSON appendix. No images/audio, so it stays small. The full-project compare package remains as a secondary button.

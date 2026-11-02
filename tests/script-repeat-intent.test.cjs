@@ -1,11 +1,11 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const ml=require('../studio-script-ml.js');
-const data=JSON.parse(fs.readFileSync(path.join(__dirname,'../training-lab/datasets/script-repeat-intent-demo-v1.json'),'utf8')).rows;
+const data=JSON.parse(fs.readFileSync(path.join(__dirname,'../training-lab/datasets/script-repeat-intent-demo-v3.json'),'utf8')).rows;
 test('CPU SGD actually learns three-way intent with holdout by story, not same rows',()=>{
  const model=ml.trainIntent(data);
- assert.equal(data.length,200);
- assert.equal(model.trainRows,160);assert.equal(model.testRows,40);
- assert.equal(model.correct,40); // synthetic ONLY; never report as real-world accuracy
+ assert.equal(data.length,659);
+ assert.equal(model.trainRows,529);assert.equal(model.testRows,130);
+ assert.equal(model.correct,130); // synthetic ONLY; never report as real-world accuracy
  assert.deepEqual(model.weights,ml.INTENT_MODEL.weights);assert.deepEqual(model.bias,ml.INTENT_MODEL.bias);
  assert.equal(ml.INTENT_MODEL.status,'synthetic-demo-not-approved');
 });

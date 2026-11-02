@@ -1,0 +1,5490 @@
+{
+ "schema": 2,
+ "task": "thai-repetition-intent",
+ "status": "assistant-authored synthetic v3 across 16 genres; NOT human-approved and NOT evidence of emotional understanding",
+ "classes": [
+  "remove",
+  "keep",
+  "review"
+ ],
+ "groupBy": "story; hold out entire groups, not rows",
+ "groups": 91,
+ "combines": [
+  "script-repeat-intent-demo-v1.json",
+  "generated v3 (16 genres)"
+ ],
+ "rows": [
+  {
+   "group": "v1-story-01",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจตลาด แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-01",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าตลาด จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-01",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าตลาด!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-01",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาด!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-01",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากตลาด",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-02",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจประตูน้ำ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-02",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าประตูน้ำปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-02",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากประตูน้ำเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-02",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากประตูน้ำ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-02",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากประตูน้ำไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-03",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจท่าเรือ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-03",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-03",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากท่าเรือเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-03",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากท่าเรือ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-03",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากท่าเรือไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-04",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจสะพาน แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-04",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ สะพานมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-04",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสะพานเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-04",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสะพาน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-04",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากสะพาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-05",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจหอคอย แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-05",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าหอคอย จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-05",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าหอคอย!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-05",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอคอย!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-05",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากหอคอยไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-06",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจชุมชน แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-06",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าชุมชนปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-06",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากชุมชนเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-06",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากชุมชน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-06",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากชุมชนไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-07",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจโรงเรียน แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-07",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-07",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโรงเรียนเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-07",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโรงเรียน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-07",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากโรงเรียน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-08",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจโรงพยาบาล แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-08",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ โรงพยาบาลมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-08",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโรงพยาบาลเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-08",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโรงพยาบาล!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-08",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากโรงพยาบาลไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-09",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจอาคาร แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-09",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าอาคาร จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-09",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าอาคาร!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-09",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากอาคาร!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-09",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากอาคารไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-10",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจสถานี แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-10",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าสถานีปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-10",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสถานีเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-10",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสถานี!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-10",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากสถานี",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-11",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจเรือ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-11",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-11",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากเรือเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-11",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากเรือ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-11",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากเรือไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-12",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจโกดัง แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-12",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ โกดังมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-12",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโกดังเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-12",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโกดัง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-12",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากโกดังไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-13",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจตรอก แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-13",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าตรอก จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-13",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าตรอก!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-13",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตรอก!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-13",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากตรอก",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-14",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจเนินเขา แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-14",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าเนินเขาปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-14",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากเนินเขาเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-14",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากเนินเขา!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-14",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากเนินเขาไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-15",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจปากคลอง แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-15",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-15",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากปากคลองเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-15",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากปากคลอง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-15",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากปากคลองไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-16",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจอุโมงค์ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-16",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ อุโมงค์มีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-16",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากอุโมงค์เร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-16",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากอุโมงค์!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-16",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากอุโมงค์",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-17",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจห้องเครื่อง แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-17",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าห้องเครื่อง จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-17",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าห้องเครื่อง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-17",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องเครื่อง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-17",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากห้องเครื่องไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-18",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจศาลา แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-18",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าศาลาปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-18",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากศาลาเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-18",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากศาลา!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-18",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากศาลาไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-19",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจชายหาด แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-19",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-19",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากชายหาดเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-19",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากชายหาด!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-19",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากชายหาด",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-20",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจป้อมยาม แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-20",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ป้อมยามมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-20",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากป้อมยามเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-20",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากป้อมยาม!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-20",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากป้อมยามไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-21",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจโรงงาน แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-21",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าโรงงาน จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-21",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าโรงงาน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-21",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโรงงาน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-21",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากโรงงานไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-22",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจทุ่งนา แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-22",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าทุ่งนาปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-22",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากทุ่งนาเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-22",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากทุ่งนา!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-22",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากทุ่งนา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-23",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจลานจอดรถ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-23",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-23",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากลานจอดรถเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-23",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากลานจอดรถ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-23",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากลานจอดรถไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-24",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจป่าชายเลน แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-24",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ป่าชายเลนมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-24",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากป่าชายเลนเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-24",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากป่าชายเลน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-24",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากป่าชายเลนไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-25",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจเขื่อน แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-25",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าเขื่อน จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-25",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าเขื่อน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-25",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากเขื่อน!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-25",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากเขื่อน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-26",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจบ้านพัก แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-26",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าบ้านพักปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-26",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากบ้านพักเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-26",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากบ้านพัก!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-26",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากบ้านพักไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-27",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจห้องประชุม แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-27",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-27",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องประชุมเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-27",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องประชุม!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-27",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากห้องประชุมไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-28",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจท่าเทียบเรือ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-28",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ท่าเทียบเรือมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-28",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากท่าเทียบเรือเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-28",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากท่าเทียบเรือ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-28",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากท่าเทียบเรือ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-29",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจซอยด้านหลัง แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-29",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าซอยด้านหลัง จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-29",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าซอยด้านหลัง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-29",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากซอยด้านหลัง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-29",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากซอยด้านหลังไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-30",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจห้องสื่อสาร แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-30",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าห้องสื่อสารปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-30",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องสื่อสารเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-30",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องสื่อสาร!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-30",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากห้องสื่อสารไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-31",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจถนนเลียบคลอง แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-31",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-31",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากถนนเลียบคลองเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-31",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากถนนเลียบคลอง!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-31",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากถนนเลียบคลอง",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-32",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจเขตอพยพ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-32",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ เขตอพยพมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-32",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากเขตอพยพเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-32",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากเขตอพยพ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-32",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากเขตอพยพไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-33",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจหอส่งสัญญาณ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-33",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าหอส่งสัญญาณ จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-33",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าหอส่งสัญญาณ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-33",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอส่งสัญญาณ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-33",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากหอส่งสัญญาณไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-34",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจลานตลาด แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-34",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าลานตลาดปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-34",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากลานตลาดเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-34",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากลานตลาด!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-34",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากลานตลาด",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-35",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจร้านกาแฟ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-35",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-35",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากร้านกาแฟเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-35",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากร้านกาแฟ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-35",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากร้านกาแฟไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-36",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจห้องเก็บของ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-36",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ ห้องเก็บของมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-36",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องเก็บของเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-36",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องเก็บของ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-36",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากห้องเก็บของไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-37",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจลิฟต์ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-37",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังฝนซา คนเฝ้าลิฟต์ จากนั้น จากนั้น ก็กลับไปทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-37",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“แล้วก็ แล้วก็ ฉันไม่กล้าเข้าลิฟต์!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-37",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากลิฟต์!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-37",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากลิฟต์",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-38",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจสถานีสูบน้ำ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-38",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หัวหน้ารายงานว่าสถานีสูบน้ำปลอดภัย!!!!!",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-38",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสถานีสูบน้ำเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-38",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสถานีสูบน้ำ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-38",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากสถานีสูบน้ำไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-39",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจทางเดินริมน้ำ แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-39",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "เจ้าหน้าที่เห็นรายงานแล้ว เพราะว่า เพราะว่า ระบบยังทำงาน",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-39",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "surprise",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากทางเดินริมน้ำเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-39",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากทางเดินริมน้ำ!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-39",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็...แล้วก็มีคนเดินออกจากทางเดินริมน้ำไป",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-40",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เจ้าหน้าที่ตรวจจุดรวมพล แล้วก็ แล้วก็ ส่งรายงานให้หัวหน้าทราบ",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-40",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "ผู้บรรยายอธิบายว่า เอ่อ เอ่อ จุดรวมพลมีปัญหา",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-40",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากจุดรวมพลเร็ว!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-40",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากจุดรวมพล!”",
+   "theme": "v1"
+  },
+  {
+   "group": "v1-story-40",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ เขาหายไปจากจุดรวมพล",
+   "theme": "v1"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เอลฟ์สาวตรวจคาถาป้องกันที่ตลาดพ่อมด จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เอลฟ์สาวที่ตลาดพ่อมด แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เอลฟ์สาวเอ่อ เอ่อ รายงานผลที่ตลาดพ่อมดให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดพ่อมดเร็ว!”"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาดพ่อมด!”"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ตลาดพ่อมดก่อน”"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าตลาดพ่อมดดีไหม”"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เอลฟ์สาวตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากตลาดพ่อมด"
+  },
+  {
+   "group": "v3-story-001",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น เอลฟ์สาวหายไปจากตลาดพ่อมด"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "วิศวกรหญิงตรวจระบบออกซิเจนที่ดาวเคราะห์แดง แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ วิศวกรหญิงที่ดาวเคราะห์แดง จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "วิศวกรหญิงแบบว่า แบบว่า รายงานผลที่ดาวเคราะห์แดงให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากดาวเคราะห์แดงเร็ว!”"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากดาวเคราะห์แดง!”"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ดาวเคราะห์แดงก่อน”"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าดาวเคราะห์แดงดีไหม”"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "วิศวกรหญิงตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากดาวเคราะห์แดง"
+  },
+  {
+   "group": "v3-story-002",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น วิศวกรหญิงหายไปจากดาวเคราะห์แดง"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เด็กหนุ่มเดินสำรวจชั้นหนึ่งที่บ้านร้าง ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เด็กหนุ่มที่บ้านร้าง เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เด็กหนุ่มเอ่อ เอ่อ รายงานผลที่บ้านร้างให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากบ้านร้างเร็ว!”"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากบ้านร้าง!”"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่บ้านร้างก่อน”"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าบ้านร้างดีไหม”"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เด็กหนุ่มตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากบ้านร้าง"
+  },
+  {
+   "group": "v3-story-003",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น เด็กหนุ่มหายไปจากบ้านร้าง"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนใหม่จัดโต๊ะเรียนตามปกติที่ห้องดนตรี จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักเรียนใหม่ที่ห้องดนตรี ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนใหม่คือว่า คือว่า รายงานผลที่ห้องดนตรีให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องดนตรีเร็ว!”"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องดนตรี!”"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ห้องดนตรีก่อน”"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าห้องดนตรีดีไหม”"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักเรียนใหม่ตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากห้องดนตรี"
+  },
+  {
+   "group": "v3-story-004",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น นักเรียนใหม่หายไปจากห้องดนตรี"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เธอนั่งอ่านหนังสือเงียบ ๆที่ชายหาด เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เธอที่ชายหาด แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เธอแบบว่า แบบว่า รายงานผลที่ชายหาดให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากชายหาดเร็ว!”"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากชายหาด!”"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ชายหาดก่อน”"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าชายหาดดีไหม”"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เธอตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากชายหาด"
+  },
+  {
+   "group": "v3-story-005",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น เธอหายไปจากชายหาด"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พยานหญิงตรวจบันทึกคดีที่โกดังริมท่า เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ พยานหญิงที่โกดังริมท่า เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พยานหญิงแบบว่า แบบว่า รายงานผลที่โกดังริมท่าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโกดังริมท่าเร็ว!”"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโกดังริมท่า!”"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่โกดังริมท่าก่อน”"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าโกดังริมท่าดีไหม”"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "พยานหญิงตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากโกดังริมท่า"
+  },
+  {
+   "group": "v3-story-006",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า พยานหญิงหายไปจากโกดังริมท่า"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พลวิทยุเรียงเสบียงตามลำดับที่สนามเพลาะ จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ พลวิทยุที่สนามเพลาะ แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พลวิทยุแบบว่า แบบว่า รายงานผลที่สนามเพลาะให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสนามเพลาะเร็ว!”"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสนามเพลาะ!”"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่สนามเพลาะก่อน”"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าสนามเพลาะดีไหม”"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "พลวิทยุตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากสนามเพลาะ"
+  },
+  {
+   "group": "v3-story-007",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า พลวิทยุหายไปจากสนามเพลาะ"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักกีฬาหน้าใหม่อบอุ่นร่างกายตามโปรแกรมที่ลู่วิ่ง เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักกีฬาหน้าใหม่ที่ลู่วิ่ง จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักกีฬาหน้าใหม่คือว่า คือว่า รายงานผลที่ลู่วิ่งให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากลู่วิ่งเร็ว!”"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากลู่วิ่ง!”"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ลู่วิ่งก่อน”"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าลู่วิ่งดีไหม”"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักกีฬาหน้าใหม่ตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากลู่วิ่ง"
+  },
+  {
+   "group": "v3-story-008",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า นักกีฬาหน้าใหม่หายไปจากลู่วิ่ง"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ผู้จัดการเช็กอีเมลประจำวันที่ออฟฟิศชั้นสิบ แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ผู้จัดการที่ออฟฟิศชั้นสิบ แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ผู้จัดการเอ่อ เอ่อ รายงานผลที่ออฟฟิศชั้นสิบให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากออฟฟิศชั้นสิบเร็ว!”"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากออฟฟิศชั้นสิบ!”"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ออฟฟิศชั้นสิบก่อน”"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าออฟฟิศชั้นสิบดีไหม”"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ผู้จัดการตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากออฟฟิศชั้นสิบ"
+  },
+  {
+   "group": "v3-story-009",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น ผู้จัดการหายไปจากออฟฟิศชั้นสิบ"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คุณแม่เตรียมอาหารเย็นตามปกติที่ห้องนั่งเล่น เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ คุณแม่ที่ห้องนั่งเล่น เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คุณแม่เอ่อ เอ่อ รายงานผลที่ห้องนั่งเล่นให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องนั่งเล่นเร็ว!”"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องนั่งเล่น!”"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ห้องนั่งเล่นก่อน”"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าห้องนั่งเล่นดีไหม”"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "คุณแม่ตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากห้องนั่งเล่น"
+  },
+  {
+   "group": "v3-story-010",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า คุณแม่หายไปจากห้องนั่งเล่น"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ขุนนางหนุ่มจดบัญชีตามระเบียบที่ท่าเรือสำเภา จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ขุนนางหนุ่มที่ท่าเรือสำเภา แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ขุนนางหนุ่มเอ่อ เอ่อ รายงานผลที่ท่าเรือสำเภาให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากท่าเรือสำเภาเร็ว!”"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากท่าเรือสำเภา!”"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ท่าเรือสำเภาก่อน”"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าท่าเรือสำเภาดีไหม”"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ขุนนางหนุ่มตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากท่าเรือสำเภา"
+  },
+  {
+   "group": "v3-story-011",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า ขุนนางหนุ่มหายไปจากท่าเรือสำเภา"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนส่งของสแกนสัญญาณเครือข่ายที่หอคอยบริษัท จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ คนส่งของที่หอคอยบริษัท ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนส่งของเอ่อ เอ่อ รายงานผลที่หอคอยบริษัทให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอคอยบริษัทเร็ว!”"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอคอยบริษัท!”"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่หอคอยบริษัทก่อน”"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าหอคอยบริษัทดีไหม”"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "คนส่งของตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากหอคอยบริษัท"
+  },
+  {
+   "group": "v3-story-012",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า คนส่งของหายไปจากหอคอยบริษัท"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ยายแก่ดูแลแปลงผักตามปกติที่ทุ่งนา ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ยายแก่ที่ทุ่งนา ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ยายแก่เอ่อ เอ่อ รายงานผลที่ทุ่งนาให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากทุ่งนาเร็ว!”"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากทุ่งนา!”"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ทุ่งนาก่อน”"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าทุ่งนาดีไหม”"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ยายแก่ตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากทุ่งนา"
+  },
+  {
+   "group": "v3-story-013",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น ยายแก่หายไปจากทุ่งนา"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักศึกษาแพทย์ตรวจเวชระเบียนตามขั้นตอนที่ทางเดินโรงพยาบาล จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักศึกษาแพทย์ที่ทางเดินโรงพยาบาล ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักศึกษาแพทย์คือว่า คือว่า รายงานผลที่ทางเดินโรงพยาบาลให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากทางเดินโรงพยาบาลเร็ว!”"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากทางเดินโรงพยาบาล!”"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ทางเดินโรงพยาบาลก่อน”"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าทางเดินโรงพยาบาลดีไหม”"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักศึกษาแพทย์ตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากทางเดินโรงพยาบาล"
+  },
+  {
+   "group": "v3-story-014",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า นักศึกษาแพทย์หายไปจากทางเดินโรงพยาบาล"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักสำรวจตรวจเสบียงและแผนที่ที่ยอดเขา เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักสำรวจที่ยอดเขา ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักสำรวจคือว่า คือว่า รายงานผลที่ยอดเขาให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากยอดเขาเร็ว!”"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากยอดเขา!”"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ยอดเขาก่อน”"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้ายอดเขาดีไหม”"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักสำรวจตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากยอดเขา"
+  },
+  {
+   "group": "v3-story-015",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น นักสำรวจหายไปจากยอดเขา"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนเลี้ยงม้าให้อาหารตามเวลาที่คอกม้า แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ คนเลี้ยงม้าที่คอกม้า จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนเลี้ยงม้าแบบว่า แบบว่า รายงานผลที่คอกม้าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากคอกม้าเร็ว!”"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากคอกม้า!”"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่คอกม้าก่อน”"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าคอกม้าดีไหม”"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "คนเลี้ยงม้าตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากคอกม้า"
+  },
+  {
+   "group": "v3-story-016",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น คนเลี้ยงม้าหายไปจากคอกม้า"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนจอมป่วนขายของตามปกติที่ร้านขนมจีบ แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักเรียนจอมป่วนที่ร้านขนมจีบ ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนจอมป่วนเอ่อ เอ่อ รายงานผลที่ร้านขนมจีบให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากร้านขนมจีบเร็ว!”"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากร้านขนมจีบ!”"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ร้านขนมจีบก่อน”"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าร้านขนมจีบดีไหม”"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักเรียนจอมป่วนตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากร้านขนมจีบ"
+  },
+  {
+   "group": "v3-story-017",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ นักเรียนจอมป่วนหายไปจากร้านขนมจีบ"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เอลฟ์สาวตรวจคาถาป้องกันที่ปราสาทมังกร จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เอลฟ์สาวที่ปราสาทมังกร จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เอลฟ์สาวคือว่า คือว่า รายงานผลที่ปราสาทมังกรให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากปราสาทมังกรเร็ว!”"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากปราสาทมังกร!”"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ปราสาทมังกรก่อน”"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าปราสาทมังกรดีไหม”"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เอลฟ์สาวตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากปราสาทมังกร"
+  },
+  {
+   "group": "v3-story-018",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น เอลฟ์สาวหายไปจากปราสาทมังกร"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันยานตรวจระบบออกซิเจนที่สถานีอวกาศ จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ กัปตันยานที่สถานีอวกาศ จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันยานเอ่อ เอ่อ รายงานผลที่สถานีอวกาศให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสถานีอวกาศเร็ว!”"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสถานีอวกาศ!”"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่สถานีอวกาศก่อน”"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าสถานีอวกาศดีไหม”"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "กัปตันยานตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากสถานีอวกาศ"
+  },
+  {
+   "group": "v3-story-019",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ กัปตันยานหายไปจากสถานีอวกาศ"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หญิงสาวเดินสำรวจชั้นหนึ่งที่โรงเรียนร้าง แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ หญิงสาวที่โรงเรียนร้าง ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หญิงสาวแบบว่า แบบว่า รายงานผลที่โรงเรียนร้างให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโรงเรียนร้างเร็ว!”"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโรงเรียนร้าง!”"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่โรงเรียนร้างก่อน”"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าโรงเรียนร้างดีไหม”"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "หญิงสาวตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากโรงเรียนร้าง"
+  },
+  {
+   "group": "v3-story-020",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น หญิงสาวหายไปจากโรงเรียนร้าง"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เพื่อนสนิทจัดโต๊ะเรียนตามปกติที่ห้องดนตรี จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เพื่อนสนิทที่ห้องดนตรี เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เพื่อนสนิทแบบว่า แบบว่า รายงานผลที่ห้องดนตรีให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องดนตรีเร็ว!”"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องดนตรี!”"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ห้องดนตรีก่อน”"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าห้องดนตรีดีไหม”"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เพื่อนสนิทตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากห้องดนตรี"
+  },
+  {
+   "group": "v3-story-021",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น เพื่อนสนิทหายไปจากห้องดนตรี"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเขียนสาวนั่งอ่านหนังสือเงียบ ๆที่ชายหาด จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักเขียนสาวที่ชายหาด เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเขียนสาวคือว่า คือว่า รายงานผลที่ชายหาดให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากชายหาดเร็ว!”"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากชายหาด!”"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ชายหาดก่อน”"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าชายหาดดีไหม”"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักเขียนสาวตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากชายหาด"
+  },
+  {
+   "group": "v3-story-022",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น นักเขียนสาวหายไปจากชายหาด"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักสืบตรวจบันทึกคดีที่สถานีตำรวจ เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักสืบที่สถานีตำรวจ เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักสืบคือว่า คือว่า รายงานผลที่สถานีตำรวจให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสถานีตำรวจเร็ว!”"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสถานีตำรวจ!”"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่สถานีตำรวจก่อน”"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าสถานีตำรวจดีไหม”"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักสืบตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากสถานีตำรวจ"
+  },
+  {
+   "group": "v3-story-023",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า นักสืบหายไปจากสถานีตำรวจ"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หมอสนามเรียงเสบียงตามลำดับที่หมู่บ้านชายแดน เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ หมอสนามที่หมู่บ้านชายแดน ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หมอสนามเอ่อ เอ่อ รายงานผลที่หมู่บ้านชายแดนให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหมู่บ้านชายแดนเร็ว!”"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหมู่บ้านชายแดน!”"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่หมู่บ้านชายแดนก่อน”"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าหมู่บ้านชายแดนดีไหม”"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "หมอสนามตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากหมู่บ้านชายแดน"
+  },
+  {
+   "group": "v3-story-024",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า หมอสนามหายไปจากหมู่บ้านชายแดน"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันทีมอบอุ่นร่างกายตามโปรแกรมที่ลานมวย เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ กัปตันทีมที่ลานมวย ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันทีมแบบว่า แบบว่า รายงานผลที่ลานมวยให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากลานมวยเร็ว!”"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากลานมวย!”"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ลานมวยก่อน”"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าลานมวยดีไหม”"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "กัปตันทีมตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากลานมวย"
+  },
+  {
+   "group": "v3-story-025",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ กัปตันทีมหายไปจากลานมวย"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พนักงานใหม่เช็กอีเมลประจำวันที่ห้องเซิร์ฟเวอร์ แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ พนักงานใหม่ที่ห้องเซิร์ฟเวอร์ จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พนักงานใหม่คือว่า คือว่า รายงานผลที่ห้องเซิร์ฟเวอร์ให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องเซิร์ฟเวอร์เร็ว!”"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องเซิร์ฟเวอร์!”"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ห้องเซิร์ฟเวอร์ก่อน”"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าห้องเซิร์ฟเวอร์ดีไหม”"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "พนักงานใหม่ตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากห้องเซิร์ฟเวอร์"
+  },
+  {
+   "group": "v3-story-026",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ พนักงานใหม่หายไปจากห้องเซิร์ฟเวอร์"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คุณตาเตรียมอาหารเย็นตามปกติที่สวนหลังบ้าน ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ คุณตาที่สวนหลังบ้าน จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คุณตาเอ่อ เอ่อ รายงานผลที่สวนหลังบ้านให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสวนหลังบ้านเร็ว!”"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสวนหลังบ้าน!”"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่สวนหลังบ้านก่อน”"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าสวนหลังบ้านดีไหม”"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "คุณตาตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากสวนหลังบ้าน"
+  },
+  {
+   "group": "v3-story-027",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น คุณตาหายไปจากสวนหลังบ้าน"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ขุนนางหนุ่มจดบัญชีตามระเบียบที่ตลาดน้ำเก่า จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ขุนนางหนุ่มที่ตลาดน้ำเก่า แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ขุนนางหนุ่มเอ่อ เอ่อ รายงานผลที่ตลาดน้ำเก่าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดน้ำเก่าเร็ว!”"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาดน้ำเก่า!”"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ตลาดน้ำเก่าก่อน”"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าตลาดน้ำเก่าดีไหม”"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ขุนนางหนุ่มตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากตลาดน้ำเก่า"
+  },
+  {
+   "group": "v3-story-028",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น ขุนนางหนุ่มหายไปจากตลาดน้ำเก่า"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักล่าค่าหัวสแกนสัญญาณเครือข่ายที่หอคอยบริษัท จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักล่าค่าหัวที่หอคอยบริษัท ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักล่าค่าหัวคือว่า คือว่า รายงานผลที่หอคอยบริษัทให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอคอยบริษัทเร็ว!”"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอคอยบริษัท!”"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่หอคอยบริษัทก่อน”"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าหอคอยบริษัทดีไหม”"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักล่าค่าหัวตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากหอคอยบริษัท"
+  },
+  {
+   "group": "v3-story-029",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น นักล่าค่าหัวหายไปจากหอคอยบริษัท"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ผู้ใหญ่บ้านดูแลแปลงผักตามปกติที่ตลาดเช้า เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ผู้ใหญ่บ้านที่ตลาดเช้า แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ผู้ใหญ่บ้านแบบว่า แบบว่า รายงานผลที่ตลาดเช้าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดเช้าเร็ว!”"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาดเช้า!”"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ตลาดเช้าก่อน”"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าตลาดเช้าดีไหม”"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ผู้ใหญ่บ้านตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากตลาดเช้า"
+  },
+  {
+   "group": "v3-story-030",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ ผู้ใหญ่บ้านหายไปจากตลาดเช้า"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ญาติผู้ป่วยตรวจเวชระเบียนตามขั้นตอนที่หอผู้ป่วยใน ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ญาติผู้ป่วยที่หอผู้ป่วยใน เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ญาติผู้ป่วยเอ่อ เอ่อ รายงานผลที่หอผู้ป่วยในให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอผู้ป่วยในเร็ว!”"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอผู้ป่วยใน!”"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่หอผู้ป่วยในก่อน”"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าหอผู้ป่วยในดีไหม”"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ญาติผู้ป่วยตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากหอผู้ป่วยใน"
+  },
+  {
+   "group": "v3-story-031",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น ญาติผู้ป่วยหายไปจากหอผู้ป่วยใน"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ไกด์หนุ่มตรวจเสบียงและแผนที่ที่ทะเลทราย แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ไกด์หนุ่มที่ทะเลทราย แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ไกด์หนุ่มเอ่อ เอ่อ รายงานผลที่ทะเลทรายให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากทะเลทรายเร็ว!”"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากทะเลทราย!”"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ทะเลทรายก่อน”"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าทะเลทรายดีไหม”"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ไกด์หนุ่มตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากทะเลทราย"
+  },
+  {
+   "group": "v3-story-032",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น ไกด์หนุ่มหายไปจากทะเลทราย"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนเลี้ยงม้าให้อาหารตามเวลาที่ศูนย์ช่วยสัตว์ จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ คนเลี้ยงม้าที่ศูนย์ช่วยสัตว์ เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนเลี้ยงม้าแบบว่า แบบว่า รายงานผลที่ศูนย์ช่วยสัตว์ให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากศูนย์ช่วยสัตว์เร็ว!”"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากศูนย์ช่วยสัตว์!”"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ศูนย์ช่วยสัตว์ก่อน”"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าศูนย์ช่วยสัตว์ดีไหม”"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "คนเลี้ยงม้าตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากศูนย์ช่วยสัตว์"
+  },
+  {
+   "group": "v3-story-033",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น คนเลี้ยงม้าหายไปจากศูนย์ช่วยสัตว์"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนจอมป่วนขายของตามปกติที่ตลาดนัด แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักเรียนจอมป่วนที่ตลาดนัด แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนจอมป่วนคือว่า คือว่า รายงานผลที่ตลาดนัดให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดนัดเร็ว!”"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาดนัด!”"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ตลาดนัดก่อน”"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าตลาดนัดดีไหม”"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักเรียนจอมป่วนตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากตลาดนัด"
+  },
+  {
+   "group": "v3-story-034",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ นักเรียนจอมป่วนหายไปจากตลาดนัด"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เอลฟ์สาวตรวจคาถาป้องกันที่หอคอยเวทมนตร์ เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เอลฟ์สาวที่หอคอยเวทมนตร์ จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เอลฟ์สาวคือว่า คือว่า รายงานผลที่หอคอยเวทมนตร์ให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอคอยเวทมนตร์เร็ว!”"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอคอยเวทมนตร์!”"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่หอคอยเวทมนตร์ก่อน”"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าหอคอยเวทมนตร์ดีไหม”"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เอลฟ์สาวตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากหอคอยเวทมนตร์"
+  },
+  {
+   "group": "v3-story-035",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น เอลฟ์สาวหายไปจากหอคอยเวทมนตร์"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หุ่นยนต์ผู้ช่วยตรวจระบบออกซิเจนที่ดาวเคราะห์แดง ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ หุ่นยนต์ผู้ช่วยที่ดาวเคราะห์แดง ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หุ่นยนต์ผู้ช่วยแบบว่า แบบว่า รายงานผลที่ดาวเคราะห์แดงให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากดาวเคราะห์แดงเร็ว!”"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากดาวเคราะห์แดง!”"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ดาวเคราะห์แดงก่อน”"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าดาวเคราะห์แดงดีไหม”"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "หุ่นยนต์ผู้ช่วยตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากดาวเคราะห์แดง"
+  },
+  {
+   "group": "v3-story-036",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น หุ่นยนต์ผู้ช่วยหายไปจากดาวเคราะห์แดง"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ช่างภาพเดินสำรวจชั้นหนึ่งที่บ้านร้าง แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ช่างภาพที่บ้านร้าง แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ช่างภาพเอ่อ เอ่อ รายงานผลที่บ้านร้างให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากบ้านร้างเร็ว!”"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากบ้านร้าง!”"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่บ้านร้างก่อน”"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าบ้านร้างดีไหม”"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ช่างภาพตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากบ้านร้าง"
+  },
+  {
+   "group": "v3-story-037",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น ช่างภาพหายไปจากบ้านร้าง"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนใหม่จัดโต๊ะเรียนตามปกติที่โรงอาหาร ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักเรียนใหม่ที่โรงอาหาร แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนใหม่คือว่า คือว่า รายงานผลที่โรงอาหารให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากโรงอาหารเร็ว!”"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากโรงอาหาร!”"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่โรงอาหารก่อน”"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าโรงอาหารดีไหม”"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักเรียนใหม่ตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากโรงอาหาร"
+  },
+  {
+   "group": "v3-story-038",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ นักเรียนใหม่หายไปจากโรงอาหาร"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หนุ่มบาริสต้านั่งอ่านหนังสือเงียบ ๆที่สวนสาธารณะ เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ หนุ่มบาริสต้าที่สวนสาธารณะ เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "หนุ่มบาริสต้าคือว่า คือว่า รายงานผลที่สวนสาธารณะให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสวนสาธารณะเร็ว!”"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสวนสาธารณะ!”"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่สวนสาธารณะก่อน”"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าสวนสาธารณะดีไหม”"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "หนุ่มบาริสต้าตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากสวนสาธารณะ"
+  },
+  {
+   "group": "v3-story-039",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ หนุ่มบาริสต้าหายไปจากสวนสาธารณะ"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักสืบตรวจบันทึกคดีที่ซอยเปลี่ยว เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักสืบที่ซอยเปลี่ยว จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักสืบเอ่อ เอ่อ รายงานผลที่ซอยเปลี่ยวให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากซอยเปลี่ยวเร็ว!”"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากซอยเปลี่ยว!”"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ซอยเปลี่ยวก่อน”"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าซอยเปลี่ยวดีไหม”"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักสืบตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากซอยเปลี่ยว"
+  },
+  {
+   "group": "v3-story-040",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น นักสืบหายไปจากซอยเปลี่ยว"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ทหารหนุ่มเรียงเสบียงตามลำดับที่สะพานเหล็ก แล้วก็ แล้วก็ บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ทหารหนุ่มที่สะพานเหล็ก เพราะว่า เพราะว่า ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ทหารหนุ่มคือว่า คือว่า รายงานผลที่สะพานเหล็กให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากสะพานเหล็กเร็ว!”"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากสะพานเหล็ก!”"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่สะพานเหล็กก่อน”"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าสะพานเหล็กดีไหม”"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ทหารหนุ่มตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากสะพานเหล็ก"
+  },
+  {
+   "group": "v3-story-041",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น ทหารหนุ่มหายไปจากสะพานเหล็ก"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันทีมอบอุ่นร่างกายตามโปรแกรมที่ลานมวย เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ กัปตันทีมที่ลานมวย แล้วก็ แล้วก็ ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันทีมแบบว่า แบบว่า รายงานผลที่ลานมวยให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากลานมวยเร็ว!”"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากลานมวย!”"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ลานมวยก่อน”"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าลานมวยดีไหม”"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "กัปตันทีมตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากลานมวย"
+  },
+  {
+   "group": "v3-story-042",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น กัปตันทีมหายไปจากลานมวย"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ผู้จัดการเช็กอีเมลประจำวันที่ห้องเซิร์ฟเวอร์ ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ผู้จัดการที่ห้องเซิร์ฟเวอร์ ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ผู้จัดการแบบว่า แบบว่า รายงานผลที่ห้องเซิร์ฟเวอร์ให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องเซิร์ฟเวอร์เร็ว!”"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องเซิร์ฟเวอร์!”"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ห้องเซิร์ฟเวอร์ก่อน”"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าห้องเซิร์ฟเวอร์ดีไหม”"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ผู้จัดการตัวสั่น แล้วก็ แล้วก็ วิ่งหนีออกจากห้องเซิร์ฟเวอร์"
+  },
+  {
+   "group": "v3-story-043",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น ผู้จัดการหายไปจากห้องเซิร์ฟเวอร์"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "น้องชายเตรียมอาหารเย็นตามปกติที่ห้องครัว เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ น้องชายที่ห้องครัว ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "น้องชายแบบว่า แบบว่า รายงานผลที่ห้องครัวให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากห้องครัวเร็ว!”"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากห้องครัว!”"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ห้องครัวก่อน”"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าห้องครัวดีไหม”"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "น้องชายตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากห้องครัว"
+  },
+  {
+   "group": "v3-story-044",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "จากนั้น จากนั้น น้องชายหายไปจากห้องครัว"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พระภิกษุจดบัญชีตามระเบียบที่ตลาดน้ำเก่า เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ พระภิกษุที่ตลาดน้ำเก่า จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "พระภิกษุคือว่า คือว่า รายงานผลที่ตลาดน้ำเก่าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดน้ำเก่าเร็ว!”"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาดน้ำเก่า!”"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ตลาดน้ำเก่าก่อน”"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าตลาดน้ำเก่าดีไหม”"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "พระภิกษุตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากตลาดน้ำเก่า"
+  },
+  {
+   "group": "v3-story-045",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น พระภิกษุหายไปจากตลาดน้ำเก่า"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนส่งของสแกนสัญญาณเครือข่ายที่หอคอยบริษัท ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ คนส่งของที่หอคอยบริษัท จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "คนส่งของเอ่อ เอ่อ รายงานผลที่หอคอยบริษัทให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากหอคอยบริษัทเร็ว!”"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากหอคอยบริษัท!”"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่หอคอยบริษัทก่อน”"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าหอคอยบริษัทดีไหม”"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "คนส่งของตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากหอคอยบริษัท"
+  },
+  {
+   "group": "v3-story-046",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น คนส่งของหายไปจากหอคอยบริษัท"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เด็กเลี้ยงควายดูแลแปลงผักตามปกติที่ตลาดเช้า ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ เด็กเลี้ยงควายที่ตลาดเช้า จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "เด็กเลี้ยงควายคือว่า คือว่า รายงานผลที่ตลาดเช้าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากตลาดเช้าเร็ว!”"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากตลาดเช้า!”"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ตลาดเช้าก่อน”"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าตลาดเช้าดีไหม”"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "เด็กเลี้ยงควายตัวสั่น เพราะว่า เพราะว่า วิ่งหนีออกจากตลาดเช้า"
+  },
+  {
+   "group": "v3-story-047",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "เพราะว่า เพราะว่า เด็กเลี้ยงควายหายไปจากตลาดเช้า"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ญาติผู้ป่วยตรวจเวชระเบียนตามขั้นตอนที่ทางเดินโรงพยาบาล ในตอนนั้น ในตอนนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ ญาติผู้ป่วยที่ทางเดินโรงพยาบาล จากนั้น จากนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "ญาติผู้ป่วยคือว่า คือว่า รายงานผลที่ทางเดินโรงพยาบาลให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากทางเดินโรงพยาบาลเร็ว!”"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากทางเดินโรงพยาบาล!”"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ทางเดินโรงพยาบาลก่อน”"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าทางเดินโรงพยาบาลดีไหม”"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "ญาติผู้ป่วยตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากทางเดินโรงพยาบาล"
+  },
+  {
+   "group": "v3-story-048",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น ญาติผู้ป่วยหายไปจากทางเดินโรงพยาบาล"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันเรือตรวจเสบียงและแผนที่ที่ถ้ำใต้น้ำ จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ กัปตันเรือที่ถ้ำใต้น้ำ ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "กัปตันเรือแบบว่า แบบว่า รายงานผลที่ถ้ำใต้น้ำให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากถ้ำใต้น้ำเร็ว!”"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากถ้ำใต้น้ำ!”"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ถ้ำใต้น้ำก่อน”"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าถ้ำใต้น้ำดีไหม”"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "กัปตันเรือตัวสั่น ในตอนนั้น ในตอนนั้น วิ่งหนีออกจากถ้ำใต้น้ำ"
+  },
+  {
+   "group": "v3-story-049",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ กัปตันเรือหายไปจากถ้ำใต้น้ำ"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "สัตวแพทย์ให้อาหารตามเวลาที่ฟาร์มเก่า เพราะว่า เพราะว่า บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ สัตวแพทย์ที่ฟาร์มเก่า ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "สัตวแพทย์แบบว่า แบบว่า รายงานผลที่ฟาร์มเก่าให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากฟาร์มเก่าเร็ว!”"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากฟาร์มเก่า!”"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่ฟาร์มเก่าก่อน”"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้าฟาร์มเก่าดีไหม”"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "สัตวแพทย์ตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากฟาร์มเก่า"
+  },
+  {
+   "group": "v3-story-050",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "แล้วก็ แล้วก็ สัตวแพทย์หายไปจากฟาร์มเก่า"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนจอมป่วนขายของตามปกติที่รถเมล์ จากนั้น จากนั้น บันทึกผลลงสมุด"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "calm sequence",
+   "text": "หลังเหตุการณ์สงบ นักเรียนจอมป่วนที่รถเมล์ ในตอนนั้น ในตอนนั้น ก็กลับไปทำงานต่อ"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "remove",
+   "mode": "narration",
+   "emotion": "neutral",
+   "situation": "routine reporting",
+   "text": "นักเรียนจอมป่วนแบบว่า แบบว่า รายงานผลที่รถเมล์ให้ทุกคนทราบ"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "fear",
+   "situation": "danger approaching",
+   "text": "“มันมาแล้ว! มันมาแล้ว! หนีออกจากรถเมล์เร็ว!”"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "anger",
+   "situation": "confrontation",
+   "text": "“ออกไป! ฉันบอกให้ออกไปจากรถเมล์!”"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "sadness",
+   "situation": "farewell",
+   "text": "“อย่าไป… อย่าไป… อยู่กับฉันที่รถเมล์ก่อน”"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "keep",
+   "mode": "dialogue",
+   "emotion": "hesitation",
+   "situation": "uncertain choice",
+   "text": "“เอ่อ… เอ่อ… ฉันไม่แน่ใจว่าจะเข้ารถเมล์ดีไหม”"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "keep",
+   "mode": "narration",
+   "emotion": "fear",
+   "situation": "panic",
+   "text": "นักเรียนจอมป่วนตัวสั่น จากนั้น จากนั้น วิ่งหนีออกจากรถเมล์"
+  },
+  {
+   "group": "v3-story-051",
+   "label": "review",
+   "mode": "unknown",
+   "emotion": "uncertain",
+   "situation": "ambiguous narration",
+   "text": "ในตอนนั้น ในตอนนั้น นักเรียนจอมป่วนหายไปจากรถเมล์"
+  }
+ ]
+}

@@ -627,15 +627,17 @@ function analyzeAllScripts(){
  }catch(err){scriptBatch=null;status('Script ML: '+String(err.message||err),true)}
  render();
 }
-function exportBatchScriptReport(){
- if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
- const result={schema:1,task:'thai-narration-batch-review',createdAt:now(),
-  model:'experimental-assistant-demo',note:'For manual review only. No API upload, and not training labels.',
+function buildBatchReport(){
+ const ml=root.StoryScriptML;
+ return {schema:2,task:'thai-narration-batch-review',createdAt:now(),
+  models:{narrationRisk:{status:ml.MODEL?.status,data:ml.MODEL?.data},intent:{status:ml.INTENT_MODEL?.status,trainRows:ml.INTENT_MODEL?.trainRows},
+   emotion:{status:ml.EMOTION_MODEL?.status,trainRows:ml.EMOTION_MODEL?.trainRows}},
+  note:'For manual review only. Models are trained on assistant-authored synthetic data. No API upload, and not training labels.',
   stats:scriptBatch.stats,entries:scriptBatch.entries.map(e=>({
-   episodeIndex:e.episodeIndex,sceneIndex:e.sceneIndex,sceneId:e.sceneId,episodeTitle:e.episodeTitle,
+   key:e.key,episodeIndex:e.episodeIndex,sceneIndex:e.sceneIndex,sceneId:e.sceneId,episodeTitle:e.episodeTitle,
    original:e.original,proposed:e.result?.proposed||e.original,selected:scriptBatch.selected.has(e.key),
    hasEdit:!!e.result?.hasEdit,needsReview:!!e.result?.needsReview,
-   warnings:e.result?.warnings||[],
+   warnings:e.result?.warnings||[],intentionalContrast:!!e.result?.intentionalContrast,
    context:JSON.parse(e.contextSnapshot||'{}'),
    intent:e.result?.intent?{decision:e.result.intent.decision,label:e.result.intent.label,
     reason:e.result.intent.reason,scoreIsUncalibrated:true,
@@ -644,7 +646,46 @@ function exportBatchScriptReport(){
      isAuthorSupplied:e.result.intent.emotion.source==='author-tag',
      evidence:e.result.intent.emotion.decisionEvidence}:null}:null
   }))};
- exportText('story-script-review-'+now().slice(0,10)+'.json',JSON.stringify(result,null,2));
+}
+function comparisonStamp(){return now().slice(0,19).replace(/[:T]/g,'-')}
+function exportBatchScriptReport(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ exportText('story-script-review-'+comparisonStamp()+'.json',JSON.stringify(buildBatchReport(),null,2));
+}
+function exportBatchReportMarkdown(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ exportText('story-script-compare-'+comparisonStamp()+'.md',root.StoryScriptML.comparisonMarkdown(buildBatchReport()),'text/markdown');
+}
+function exportOriginalProject(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ exportText('story-original-'+comparisonStamp()+'.json',JSON.stringify(bridge.get(),null,2));
+ status('ดาวน์โหลดไฟล์ต้นฉบับแล้ว (ยังไม่แก้โปรเจกต์)');
+}
+function proposedProjectResult(){
+ return root.StoryScriptML.buildProposedProject(bridge.get(),scriptBatch.entries,{prepare:scene=>standardNarrative(scene)});
+}
+function exportProposedProject(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ const r=proposedProjectResult();
+ exportText('story-ai-proposed-'+comparisonStamp()+'.json',JSON.stringify(r.project,null,2));
+ status('ดาวน์โหลดไฟล์ฉบับที่เอไอเสนอแล้ว '+r.applied.length+' ฉาก'+(r.skipped.length?' · ข้าม '+r.skipped.length+' ฉากเพราะบทเปลี่ยนหลังวิเคราะห์':'')+' · โปรเจกต์ในเว็บยังไม่ถูกแก้');
+}
+function exportScriptOnlyFile(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ const ml=root.StoryScriptML,r=proposedProjectResult(),project=bridge.get();
+ const md=ml.scriptOnlyMarkdown(project,scriptBatch.entries,buildBatchReport(),r);
+ exportText('story-script-only-'+comparisonStamp()+'.md',md,'text/markdown');
+ status('ดาวน์โหลดไฟล์บทเดียวแล้ว (ต้นฉบับ + เอไอเสนอ ทุกฉาก) · ข้อเสนอ '+r.applied.length+' ฉาก · ขนาด '+Math.ceil(md.length/1024)+' KB · โปรเจกต์ในเว็บยังไม่ถูกแก้');
+}
+function exportComparisonPackage(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ const r=proposedProjectResult(),report=buildBatchReport();
+ const pkg={schema:1,task:'script-ai-comparison-package',createdAt:now(),
+  howToRead:'originalProject = ไฟล์ต้นฉบับ · proposedProject = ฉบับที่เอไอเสนอ (ใช้ข้อเสนอแก้ทุกฉากที่มี hasEdit) · report = รายงานรายฉาก',
+  appliedScenes:r.applied,skippedScenes:r.skipped,report,reportMarkdown:root.StoryScriptML.comparisonMarkdown(report),
+  originalProject:bridge.get(),proposedProject:r.project};
+ exportText('story-compare-package-'+comparisonStamp()+'.json',JSON.stringify(pkg,null,2));
+ status('ดาวน์โหลดชุดเทียบครบ 1 ไฟล์แล้ว (ต้นฉบับ + ฉบับเอไอเสนอ + รายงาน) · ข้อเสนอ '+r.applied.length+' ฉาก');
 }
 async function applyBatchScriptReview(){
  if(busy||!scriptBatch)return;
@@ -744,6 +785,11 @@ function renderChat(container){
      scriptBatch.selected=new Set(scriptBatch.entries.filter(x=>x.result?.hasEdit&&!x.result.warnings.length).map(x=>x.key));render()
     },{disabled:busy}),
     button('ยกเลิกการเลือกทั้งหมด',()=>{scriptBatch.selected.clear();render()},{disabled:busy}),
+    button('ดาวน์โหลดไฟล์บทเดียว (ต้นฉบับ+เอไอเสนอ ทุกคำ)',exportScriptOnlyFile,{disabled:busy,className:'ai-primary'}),
+    button('ชุดเทียบเต็ม (รวมโปรเจกต์ทั้งก้อน)',exportComparisonPackage,{disabled:busy}),
+    button('ไฟล์ต้นฉบับ .json',exportOriginalProject,{disabled:busy}),
+    button('ไฟล์ที่เอไอเสนอ .json',exportProposedProject,{disabled:busy}),
+    button('รายงานอ่านง่าย .md',exportBatchReportMarkdown,{disabled:busy}),
     button('ดาวน์โหลดรายงาน JSON',exportBatchScriptReport,{disabled:busy})),
    e('div',{style:'max-height:56vh;overflow-y:auto;border:1px solid #ffffff22;border-radius:10px;padding:8px'},
     ...scriptBatch.entries.map(entry=>{
