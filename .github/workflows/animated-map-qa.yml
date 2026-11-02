@@ -182,6 +182,9 @@ jobs:
           node --check studio-production-planner.js
           node --check studio-layout-ml.js
           node --check studio-shot-ml.js
+          node --check studio-script-ml.js
+          node --test tests/script-ml.test.cjs
+          node training-lab/train-script-ml.cjs
           node tests/shot-ml-contract.test.cjs
           node tests/layout-ml-contract.test.cjs
           python3 training-lab/test-layout-ml.py
@@ -221,7 +224,7 @@ jobs:
           node --check tests/thai-subtitle-safe-area-smoke.cjs
           test -f index.html && test -f animated-map.css
           mkdir -p dist/assets
-          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-visual-qa.js studio-production-assets.js studio-coastal-world.js studio-production-planner.js studio-layout-ml.js studio-shot-ml.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
+          cp index.html animated-map.js animated-map.css cinematic-fx.js cinematic-fx.css character-interaction.js character-interaction.css narration-director.js studio-sound-assistant.js site-auth.js runtime-config.js studio-ai-core.js studio-timing-auditor.js studio-visual-qa.js studio-production-assets.js studio-coastal-world.js studio-production-planner.js studio-layout-ml.js studio-shot-ml.js studio-script-ml.js studio-ai-workspace.js studio-ai-workspace.css studio-asset-core.js studio-github-art.js studio-art-vault.js studio-art-vault.css dist/
           cp assets/library.json dist/assets/library.json
           test -f dist/animated-map.js && test -f dist/animated-map.css
           test -f dist/cinematic-fx.js && test -f dist/cinematic-fx.css
