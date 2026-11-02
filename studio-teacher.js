@@ -737,5 +737,12 @@ function mount(target,source){
  if(Array.isArray(stored)&&!thread.length)thread=stored.filter(x=>['user','assistant'].includes(x.role)&&typeof x.content==='string').slice(-10);
  render();if(session()&&!statusData&&!busy)loadStatus();
 }
+// Session changes never remove AWS keys; refresh the connected provider list
+// after each login, and conceal account state while the studio is locked.
+if(typeof root.addEventListener==='function')root.addEventListener(
+ 'story-studio-access-change',()=>{
+  if(session())loadStatus();
+  else{statusData=null;render()}
+ });
 root.StoryTeacherStudio=Object.freeze({mount,render});
 })(window);
