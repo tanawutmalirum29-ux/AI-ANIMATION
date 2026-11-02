@@ -1,7 +1,7 @@
 name: Unified AI Workspace QA
 on:
   push:
-    branches: [fix/unified-ai-production-workspace, main]
+    branches: [main]
     paths:
       - 'studio-ai-mode.js'
       - 'studio-ai-mode.css'
