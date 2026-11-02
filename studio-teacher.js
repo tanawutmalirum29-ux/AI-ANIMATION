@@ -321,7 +321,8 @@ function connectPanel(){
  return content;
 }
 async function showHistory(){
- busy=true;setNotice('กำลังอ่านความจำ AI ลูกจาก AWS');render(false);
+ if(busy)return;
+ busy=true;setNotice('กำลังโหลด Feedback ของโปรเจกต์นี้จาก AWS');
  try{const data=await api('teacher.history',{projectId:projectId()});
   const area=container.querySelector('.teacher-history');
   if(area){area.replaceChildren();
@@ -333,7 +334,7 @@ async function showHistory(){
       el('p',{},String(r.original||'').slice(0,180)),el('p',{},String(r.proposed||'').slice(0,180))));
    }
   }
-  setNotice('อ่านข้อมูลที่บันทึกแล้ว '+(data.items?.length||0)+' รายการ · ยังไม่ได้ฝึกน้ำหนัก');
+  setNotice('โหลด Feedback ของโปรเจกต์นี้ '+(data.items?.length||0)+' รายการ (แยกจากบทเรียน AI ลูก)');
  }catch(e){setNotice('อ่านความจำไม่สำเร็จ: '+e.message,true)}
  finally{busy=false}
 }
