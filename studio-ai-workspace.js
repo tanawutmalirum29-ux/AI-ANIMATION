@@ -563,7 +563,7 @@ function reviewCurrentScript(){
   if(!ml?.review)throw Error('ยังโหลด Script ML ไม่ครบ ลองเปิดแท็บ AI อีกครั้ง');
   const original=String(scene.voiceover||'');
   if(!original.trim())throw Error('ฉากนี้ไม่มี voiceover');
-  scriptReview={sceneId:scene.id,original,result:ml.review(original,{subtitle:scene.subtitle})};
+  scriptReview={sceneId:scene.id,original,contextSnapshot:JSON.stringify(ml.sceneContext(scene)),result:ml.review(original,ml.sceneContext(scene))};
   status('วิเคราะห์บทฉาก '+scene.id+' แล้ว · โมเดลทดลอง AI เขียนตัวอย่าง ไม่ใช่ LLM');
  }catch(err){scriptReview=null;status('Script ML: '+String(err.message||err),true)}
  render();
@@ -571,7 +571,8 @@ function reviewCurrentScript(){
 async function applyScriptReview(){
  const proposal=scriptReview,scene=bridge.scene?.();
  if(busy||!proposal?.result?.hasEdit||!scene||scene.id!==proposal.sceneId||
-  String(scene.voiceover||'')!==proposal.original){
+  String(scene.voiceover||'')!==proposal.original||
+  JSON.stringify(root.StoryScriptML?.sceneContext(scene))!==proposal.contextSnapshot){
   scriptReview=null;status('ฉากหรือบทเปลี่ยนไป กรุณาวิเคราะห์ใหม่',true);render();return;
  }
  const voiceClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute);
@@ -622,7 +623,7 @@ function exportBatchScriptReport(){
    episodeIndex:e.episodeIndex,sceneIndex:e.sceneIndex,sceneId:e.sceneId,episodeTitle:e.episodeTitle,
    original:e.original,proposed:e.result?.proposed||e.original,selected:scriptBatch.selected.has(e.key),
    hasEdit:!!e.result?.hasEdit,needsReview:!!e.result?.needsReview,
-   warnings:e.result?.warnings||[]
+   warnings:e.result?.warnings||[],intent:e.result?.intent||null
   }))};
  exportText('story-script-review-'+now().slice(0,10)+'.json',JSON.stringify(result,null,2));
 }
@@ -708,7 +709,8 @@ function renderChat(container){
 
  pane.append(e('details',{className:'ai-task',open:!!scriptBatch||!!scriptReview},
   e('summary',{},'Script ML · วิเคราะห์บททั้งโปรเจกต์ในครั้งเดียว'),
-  e('p',{className:'ai-help'},'วิเคราะห์ทุกตอนและทุกฉาก รวมสรุปจุดที่ควรแก้และคำเตือน · ยังเป็นโมเดล SGD ทดลองพร้อมกฎแก้คำซ้ำ ไม่ใช่ LLM เขียนบท'),
+  e('p',{className:'ai-help'},'แยกคำซ้ำ 3 แบบ: เสนอแก้ / เก็บตามอารมณ์ / ต้องตรวจบริบท · ใช้โมเดล SGD ทดลอง 200 ตัวอย่างสังเคราะห์กับข้อมูลอารมณ์ใน JSON ไม่ใช่ LLM เข้าใจเรื่อง'),
+  e('small',{className:'ai-help'},'กำหนด scriptMode: dialogue, emotion: fear/anger/sadness/surprise/hesitation และ situation ใน JSON เพื่อรักษาคำซ้ำที่ตั้งใจใช้ หากไม่มีข้อมูลจะถือ voiceover เป็นบทบรรยายทั่วไป'),
   e('div',{className:'ai-actions'},
    button('วิเคราะห์ทุกฉาก · ทุกตอน',analyzeAllScripts,{disabled:busy,className:'ai-primary'}),
    button('วิเคราะห์ฉากที่เลือก',()=>{scriptBatch=null;reviewCurrentScript()},{disabled:busy})),
@@ -731,7 +733,8 @@ function renderChat(container){
       e('strong',{},entry.episodeTitle+' · ฉาก '+(entry.sceneIndex+1)+' ('+String(entry.sceneId||'ไม่มี ID')+')'),
       e('small',{},!entry.hasText?'ไม่มีบทพากย์':
        modifiable?'มีข้อเสนอแก้ · '+(result.warnings.length?'ต้องอ่านคำเตือนก่อนเลือก':'ตรวจข้อเสนอได้'):
-       result.needsReview?'มีจุดต้องตรวจ แต่ไม่มีการแก้แบบปลอดภัย':'ผ่านเบื้องต้น · ไม่จำเป็นต้องแก้'),
+       result.needsReview?'มีจุดต้องตรวจ แต่ไม่มีการแก้แบบปลอดภัย':
+       result.intent?.decision==='keep'?'เก็บคำซ้ำไว้เพราะบริบท/อารมณ์ (โมเดลทดลอง)':'ผ่านเบื้องต้น · ไม่จำเป็นต้องแก้'),
       ...(modifiable?[e('label',{className:'ai-help'},
        e('input',{type:'checkbox',checked:selected,disabled:busy,onchange:ev=>{
         if(ev.target.checked)scriptBatch.selected.add(entry.key);
@@ -744,6 +747,9 @@ function renderChat(container){
        e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
         'บทเดิม:\n'+entry.original+'\n\nบทที่เสนอ:\n'+result.proposed)]:
        entry.hasText?[e('small',{className:'ai-help'},'บทเดิม: '+entry.original)]:[]),
+      ...(result?.intent?[e('small',{className:'ai-help'},
+       'คำซ้ำ: '+({remove:'เสนอแก้',keep:'ควรเก็บ',review:'ตรวจเอง'}[result.intent.decision]||'ตรวจเอง')+
+       ' · ความมั่นใจโมเดลสาธิต '+Math.round(result.intent.confidence*100)+'% (ยังไม่ใช่คะแนนประสิทธิภาพจริง)')]:[]),
       ...(result?.warnings||[]).map(w=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+w))
      );
      return group;
@@ -757,6 +763,8 @@ function renderChat(container){
    e('small',{},'ความเสี่ยงของโมเดล '+Math.round(scriptReview.result.risk*100)+'% · '+scriptReview.result.explanation),
    e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
     'บทเดิม:\n'+scriptReview.original+(scriptReview.result.hasEdit?'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed:'\n\nไม่มีข้อความแก้เพิ่มเติม')),
+   e('small',{className:'ai-help'},'การประเมินคำซ้ำ: '+({remove:'เสนอแก้',keep:'ควรเก็บ',review:'ตรวจเอง'}[scriptReview.result.intent?.decision]||'ตรวจเอง')+
+    ' · '+(scriptReview.result.intent?.reason||'')),
    ...(scriptReview.result.warnings||[]).map(msg=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+msg)),
    button('ยืนยันใช้บทที่เสนอในฉากนี้',applyScriptReview,{disabled:busy||!scriptReview.result.hasEdit})
   ]:[]),
