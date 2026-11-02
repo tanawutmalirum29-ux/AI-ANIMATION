@@ -132,19 +132,18 @@ async function acceptDraft(info){
  busy=true;render();
  let saved=false,applied=false;
  try{
-  if(statusData?.feedbackReady){
-   const result=await api('teacher.feedback',{projectId:projectId(),record:{
-    sceneId:ops.map(x=>x.id).join(',').slice(0,160),original:info.request,
-    proposed:JSON.stringify(summarizeDraft(ops)).slice(0,1800),
-    reason:'Approved by studio owner',outcome:'approved',model:info.model,provider:info.provider}});
-   saved=!!result.saved;
-   if(!saved)throw Error('AWS ไม่ยืนยันว่าบันทึกข้อมูลฝึกแล้ว');
-  }
   if(info.refs.some(x=>JSON.stringify(scenes.get(x.id)||null)!==x.before))throw Error('ข้อมูลฉากเปลี่ยนระหว่างการตรวจ');
   saveRecovery();
   const result=root.StudioAPI.apply(ops);
   if(!result.applied)throw Error('StudioAPI ไม่ยืนยันการแก้ไข');
   applied=true;pending=[];bridge.persist();
+  if(statusData?.feedbackReady){
+   const record=await api('teacher.feedback',{projectId:projectId(),record:{
+    sceneId:ops.map(x=>x.id).join(',').slice(0,160),original:info.request,
+    proposed:JSON.stringify(summarizeDraft(ops)).slice(0,1800),
+    reason:'Approved and applied by studio owner',outcome:'approved',model:info.model,provider:info.provider}});
+   saved=!!record.saved;
+  }
   setNotice('แก้ '+ops.length+' ฉากแล้ว'+(saved?' · บันทึกข้อมูลฝึกใน AWS แล้ว (ยังไม่ได้ฝึกน้ำหนัก)':' · ยังไม่ได้บันทึกความจำบน AWS'));
  }catch(e){setNotice((applied?'แก้ฉากแล้ว แต่บันทึกผิดพลาด: ':'ไม่ได้แก้ฉาก: ')+e.message+(saved?' · ตัวอย่างถูกบันทึกแล้ว':' '),true)}
  finally{busy=false;render()}
