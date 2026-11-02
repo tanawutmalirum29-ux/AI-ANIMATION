@@ -67,7 +67,7 @@ function childScan(project,model,coach){
 function signature(project){return digestSource(project)}
 function getState(){
  return {ready:!!scanned,scenes:scanned?.rows.length||0,skipped:scanned?.skipped.length||0,
-  results:[...results],completed:results.filter(x=>x.saved||x.reused).length,
+  results:[...results],completed:results.reduce((n,x)=>n+(x.saved||0)+(x.reused||0),0),
   running,progress,error,autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
 }
 function render(){
@@ -140,8 +140,11 @@ async function teach(){
   render();throw Error(error);
  }
  const project=sourceProject();
- const workspace=root.StoryAIWorkspaceCore?.ensure?.(project.project?.aiWorkspace||{});
- const projectId=workspace?.projectId;
+ if(!project.project)project.project={};
+ project.project.aiWorkspace=root.StoryAIWorkspaceCore?.ensure?.(
+  project.project.aiWorkspace||{});
+ bridge.persist?.();
+ const projectId=project.project.aiWorkspace?.projectId;
  if(!projectId)throw Error('ไม่พบรหัสโปรเจกต์');
  running=true;error='';results=[];render();
  const batches=[];
