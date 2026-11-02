@@ -55,6 +55,7 @@ python3 -m pip install --quiet --upgrade --target "$HERE/build" --platform manyl
 cp "$HERE/handler.py" "$HERE/build/"
 cp "$HERE/github_assets.py" "$HERE/build/"
 cp "$HERE/teacher.py" "$HERE/build/"
+cp "$HERE/student_learning.py" "$HERE/build/"
 python3 - "$HERE" <<'PY'
 import os,sys,zipfile
 root=os.path.join(sys.argv[1],"build")
