@@ -206,9 +206,12 @@ function examples(bundle,limit=1){
  return root.StoryContinuityCoach.examples(bundle,memory,limit)
   .map(x=>({...x,source:'teacher-auto-unverified',reviewedByOwner:false}));
 }
+function configure(source,selectedProvider){
+ bridge=source;provider=selectedProvider||provider;
+}
 function mount(node,source,selectedProvider){
  host=node;bridge=source;provider=selectedProvider||provider;
  render();
 }
-return Object.freeze({mount,scan,teach,getState,loadMemory,examples,childScan});
+return Object.freeze({mount,configure,scan,teach,getState,loadMemory,examples,childScan});
 });
