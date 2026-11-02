@@ -1,6 +1,6 @@
 """Authenticated AI Teacher gateway for Story Studio.
 Only call after handler.py has validated a signed site session.
-Provider keys live in AWS Secrets Manager, never in the browser, GitHub, or logs.
+Provider keys live in AWS SSM SecureString or Secrets Manager, never in GitHub or logs.
 """
 import json
 import os
@@ -30,9 +30,19 @@ def _secret_id():
     return os.getenv("TEACHER_SETTINGS_SECRET_ID", "")
 
 def _settings():
+    import boto3
+    parameter = os.getenv("TEACHER_SETTINGS_PARAMETER", "")
+    if parameter:
+        try:
+            raw = boto3.client("ssm").get_parameter(Name=parameter, WithDecryption=True)["Parameter"]["Value"]
+            data = json.loads(raw)
+            return data if isinstance(data, dict) else {}
+        except Exception as exc:
+            if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ParameterNotFound":
+                return {}
+            raise
     if not _secret_id():
         return {}
-    import boto3
     try:
         raw = boto3.client("secretsmanager").get_secret_value(SecretId=_secret_id())["SecretString"]
         data = json.loads(raw)
@@ -44,9 +54,15 @@ def _settings():
         raise
 
 def _save_settings(settings):
-    if not _secret_id():
-        raise RuntimeError("TEACHER_SETTINGS_SECRET_ID missing")
     import boto3
+    parameter = os.getenv("TEACHER_SETTINGS_PARAMETER", "")
+    if parameter:
+        boto3.client("ssm").put_parameter(Name=parameter,
+            Value=json.dumps(settings, ensure_ascii=False),
+            Type="SecureString", Overwrite=True)
+        return
+    if not _secret_id():
+        raise RuntimeError("TEACHER_SETTINGS_PARAMETER or TEACHER_SETTINGS_SECRET_ID missing")
     boto3.client("secretsmanager").put_secret_value(
         SecretId=_secret_id(), SecretString=json.dumps(settings, ensure_ascii=False))
 
@@ -73,15 +89,15 @@ def _status():
          "baseUrl": str(_config(settings, p).get("baseUrl") or "") if p == "compatible" else ""}
         for p in PROVIDERS],
         "feedbackReady": bool(os.getenv("TEACHER_FEEDBACK_TABLE")),
-        "settingsReady": bool(_secret_id()),
+        "settingsReady": bool(_secret_id() or os.getenv("TEACHER_SETTINGS_PARAMETER")),
         "storage": "AWS DynamoDB" if os.getenv("TEACHER_FEEDBACK_TABLE") else "not configured"})
 
 def _configure(body):
     provider = str(body.get("provider") or "").lower()
     if provider not in PROVIDERS:
         return _response(400, {"error": "Provider not supported"})
-    if not _secret_id():
-        return _response(503, {"error": "ยังไม่ได้ตั้งค่า AWS Secrets Manager"})
+    if not (_secret_id() or os.getenv("TEACHER_SETTINGS_PARAMETER")):
+        return _response(503, {"error": "ยังไม่ได้ตั้งค่าพื้นที่เก็บ API key บน AWS"})
     model = str(body.get("model") or MODELS[provider]).strip()
     if not re.fullmatch(r"[a-zA-Z0-9_.:/-]{1,128}", model):
         return _response(400, {"error": "ชื่อโมเดลไม่ถูกต้อง"})
