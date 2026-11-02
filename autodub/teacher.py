@@ -123,6 +123,28 @@ def _configure(body):
     _save_settings(settings)
     return _response(200, {"ok": True, "provider": provider, "model": model})
 
+def _disconnect(body):
+    """Explicitly revoke one provider connection without touching other keys.
+
+    Site auth is enforced at handler.py. Never reveal the deleted key.
+    """
+    provider = str(body.get("provider") or "").lower()
+    if provider not in PROVIDERS:
+        return _response(400, {"error": "Provider not supported"})
+    if body.get("confirmDisconnect") is not True:
+        return _response(400, {"error": "ต้องยืนยันการยกเลิกเชื่อมต่อ"})
+    if not (_secret_id() or os.getenv("TEACHER_SETTINGS_PARAMETER")):
+        return _response(503, {"error": "ยังไม่ได้ตั้งค่าพื้นที่เก็บ API key บน AWS"})
+    settings = _settings()
+    existed = bool(_config(settings, provider).get("key"))
+    if provider in settings:
+        # Remove the entire provider entry so no stale key/base URL survives.
+        settings.pop(provider, None)
+        _save_settings(settings)
+    return _response(200, {"ok": True, "provider": provider,
+                           "disconnected": True, "wasConnected": existed})
+
+
 def _post_json(url, headers, payload):
     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     if len(raw) > 24000:
@@ -642,6 +664,8 @@ def handle(action, body):
             return _status()
         if action == "teacher.configure":
             return _configure(body)
+        if action == "teacher.disconnect":
+            return _disconnect(body)
         if action == "teacher.chat":
             return _chat(body)
         if action == "teacher.modelTest":
