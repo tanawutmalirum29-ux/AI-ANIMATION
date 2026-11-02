@@ -45,7 +45,7 @@ const INTENT_MODEL=Object.freeze({schema:1,task:'thai-repetition-intent',status:
 const EMOTION_LABELS=Object.freeze(["neutral","fear","anger","sadness","surprise","hesitation"]);
 const EMOTION_SOURCES=Object.freeze(['text','previous','next','notes']);
 const EMOTION_PATTERN=Object.freeze([/ตามปกติ|เรียบร้อย|ไม่มีเหตุผิดปกติ|เป็นระเบียบ|ดำเนินงานต่ออย่างปกติ|ทำงานตามขั้นตอน/u,
-/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น/u,
+/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น|หอบหายใจ/u,
 /กำหมัด|โกรธ|โมโห|ตบโต๊ะ|ตำหนิ|ขึ้นเสียง|เดือดดาล|โวยวาย|ทะเลาะ|เถียง|ต่อว่า/u,
 /น้ำตา|ร้องไห้|เสียใจ|สูญเสีย|เศร้า|อาลัย|สะอื้น|จากไป|คิดถึง/u,
 /สะดุ้ง|ตกใจ|ตะลึง|อุทาน|อะไรนะ|คาดไม่ถึง|ไม่คาดฝัน|ประหลาดใจ|กะทันหัน|โผล่/u,
@@ -80,6 +80,10 @@ function inferEmotion(text,context={}){
  let label='unknown';
  if(hasEvidence&&!conflict&&max>=.70&&matches.find(x=>x.label===winner)?.count>0)label=winner;
  if(/ไม่กลัว|ไม่ได้โกรธ|ไม่เศร้า|ไม่ตกใจ/u.test(String(text||'')))label='unknown';
+ if(label==='hesitation'&&/เอ่อ/u.test(String(text||''))&&
+  !/ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า/u.test(
+   [String(text||''),String(context.previous||''),String(context.next||''),String(context.notes||'')].join(' ')))
+  label='unknown'; // Filler alone is not enough proof of intentional emotion.
  return {label,source:sources.join('+')||'no-evidence',hasEvidence,conflict,decisionEvidence:label==='unknown'?'insufficient-or-conflicting':label==='neutral'?'ordinary-language':'emotion-language',scores:probs};
 }
 function trainEmotion(rows,epochs=250){
@@ -173,7 +177,8 @@ function classifyIntent(text,context={}){
  if(!hasRepetition)decision='clean';
  else if(/รอแล้วรอเล่า|ทำแล้วทำเล่า/u.test(text))decision='keep'; // Conventional Thai emphasis, not a copy-paste error.
  else if(mode==='dialogue'||/[“”"'«»]/u.test(text))decision='keep';
- else if(emotionalNarration||impliedEmotion&&mode==='narration')decision='review'; // Inferred danger => human review, never delete.
+ else if(emotionalNarration||impliedEmotion&&mode==='narration'&&
+  (indicators[0]||indicators[2]||indicators[11]||emotionFeatures(text,context).slice(1,6).some(Boolean)))decision='review'; // Inferred danger => human review, never delete.
  else if(protectedExpression)decision='keep';
  else if(uncertain)decision='review';
  else if(label==='remove'&&best>=.85)decision='remove';
