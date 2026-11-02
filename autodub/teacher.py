@@ -104,6 +104,8 @@ def _configure(body):
     if provider == "openrouter" and not model.endswith(":free") and os.getenv("TEACHER_ALLOW_PAID_MODELS") != "1":
         return _response(400, {"error": "โหมดประหยัด: OpenRouter ต้องเลือกโมเดลลงท้าย :free"})
     key = body.get("apiKey")
+    if key == "":
+        key = None
     if key is not None and (not isinstance(key, str) or not 12 <= len(key) <= 350):
         return _response(400, {"error": "รูปแบบ API key ไม่ถูกต้อง"})
     base = str(body.get("baseUrl") or "").strip()
