@@ -84,10 +84,9 @@ function inferEmotion(text,context={}){
   return {label:declared,source:'author-tag',hasEvidence:true,conflict:false,
    decisionEvidence:'author-declared',modelLabel:winner,scores:probs};
  const sourceHits=sourceNames.map((source,i)=>EMOTION_LABELS
-  .filter((label,k)=>k>0&&features[i*6+k]>0));
+  .filter((label,k)=>(i===0||i===3||k>0)&&features[i*6+k]>0));
  const allHits=sourceHits.flat(),hasEvidence=features.slice(0,24).some(Boolean);
  const conflict=new Set(allHits).size>1;
- const quoted=EMOTION_PATTERN[5].test(String(text||''));
  let label='unknown',source='no-evidence',localConflict=false;
  // Prefer evidence in the actual scene to another speaker's next line.
  for(const index of [0,3,1,2]){
@@ -99,7 +98,11 @@ function inferEmotion(text,context={}){
    if(hits[0]==='hesitation'&&/เอ่อ/u.test(hay)&&
     !/ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า/u.test(hay))
     continue;
-   label=hits[0];source=sourceNames[index];break;
+   label=hits[0];source=sourceNames[index];
+   // A lone neighbor cue cannot override a conflicting trained prediction.
+   // Explicit current-text evidence wins over a neighboring speaker's words.
+   if(index>0&&winner!==label)label='unknown';
+   break;
   }
  }
  // Do not treat negated feelings or an unresolved contradiction as proof.
