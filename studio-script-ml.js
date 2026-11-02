@@ -98,6 +98,7 @@ function classifyIntent(text,context={}){
    /danger|confront|panic|threat|argument|ทะเลาะ|วิกฤต/u.test(situation));
  let decision='review';
  if(!hasRepetition)decision='clean';
+ else if(/รอแล้วรอเล่า|ทำแล้วทำเล่า/u.test(text))decision='keep'; // Conventional Thai emphasis, not a copy-paste error.
  else if(mode==='dialogue'||/[“”"'«»]/u.test(text))decision='keep';
  else if(emotionalNarration)decision='review'; // No silent removal or unjustified certainty.
  else if(protectedExpression)decision='keep';
