@@ -101,5 +101,53 @@ function train(rows,epochs=300){
   accuracy:scores.length?scores.filter(x=>x.expected===x.predicted).length/scores.length:0,
   trainRows:trainRows.length,testRows:testRows.length,groups:new Set(trainRows.map(x=>x.group)).size};
 }
-return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train});
+// Batch review never mutates source projects, never trains on a user's script,
+// and keeps a per-scene snapshot so later changes cannot be silently overwritten.
+function reviewProject(project){
+ const entries=[],episodes=Array.isArray(project?.episodes)?project.episodes:[];
+ let withNarration=0,changes=0,attention=0,passed=0;
+ for(let ei=0;ei<episodes.length;ei++){
+  const ep=episodes[ei]||{},scenes=Array.isArray(ep.scenes)?ep.scenes:[];
+  for(let si=0;si<scenes.length;si++){
+   const scene=scenes[si]||{},original=String(scene.voiceover||'');
+   const key=ei+':'+si,hasText=!!original.trim();
+   const result=hasText?review(original,{subtitle:scene.subtitle}):null;
+   if(hasText){
+    withNarration++;
+    if(result.hasEdit)changes++;
+    else if(result.needsReview)attention++;
+    else passed++;
+   }
+   entries.push({key,episodeIndex:ei,sceneIndex:si,episodeTitle:String(ep.title||('ตอนที่ '+(ei+1))),
+    sceneId:scene.id,original,subtitleSnapshot:JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[]),
+    hasText,result});
+  }
+ }
+ return {entries,stats:{scenes:entries.length,withNarration,changes,attention,passed,missing:entries.length-withNarration}};
+}
+function verifyBatchSelection(project,entries,selectedKeys){
+ const chosen=new Set(selectedKeys||[]),selected=[];
+ const episodes=Array.isArray(project?.episodes)?project.episodes:[];
+ const allIds=[];
+ for(const ep of episodes)for(const scene of (Array.isArray(ep?.scenes)?ep.scenes:[])){
+  if(scene?.id!=null)allIds.push(scene.id);
+ }
+ if(allIds.length!==new Set(allIds).size)throw Error('โปรเจกต์มี scene.id ซ้ำ ไม่สามารถแก้เป็นชุดอย่างปลอดภัย');
+ const keys=new Set((entries||[]).map(x=>x.key));
+ for(const key of chosen)if(!keys.has(key))throw Error('มีฉากที่ไม่ได้อยู่ในรายงาน กรุณาวิเคราะห์ใหม่');
+ for(const entry of entries||[]){
+  if(!chosen.has(entry.key))continue;
+  const scene=episodes[entry.episodeIndex]?.scenes?.[entry.sceneIndex];
+  if(!scene||scene.id!==entry.sceneId||
+     String(scene.voiceover||'')!==entry.original||
+     JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[])!==entry.subtitleSnapshot)
+   throw Error('บทหรือซับมีการเปลี่ยนหลังวิเคราะห์ กรุณาวิเคราะห์ใหม่: '+entry.key);
+  const fresh=review(scene.voiceover,{subtitle:scene.subtitle});
+  if(!fresh.hasEdit||fresh.proposed!==entry.result?.proposed)
+   throw Error('ข้อเสนอไม่ตรงกับโมเดลปัจจุบัน กรุณาวิเคราะห์ใหม่: '+entry.key);
+  selected.push({entry,scene,proposed:fresh.proposed});
+ }
+ return selected;
+}
+return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection});
 });
