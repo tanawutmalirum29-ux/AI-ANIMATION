@@ -328,17 +328,39 @@
    C(x(.85),15,10,'#f4dcb3',.53);
   return o;
  }
+ // Backward-compatible, narrowly scoped visual cues for previously imported
+ // coastal stories. Explicit worldEffects ALWAYS win; never modify source JSON
+ // or invent voice/caption content. These are renderer rules, not an ML model.
+ function coastalSceneEffects(scene={}){
+  const words=String(scene.voiceover||'')+' '+(Array.isArray(scene.subtitle)?scene.subtitle.join(' '):'');
+  const inferred={};
+  if(/ระดับน้ำ.{0,18}(สูงขึ้น|เพิ่มขึ้น)|น้ำทะเลค่อย|น้ำทะเลสูง/.test(words))
+   inferred.waterRise=true;
+  if(/น้ำไหลลอด|ประตู.{0,16}รั่ว|ช่อง.{0,10}น้ำรั่ว/.test(words))
+   inferred.gateLeak=true;
+  if(/วิ่ง.{0,16}เตือน|เตือนร้านค้า|เตือนชาวตลาด|ขนของขึ้นที่สูง/.test(words)){
+   inferred.marketWarning=true;
+   inferred.evacuation=true;
+  }
+  if(/น้ำ.{0,18}(เอ่อ|ท่วม).{0,22}(ร้าน|ตลาด)|ตลาด.{0,10}ท่วม/.test(words))
+   inferred.marketFlood=true;
+  if(/ตลาดว่าง|อพยพสำเร็จ|ทุกคนหนีขึ้นที่สูง|หนีขึ้นที่สูงได้ทัน/.test(words)){
+   inferred.marketEmpty=true;
+   inferred.safeHill=true;
+  }
+  return {...inferred,...(scene.worldEffects||{})};
+ }
  function render(set,layer,W,local=0,scene={}){
   const kind=typeof set==='string'?set:set&&set.worldArt;
   if(!TYPES.includes(kind))return '';
   const width=clamp(W,20,1100,160),t=clamp(local,0,1000,0),front=layer==='front';
   let svg='';
-  if(kind==='coastal-harbor')svg=harbor(width,t,scene,front);
+  if(kind==='coastal-harbor')svg=harbor(width,t,{...scene,worldEffects:coastalSceneEffects(scene)},front);
   if(kind==='coastal-workshop')svg=workshop(width,t,scene,front);
   if(kind==='coastal-cliff')svg=cliff(width,t,scene,front);
   if(kind==='lighthouse-lantern')svg=lantern(width,t,scene,front);
   if(kind==='coastal-hill')svg=hill(width,t,scene,front);
   return '<g data-world-art="'+kind+'" data-world-layer="'+layer+'">'+svg+'</g>';
  }
- return Object.freeze({TYPES,render});
+ return Object.freeze({TYPES,render,coastalSceneEffects});
 });
