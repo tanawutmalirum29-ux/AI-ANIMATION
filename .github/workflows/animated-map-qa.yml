@@ -36,6 +36,7 @@ on:
       - tests/latest-export-feedback.test.cjs
       - training-lab/evaluations/three-flashes-v3-factory-export.json
       - tests/production-browser-smoke.cjs
+      - tests/preview-ipad-caption-scale-smoke.cjs
       - tests/visual-coverage-qa.test.cjs
       - tests/video-review-nov1.test.cjs
       - tests/indoor-weather.test.cjs
@@ -102,6 +103,7 @@ on:
       - tests/latest-export-feedback.test.cjs
       - training-lab/evaluations/three-flashes-v3-factory-export.json
       - tests/production-browser-smoke.cjs
+      - tests/preview-ipad-caption-scale-smoke.cjs
       - tests/visual-coverage-qa.test.cjs
       - tests/video-review-nov1.test.cjs
       - tests/indoor-weather.test.cjs
@@ -239,6 +241,7 @@ jobs:
           node tests/local-ai-workspace-smoke.cjs
           node tests/layout-ml-browser-smoke.cjs
           node tests/production-browser-smoke.cjs
+          node tests/preview-ipad-caption-scale-smoke.cjs
           node tests/coastal-world-browser-smoke.cjs
           node tests/art-vault-browser-smoke.cjs
           node tests/voice-preview-smoke.cjs

@@ -5107,17 +5107,44 @@ window.StoryStudioBridge={
 };
 
 /* ===== boot ===== */
-function fit(){const w=$('#stageWrap'),st=$('#stage'),[a,b]=S.project.aspect.split(':').map(Number),mob=matchMedia('(max-width:820px), (orientation:portrait) and (max-width:1100px)').matches,cinema=THEATER_ACTIVE;
-// v19 phone layout: portrait stage sits beside the transport controls so the tool panel gets the room.
-const phone=mob&&!cinema&&innerWidth<=820&&innerHeight>=innerWidth&&!document.body.classList.contains('export-focus'),side=phone&&b>a;
-document.body.classList.toggle('pre-phone',phone);document.body.classList.toggle('pre-side',side);
-const pad=phone?12:24;
-// In the normal editor cap the stage height. In cinema mode use the actual available viewport.
-const W=side?Math.max(80,innerWidth*.40):Math.max(100,(w.clientWidth||300)-pad);
-const exportFocus=document.body.classList.contains('export-focus')&&innerWidth<=1100;
-const H=cinema?Math.max(120,(w.clientHeight||innerHeight-120)-20):exportFocus?Math.max(95,Math.min(innerHeight*.19,180)):phone?Math.max(120,Math.min(innerHeight*(side?.27:.24),side?230:210)):mob?Math.max(155,Math.min(innerHeight*.29,290)):Math.max(100,(w.clientHeight||300)-24);
-let sw=W,sh=W*b/a;if(sh>H){sh=H;sw=H*a/b}
-st.style.width=sw+'px';st.style.height=sh+'px';st.style.setProperty('--fs',Math.max(11,sh*.055)+'px');st.style.setProperty('--cap-font',Math.max(11,Math.min(19,sh*(S.project.aspect==='9:16'?.034:.064)))+'px');st.style.setProperty('--label-font',Math.max(10,Math.min(13,sh*.027))+'px');w.style.width=side?(sw+pad)+'px':'';w.style.height=cinema?'':mob?(sh+(phone?pad:24))+'px':''}
+function fit(){
+ const w=$('#stageWrap'),st=$('#stage'),[a,b]=S.project.aspect.split(':').map(Number);
+ if(!w||!st||!(a>0&&b>0))return;
+ const mob=matchMedia('(max-width:820px), (orientation:portrait) and (max-width:1100px)').matches,
+   cinema=THEATER_ACTIVE,exportFocus=document.body.classList.contains('export-focus')&&innerWidth<=1100;
+ // A portrait iPad can report 810 CSS px and was treated like a tiny PHONE:
+ // the 230px height cap turned a 9:16 export into a ~129px-wide thumbnail.
+ // Size the whole logical video from the available screen, not from fixed
+ // minimum font pixels; CSS and SVG content must scale together.
+ const portrait=innerHeight>innerWidth,tabletPortrait=mob&&!cinema&&!exportFocus&&portrait&&innerWidth>=600,
+   phone=mob&&!cinema&&!exportFocus&&innerWidth<=820&&portrait,
+   side=phone&&b>a;
+ document.body.classList.toggle('pre-phone',phone);
+ document.body.classList.toggle('pre-side',side);
+ const pad=phone?12:24;
+ // Side mode shares the row with transport and the scene picker; the iPad
+ // gets a larger stage while still reserving room for the editor below.
+ const sideWidth=tabletPortrait?innerWidth*.47:innerWidth*.40;
+ const widthLimit=side?Math.max(80,sideWidth):Math.max(100,(w.clientWidth||innerWidth)-pad);
+ const maxPhoneH=Math.max(150,Math.min(innerHeight*.34,330,innerHeight-280));
+ const maxTabletH=Math.max(220,Math.min(innerHeight*.51,620,innerHeight-325));
+ const heightLimit=cinema?Math.max(120,(w.clientHeight||innerHeight-120)-20):
+   exportFocus?Math.max(95,Math.min(innerHeight*.19,180)):
+   tabletPortrait?maxTabletH:
+   phone?maxPhoneH:
+   mob?Math.max(155,Math.min(innerHeight*.40,460)):
+   Math.max(100,(w.clientHeight||300)-24);
+ const sh=Math.min(heightLimit,widthLimit*b/a),sw=sh*a/b;
+ st.style.width=sw+'px';st.style.height=sh+'px';
+ // Match the actual rendered video's h*.033 subtitle typography instead of
+ // a hard 11px floor which made captions HUGE on small portrait previews.
+ // On a smaller screen, the entire scene (actors, SVG and captions) shrinks.
+ st.style.setProperty('--fs',Math.max(4,sh*.055)+'px');
+ st.style.setProperty('--cap-font',Math.max(4,Math.min(30,sh*.033))+'px');
+ st.style.setProperty('--label-font',Math.max(4,Math.min(23,sh*.027))+'px');
+ w.style.width=side?(sw+pad)+'px':'';
+ w.style.height=cinema?'':mob?(sh+(phone?pad:24))+'px':'';
+}
 function render(){const savedScroll=window.scrollY;pauseAudioPlayers();hydrateAudioDurations();resetTransitionCache();renderTop();lib();inspector();timeline();ctl();renderMotionBar();showWelcome();const p=$('#previewContext');if(p)p.textContent=`ฉาก ${sel+1}/${ep().scenes.length} · ${S.project.aspect}`;fit();draw();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='record')renderDubDesk();if(innerWidth<=820&&!THEATER_ACTIVE&&Math.abs(window.scrollY-savedScroll)>4)requestAnimationFrame(()=>window.scrollTo({top:savedScroll,behavior:'instant'}));if(THEATER_ACTIVE)updateTheaterTitle();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='ai')window.StoryAIWorkspace?.render()}
 document.body.append(h('input',{type:'file',id:'file',accept:'.json',style:'display:none',onchange:e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(x){alert('ไฟล์ JSON ไม่ถูกต้อง');return}const importedSmart=d?.project?.smartDirector?.mode||smartMode();const repairs=importedSmart==='auto'&&smartEnabled('import')?smartRepairProject(d):{data:d,changes:[]};d=repairs.data;const er=diagnose(d).filter(i=>i.level==='error');if(er.length&&!(Array.isArray(d.episodes)&&d.episodes.length&&d.episodes.every(E=>E&&Array.isArray(E.scenes)&&E.scenes.length))){alert('เปิดไฟล์ไม่ได้: '+er[0].path+' — '+er[0].msg);return}if(er.length&&!confirm('พบ error '+er.length+' รายการ (เช่น '+er[0].path+': '+er[0].msg+') เปิดต่อไหม?'))return;commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});if(repairs.changes.length){openSmartDirector();smartSetStatus(`ปรับข้อมูลที่ขาดอัตโนมัติ ${repairs.changes.length} รายการ · Undo ได้`)} })}}));
 $('#smartImportApply').checked=smartMode()==='auto';$('#bChk').onclick=()=>{const r=plan();showIssues(r.issues,r.log,r.note)};$('#bCtx').onclick=copyCtx;$('#bImp').onclick=importIt;$('#bClose').onclick=()=>$('#dlg').close();
