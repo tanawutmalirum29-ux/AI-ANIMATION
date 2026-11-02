@@ -77,7 +77,7 @@ function examples(bundle,lessons,limit=3){
 function prompt(bundle,related=[],foundationExamples=[],childAdvice=null){
  if(!bundle?.current?.voiceover)throw Error('เลือกฉากที่มีบทพากย์ก่อน');
  const data={task:'thai-story-coherence',
-  instructions:'Review Thai narration PREVIOUS/CURRENT/NEXT using editorialChecklist. Identify evidence and distinguish contradictions from unknown information. Prefer minimal changes, preserve deliberate repetition, uncertainty, suspense, emotion and spoken cadence. No invented canon or irreversible events. If no justified change, return ops:[]. Return Thai rationale and at most one updateScene operation for CURRENT voiceover; never auto-apply.',
+  instructions:'Review Thai narration PREVIOUS/CURRENT/NEXT using editorialChecklist. Identify evidence and distinguish contradictions from unknown information. Prefer minimal changes, preserve deliberate repetition, uncertainty, suspense, emotion and spoken cadence. Preserve canon, established facts and chronology; no invented canon or irreversible events. If no justified change, return ops:[]. Return Thai rationale and at most one updateScene operation for CURRENT voiceover; never auto-apply.',
   editorialChecklist:[...EDITORIAL_CHECKLIST],
   context:bundle,localReviewHints:signals(bundle),
   ownerApprovedExamples:related.slice(0,2),
