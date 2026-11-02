@@ -75,3 +75,21 @@
  .teacher-memory-filters{grid-template-columns:minmax(0,1fr)}
  .teacher-lesson-card summary{padding:12px}
 }
+
+/* Narrative continuity coaching is review-first, does not occupy the video panel. */
+.story-coach{min-width:0;gap:12px}
+.story-coach-notice{padding:11px;border:1px solid #71859f75;border-radius:11px;font-size:13px;line-height:1.6}
+.story-coach-notice[data-error="true"]{color:#ffdaa1;border-color:#bd875d}
+.story-coach-scene{display:grid;gap:7px;border:1px solid #6c809a77;background:#15253a;border-radius:11px;padding:12px;min-width:0}
+.story-coach-scene strong{font-size:13px}
+.story-coach-scene small{font-size:12px;color:#a8bdce}
+.story-coach-scene p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;font-size:14px;margin:0}
+.story-coach-review,.story-coach-signals{padding:11px 13px;border:1px solid #7189a180;border-radius:11px;display:grid;gap:6px}
+.story-coach-review p,.story-coach-signals p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:0;font-size:14px}
+.story-coach-review small{color:#a8bdce}
+.story-coach-history{border:1px solid #7189a180;border-radius:11px;padding:11px 12px;min-width:0}
+.story-coach-history summary{cursor:pointer;font-size:13px}
+.story-coach-example{border-top:1px solid #6b829962;margin-top:10px;padding-top:10px;overflow-wrap:anywhere}
+.story-coach-example p{line-height:1.55;font-size:13px;margin:4px 0}
+.story-coach-example small{white-space:pre-wrap}
+@media(max-width:520px){.story-coach .teacher-row button{flex:1 1 145px}}
