@@ -7,7 +7,7 @@ const MODES=[
  {id:'review',title:'ตรวจทั้งโปรเจกต์',prompt:'Review the current Thai animation project. Identify concrete continuity, narration and timing risks. Only propose supported corrections.'},
  {id:'pacing',title:'แก้จังหวะฉาก',prompt:'Audit scene pacing from the available JSON. Suggest safer durations; never claim to have measured audio that is not supplied.'},
  {id:'script',title:'ตรวจคำซ้ำและอารมณ์',prompt:'Review Thai script repetitions, intent and emotion. Preserve intentional stuttering, fear, emphasis and dialogue meaning.'},
- {id:'student',title:'สอน AI ลูก',prompt:'Evaluate the current student AI outputs, identify mistakes and suggest specific examples to submit for human-reviewed training feedback.'},
+ {id:'student',title:'สอน AI ลูก',prompt:'Teach the student from the imported JSON and archive teacher-reviewed examples in AWS without claiming owner approval.'},
  {id:'qa',title:'ตรวจโครงสร้างภาพ/เสียง',prompt:'Run a static JSON quality review for scene continuity, audio references, subtitle lengths and character placement. State which video/audio checks require actual media.'},
  {id:'produce',title:'วางแผนผลิตทุกตอน',prompt:'Create a safe execution plan to produce and validate all episodes. Do not claim to render or export without a tool that actually does so.'}
 ];
@@ -210,7 +210,11 @@ function chatPanel(){
  const providerSelect=el('select',{onchange:ev=>{provider=ev.target.value;render()}},
   ...modelOptions().map(p=>el('option',{value:p.id,selected:p.id===provider},p.id+' · '+(p.ready?'พร้อมใช้งาน':'ยังไม่เชื่อม'))));
  content.append(el('label',{className:'teacher-field'},'AI ครูที่เลือก',providerSelect));
- const commands=el('div',{className:'teacher-commands'},...MODES.map(m=>button(m.title,()=>sendMessage(m.prompt),'',busy)));
+ const autoPanel=el('div',{className:'teacher-auto-panel'});
+ if(root.StoryAutoTeach)root.StoryAutoTeach.mount(autoPanel,bridge,provider);
+ content.append(autoPanel);
+ const commands=el('div',{className:'teacher-commands'},...MODES.map(m=>button(m.title,
+   ()=>m.id==='student'?root.StoryAutoTeach?.teach?.().catch(()=>{}):sendMessage(m.prompt),'',busy)));
  content.append(el('strong',{},'คำสั่งลัด'),commands);
  const log=el('div',{className:'teacher-log',role:'log','aria-live':'polite'});
  if(!thread.length)log.append(el('p',{className:'teacher-muted'},'พิมพ์คำสั่งภาษาไทยหรืออังกฤษได้ AI ครูจะอ่านบทภาษาไทยตามต้นฉบับ'));
