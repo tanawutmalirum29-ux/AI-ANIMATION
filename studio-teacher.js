@@ -8,7 +8,7 @@ const MODES=[
  {id:'pacing',title:'แก้จังหวะฉาก',prompt:'Audit scene pacing from the available JSON. Suggest safer durations; never claim to have measured audio that is not supplied.'},
  {id:'script',title:'ตรวจคำซ้ำและอารมณ์',prompt:'Review Thai script repetitions, intent and emotion. Preserve intentional stuttering, fear, emphasis and dialogue meaning.'},
  {id:'student',title:'สอน AI ลูก',prompt:'Evaluate the current student AI outputs, identify mistakes and suggest specific examples to submit for human-reviewed training feedback.'},
- {id:'qa',title:'ตรวจภาพ/เสียง',prompt:'Run a static JSON quality review for scene continuity, audio references, subtitle lengths and character placement. State which video/audio checks require actual media.'},
+ {id:'qa',title:'ตรวจโครงสร้างภาพ/เสียง',prompt:'Run a static JSON quality review for scene continuity, audio references, subtitle lengths and character placement. State which video/audio checks require actual media.'},
  {id:'produce',title:'วางแผนผลิตทุกตอน',prompt:'Create a safe execution plan to produce and validate all episodes. Do not claim to render or export without a tool that actually does so.'}
 ];
 let bridge,container,tab='chat',provider='openrouter',statusData=null,thread=[],pending=[],busy=false,notice='',noticeError=false,lastResponse=null;
@@ -63,9 +63,12 @@ function context(){
  const focus=scenes.findIndex(x=>x.id===current);
  const sample=focus>=0?scenes.slice(Math.max(0,focus-3),focus+4):scenes.slice(0,8);
  return JSON.stringify({project:{title:String(s.project?.title||'').slice(0,160),aspect:s.project?.aspect,fps:s.project?.fps},
-  episodeTitles:episodes.map(e=>String(e.title||'').slice(0,80)).slice(0,32),
+  episodeOutline:episodes.slice(0,20).map(ep=>({id:ep.id,title:String(ep.title||'').slice(0,80),
+    sceneCount:(ep.scenes||[]).length,scenes:(ep.scenes||[]).slice(0,12).map(sc=>({
+      id:sc.id,duration:sc.duration,voiceoverPreview:String(sc.voiceover||'').slice(0,75),
+      actors:(sc.actors||[]).length,audioClips:(sc.audioClips||[]).length}))})),
   selectedEpisode:selected?.id,selectedSceneId:current,
-  scenes:sample.map(sceneData)}).slice(0,13800);
+  selectedSceneDetails:sample.map(sceneData)}).slice(0,13800);
 }
 function summarizeDraft(ops){return ops.map(op=>({id:op.id,patch:op.patch}))}
 function snapshotFor(ops){
@@ -111,6 +114,7 @@ function draftCard(info){
  return box;
 }
 async function rejectDraft(info){
+ if(!statusData?.feedbackReady){pending=[];setNotice('ไม่ใช้ข้อเสนอแล้ว · ยังไม่ได้ติดตั้งฐานข้อมูลสำหรับบันทึกผล');render();return}
  try{await api('teacher.feedback',{projectId:projectId(),record:{
   sceneId:info.ops.map(x=>x.id).join(',').slice(0,160),original:info.request,
   proposed:JSON.stringify(summarizeDraft(info.ops)).slice(0,1800),
