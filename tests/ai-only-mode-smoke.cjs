@@ -37,6 +37,8 @@ const path=require('node:path');
    assert.equal(await page.locator('#teacherQuickKey').getAttribute('type'),'password');
    await page.locator('.teacher-tabs').getByRole('button',{name:'ต่อเติมบท'}).click();
    assert.equal(await visible('.story-coach'),true,'continuity coach tab visible');
+   assert.equal(await page.evaluate(()=>typeof StoryNarrativeFoundation?.train==='function'||
+    typeof StoryNarrativeFoundation?.fit==='function'),true,'CPU narrative model loaded');
    assert.equal(await page.getByRole('button',{name:'1. AI ลูกตรวจบริบท'}).count(),1);
    await page.locator('.teacher-tabs').getByRole('button',{name:'สอน AI ลูก'}).click();
    assert.equal(await visible('.teacher-memory-training'),true,'student CPU training available');
