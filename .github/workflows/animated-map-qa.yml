@@ -1,13 +1,5 @@
 name: Story Studio animated map QA
 on:
-  pull_request:
-    paths:
-      - 'studio-ai-mode.js'
-      - 'studio-ai-mode.css'
-      - 'studio-ai-workspace.js'
-      - 'studio-ai-workspace.css'
-      - 'tests/ai-only-mode-smoke.cjs'
-      - '.github/workflows/animated-map-qa.yml'
   push:
     branches:
       - main
@@ -68,9 +60,6 @@ on:
       - tests/video-review-nov1.test.cjs
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
-      - studio-ai-mode.js
-      - studio-ai-mode.css
-      - tests/ai-only-mode-smoke.cjs
       - studio-ai-workspace.js
       - tests/ai-workspace-regression.test.cjs
       - studio-ai-workspace.css
