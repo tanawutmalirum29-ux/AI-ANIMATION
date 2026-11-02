@@ -738,6 +738,8 @@ function renderChat(container){
         else scriptBatch.selected.delete(entry.key);
         const label=rootElement?.querySelector('#scriptBatchSelectedCount');
         if(label)label.textContent='เลือกแก้ '+scriptBatch.selected.size+' ฉาก';
+        const confirmBtn=rootElement?.querySelector('#scriptBatchApprove');
+        if(confirmBtn)confirmBtn.disabled=busy||scriptBatch.selected.size===0;
        }}),' เลือกใช้ข้อเสนอแก้บทฉากนี้'),
        e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
         'บทเดิม:\n'+entry.original+'\n\nบทที่เสนอ:\n'+result.proposed)]:
@@ -749,7 +751,7 @@ function renderChat(container){
    ),
    e('div',{className:'ai-actions'},
     e('strong',{id:'scriptBatchSelectedCount'},'เลือกแก้ '+scriptBatch.selected.size+' ฉาก'),
-    button('ยืนยันแก้ฉากที่เลือกทั้งหมด',applyBatchScriptReview,{disabled:busy||!scriptBatch.selected.size,className:'ai-primary'}))
+    button('ยืนยันแก้ฉากที่เลือกทั้งหมด',applyBatchScriptReview,{disabled:busy||!scriptBatch.selected.size,className:'ai-primary',id:'scriptBatchApprove'}))
   ]:[]),
   ...(scriptReview?.sceneId===bridge.scene?.()?.id?[
    e('small',{},'ความเสี่ยงของโมเดล '+Math.round(scriptReview.result.risk*100)+'% · '+scriptReview.result.explanation),
