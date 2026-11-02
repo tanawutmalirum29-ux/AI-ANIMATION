@@ -567,8 +567,9 @@ function applyShotRecommendation(){
   status('นำคำแนะนำ ML ไปใช้แล้ว กรุณาตรวจพรีวิวก่อนส่งออก');
  }catch(err){status('Shot ML: '+err.message,true)}
 }
-function reviewCurrentScript(){
+async function reviewCurrentScript(){
  try{
+  try{await root.StoryStudentLearning?.load?.()}catch(_){}
   const scene=bridge.scene?.(),ml=root.StoryScriptML;
   if(!scene?.id)throw Error('เลือกฉากก่อน');
   if(!ml?.review)throw Error('ยังโหลด Script ML ไม่ครบ ลองเปิดแท็บ AI อีกครั้ง');
@@ -611,8 +612,9 @@ async function applyScriptReview(){
  finally{busy=false;render()}
 }
 
-function analyzeAllScripts(){
+async function analyzeAllScripts(){
  try{
+  try{await root.StoryStudentLearning?.load?.()}catch(_){}
   if(busy)throw Error('มีงานอื่นกำลังทำ');
   const ml=root.StoryScriptML;
   if(!ml?.reviewProject)throw Error('โมดูล Script ML ยังไม่พร้อม กรุณาเปิดหน้าต่างนี้อีกครั้ง');
@@ -855,7 +857,11 @@ function renderChat(container){
        e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
         'บทเดิม:\n'+entry.original+'\n\nบทที่เสนอ:\n'+result.proposed)]:
        entry.hasText?[e('small',{className:'ai-help'},'บทเดิม: '+entry.original)]:[]),
-      ...(result?.intent?[e('small',{className:'ai-help'},
+      ...(result?.intent?.memoryAdvice?[e('small',{className:'ai-help'},
+    'ความจำ AI ลูก: '+(result.intent.memoryAdvice.label||'')+
+    ' · ที่มา '+(result.intent.memoryAdvice.source||'')+
+    ' (เป็นข้อเสนอ ไม่แก้บทเอง)')]:[]),
+   ...(result?.intent?[e('small',{className:'ai-help'},
        'ผลตรวจคำซ้ำ: '+(SCRIPT_INTENT_LABELS[result.intent.decision]||'ตรวจเอง')+
        ' · '+result.intent.reason+' (โมเดลสาธิต; ไม่แสดงเปอร์เซ็นต์ที่ยังไม่ผ่านการสอบเทียบ)'),
        e('small',{className:'ai-help'},formatEmotionSource(result.intent.emotion))]:[]),
