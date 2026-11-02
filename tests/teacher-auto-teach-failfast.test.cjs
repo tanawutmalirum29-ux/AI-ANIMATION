@@ -29,7 +29,7 @@ test('141 scenes: one failed backend call stops immediately and reports root cau
    if(params.action==='teacher.status')return {providers:[{id:'gemini',ready:true}],feedbackReady:true};
    if(params.action==='teacher.autoLessons')return {lessons:[]};
    if(params.action==='teacher.modelTest')return {ready:true,model:'gemini-3.5-flash-lite'};
-   if(params.action==='teacher.autoTeach')throw Error('AI แม่ตอบ JSON ไม่ครบ (HTTP 422)');
+   if(params.action==='teacher.autoTeach')throw Error('AI provider HTTP 502');
    throw Error('Unexpected '+params.action);
   }
  };
@@ -40,7 +40,7 @@ test('141 scenes: one failed backend call stops immediately and reports root cau
  assert.equal(result.results.length,1);
  assert.equal(result.results[0].failed,2);
  assert.ok(result.progress.includes('ยังไม่ได้ประมวลผล 139'));
- assert.ok(result.failReasons[0].includes('HTTP 422'));
+ assert.ok(result.failReasons[0].includes('HTTP 502'));
  assert.ok(!result.progress.includes('สอนครบทุกชุด'));
 });
 test('stale Lambda is detected before any inference requests',async()=>{
