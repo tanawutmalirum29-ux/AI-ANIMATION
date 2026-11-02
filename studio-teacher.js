@@ -49,8 +49,8 @@ function getWorkspace(){
 }
 function projectId(){return getWorkspace().projectId}
 function modelOptions(){
- return statusData?.providers||[{id:'openrouter',ready:false,model:'google/gemma-3-27b-it:free'},
-  {id:'gemini',ready:false,model:'gemini-2.5-flash'}, {id:'compatible',ready:false,model:''}];
+ return statusData?.providers||[{id:'openrouter',ready:false,model:'openrouter/free'},
+  {id:'gemini',ready:false,model:'gemini-3.5-flash-lite'}, {id:'compatible',ready:false,model:''}];
 }
 function sceneData(scene){
  return {id:scene.id,duration:scene.duration,voiceover:String(scene.voiceover||'').slice(0,800),
@@ -253,7 +253,7 @@ function resolveTeacherApiLink(value){
 }
 function teacherModelFor(providerId){
  return modelOptions().find(x=>x.id===providerId)?.model||
-  (providerId==='gemini'?'gemini-2.5-flash':providerId==='openrouter'?'google/gemma-3-27b-it:free':'');
+  (providerId==='gemini'?'gemini-3.5-flash-lite':providerId==='openrouter'?'openrouter/free':'');
 }
 async function saveConnection(){
  if(busy)return;
@@ -312,7 +312,7 @@ function connectPanel(){
     placeholder:saved?'มีคีย์เดิมบน AWS แล้ว (เว้นว่างได้)':'วาง API Key ที่นี่'})),
   el('details',{className:'teacher-advanced'},
    el('summary',{},'ตัวเลือกขั้นสูง · เลือกโมเดลเอง / API อื่น'),
-   el('p',{className:'teacher-muted'},'OpenRouter ใช้เฉพาะโมเดล :free ตามค่าเริ่มต้น API อื่นต้องมี Model ID และโดเมนต้องอยู่ในรายการที่อนุญาตบน AWS'),
+   el('p',{className:'teacher-muted'},'OpenRouter ใช้ openrouter/free เพื่อสุ่มเฉพาะโมเดลฟรี หรือ Model ID ลงท้าย :free · Gemini แนะนำ 3.5 Flash-Lite (ตรวจโควตา/ค่าใช้จ่ายของบัญชีให้ชัด)'),
    textField('Model ID (ไม่บังคับสำหรับ OpenRouter / Gemini)',connectionDraft.model,{
     id:'teacherAdvancedModel',placeholder:'เว้นว่างเพื่อเลือกให้อัตโนมัติ',
     oninput:ev=>{connectionDraft.model=ev.target.value;}})),

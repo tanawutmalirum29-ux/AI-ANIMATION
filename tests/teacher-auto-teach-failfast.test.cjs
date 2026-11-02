@@ -28,12 +28,13 @@ test('141 scenes: one failed backend call stops immediately and reports root cau
    calls.push(params.action);
    if(params.action==='teacher.status')return {providers:[{id:'gemini',ready:true}],feedbackReady:true};
    if(params.action==='teacher.autoLessons')return {lessons:[]};
+   if(params.action==='teacher.modelTest')return {ready:true,model:'gemini-3.5-flash-lite'};
    if(params.action==='teacher.autoTeach')throw Error('AI แม่ตอบ JSON ไม่ครบ (HTTP 422)');
    throw Error('Unexpected '+params.action);
   }
  };
  const result=await auto.teach();
- assert.deepEqual(calls,['teacher.status','teacher.autoLessons','teacher.autoTeach']);
+ assert.deepEqual(calls,['teacher.status','teacher.autoLessons','teacher.modelTest','teacher.autoTeach']);
  assert.equal(result.scenes,141);
  assert.equal(result.completed,0);
  assert.equal(result.results.length,1);

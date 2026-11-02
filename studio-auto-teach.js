@@ -11,7 +11,7 @@ if(root)root.StoryAutoTeach=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(root){
 'use strict';
 let bridge=null,host=null,provider='openrouter',scanned=null,running=false,
-  progress='',error='',results=[],memory=[],loadedMemory=false,failReasons=[];
+  progress='',error='',results=[],memory=[],loadedMemory=false,failReasons=[],repairModelChoice=null;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const validIssues=['continuity','clarity','expand','pacing','keep'];
 const clip=(s,n)=>String(s||'').slice(0,n);
@@ -68,7 +68,7 @@ function signature(project){return digestSource(project)}
 function getState(){
  return {ready:!!scanned,scenes:scanned?.rows.length||0,skipped:scanned?.skipped.length||0,
   results:[...results],completed:results.reduce((n,x)=>n+(x.saved||0)+(x.reused||0),0),
-  running,progress,error,failReasons:[...failReasons],autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
+  running,progress,error,failReasons:[...failReasons],repairSuggestion:repairModelChoice?{...repairModelChoice}:null,autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
 }
 function render(){
  if(!host||!root?.document)return;
@@ -87,6 +87,16 @@ function render(){
  rootPanel.append(buttons);
  rootPanel.append(el('p',progress||'เริ่มจากกดให้ AI ลูกตรวจทั้ง JSON','teacher-auto-teach-progress'));
  if(error)rootPanel.append(el('p',error,'teacher-warning'));
+ if(repairModelChoice){
+  const choice=repairModelChoice;
+  const label=choice.provider==='openrouter'?
+   'เปลี่ยนเป็น OpenRouter โมเดลฟรีอัตโนมัติ':
+   'เลือก Gemini 3.5 Flash-Lite (ตรวจสิทธิ์และค่าบริการก่อน)';
+  rootPanel.append(el('p','โมเดลเดิม: '+choice.model+
+   ' · รุ่นที่เสนอ: '+choice.suggested,'teacher-muted'));
+  const fix=btn(label,()=>repair404Model().catch(()=>{}));
+  rootPanel.append(fix);
+ }
  if(failReasons.length){
   const details=el('details',null,'teacher-auto-teach-errors');
   details.open=true;
@@ -111,7 +121,7 @@ function render(){
 }
 async function scan(){
  if(running)return getState();
- running=true;error='';failReasons=[];progress='AI ลูกกำลังตรวจบททั้งหมด...';render();
+ running=true;error='';failReasons=[];repairModelChoice=null;progress='AI ลูกกำลังตรวจบททั้งหมด...';render();
  try{
   const project=sourceProject(),stamp=signature(project);
   let model=null;
@@ -152,7 +162,47 @@ async function verifyTeacherReady(){
  // 47+ autoTeach requests and reporting 141 false failures.
  const probe=await root.StoryStudioAccess.request({action:'teacher.autoLessons',limit:1});
  if(!Array.isArray(probe?.lessons))throw Error('Lambda รุ่นนี้ยังไม่รองรับระบบสอนอัตโนมัติ กรุณา Deploy Lambda ล่าสุด');
+ const entry=ready.find(p=>p.id===provider);
+ try{
+  // A real generation request catches a missing/restricted model. Metadata
+  // can say 'ready' even when the selected model responds HTTP 404.
+  const check=await root.StoryStudioAccess.request({action:'teacher.modelTest',provider});
+  if(!check?.ready)throw Error('AI provider ไม่ยืนยันว่ารุ่นโมเดลใช้งานได้');
+  repairModelChoice=null;
+ }catch(e){
+  const msg=String(e.message||e);
+  if(/404|TEACHER_MODEL_UNAVAILABLE|ไม่พบหรือไม่อนุญาตให้ใช้โมเดล/i.test(msg)&&
+     ['openrouter','gemini'].includes(provider)){
+   repairModelChoice={
+    provider,model:String(entry?.model||'ไม่ทราบรุ่น'),
+    suggested:provider==='openrouter'?'openrouter/free':'gemini-3.5-flash-lite'
+   };
+  }
+  throw e;
+ }
  return true;
+}
+async function repair404Model(){
+ const choice=repairModelChoice;
+ if(!choice||running)return;
+ const warning=choice.provider==='gemini'?
+  'Gemini อาจมีค่าใช้จ่ายถ้าบัญชีเปิด Billing โปรดตรวจโควตา Free tier ใน Google AI Studio ก่อน เปลี่ยนโมเดลเป็น '+choice.suggested+' โดยใช้ API Key เดิมบน AWS หรือไม่?':
+  'เลือกโมเดล openrouter/free ที่จำกัดเฉพาะโมเดลฟรี โดยใช้ API Key เดิมใน AWS ไม่ต้องกรอกคีย์อีกหรือไม่?';
+ if(root?.confirm&&!root.confirm(warning))return;
+ running=true;render();
+ try{
+  const result=await root.StoryStudioAccess.request({
+   action:'teacher.configure',provider:choice.provider,model:choice.suggested,apiKey:''});
+  if(!result?.ok)throw Error('AWS ไม่ยืนยันการเปลี่ยนโมเดล');
+  const test=await root.StoryStudioAccess.request({
+   action:'teacher.modelTest',provider:choice.provider});
+  if(!test?.ready)throw Error('AI แม่ไม่ยืนยันว่าโมเดลใหม่ใช้งานได้');
+  repairModelChoice=null;error='';failReasons=[];
+  progress='ทดสอบโมเดล '+choice.suggested+' ผ่านแล้ว · กด AI แม่สอนและบันทึก AWS อีกครั้ง';
+ }catch(e){
+  error='เปลี่ยนโมเดลหรือทดสอบไม่สำเร็จ: '+String(e.message||e);
+  failReasons=[error];
+ }finally{running=false;render()}
 }
 function makeBatches(rows){
  // Fewer outputs per call prevent the structured Thai JSON being truncated
@@ -275,5 +325,5 @@ function mount(node,source,selectedProvider){
  host=node;bridge=source;provider=selectedProvider||provider;
  render();
 }
-return Object.freeze({mount,configure,scan,teach,getState,loadMemory,examples,childScan});
+return Object.freeze({mount,configure,scan,teach,repair404Model,getState,loadMemory,examples,childScan});
 });
