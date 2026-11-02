@@ -13,6 +13,15 @@ let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 let shotModel=null;const shotRows=[];
 let scriptReview=null,scriptBatch=null;
 const SCRIPT_EMOTION_LABELS=Object.freeze({neutral:'ปกติ',fear:'กลัว',anger:'โกรธ',sadness:'เศร้า',surprise:'ตกใจ',hesitation:'ลังเล',unknown:'ยังไม่ทราบ'});
+const SCRIPT_EMOTION_SOURCES=Object.freeze({'author-tag':'ผู้เขียนกำหนด',text:'คำบ่งชี้ในบท',previous:'ฉากก่อนหน้า',next:'ฉากถัดไป',notes:'หมายเหตุฉาก','no-evidence':'ไม่พบสัญญาณ', 'conflicting-or-weak':'หลักฐานขัดแย้งหรือไม่เพียงพอ'});
+function formatEmotionSource(emotion){
+ const source=String(emotion?.source||'no-evidence');
+ const title=emotion?.label==='unknown'?'ยังไม่สามารถประเมินอารมณ์ได้':
+  (source==='author-tag'?'อารมณ์ที่ผู้เขียนกำหนด: ':'AI ประเมินจากข้อความ: ')+
+  (SCRIPT_EMOTION_LABELS[emotion?.label]||'ยังไม่ทราบ');
+ return title+' · แหล่งข้อมูล: '+(SCRIPT_EMOTION_SOURCES[source]||source)+
+  ' · '+(source==='author-tag'?'ไม่ใช่การคาดเดาของโมเดล':'ตัวจำแนกทดลอง ยังยืนยันความหมายที่ซับซ้อนไม่ได้');
+}
 const SCRIPT_INTENT_LABELS=Object.freeze({remove:'เสนอแก้',keep:'ควรเก็บคำซ้ำ',review:'ตรวจบริบท',clean:'ไม่พบคำซ้ำที่ต้องแก้'});
 const MAX_TASKS=130;
 
@@ -632,6 +641,7 @@ function exportBatchScriptReport(){
     reason:e.result.intent.reason,scoreIsUncalibrated:true,
     inferredEmotion:e.result.intent.emotion?{
      label:e.result.intent.emotion.label,source:e.result.intent.emotion.source,
+     isAuthorSupplied:e.result.intent.emotion.source==='author-tag',
      evidence:e.result.intent.emotion.decisionEvidence}:null}:null
   }))};
  exportText('story-script-review-'+now().slice(0,10)+'.json',JSON.stringify(result,null,2));
@@ -718,7 +728,7 @@ function renderChat(container){
 
  pane.append(e('details',{className:'ai-task',open:!!scriptBatch||!!scriptReview},
   e('summary',{},'Script ML · วิเคราะห์บททั้งโปรเจกต์ในครั้งเดียว'),
-  e('p',{className:'ai-help'},'ตรวจคำซ้ำ 4 สถานะ และช่วยประเมินอารมณ์ 6 ประเภทจากบท ฉากก่อน/หลัง และหมายเหตุด้วยโมเดล CPU ทดลอง 432 ตัวอย่างสังเคราะห์ · ไม่ได้ฟังเสียงหรือเข้าใจเหตุการณ์เหมือน LLM'),
+  e('p',{className:'ai-help'},'ตรวจคำซ้ำ 4 สถานะ และช่วยประเมินอารมณ์ 6 ประเภทจากบท ฉากก่อน/หลัง และหมายเหตุด้วยโมเดล CPU ทดลอง 576 ตัวอย่างสังเคราะห์ · ไม่ได้ฟังเสียงหรือเข้าใจเหตุการณ์เหมือน LLM'),
   e('small',{className:'ai-help'},'ใส่ scriptMode และ emotion เพื่อระบุเจตนาชัดเจนได้ แต่แม้ไม่มี emotion ระบบก็อ่านคำบ่งชี้อารมณ์จากบทและบริบทฉากใกล้เคียง ถ้าไม่แน่ใจจะเตือนให้ตรวจเอง ไม่ลบคำซ้ำโดยพลการ'),
   e('div',{className:'ai-actions'},
    button('วิเคราะห์ทุกฉาก · ทุกตอน',analyzeAllScripts,{disabled:busy,className:'ai-primary'}),
@@ -760,10 +770,7 @@ function renderChat(container){
       ...(result?.intent?[e('small',{className:'ai-help'},
        'ผลตรวจคำซ้ำ: '+(SCRIPT_INTENT_LABELS[result.intent.decision]||'ตรวจเอง')+
        ' · '+result.intent.reason+' (โมเดลสาธิต; ไม่แสดงเปอร์เซ็นต์ที่ยังไม่ผ่านการสอบเทียบ)'),
-       e('small',{className:'ai-help'},'สัญญาณอารมณ์ที่อ่านได้: '+
-       (SCRIPT_EMOTION_LABELS[result.intent.emotion?.label]||'ยังไม่ทราบ')+
-       ' · แหล่งข้อมูล: '+(result.intent.emotion?.source||'ไม่มีหลักฐาน')+
-       ' · เป็นการจำแนกเชิงทดลอง ไม่ใช่ข้อเท็จจริงเกี่ยวกับตัวละคร')]:[]),
+       e('small',{className:'ai-help'},formatEmotionSource(result.intent.emotion))]:[]),
       ...(result?.warnings||[]).map(w=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+w))
      );
      return group;
@@ -779,9 +786,7 @@ function renderChat(container){
     'บทเดิม:\n'+scriptReview.original+(scriptReview.result.hasEdit?'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed:'\n\nไม่มีข้อความแก้เพิ่มเติม')),
    e('small',{className:'ai-help'},'การประเมินคำซ้ำ: '+(SCRIPT_INTENT_LABELS[scriptReview.result.intent?.decision]||'ตรวจเอง')+
     ' · '+(scriptReview.result.intent?.reason||'')),
-   e('small',{className:'ai-help'},'ประเมินอารมณ์จากข้อความและฉากข้างเคียง: '+
-    (SCRIPT_EMOTION_LABELS[scriptReview.result.intent?.emotion?.label]||'ยังไม่ทราบ')+
-    ' · '+(scriptReview.result.intent?.emotion?.source||'ไม่มีหลักฐาน')+' (โมเดลทดลอง)'),
+   e('small',{className:'ai-help'},formatEmotionSource(scriptReview.result.intent?.emotion)),
    ...(scriptReview.result.warnings||[]).map(msg=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+msg)),
    button('ยืนยันใช้บทที่เสนอในฉากนี้',applyScriptReview,{disabled:busy||!scriptReview.result.hasEdit})
   ]:[]),

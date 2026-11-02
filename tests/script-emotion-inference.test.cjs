@@ -4,8 +4,8 @@ const ml=require('../studio-script-ml.js');
 const rows=JSON.parse(fs.readFileSync(path.join(__dirname,'../training-lab/datasets/script-emotion-context-demo-v1.json'),'utf8')).rows;
 test('actual CPU SGD emotion model reproduces frozen 6-class weights on group-held-out synthetic scenes',()=>{
  const result=ml.trainEmotion(rows);
- assert.equal(result.trainRows,348);assert.equal(result.testRows,84);
- assert.ok(result.correct>=72);
+ assert.equal(result.trainRows,462);assert.equal(result.testRows,114);
+ assert.ok(result.correct>=108); // Synthetic scenes only; not real-story accuracy.
  assert.deepEqual(result.weights,ml.EMOTION_MODEL.weights);
  assert.deepEqual(result.bias,ml.EMOTION_MODEL.bias);
  assert.equal(ml.EMOTION_MODEL.status,'assistant-synthetic-demo-only');
