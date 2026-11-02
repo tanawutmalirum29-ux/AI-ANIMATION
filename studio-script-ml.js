@@ -40,14 +40,86 @@ const INTENT_MODEL=Object.freeze({schema:1,task:'thai-repetition-intent',status:
  [-0.404409,-0.180629,-0.180098,-0.304172,1.318056,1.318056,-1.077522,-0.58181,1.318056,-0.58181,1.318056,0.728032],
  [-0.051623,-0.20374,-0.203402,0.700348,-0.513014,-0.513014,-1.57887,2.000544,-0.513014,2.000544,-0.513014,-0.332923]],
  bias:[1.221252,-0.961776,-0.259476],trainRows:160,heldOutRows:40,assistantDemoAccuracy:1});
-function sceneContext(scene){
+// Real CPU-trained softmax parameters, fitted to synthetic Thai scene examples.
+// The model detects lexical evidence, NOT general emotion comprehension.
+const EMOTION_LABELS=Object.freeze(["neutral","fear","anger","sadness","surprise","hesitation"]);
+const EMOTION_SOURCES=Object.freeze(['text','previous','next','notes']);
+const EMOTION_PATTERN=Object.freeze([/ตามปกติ|เรียบร้อย|ไม่มีเหตุผิดปกติ|เป็นระเบียบ|ดำเนินงานต่ออย่างปกติ|ทำงานตามขั้นตอน/u,
+/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น/u,
+/กำหมัด|โกรธ|โมโห|ตบโต๊ะ|ตำหนิ|ขึ้นเสียง|เดือดดาล|โวยวาย|ทะเลาะ|เถียง|ต่อว่า/u,
+/น้ำตา|ร้องไห้|เสียใจ|สูญเสีย|เศร้า|อาลัย|สะอื้น|จากไป|คิดถึง/u,
+/สะดุ้ง|ตกใจ|ตะลึง|อุทาน|อะไรนะ|คาดไม่ถึง|ไม่คาดฝัน|ประหลาดใจ|กะทันหัน|โผล่/u,
+/เอ่อ|ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า|หยุดคิด|ไม่ลง/u]);
+const EMOTION_NAMES=Object.freeze(EMOTION_SOURCES.flatMap(f=>EMOTION_LABELS.map(l=>f+'_'+l)).concat(['repetition','interruption','quoted']));
+const EMOTION_MODEL=Object.freeze({schema:1,task:'thai-scene-emotion',status:'assistant-synthetic-demo-only',
+ labels:[...EMOTION_LABELS],features:[...EMOTION_NAMES],weights:[[2.420731,-1.918798,-1.917242,-1.964899,-1.914424,-1.91288,2.927774,-0.503779,-0.503314,-0.354819,-0.502197,-0.50176,3.679734,-1.93152,-1.929978,-1.389741,-1.925687,-1.924162,2.356735,-2.005331,-2.003697,-2.014914,-2.000382,-1.998769,-0.163788,0,0],[-0.438933,4.533774,-0.594877,-0.61949,-0.593406,-0.592621,-0.217661,4.218928,-0.716213,-0.353583,-0.714387,-0.713785,-0.220776,4.612911,-0.591788,-0.710112,-0.590455,-0.589656,-0.477182,4.492467,-0.63679,-0.643548,-0.63489,-0.634004,-0.049299,0,0],[-0.439776,-0.589349,4.533918,-0.62024,-0.59415,-0.593336,-0.217494,-0.713274,4.219328,-0.353571,-0.714796,-0.714183,-0.221873,-0.586349,4.613068,-0.710731,-0.591198,-0.59037,-0.478019,-0.63218,4.492815,-0.644299,-0.635611,-0.634699,-0.049074,0,0],[-0.65779,-0.843377,-0.841105,4.435692,-0.842583,-0.840356,-2.053679,-1.57039,-1.56953,1.769276,-1.573651,-1.572777,-2.786279,-0.918728,-0.91658,4.223751,-0.919003,-0.916875,-0.441114,-0.587272,-0.58646,4.582271,-0.59109,-0.590203,0.359054,0,0],[-0.441639,-0.59077,-0.590006,-0.615215,4.533949,-0.594909,-0.21956,-0.715548,-0.714947,-0.353664,4.218566,-0.716494,-0.224764,-0.587802,-0.58702,-0.706321,4.612878,-0.591979,-0.479745,-0.633497,-0.632601,-0.639433,4.493463,-0.636141,-0.048566,0,0],[-0.442592,-0.591481,-0.59069,-0.615849,-0.589385,4.534101,-0.219381,-0.715937,-0.715325,-0.35364,-0.713536,4.218999,-0.226042,-0.588512,-0.587703,-0.706845,-0.586536,4.613042,-0.480675,-0.634187,-0.633267,-0.640077,-0.63149,4.493816,-0.048326,0,0]],
+ bias:[-0.599914,-0.141456,-0.141635,1.162378,-0.139576,-0.139797],trainRows:348,heldOutRows:84,syntheticHoldoutAccuracy:1});
+function emotionFeatures(value,context={}){
+ const parts=[String(value||''),String(context.previous||''),String(context.next||''),String(context.notes||'')];
+ const result=[];
+ for(const part of parts)for(const re of EMOTION_PATTERN)result.push(re.test(part.slice(0,400))?1:0);
+ const t=parts[0];
+ return result.concat([/(?:แล้วก็\s*){2,}|(?:เอ่อ\s*){2,}/u.test(t)?1:0,/…|\.{3}/u.test(t)?1:0,/[“”"'«»]/u.test(t)?1:0]);
+}
+function emotionProbabilities(text,context={},model=EMOTION_MODEL){
+ if(!model||model.task!=='thai-scene-emotion'||model.features.join('|')!==EMOTION_NAMES.join('|')||
+  model.weights.length!==6)return null;
+ const v=emotionFeatures(text,context),scores=model.weights.map((w,k)=>w.reduce((z,a,i)=>z+a*v[i],model.bias[k]));
+ const maximum=Math.max(...scores),exps=scores.map(x=>Math.exp(x-maximum)),sum=exps.reduce((a,b)=>a+b,0);
+ return exps.map(x=>x/sum);
+}
+function inferEmotion(text,context={}){
+ const features=emotionFeatures(text,context),probs=emotionProbabilities(text,context),max=Math.max(...probs);
+ const winner=EMOTION_LABELS[probs.indexOf(max)];
+ const matches=EMOTION_LABELS.map((label,k)=>({label,count:[0,6,12,18].reduce((n,offset)=>n+features[offset+k],0)}));
+ const emotionalMatches=matches.filter(x=>x.label!=='neutral'&&x.count>0),hasEvidence=matches.some(x=>x.count>0);
+ const sources=EMOTION_SOURCES.filter((src,i)=>features.slice(i*6,(i+1)*6).some(Boolean));
+ const conflict=emotionalMatches.length>1;
+ // Softmax numbers from synthetic training are not calibrated. They are never
+ // displayed as accuracy or used to authorize an automatic destructive edit.
+ let label='unknown';
+ if(hasEvidence&&!conflict&&max>=.70&&matches.find(x=>x.label===winner)?.count>0)label=winner;
+ if(/ไม่กลัว|ไม่ได้โกรธ|ไม่เศร้า|ไม่ตกใจ/u.test(String(text||'')))label='unknown';
+ return {label,source:sources.join('+')||'no-evidence',hasEvidence,conflict,decisionEvidence:label==='unknown'?'insufficient-or-conflicting':label==='neutral'?'ordinary-language':'emotion-language',scores:probs};
+}
+function trainEmotion(rows,epochs=250){
+ const w=EMOTION_LABELS.map(()=>Array(EMOTION_NAMES.length).fill(0)),bias=EMOTION_LABELS.map(()=>0);
+ const train=rows.filter(x=>Number(String(x.group).slice(-2))%5!==0),test=rows.filter(x=>Number(String(x.group).slice(-2))%5===0);
+ for(let ep=0;ep<epochs;ep++){
+  const lr=.095/(1+ep/120);
+  for(const row of train){
+   const v=emotionFeatures(row.text,row),scores=w.map((ws,k)=>ws.reduce((sum,weight,i)=>sum+weight*v[i],bias[k]));
+   const maximum=Math.max(...scores),exps=scores.map(z=>Math.exp(z-maximum)),sum=exps.reduce((a,b)=>a+b,0);
+   for(let k=0;k<EMOTION_LABELS.length;k++){
+    const err=exps[k]/sum-(row.label===EMOTION_LABELS[k]?1:0);
+    for(let i=0;i<EMOTION_NAMES.length;i++)w[k][i]-=lr*(err*v[i]+.0004*w[k][i]);
+    bias[k]-=lr*err;
+   }
+  }
+ }
+ const model={task:EMOTION_MODEL.task,features:EMOTION_NAMES,weights:w,bias};
+ const correct=test.filter(row=>{const p=emotionProbabilities(row.text,row,model);
+  return EMOTION_LABELS[p.indexOf(Math.max(...p))]===row.label}).length;
+ return {weights:w.map(v=>v.map(z=>+z.toFixed(6))),bias:bias.map(z=>+z.toFixed(6)),
+  trainRows:train.length,testRows:test.length,correct,syntheticAccuracy:test.length?correct/test.length:0};
+}
+
+function sceneContext(scene,previous=null,next=null){
  const voice=scene?.voiceDirection||{};
  return {
   mode:String(scene?.scriptMode||scene?.narrativeMode||voice.mode||'narration'),
   emotion:String(scene?.emotion||scene?.voiceEmotion||voice.emotion||''),
   situation:String(scene?.situation||scene?.eventKind||scene?.event?.kind||''),
-  subtitle:Array.isArray(scene?.subtitle)?scene.subtitle:[]
+  subtitle:Array.isArray(scene?.subtitle)?scene.subtitle:[],
+  notes:String(scene?.notes||'').slice(0,400),previous:String(previous?.voiceover||'').slice(0,400),
+  next:String(next?.voiceover||'').slice(0,400)
  };
+}
+function sceneContextById(project,id){
+ const episodes=Array.isArray(project?.episodes)?project.episodes:[];
+ for(const ep of episodes){const list=Array.isArray(ep?.scenes)?ep.scenes:[];
+  for(let i=0;i<list.length;i++)if(list[i]?.id===id)return sceneContext(list[i],list[i-1],list[i+1]);}
+ return null;
 }
 function intentFeatures(value,context={}){
  const text=String(value||'');
@@ -88,7 +160,8 @@ function classifyIntent(text,context={}){
   /danger|confront|panic|threat|argument|ทะเลาะ|วิกฤต/u.test(situation);
  const uncertain=mode==='unknown'||/uncertain|unknown|ไม่แน่ใจ/u.test(emotion)||
   /…|\.{3}/u.test(text);
- const indicators=intentFeatures(text,context);
+ const indicators=intentFeatures(text,context),inferredEmotion=inferEmotion(text,context);
+ const impliedEmotion=inferredEmotion.label!=='unknown'&&inferredEmotion.label!=='neutral';
  // A quoted sentence or dramatic punctuation alone is NOT evidence of repetition.
  // Word/phrase repetitions can be intentional; the classification is context-aware.
  const hasRepetition=!!(indicators[0]||indicators[1]||indicators[2]||indicators[11]||
@@ -100,11 +173,12 @@ function classifyIntent(text,context={}){
  if(!hasRepetition)decision='clean';
  else if(/รอแล้วรอเล่า|ทำแล้วทำเล่า/u.test(text))decision='keep'; // Conventional Thai emphasis, not a copy-paste error.
  else if(mode==='dialogue'||/[“”"'«»]/u.test(text))decision='keep';
- else if(emotionalNarration)decision='review'; // No silent removal or unjustified certainty.
+ else if(emotionalNarration||impliedEmotion&&mode==='narration')decision='review'; // Inferred danger => human review, never delete.
  else if(protectedExpression)decision='keep';
  else if(uncertain)decision='review';
  else if(label==='remove'&&best>=.85)decision='remove';
  return {label,decision,hasRepetition,confidence:best,probabilities,
+  emotion:inferredEmotion,
   reason:decision==='clean'?'ไม่พบรูปแบบคำซ้ำที่ต้องเสนอแก้':
    decision==='keep'?'พบคำซ้ำในบทพูดหรือการเน้นที่ควรรักษาไว้':
    decision==='review'?(emotionalNarration?'บทบรรยายมีคำซ้ำพร้อมอารมณ์หรือเหตุการณ์กดดัน ต้องตรวจเจตนาของผู้เขียน':
@@ -222,7 +296,8 @@ function reviewProject(project){
   for(let si=0;si<scenes.length;si++){
    const scene=scenes[si]||{},original=String(scene.voiceover||'');
    const key=ei+':'+si,hasText=!!original.trim();
-   const result=hasText?review(original,sceneContext(scene)):null;
+   const context=sceneContext(scene,scenes[si-1],scenes[si+1]);
+   const result=hasText?review(original,context):null;
    if(hasText){
     withNarration++;
     if(result.hasEdit)changes++;
@@ -231,7 +306,7 @@ function reviewProject(project){
    }
    entries.push({key,episodeIndex:ei,sceneIndex:si,episodeTitle:String(ep.title||('ตอนที่ '+(ei+1))),
     sceneId:scene.id,original,subtitleSnapshot:JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[]),
-    hasText,contextSnapshot:JSON.stringify(sceneContext(scene)),result});
+    hasText,contextSnapshot:JSON.stringify(context),result});
   }
  }
  return {entries,stats:{scenes:entries.length,withNarration,changes,attention,passed,clean,kept,missing:entries.length-withNarration}};
@@ -252,14 +327,16 @@ function verifyBatchSelection(project,entries,selectedKeys){
   if(!scene||scene.id!==entry.sceneId||
      String(scene.voiceover||'')!==entry.original||
      JSON.stringify(Array.isArray(scene.subtitle)?scene.subtitle:[])!==entry.subtitleSnapshot||
-     JSON.stringify(sceneContext(scene))!==entry.contextSnapshot)
+     JSON.stringify(sceneContext(scene,episodes[entry.episodeIndex]?.scenes?.[entry.sceneIndex-1],
+       episodes[entry.episodeIndex]?.scenes?.[entry.sceneIndex+1]))!==entry.contextSnapshot)
    throw Error('บทหรือซับมีการเปลี่ยนหลังวิเคราะห์ กรุณาวิเคราะห์ใหม่: '+entry.key);
-  const fresh=review(scene.voiceover,sceneContext(scene));
+  const fresh=review(scene.voiceover,sceneContext(scene,episodes[entry.episodeIndex]?.scenes?.[entry.sceneIndex-1],
+   episodes[entry.episodeIndex]?.scenes?.[entry.sceneIndex+1]));
   if(!fresh.hasEdit||fresh.proposed!==entry.result?.proposed)
    throw Error('ข้อเสนอไม่ตรงกับโมเดลปัจจุบัน กรุณาวิเคราะห์ใหม่: '+entry.key);
   selected.push({entry,scene,proposed:fresh.proposed});
  }
  return selected;
 }
-return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection,INTENT_MODEL,intentFeatures,intentProbability,classifyIntent,trainIntent,sceneContext});
+return Object.freeze({NAMES,MODEL,features,probability,propose,review,warnings,subtitleAudit,train,reviewProject,verifyBatchSelection,INTENT_MODEL,intentFeatures,intentProbability,classifyIntent,trainIntent,sceneContext,sceneContextById,EMOTION_MODEL,EMOTION_LABELS,emotionFeatures,emotionProbabilities,inferEmotion,trainEmotion});
 });
