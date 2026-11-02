@@ -1,0 +1,98 @@
+name: Deploy AWS Studio automatically
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ai-animation-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch main
+        uses: actions/checkout@v4
+
+      - name: Verify one-time AWS connection
+        env:
+          ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+        shell: bash
+        run: |
+          if [[ ! "$ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/story-studio-gha-deploy$ ]]; then
+            echo "::error::GitHub Actions ยังไม่ผูก AWS role. Run autodub/setup-github-deploy.sh in AWS CloudShell once and set AWS_DEPLOY_ROLE_ARN in repository Actions variables."
+            exit 1
+          fi
+
+      - name: Authorize short-lived AWS credentials through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          role-session-name: StoryStudioDeploy
+
+      - name: Package existing Lambda function (no API keys in build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD="$RUNNER_TEMP/story-studio-lambda"
+          mkdir -p "$BUILD"
+          python3 -m pip install --quiet --upgrade \
+            --target "$BUILD" --platform manylinux2014_x86_64 \
+            --python-version 3.12 --implementation cp --only-binary=:all: edge-tts
+          cp autodub/handler.py autodub/github_assets.py autodub/teacher.py \
+             autodub/student_learning.py autodub/story_auto_train.py "$BUILD/"
+          python3 - "$BUILD" "$RUNNER_TEMP/story-studio-autodub.zip" <<'PY'
+          import os,sys,zipfile
+          src,dst=sys.argv[1:]
+          with zipfile.ZipFile(dst,"w",zipfile.ZIP_DEFLATED) as z:
+              for root,dirs,files in os.walk(src):
+                  for f in files:
+                      p=os.path.join(root,f)
+                      z.write(p,os.path.relpath(p,src))
+          PY
+
+      - name: Update Lambda CODE only (preserve environment and saved API keys)
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda get-function --function-name story-studio-autodub \
+            --region ap-southeast-2 >/dev/null
+          aws lambda update-function-code \
+            --function-name story-studio-autodub \
+            --region ap-southeast-2 \
+            --zip-file "fileb://$RUNNER_TEMP/story-studio-autodub.zip" >/dev/null
+          aws lambda wait function-updated \
+            --function-name story-studio-autodub --region ap-southeast-2
+          STATUS="$(aws lambda get-function-configuration \
+            --function-name story-studio-autodub --region ap-southeast-2 \
+            --query 'LastUpdateStatus' --output text)"
+          test "$STATUS" = "Successful"
+          echo "Lambda updated; SSM SecureString API keys and environment untouched."
+
+      - name: Amplify main (trigger only if automatic builds are disabled)
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTOBUILD="$(aws amplify get-branch \
+            --app-id d1wc6w01kiwpnk --branch-name main \
+            --region ap-southeast-2 --query 'branch.enableAutoBuild' \
+            --output text)"
+          if [ "$AUTOBUILD" = "True" ]; then
+            echo "Amplify Git-connected branch auto-builds on push to main."
+          elif [ "$AUTOBUILD" = "False" ]; then
+            aws amplify start-job \
+              --app-id d1wc6w01kiwpnk --branch-name main \
+              --job-type RELEASE --region ap-southeast-2 >/dev/null
+            echo "Amplify main release initiated."
+          else
+            echo "::error::Cannot determine Amplify auto-build status: $AUTOBUILD"
+            exit 1
+          fi
