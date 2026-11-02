@@ -68,7 +68,7 @@ function signature(project){return digestSource(project)}
 function getState(){
  return {ready:!!scanned,scenes:scanned?.rows.length||0,skipped:scanned?.skipped.length||0,
   results:[...results],completed:results.reduce((n,x)=>n+(x.saved||0)+(x.reused||0),0),
-  running,progress,error,failReasons:[...failReasons],autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
+  running,progress,error,failReasons:[...failReasons],repairSuggestion:repairModelChoice?{...repairModelChoice}:null,autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
 }
 function render(){
  if(!host||!root?.document)return;
@@ -325,5 +325,5 @@ function mount(node,source,selectedProvider){
  host=node;bridge=source;provider=selectedProvider||provider;
  render();
 }
-return Object.freeze({mount,configure,scan,teach,getState,loadMemory,examples,childScan});
+return Object.freeze({mount,configure,scan,teach,repair404Model,getState,loadMemory,examples,childScan});
 });
