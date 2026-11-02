@@ -15,12 +15,14 @@ assert.ok(sc[1].camera.from>sc[0].camera.from,'gate closeup must be closer than 
 assert.ok(sc[2].camera.endX>sc[1].camera.endX,'warning tracks towards the market');
 assert.ok(sc[3].camera.endX>=95,'conclusion must reveal far high ground');
 assert.ok(sc[3].camera.startX>=92,'safe hill finale starts after tall gate clears the crop');
-assert.ok(sc[0].camera.endX<=58,'establishing shot reveals water gauge');
+assert.ok(sc[0].camera.startX>=85&&sc[0].camera.endX>=70,'establishing shot stays on the market and its visible water gauge');
 
 
 const opener=render(sc[0],.1),openerLate=render(sc[0],5.5);
 assert.ok(tokens(opener,'floodgate'));
 assert.ok(tokens(opener,'water-level-gauge'));
+assert.ok(tokens(opener,'market-tide-gauge'),'market-side tide gauge is visible in opening composition');
+assert.ok(tokens(opener,'market-roofline'),'bounded low roofline, not a giant wall');
 assert.ok(tokens(opener,'upstream-water'));
 assert.ok(tokens(opener,'populated-market'));
 assert.doesNotMatch(opener,/#f8d994/i,'harbor must not emit a giant lighthouse beam unless the story requests it');
@@ -40,6 +42,8 @@ assert.match(render(sc[2],.35),/data-story-phase="acknowledge"/);
 assert.match(render(sc[2],2.5),/data-story-phase="lift"/);
 assert.match(render(sc[2],5),/data-story-phase="carry"/);
 assert.ok(tokens(leak,'sluice-discharge-channel'),'water gate must connect to a visible waterway');
+assert.ok(tokens(leak,'sluice-buttresses'),'flood-control gate must have actual concrete support structure');
+assert.ok(!/data-world-object="market-person"[^>]*>[^]*?data-world-object="evacuation-crate"/.test(render(sc[2],.01).split('data-world-object="merchant-acknowledgment"')[0]),'crowd must not all have pre-carried boxes before the warning');
 assert.notEqual(warningEarly,warningLate,'merchants/crates must actually move along scene timeline');
 
 const ending=render(sc[3],5.5);
