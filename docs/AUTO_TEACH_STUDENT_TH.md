@@ -69,3 +69,21 @@ cd ~/AI-ANIMATION && git pull --ff-only origin main && AWS_REGION=ap-southeast-2
 ```
 
 การแก้ไขไม่ได้ทำให้บทเรียน 141 ฉากที่เคยล้มเหลวกลายเป็นข้อมูลฝึกย้อนหลัง ต้องกด AI แม่สอนอีกครั้งหลัง Deploy สำเร็จ และนับเฉพาะบทเรียนที่ AWS ยืนยันจริงเท่านั้น
+
+## แก้ AI provider HTTP 404 ก่อนสอน 141 ฉาก
+
+HTTP 404 ที่ AI provider คืนมา **ไม่ใช่หลักฐานว่า DynamoDB เสีย**; มักเกิดจาก Model ID ไม่ตรง/ไม่มีสิทธิ์เรียกโมเดลสำหรับ API Key นั้น
+โค้ดใหม่จะเรียก `teacher.modelTest` ใช้ API provider ที่บันทึกไว้บน AWS **จริง 1 ครั้ง** ก่อนเริ่มสอนทุกฉาก หากโมเดลตอบ 404 จะแสดง provider + Model ID + ตัวเลือกแก้โดยไม่ต้องกรอก API Key ใหม่
+
+- **OpenRouter:** กดเปลี่ยนเป็น `openrouter/free` (ตัวเลือกรุ่นฟรีอัตโนมัติ) ซึ่ง OpenRouter ระบุว่ามีราคาโมเดล 0 ดอลลาร์; ยังมีข้อจำกัดจำนวนคำขอและโควตา โปรดดู https://openrouter.ai/collections/free-models
+- **Gemini:** โมเดลเดิม `gemini-2.5-flash` อาจมีสิทธิ์จำกัดสำหรับโปรเจกต์ใหม่; ปุ่มเสนอ `gemini-3.5-flash-lite` ตามโมเดลที่ Google ประกาศปัจจุบัน แต่ต้องตรวจ **Free tier / Billing** ของบัญชี Google AI Studio ก่อน เพราะระบบไม่สามารถยืนยันว่าการเรียกฟรีเสมอ
+- ยังคงบล็อกโมเดล OpenRouter ที่ไม่ใช่ `:free` หรือ `openrouter/free` โดยค่าเริ่มต้น ไม่มีการแอบสลับเป็นโมเดลเสียเงิน
+- กดเปลี่ยนโมเดลแล้วระบบอัปเดตเฉพาะ Model ID ใน SSM SecureString เดิม ไม่เก็บหรือแสดง API Key จากเว็บ แล้วเรียกทดสอบใหม่
+- หากโมเดลตอบ HTTP 429 จะรายงานว่าเป็น **โควตา** ไม่ใช่ปัญหารหัสโมเดล และหยุดไม่ทำงานต่อจนมีความพร้อม
+
+คำสั่งอัปเดตหลัง merge:
+```bash
+cd ~/AI-ANIMATION && git pull --ff-only origin main && AWS_REGION=ap-southeast-2 AWS_DEFAULT_REGION=ap-southeast-2 bash autodub/deploy.sh https://main.d1wc6w01kiwpnk.amplifyapp.com
+```
+
+ต้องรอ Amplify `main` เสร็จแล้วรีเฟรชเว็บเพื่อโหลดฟังก์ชันตรวจโมเดลรุ่นใหม่ API Key ไม่ต้องกรอกซ้ำหากเก็บไว้ใน AWS แล้ว
