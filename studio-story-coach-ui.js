@@ -5,7 +5,7 @@
 (function(root){
 'use strict';
 let mountEl=null,bridge=null,provider='openrouter',state=null,examples=[],busy=false,
- status='',error=false,loading=false,saved=false;
+ status='',error=false,loading=false,saved=false,foundationInfo=null;
 const core=()=>root.StoryContinuityCoach;
 const dom=root.document;
 function e(name,attrs={},...parts){
@@ -86,7 +86,25 @@ async function analyze(){
    original,revised:original,reason:'',issue:'continuity',ownerReason:'',
    teacher:'ยังไม่ได้เรียก AI แม่',model:'',teacherReady:false};
   saved=false;
-  say('AI ลูกตรวจจุดเชื่อมต่อฉากเบื้องต้นแล้ว · AI แม่ยังไม่ได้ตรวจ');
+  foundationInfo=null;
+  try{
+   const trained=await root.StoryNarrativeFoundation?.load?.();
+   if(trained){
+    foundationInfo={
+     advisory:root.StoryNarrativeFoundation.classify(trained.model,{
+      original:bundle.current.voiceover,
+      previous:bundle.previous?.voiceover||'',next:bundle.next?.voiceover||''}),
+     report:trained.report,count:trained.data.rows.length,
+     samples:root.StoryNarrativeFoundation.nearest(trained.data,bundle,3)
+    };
+   }
+  }catch(loadError){
+   foundationInfo={error:String(loadError.message||loadError)};
+  }
+  say('AI ลูกตรวจบริบทแล้ว · '+
+   (foundationInfo?.advisory?'โมเดลทดลอง: '+foundationInfo.advisory.title:
+    'ยังไม่โหลดโมเดล CPU · ใช้ข้อสังเกตตามกฎพื้นฐาน')+
+    ' · ยังไม่ได้เปลี่ยนบท');
  }catch(e){say('ตรวจความต่อเนื่องไม่สำเร็จ: '+e.message,true)}
  finally{busy=false;render()}
 }
@@ -101,10 +119,13 @@ async function teacherReview(){
    const data=await request('student.storyLessons',{limit:60});
    if(Array.isArray(data.lessons))examples=data.lessons;
   }catch(_){}
-  const related=core().examples(state.bundle,examples,3);
+  const related=core().examples(state.bundle,examples,2);
+  const trained=root.StoryNarrativeFoundation?.summary?.();
+  const foundationSamples=foundationInfo?.samples||[];
   const result=await request('teacher.chat',{
    provider,message:promptReview(state.bundle),
-   context:core().prompt(state.bundle,related),history:[]});
+   context:core().prompt(state.bundle,related,foundationSamples,
+    foundationInfo?.advisory||null),history:[]});
   if(typeof result.reply!=='string'&&!Array.isArray(result.ops))
    throw Error('AI แม่ไม่ส่งคำตอบที่เข้าใจได้');
   ensureFresh();
@@ -200,6 +221,29 @@ function render(){
    narrativeCard('ฉากปัจจุบัน',ctx.current),
    narrativeCard('ฉากถัดไป',ctx.next));
   const signals=core().signals(ctx);
+  if(foundationInfo?.advisory){
+   const advice=foundationInfo.advisory,report=foundationInfo.report||{};
+   rootEl.append(e('div',{className:'story-coach-foundation'},
+    e('strong',{},'AI ลูก · โมเดลภาษาไทย CPU (ทดลอง)'),
+    e('p',{},'สิ่งที่น่าสงสัย: '+advice.title+
+     (advice.lowEvidence?' · หลักฐานยังไม่ชัด ควรตรวจเอง':' · เป็นเพียงคำแนะนำ')),
+    e('p',{},'ข้อมูลตั้งต้น '+foundationInfo.count+' ตัวอย่างที่ AI จัดทำ · ไม่ใช่บทที่คุณอนุมัติ'),
+    e('small',{},'ทดสอบข้ามเรื่อง '+report.correct+'/'+report.testRows+
+     ' ('+(100*Number(report.accuracy||0)).toFixed(1)+'%)'+
+     ' · เป็นชุดข้อมูลสังเคราะห์ ไม่ใช่คะแนนความแม่นยำในงานจริง'),
+    e('small',{},'โมเดลนี้จำแนกประเภทปัญหาเท่านั้น ไม่สามารถเขียนบทใหม่ด้วยตนเอง')));
+   if(foundationInfo.samples?.length){
+    const details=e('details',{className:'story-coach-foundation-examples'},
+     e('summary',{},'ดูตัวอย่างภาษาไทยที่ใช้เป็นพื้นฐาน ('+foundationInfo.samples.length+' รายการใกล้เคียง)'));
+    for(const item of foundationInfo.samples.slice(0,3))details.append(e('div',{className:'story-coach-example'},
+     e('strong',{},item.issue+' · ตัวอย่างสังเคราะห์'),
+     e('p',{},'บทเดิม: '+item.before),
+     e('p',{},'แนวแก้: '+item.after),
+     e('small',{},'เหตุผล: '+item.reason)));
+    rootEl.append(details);
+   }
+  }else if(foundationInfo?.error)
+   rootEl.append(e('p',{className:'teacher-warning'},'ยังโหลดชุดข้อมูลฝึกไม่ได้: '+foundationInfo.error));
   if(signals.length)rootEl.append(e('div',{className:'story-coach-signals'},
    e('strong',{},'ข้อสังเกตจาก AI ลูก (ยังไม่ใช่ข้อสรุป)'),
    ...signals.map(msg=>e('p',{},msg))));
