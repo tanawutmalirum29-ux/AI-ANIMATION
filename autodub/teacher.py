@@ -11,6 +11,7 @@ import uuid
 import urllib.request
 import urllib.error
 from urllib.parse import urlsplit, quote
+from collections import Counter
 
 PROVIDERS = ("openrouter", "gemini", "compatible")
 MODELS = {
@@ -348,12 +349,11 @@ def _model_test(body):
 
 
 def _auto_teach(body):
-    """Call the AI teacher and archive its own lessons as UNVERIFIED suggestions.
+    """AI teacher runs fully delegated curriculum with QA and bounded self-repair.
 
-    No owner approval is inferred; these examples must never enter the CPU
-    human-approved training partition or automatically modify a JSON project.
-    One HTTP invocation handles up to three scenes. A stable hash deduplicates
-    calls and stored lessons on retries (including a browser reconnect).
+    Owner has authorized teacher-generated lessons for training; the teacher
+    must still pass independent format/integrity QA. ReviewedByOwner stays false:
+    delegated approval is not a claim of per-scene human verification.
     """
     import boto3
     from boto3.dynamodb.conditions import Key
@@ -399,20 +399,20 @@ def _auto_teach(body):
         response = table.query(KeyConditionExpression=Key("pk").eq(pk) & Key("sk").eq(x["key"]),
                                Limit=1)
         items = response.get("Items", [])
-        if items and items[0].get("status") == "teacher-reviewed-unverified":
+        if items and items[0].get("status") in ("teacher-qa-approved", "teacher-reviewed-unverified"):
             cached[x["id"]] = items[0]["record"]
         else:
             fresh.append(x)
     if not fresh:
         return _response(200, {"saved": 0, "reused": len(cached), "failed": 0,
                                "trainedWeights": False, "lessons": list(cached.values()),
-                               "verifiedByOwner": False})
+                               "verifiedByOwner": False, "trainingEligible": True})
     prompt = (
         "Examine the causal and language quality of EVERY source scene. "
         "Compare it with the previous and next narration. "
         "Return ONLY the teachingLessons JSON object requested by your system "
         "instructions. Use 'keep' for correct scenes; do not alter canon. "
-        "These are AI-made suggestions and have not been human-approved."
+        "You are delegated to teach autonomously. Return one sound editorial lesson per scene. "
     )
     # Retrieval memory improves later reviews without treating AI-teacher guesses as
     # human gold labels. Owner-approved examples are explicitly higher trust.
@@ -435,7 +435,7 @@ def _auto_teach(body):
         found.sort(key=lambda x: similarity(x["original"]), reverse=True)
         return found[:1]
     trusted = recall("learning#story-coherence", "editorial-memory-only", 30)
-    unverified = recall(pk, "teacher-reviewed-unverified", 30)
+    unverified = recall(pk, "teacher-qa-approved", 30)
     def compact(examples):
         return [{"issue": x.get("issue", ""), "before": x["original"][:170],
                  "after": x["revised"][:170],
@@ -445,74 +445,134 @@ def _auto_teach(body):
         {key: x[key] for key in ("id", "text", "previous", "next", "studentIssue")}
         for x in fresh],
         "ownerApprovedExamples": compact(trusted),
-        "teacherUnverifiedExamples_not_golden": compact(unverified)}, ensure_ascii=False)
-    called = _chat({"provider": provider, "message": prompt, "context": context,
-                    "history": [], "_internalMaxOutput": 3200}, teach_mode=True)
-    if called["statusCode"] != 200:
-        return called
-    result = json.loads(called["body"])
-    if not result.get("teachingLessons"):
-        return _response(422, {
-            "error": "AI แม่ไม่ได้ส่งบทเรียน JSON ตามรูปแบบที่กำหนด จึงยังไม่บันทึก AWS",
-            "reasonCode": "TEACHER_NO_STRUCTURED_LESSONS", "saved": 0,
-            "failed": len(fresh), "reused": len(cached),
-            "verifiedByOwner": False, "trainedWeights": False
-        })
+        "teacherQAExamples_delegated_not_human": compact(unverified)}, ensure_ascii=False)
     available = {x["id"]: x for x in fresh}
+    accepted, rejected = {}, {}
+    teacher_model = ""
+    # At most two AI attempts per scene in this invocation. If a model keeps
+    # producing invalid text the scene is safely queued, never silently 'taught'.
+    outstanding = dict(available)
+    attempt = 0
+    while outstanding and attempt < 2:
+        attempt += 1
+        if attempt == 1:
+            request_context = context
+            request_message = prompt
+        else:
+            request_context = json.dumps({"scenes": [
+                {k: item[k] for k in ("id", "text", "previous", "next", "studentIssue")}
+                for item in outstanding.values()],
+                "validationErrors": rejected,
+                "instruction": "Fix ONLY the failed scene IDs. Keep complete Thai original if no justified change. "
+                               "For issue keep, revised MUST equal original exactly; otherwise it MUST differ. "
+                               "Give a concrete Thai reason >=12 characters. Do not invent any events."},
+                ensure_ascii=False)
+            request_message = "Retry only rejected lessons. Correct formatting and evidence; return teachingLessons JSON."
+        called = _chat({"provider": provider, "message": request_message,
+                        "context": request_context, "history": [],
+                        "_internalMaxOutput": 3200}, teach_mode=True)
+        if called["statusCode"] != 200:
+            if attempt == 1:
+                return called
+            # A retry hitting quota is not a reason to discard validated items.
+            for sid in outstanding:
+                rejected[sid] = "retry_provider_unavailable"
+            break
+        result = json.loads(called["body"])
+        teacher_model = str(result.get("model") or teacher_model)[:128]
+        proposed = result.get("teachingLessons")
+        by_id = {}
+        for lesson in proposed if isinstance(proposed, list) else []:
+            if isinstance(lesson, dict) and lesson.get("sceneId") in outstanding:
+                by_id.setdefault(lesson["sceneId"], lesson)
+        for sid, original in list(outstanding.items()):
+            lesson = by_id.get(sid)
+            if not lesson:
+                rejected[sid] = "missing_scene"
+                continue
+            revised = str(lesson.get("revised") or "").strip()
+            reason = str(lesson.get("reason") or "").strip()
+            issue = lesson.get("issue")
+            if issue not in ("keep", "continuity", "clarity", "expand", "pacing"):
+                rejected[sid] = "invalid_issue"
+            elif not 4 <= len(revised) <= 1200:
+                rejected[sid] = "invalid_revision_length"
+            elif len(reason) < 12:
+                rejected[sid] = "missing_reason"
+            elif issue == "keep" and revised != original["text"]:
+                rejected[sid] = "keep_must_preserve_original"
+            elif issue != "keep" and revised == original["text"]:
+                rejected[sid] = "changed_label_without_change"
+            else:
+                accepted[sid] = {"issue": issue, "revised": revised,
+                                 "reason": reason[:700]}
+                outstanding.pop(sid)
+                rejected.pop(sid, None)
+
     persisted = []
-    invalid_reasons = {"unknown_scene": 0, "invalid_revision": 0,
-                       "missing_scene": 0}
-    handled_ids = set()
-    for lesson in result.get("teachingLessons", []):
-        x = available.get(lesson["sceneId"])
-        if not x or x["id"] in handled_ids:
-            invalid_reasons["unknown_scene"] += 1
-            continue
-        handled_ids.add(x["id"])
-        revised = lesson["revised"].strip()
-        reason = lesson["reason"].strip()
-        issue = lesson["issue"]
-        if (not 4 <= len(revised) <= 1200 or len(reason) < 12 or
-            (issue == "keep" and revised != x["text"]) or
-            (issue != "keep" and revised == x["text"])):
-            invalid_reasons["invalid_revision"] += 1
-            continue
-        record = {"projectId": project, "sceneId": x["id"], "episodeId": x["episodeId"],
-                  "issue": issue, "original": x["text"], "revised": revised,
+    for sid, lesson in accepted.items():
+        x = available[sid]
+        record = {"projectId": project, "sceneId": sid, "episodeId": x["episodeId"],
+                  "issue": lesson["issue"], "original": x["text"], "revised": lesson["revised"],
                   "previous": x["previous"], "next": x["next"],
-                  "studentDecision": x["studentIssue"], "teacherReason": reason,
-                  "ownerReason": "", "provider": result.get("provider", provider),
-                  "model": result.get("model", ""), "source": "teacher-auto-unverified",
-                  "reviewedByOwner": False, "usedForWeightTraining": False}
+                  "studentDecision": x["studentIssue"],
+                  "teacherReason": lesson["reason"], "ownerReason": "",
+                  "provider": provider, "model": teacher_model,
+                  "source": "teacher-owner-delegated-qa",
+                  "reviewedByOwner": False, "ownerDelegatedTraining": True,
+                  "trainingEligible": True, "usedForWeightTraining": False,
+                  "qa": {"structurePassed": True, "contentHumanVerified": False,
+                         "repairAttempts": attempt}}
         try:
             table.put_item(Item={"pk": pk, "sk": x["key"], "record": record,
-                                 "status": "teacher-reviewed-unverified",
+                                 "status": "teacher-qa-approved",
                                  "createdAt": int(time.time())},
                            ConditionExpression="attribute_not_exists(pk) AND attribute_not_exists(sk)")
         except Exception as exc:
             if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
                 raise
-            # Same idempotent source is already stored; treat retry as a reused lesson.
-            cached[x["id"]] = record
+            # Concurrent retry: retrieve the actual committed record, never
+            # claim that a rejected/pending item is eligible for learning.
+            from boto3.dynamodb.conditions import Key
+            check = table.query(KeyConditionExpression=Key("pk").eq(pk)
+                                & Key("sk").eq(x["key"]), Limit=1).get("Items", [])
+            if check and check[0].get("status") in ("teacher-qa-approved", "teacher-reviewed-unverified"):
+                cached[sid] = check[0]["record"]
+                continue
+            rejected[sid] = "concurrent_pending_conflict"
             continue
         persisted.append(record)
-    saved = len(persisted)
-    reused = len(cached)
+    saved, reused = len(persisted), len(cached)
     failed = len(clean) - saved - reused
-    invalid_reasons["missing_scene"] = len(fresh) - len(handled_ids)
-    if saved == 0 and reused == 0:
+    # Failed records are still tracked durably for retries, but are NEVER
+    # eligible for learning or called complete.
+    for sid in outstanding:
+        x = available[sid]
+        table.put_item(Item={"pk": pk, "sk": "pending#" + x["key"][6:],
+                             "status": "teacher-retry-queued",
+                             "createdAt": int(time.time()),
+                             "record": {"projectId": project, "sceneId": sid,
+                                        "episodeId": x["episodeId"],
+                                        "original": x["text"], "previous": x["previous"],
+                                        "next": x["next"], "trainingEligible": False,
+                                        "reason": rejected.get(sid, "not_accepted"),
+                                        "source": "teacher-awaiting-automatic-retry"}})
+    record_ids = {r["sceneId"] for r in list(cached.values()) + persisted}
+    failed_ids = [x["id"] for x in clean if x["id"] not in record_ids]
+    reason_counts = dict(Counter(rejected.values()))
+    if not saved and not reused:
         return _response(422, {
-            "error": "AI แม่ส่งข้อเสนอที่ไม่ผ่านการตรวจรูปแบบ จึงไม่ได้บันทึกบทเรียน",
-            "reasonCode": "TEACHER_LESSONS_REJECTED",
-            "failed": failed, "saved": 0, "reused": 0,
-            "reasonCounts": invalid_reasons,
-            "verifiedByOwner": False, "trainedWeights": False
-        })
-    return _response(200, {"saved": saved, "reused": reused,
-                           "failed": failed, "reasonCounts": invalid_reasons,
+            "error": "AI แม่ตรวจซ้ำแล้วแต่ยังไม่มีบทเรียนที่ผ่าน QA; เก็บฉากที่ค้างไว้ใน AWS เพื่อสอนซ้ำ",
+            "reasonCode": "TEACHER_LESSONS_RETRY_QUEUED",
+            "saved": 0, "reused": 0, "failed": failed,
+            "failedSceneIds": failed_ids, "reasonCounts": reason_counts,
+            "verifiedByOwner": False, "trainedWeights": False})
+    return _response(200, {"saved": saved, "reused": reused, "failed": failed,
+                           "failedSceneIds": failed_ids, "reasonCounts": reason_counts,
                            "lessons": list(cached.values()) + persisted,
-                           "verifiedByOwner": False, "trainedWeights": False,
-                           "mode": "teacher-reviewed-unverified-memory"})
+                           "verifiedByOwner": False, "ownerDelegatedTraining": True,
+                           "trainingEligible": True, "trainedWeights": False,
+                           "mode": "teacher-owner-delegated-qa-memory"})
 
 
 def _auto_lessons(body):
@@ -528,9 +588,10 @@ def _auto_lessons(body):
         KeyConditionExpression=Key("pk").eq("learning#teacher-story-coherence"),
         Limit=limit, ScanIndexForward=False)
     lessons = [r["record"] for r in response.get("Items", [])
-               if r.get("status") == "teacher-reviewed-unverified" and
+               if r.get("status") in ("teacher-qa-approved", "teacher-reviewed-unverified") and
                isinstance(r.get("record"), dict)]
     return _response(200, {"lessons": lessons, "verifiedByOwner": False,
+                           "ownerDelegatedTraining": True,
                            "trainedWeights": False, "nextCursorAvailable":
                            bool(response.get("LastEvaluatedKey"))})
 
