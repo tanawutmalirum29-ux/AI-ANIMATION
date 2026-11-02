@@ -257,6 +257,12 @@ def handler(event, context):
         if not KEY or not hmac.compare_digest(sent, KEY.encode("utf-8")):
             return _resp(401, {"error": "รหัสลับไม่ถูกต้อง"})
 
+    if action.startswith("student."):
+        if not secured:
+            return _resp(401, {"error": "ต้องเข้าสู่ระบบสตูดิโอก่อนฝึก AI ลูก"})
+        import student_learning
+        return student_learning.handle(action, body)
+
     if action.startswith("teacher."):
         if not secured:
             return _resp(401, {"error": "ต้องเปิดใช้รหัสผ่านเว็บไซต์ก่อนใช้ AI ครู"})
