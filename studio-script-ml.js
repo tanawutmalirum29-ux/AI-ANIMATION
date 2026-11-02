@@ -45,10 +45,10 @@ const INTENT_MODEL=Object.freeze({schema:1,task:'thai-repetition-intent',status:
 const EMOTION_LABELS=Object.freeze(["neutral","fear","anger","sadness","surprise","hesitation"]);
 const EMOTION_SOURCES=Object.freeze(['text','previous','next','notes']);
 const EMOTION_PATTERN=Object.freeze([/ตามปกติ|เรียบร้อย|ไม่มีเหตุผิดปกติ|เป็นระเบียบ|ดำเนินงานต่ออย่างปกติ|ทำงานตามขั้นตอน/u,
-/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น|หอบหายใจ/u,
-/กำหมัด|โกรธ|โมโห|ตบโต๊ะ|ตำหนิ|ขึ้นเสียง|เดือดดาล|โวยวาย|ทะเลาะ|เถียง|ต่อว่า/u,
+/ตัวสั่น|กรีดร้อง|หวาดกลัว|กลัว|วิ่งหนี|หลบภัย|หัวใจเต้นแรง|ตื่นตระหนก|ถอยกรูด|หนีไม่ทัน|มือสั่น|หอบหายใจ|ร้องช่วยด้วย|ผวา|หนีเร็ว|ประตูพัง/u,
+/กำหมัด|โกรธ|โมโห|ตบโต๊ะ|ตำหนิ|ขึ้นเสียง|เดือดดาล|โวยวาย|ทะเลาะ|เถียง|ต่อว่า|หลบไป|อย่ามาขวาง|เกรี้ยวกราด|ถอยไปอย่าง/u,
 /น้ำตา|ร้องไห้|เสียใจ|สูญเสีย|เศร้า|อาลัย|สะอื้น|จากไป|คิดถึง/u,
-/สะดุ้ง|ตกใจ|ตะลึง|อุทาน|อะไรนะ|คาดไม่ถึง|ไม่คาดฝัน|ประหลาดใจ|กะทันหัน|โผล่/u,
+/สะดุ้ง|ตกใจ|ตะลึง|อุทาน|อะไรนะ|คาดไม่ถึง|ไม่คาดฝัน|ประหลาดใจ|กะทันหัน|โผล่|ไม่น่าเชื่อ|จริงเหรอ|ตกตะลึง/u,
 /เอ่อ|ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า|หยุดคิด|ไม่ลง/u]);
 const EMOTION_NAMES=Object.freeze(EMOTION_SOURCES.flatMap(f=>EMOTION_LABELS.map(l=>f+'_'+l)).concat(['repetition','interruption','quoted']));
 const EMOTION_MODEL=Object.freeze({schema:1,task:'thai-scene-emotion',status:'assistant-synthetic-demo-only',
@@ -71,20 +71,48 @@ function emotionProbabilities(text,context={},model=EMOTION_MODEL){
 function inferEmotion(text,context={}){
  const features=emotionFeatures(text,context),probs=emotionProbabilities(text,context),max=Math.max(...probs);
  const winner=EMOTION_LABELS[probs.indexOf(max)];
- const matches=EMOTION_LABELS.map((label,k)=>({label,count:[0,6,12,18].reduce((n,offset)=>n+features[offset+k],0)}));
- const emotionalMatches=matches.filter(x=>x.label!=='neutral'&&x.count>0),hasEvidence=matches.some(x=>x.count>0);
- const sources=EMOTION_SOURCES.filter((src,i)=>features.slice(i*6,(i+1)*6).some(Boolean));
- const conflict=emotionalMatches.length>1;
- // Softmax numbers from synthetic training are not calibrated. They are never
- // displayed as accuracy or used to authorize an automatic destructive edit.
- let label='unknown';
- if(hasEvidence&&!conflict&&max>=.70&&matches.find(x=>x.label===winner)?.count>0)label=winner;
+ const sourceNames=EMOTION_SOURCES;
+ const raw=String(context.emotion||'').trim().toLowerCase();
+ const tagSource=String(context.emotionSource||'provided').toLowerCase();
+ const declared=EMOTION_LABELS.find(x=>x===raw)||
+  (/กลัว|หวาดกลัว/.test(raw)?'fear':
+   /โกรธ|โมโห/.test(raw)?'anger':/เศร้า|เสียใจ/.test(raw)?'sadness':
+   /ตกใจ|ประหลาดใจ/.test(raw)?'surprise':/ลังเล/.test(raw)?'hesitation':null);
+ // Explicit author metadata is primary, but generated voiceDirection defaults
+ // are NOT reliable human annotations.
+ if(declared&&tagSource!=='default'&&tagSource!=='voice-default')
+  return {label:declared,source:'author-tag',hasEvidence:true,conflict:false,
+   decisionEvidence:'author-declared',modelLabel:winner,scores:probs};
+ const sourceHits=sourceNames.map((source,i)=>EMOTION_LABELS
+  .filter((label,k)=>k>0&&features[i*6+k]>0));
+ const allHits=sourceHits.flat(),hasEvidence=features.slice(0,24).some(Boolean);
+ const conflict=new Set(allHits).size>1;
+ const quoted=EMOTION_PATTERN[5].test(String(text||''));
+ let label='unknown',source='no-evidence',localConflict=false;
+ // Prefer evidence in the actual scene to another speaker's next line.
+ for(const index of [0,3,1,2]){
+  const hits=sourceHits[index];
+  if(hits.length>1){localConflict=true;source=sourceNames[index];break}
+  if(hits.length===1){
+   // A weak 'เอ่อ' alone is not reliable intentional hesitation.
+   const hay=String(index===0?text:context[sourceNames[index]]||'');
+   if(hits[0]==='hesitation'&&/เอ่อ/u.test(hay)&&
+    !/ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า/u.test(hay))
+    continue;
+   label=hits[0];source=sourceNames[index];break;
+  }
+ }
+ // Do not treat negated feelings or an unresolved contradiction as proof.
  if(/ไม่กลัว|ไม่ได้โกรธ|ไม่เศร้า|ไม่ตกใจ/u.test(String(text||'')))label='unknown';
- if(label==='hesitation'&&/เอ่อ/u.test(String(text||''))&&
-  !/ลังเล|ไม่แน่ใจ|อ้ำอึ้ง|ตัดสินใจไม่|ไม่มั่นใจ|ตะกุกตะกัก|คือว่า/u.test(
-   [String(text||''),String(context.previous||''),String(context.next||''),String(context.notes||'')].join(' ')))
-  label='unknown'; // Filler alone is not enough proof of intentional emotion.
- return {label,source:sources.join('+')||'no-evidence',hasEvidence,conflict,decisionEvidence:label==='unknown'?'insufficient-or-conflicting':label==='neutral'?'ordinary-language':'emotion-language',scores:probs};
+ if(localConflict)label='unknown';
+ if(source==='previous'&&sourceHits[2].length===1&&sourceHits[2][0]!==label)label='unknown';
+ if(source==='next'&&sourceHits[1].length===1&&sourceHits[1][0]!==label)label='unknown';
+ const sourceActual=source;
+ if(label==='unknown'&&source==='no-evidence'&&features.slice(0,24).some(Boolean))
+  source='conflicting-or-weak';
+ return {label,source,hasEvidence,conflict:conflict||localConflict,
+  decisionEvidence:label==='unknown'?'insufficient-or-conflicting':'lexical-emotion-cue',
+  modelLabel:winner,scores:probs};
 }
 function trainEmotion(rows,epochs=250){
  const w=EMOTION_LABELS.map(()=>Array(EMOTION_NAMES.length).fill(0)),bias=EMOTION_LABELS.map(()=>0);
@@ -110,9 +138,12 @@ function trainEmotion(rows,epochs=250){
 
 function sceneContext(scene,previous=null,next=null){
  const voice=scene?.voiceDirection||{};
+ const topEmotion=String(scene?.emotion||scene?.voiceEmotion||'').trim();
+ const voiceEmotion=String(voice.emotion||'').trim();
  return {
   mode:String(scene?.scriptMode||scene?.narrativeMode||voice.mode||'narration'),
-  emotion:String(scene?.emotion||scene?.voiceEmotion||voice.emotion||''),
+  emotion:topEmotion||voiceEmotion,
+  emotionSource:topEmotion?'scene':voiceEmotion&&voiceEmotion.toLowerCase()!=='neutral'?'voice-direction':'default',
   situation:String(scene?.situation||scene?.eventKind||scene?.event?.kind||''),
   subtitle:Array.isArray(scene?.subtitle)?scene.subtitle:[],
   notes:String(scene?.notes||'').slice(0,400),previous:String(previous?.voiceover||'').slice(0,400),
