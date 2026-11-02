@@ -46,3 +46,32 @@
 .teacher-advanced .teacher-muted{margin-top:8px}
 .teacher-content input:focus-visible,.teacher-content textarea:focus-visible{outline:2px solid #d6b976;outline-offset:2px}
 @media(max-width:520px){.teacher-provider-preset button{flex:1 1 110px}}
+
+/* Read-only Student Memory dashboard: thumb-friendly on narrow Android/iPad viewports. */
+.teacher-memory-dashboard{min-width:0}
+.teacher-memory-filters{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px}
+.teacher-memory-count{font-size:13px;color:#cee0f2;line-height:1.55;margin:0}
+.teacher-lesson-list{display:grid;gap:9px;min-width:0}
+.teacher-lesson-card,.teacher-feedback-details,.teacher-model-row{
+ background:#14243a;border:1px solid #71859f80;border-radius:11px;min-width:0;
+}
+.teacher-lesson-card summary,.teacher-feedback-details summary{
+ display:grid;gap:5px;min-height:45px;cursor:pointer;padding:11px 13px;
+ overflow-wrap:anywhere
+}
+.teacher-lesson-label{font-weight:700;font-size:13px}
+.teacher-lesson-snippet{font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.teacher-lesson-card summary small{color:#b6c7d8;font-size:12px}
+.teacher-lesson-detail{display:grid;gap:5px;border-top:1px solid #647f9866;padding:12px 13px;overflow-wrap:anywhere}
+.teacher-lesson-detail strong{font-size:13px}
+.teacher-lesson-detail p{font-size:14px;line-height:1.65;margin:0 0 7px;white-space:pre-wrap}
+.teacher-lesson-detail small{font-size:12px;line-height:1.6;color:#b7c6d8}
+.teacher-model-history{display:grid;gap:9px;padding-top:11px;border-top:1px solid #788da75c}
+.teacher-model-row{display:grid;gap:4px;padding:11px 12px;overflow-wrap:anywhere}
+.teacher-model-row small{font-size:12px;line-height:1.6;color:#b5c6da}
+.teacher-feedback-details{padding:9px 12px;display:grid;gap:9px}
+.teacher-feedback-details summary{padding:4px 0}
+@media(max-width:520px){
+ .teacher-memory-filters{grid-template-columns:minmax(0,1fr)}
+ .teacher-lesson-card summary{padding:12px}
+}
