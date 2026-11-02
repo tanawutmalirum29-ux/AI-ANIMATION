@@ -20,10 +20,10 @@ test('One-time IAM OIDC bootstrap restricts role to repository main and specific
  assert.match(script,/OWNER_ID="225819900"/);
  assert.match(script,/REPOSITORY_ID="1440864911"/);
  assert.match(script,/EXPECTED_SUB="repo:tanawutmalirum29-ux@/);
- assert.match(script,/AI-ANIMATION@\\$\\{REPOSITORY_ID\\}:ref:refs\\/heads\\/main/);
+ assert.ok(script.includes('AI-ANIMATION@${REPOSITORY_ID}:ref:refs/heads/main'));
  assert.match(script,/expected_sub/);
  assert.match(script,/IAM Trust Policy verified/);
- assert.doesNotMatch(script,/":sub":"repo:"\\+repo/);
+ assert.ok(!script.includes('"token.actions.githubusercontent.com:sub":"repo:"+repo'));
  assert.match(script,/sts:AssumeRoleWithWebIdentity/);
  assert.match(script,/aws iam put-role-policy/);
  assert.match(script,/story-studio-gha-limited-deploy/);
@@ -34,11 +34,11 @@ test('One-time IAM OIDC bootstrap restricts role to repository main and specific
 test('GitHub OIDC identity diagnostics validate immutable subject without leaking token',()=>{
  const workflow=read('.github/workflows/deploy-aws-studio.yml');
  assert.match(workflow,/Verify GitHub immutable OIDC claims/);
- assert.match(workflow,/repo:tanawutmalirum29-ux@225819900\\/AI-ANIMATION@1440864911:ref:refs\\/heads\\/main/);
+ assert.ok(workflow.includes('repo:tanawutmalirum29-ux@225819900/AI-ANIMATION@1440864911:ref:refs/heads/main'));
  assert.match(workflow,/ACTIONS_ID_TOKEN_REQUEST_URL/);
  assert.match(workflow,/ACTIONS_ID_TOKEN_REQUEST_TOKEN/);
- assert.match(workflow,/claims.get\\("aud"\\)=="sts.amazonaws.com"/);
- assert.match(workflow,/actual!=os.environ\\["EXPECTED_SUB"\\]/);
+ assert.ok(workflow.includes('claims.get("aud")=="sts.amazonaws.com"'));
+ assert.ok(workflow.includes('actual!=os.environ["EXPECTED_SUB"]'));
  assert.match(workflow,/The sensitive signed token and signature are deliberately never printed/);
 });
 test('AI mother keys live in AWS not localStorage; selection automatically restores',()=>{
