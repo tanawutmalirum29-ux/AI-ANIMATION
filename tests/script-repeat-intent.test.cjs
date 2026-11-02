@@ -44,16 +44,17 @@ test('intentional dramatic and quoted repetition stays intact, no blanket dedupl
 });
 test('batch review applies scene metadata and detects stale emotion or role',()=>{
  const p={episodes:[{id:'e',scenes:[
-  {id:'a',voiceover:'แล้วก็ แล้วก็ ฉันกลัว',scriptMode:'dialogue',emotion:'fear'},
+  {id:'a',voiceover:'แล้วก็ แล้วก็ ฉันกลัว',scriptMode:'dialogue',emotion:'fear'}]},
+  {id:'e2',scenes:[
   {id:'b',voiceover:'เจ้าหน้าที่เดินไป แล้วก็ แล้วก็ กลับมา',scriptMode:'narration',emotion:'neutral'}]}]};
  const batch=ml.reviewProject(p);
  assert.equal(batch.stats.changes,1);
  assert.equal(batch.entries[0].result.intent.decision,'keep');
  assert.equal(batch.entries[0].result.hasEdit,false);
  assert.equal(batch.entries[1].result.hasEdit,true);
- const approved=ml.verifyBatchSelection(p,batch.entries,['0:1']);
+ const approved=ml.verifyBatchSelection(p,batch.entries,['1:0']);
  assert.equal(approved.length,1);
- p.episodes[0].scenes[1].emotion='fear';
+ p.episodes[1].scenes[0].emotion='fear';
  assert.throws(()=>ml.verifyBatchSelection(p,batch.entries,['0:1']),/เปลี่ยนหลังวิเคราะห์/);
 });
 test('workflow/UI contain contextual intent details but human approval is still mandatory',()=>{
