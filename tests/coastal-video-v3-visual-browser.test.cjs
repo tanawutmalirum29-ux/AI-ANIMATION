@@ -22,7 +22,9 @@ const path=require('node:path'),fs=require('node:fs');
       top:(b.top-stage.top)/stage.height,left:(b.left-stage.left)/stage.width,
       visible:h>5&&w>5};
     });
-    return {gate:find('[data-world-object="floodgate"]'),
+    return {gauge:find('[data-world-object="market-tide-gauge"]'),
+      roofline:find('[data-world-object="market-roofline"]'),
+      gate:find('[data-world-object="floodgate"]'),
       merchantPhase:document.querySelector('[data-world-object="merchant-acknowledgment"]')?.getAttribute('data-story-phase')||'',
       hill:find('[data-world-object="safe-hill"] [data-world-object="market-person"]'),
       warning:find('[data-world-object="merchant-acknowledgment"] [data-world-object="market-person"]'),
@@ -39,6 +41,10 @@ const path=require('node:path'),fs=require('node:fs');
    return {sets,captions};
   },story);
   const [opening,leak,warning,ending]=inspect.sets;
+  assert.ok(opening.gauge.some(x=>x.visible&&x.h>16),
+   'tide marker MUST be readable in the opening market shot: '+JSON.stringify(opening.gauge));
+  assert.ok(ending.roofline.every(x=>x.bh < ending.hill[0].bh*2.3),
+   'market background must be a low roofline, not tall wall across the flood: '+JSON.stringify(ending.roofline));
   assert.ok(warning.warning.some(x=>x.visible&&x.h>25),
    'acknowledging merchant must be visible and readable in portrait frame: '+JSON.stringify(warning.warning));
   assert.ok(ending.hill.filter(x=>x.visible&&x.h>22).length>=2,
