@@ -140,6 +140,19 @@ async function scan(){
   const project=sourceProject(),stamp=signature(project);
   let model=null;
   try{const p=await root.StoryNarrativeFoundation?.load?.();model=p?.model||null}catch(_){}
+  try{
+   if(root.StoryStudioAccess?.isReady?.()){
+    const remote=await root.StoryStudioAccess.request({action:'student.storyAutoModel'});
+    const active=remote?.active;
+    if(active?.source==='teacher-owner-delegated-qa'&&
+       active?.task==='thai-narrative-edit-diagnosis'&&
+       active?.metrics?.qaPassed===true&&active?.status==='active-advisory'&&
+       root.StoryNarrativeFoundation?.classify){
+      model=active;
+    }
+   }
+  }catch(_){} // Keep the safe synthetic baseline if AWS/teacher model is unavailable.
+
   const report=childScan(project,model,root.StoryContinuityCoach);
   if(!report.rows.length)throw Error('ไม่มีฉากที่มีบทพากย์ถูกต้องให้ตรวจ');
   if(signature(sourceProject())!==stamp)throw Error('JSON เปลี่ยนระหว่างตรวจ กรุณาเริ่มใหม่');
@@ -331,7 +344,8 @@ async function teach(){
     if(!payload){
      failedRows.push(...chunk);
      failReasons.push('ชุด '+(index+1)+': '+(reason||'AI provider ไม่ตอบ'));
-     if(!rateLimited){critical=true;break}
+     const lessonFormatError=/422|TEACHER_LESSONS_RETRY_QUEUED|ตรวจซ้ำ/i.test(reason);
+     if(!rateLimited&&!lessonFormatError){critical=true;break}
     }else{
      const counts=[payload.saved,payload.reused,payload.failed];
      if(!counts.every(v=>Number.isInteger(v)&&v>=0)||
@@ -395,7 +409,7 @@ async function teach(){
 function examples(bundle,limit=1){
  if(!root?.StoryContinuityCoach?.examples)return [];
  return root.StoryContinuityCoach.examples(bundle,memory,limit)
-  .map(x=>({...x,source:'teacher-auto-unverified',reviewedByOwner:false}));
+  .map(x=>({...x,source:'teacher-owner-delegated-qa',ownerDelegatedTraining:true,reviewedByOwner:false}));
 }
 function configure(source,selectedProvider){
  bridge=source;provider=selectedProvider||provider;
