@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "source": "User-pasted 16-scene report in chat, 2026-11-02",
+  "caution": "The original imported JSON was not attached in the feedback turn. Mode, emotion and situation are assistant-assumed for regression only. Outcomes are assistant-adjudicated expectations, not human-approved training labels.",
+  "use": "Independent regression evaluation only; do not add to train rows or claim independent test accuracy after optimizing on it.",
+  "cases": [
+    {
+      "id": "ep1-s01",
+      "original": "ค่ำคืนหนึ่ง ฝนเทลงหนักเหนือหมู่บ้านริมคลอง ระดับน้ำกำลังสูงขึ้น",
+      "expected": "clean",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "storm rising"
+      }
+    },
+    {
+      "id": "ep1-s02",
+      "original": "น้ำเริ่มสูง แล้วก็ แล้วก็ ไหลเข้าถนนหน้าบ้าน",
+      "expected": "remove",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "routine reporting"
+      }
+    },
+    {
+      "id": "ep1-s03",
+      "original": "“มันมาแล้ว! มันมาแล้ว! น้ำเข้าบ้านแล้ว!”",
+      "expected": "keep",
+      "context": {
+        "mode": "dialogue",
+        "emotion": "fear",
+        "situation": "danger approaching"
+      }
+    },
+    {
+      "id": "ep1-s04",
+      "original": "จากนั้น จากนั้น ชาวบ้านจึงยกกล่องขึ้นที่สูง",
+      "expected": "remove",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "evacuation sequence"
+      }
+    },
+    {
+      "id": "ep1-s05",
+      "original": "แล้วก็...แล้วก็เราจะไปทางไหน",
+      "expected": "review",
+      "context": {
+        "mode": "unknown",
+        "emotion": "uncertain",
+        "situation": "ambiguous narration"
+      }
+    },
+    {
+      "id": "ep1-s06",
+      "original": "“ออกไป! ฉันบอกให้ออกไป! อย่าขวางทาง!”",
+      "expected": "keep",
+      "context": {
+        "mode": "dialogue",
+        "emotion": "anger",
+        "situation": "confrontation"
+      }
+    },
+    {
+      "id": "ep1-s07",
+      "original": "เขาหอบหายใจ แล้วก็ แล้วก็ ถอยหลัง",
+      "expected": "review",
+      "context": {
+        "mode": "narration",
+        "emotion": "fear",
+        "situation": "danger approaching"
+      }
+    },
+    {
+      "id": "ep1-s08",
+      "original": "เสียงไซเรนดังขึ้น!!!! ทุกคนรีบวิ่งไปยังสะพาน",
+      "expected": "remove",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "evacuation"
+      }
+    },
+    {
+      "id": "ep2-s01",
+      "original": "“กลับมา...กลับมาได้ไหม ฉันยังรออยู่นะ”",
+      "expected": "keep",
+      "context": {
+        "mode": "dialogue",
+        "emotion": "sadness",
+        "situation": "loss"
+      }
+    },
+    {
+      "id": "ep2-s02",
+      "original": "เรือกู้ภัยลำแรกแล่นผ่านสะพานเมื่อฝนเริ่มเบาลง",
+      "expected": "clean",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "rescue arrival"
+      }
+    },
+    {
+      "id": "ep2-s03",
+      "original": "เจ้าหน้าที่ต้องหยุดเครื่องสูบน้ำ เพราะว่า เพราะว่า สายไฟเปียก",
+      "expected": "remove",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "routine reporting"
+      }
+    },
+    {
+      "id": "ep2-s04",
+      "original": "“ไม่จริง! ไม่จริง! เธอยังอยู่ตรงนั้น!”",
+      "expected": "keep",
+      "context": {
+        "mode": "dialogue",
+        "emotion": "surprise",
+        "situation": "shock"
+      }
+    },
+    {
+      "id": "ep2-s05",
+      "original": "แล้วก็ แล้วก็ เขาหายไปหลังประตู",
+      "expected": "review",
+      "context": {
+        "mode": "unknown",
+        "emotion": "uncertain",
+        "situation": "ambiguous narration"
+      }
+    },
+    {
+      "id": "ep2-s06",
+      "original": "เขารอแล้วรอเล่า แต่แสงไฟของเรือก็ยังไม่ปรากฏ",
+      "expected": "keep",
+      "context": {
+        "mode": "narration",
+        "emotion": "sadness",
+        "situation": "waiting"
+      }
+    },
+    {
+      "id": "ep2-s07",
+      "original": "เสียงวิทยุรายงานว่า เอ่อ เอ่อ ถนนฝั่งเหนือเปิดให้ผ่านแล้ว",
+      "expected": "remove",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "radio reporting"
+      }
+    },
+    {
+      "id": "ep2-s08",
+      "original": "รุ่งเช้ามาถึง ชาวบ้านทยอยกลับจากจุดพักพิง และเริ่มซ่อมบ้านร่วมกัน",
+      "expected": "clean",
+      "context": {
+        "mode": "narration",
+        "emotion": "neutral",
+        "situation": "recovery"
+      }
+    }
+  ]
+}
