@@ -64,3 +64,10 @@ test('workflow/UI contain contextual intent details but human approval is still 
  assert.match(src,/await backupBeforeEdit\(\)/);
  assert.match(src,/StudioAPI\.apply\(ops,\{dryRun:true\}\)/);
 });
+
+test('clean narration is not called a repetition edit candidate',()=>{
+ const normal=ml.review('ฝนเริ่มตกหนัก แล้วก็ น้ำจากคลองค่อย ๆ สูงขึ้น');
+ assert.equal(normal.hasEdit,false);
+ assert.equal(normal.intent.decision,'keep');
+ assert.equal(normal.intent.reason,'ไม่พบรูปแบบคำซ้ำที่ต้องเสนอแก้');
+});
