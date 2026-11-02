@@ -1,0 +1,80 @@
+name: CPU Shot ML (human-reviewed camera framing)
+on:
+  pull_request:
+    paths:
+      - studio-shot-ml.js
+      - studio-ai-workspace.js
+      - index.html
+      - amplify.yml
+      - training-lab/train-shot.py
+      - training-lab/test-shot-ml.py
+      - training-lab/datasets/approved/shot-framing.jsonl
+      - tests/shot-ml-contract.test.cjs
+      - tests/shot-ml-browser.test.cjs
+      - .github/workflows/cpu-shot-ml.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Train demo with synthetic data or a human-reviewed approved dataset
+        type: choice
+        required: true
+        default: demo
+        options:
+          - demo
+          - approved
+permissions:
+  contents: read
+jobs:
+  shot-cpu-training:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JS and CPU supervised model
+        run: |
+          node --check studio-shot-ml.js
+          node --check studio-ai-workspace.js
+          node tests/shot-ml-contract.test.cjs
+          python3 training-lab/test-shot-ml.py
+      - name: Actually train learned weights on GitHub CPU
+        env:
+          TRAIN_MODE: ${{ github.event_name == 'pull_request' && 'demo' || inputs.mode }}
+        run: |
+          mkdir -p candidate-output
+          if [ "$TRAIN_MODE" = "approved" ]; then
+            python3 training-lab/train-shot.py --mode approved --data training-lab/datasets/approved/shot-framing.jsonl --out candidate-output/shot-candidate.json
+          else
+            python3 training-lab/train-shot.py --mode demo --out candidate-output/shot-demo-only.json
+          fi
+      - name: Verify model remains inactive and report independent holdout
+        run: |
+          python3 - <<'PY'
+          import glob,json,os
+          files=glob.glob('candidate-output/*.json')
+          assert len(files)==1
+          model=json.load(open(files[0],encoding='utf8'))
+          assert model['active'] is False
+          assert len(model['weights'])==10 and any(abs(w)>1e-5 for w in model['weights'])
+          if os.getenv('GITHUB_EVENT_NAME')=='pull_request':
+              assert model['status']=='demo-only'
+              assert model['training']['mode']=='demo'
+          t=model['training']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf8') as out:
+              out.write('## Supervised shot framing — GitHub CPU\n')
+              out.write(f"Status: **{model['status']}**, always inactive / no auto-deploy  \n")
+              out.write(f"Train: {t['examples']} rows; distinct-story holdout: {t['holdoutExamples']} rows  \n")
+              out.write(f"Macro-F1 learned: **{t['model']['macroF1']}** vs rule baseline: **{t['baseline']['macroF1']}**  \n")
+              out.write('A synthetic demo learns real coefficients but is NOT evidence of production camera quality.\n')
+          print('CPU learned weights and holdout verified:',model['status'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpu-shot-${{ github.event_name == 'pull_request' && 'demo-pr' || inputs.mode }}
+          path: candidate-output/*.json
+          retention-days: 7

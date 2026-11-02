@@ -10,6 +10,7 @@ const DB='storyStudio.projectLibrary.v1',STORE='snapshots';
 let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',lastError='',db=null,dbPromise=null;
 const EPISODE_TARGET_SECONDS=60,EPISODE_GRACE_SECONDS=5;
 let targetMinutes=1,splitEpisodes=true,lastAudit=null;
+let shotModel=null;const shotRows=[];
 const MAX_TASKS=130;
 
 
@@ -491,6 +492,69 @@ function exportApprovedLayoutFeedback(action){
  }catch(error){status('บันทึกตัวอย่าง ML ไม่สำเร็จ: '+error.message,true)}
 }
 
+
+function reviewedShot(){
+ const state=bridge.get(),scene=bridge.scene?.();
+ const location=(state.locations||[]).find(x=>x?.id===scene?.location);
+ if(!scene||!location)throw Error('เลือกฉากที่มีสถานที่ก่อน');
+ const workspace=core.ensure(state.project.aiWorkspace||{});
+ if(!state.project.aiWorkspace){state.project.aiWorkspace=workspace;bridge.persist()}
+ return {state,scene,location,group:workspace.projectId};
+}
+function saveShotLabel(label){
+ try{
+  if(busy)throw Error('รอให้ผลิตวิดีโอเสร็จก่อน');
+  const {state,scene,location,group}=reviewedShot();
+  const row=root.StoryShotML.makeExample(state.project,scene,location,label,group);
+  const signature=x=>x.group+'|'+JSON.stringify(x.features);
+  const prior=shotRows.find(x=>signature(x)===signature(row));
+  if(prior){
+   if(prior.label!==label)throw Error('ตัวอย่างเดิมมีคำตอบตรงข้ามกัน ต้องเปลี่ยนมุมกล้องก่อน');
+   status('มีตัวอย่างนี้แล้ว · ไม่เพิ่มซ้ำ');return;
+  }
+  if(shotRows.length>=500)throw Error('ครบ 500 ตัวอย่างแล้ว กรุณาดาวน์โหลดก่อน');
+  shotRows.push(row);status('บันทึกตัวอย่างมุมกล้อง '+shotRows.length+' รายการโดยมนุษย์ตรวจ');
+  const download=rootElement?.querySelector('.shot-ml-download');
+  if(download){download.textContent='ดาวน์โหลดตัวอย่าง ('+shotRows.length+')';download.disabled=false}
+ }catch(err){status('Shot ML: '+err.message,true)}
+}
+function downloadShotLabels(){
+ if(!shotRows.length){status('ยังไม่มีตัวอย่างที่ตรวจ',true);return}
+ exportText('shot-framing-human-'+Date.now()+'.jsonl',
+   shotRows.map(x=>JSON.stringify(x)).join('\n')+'\n','application/x-ndjson');
+ status('ดาวน์โหลดตัวอย่างมุมกล้อง '+shotRows.length+' รายการแล้ว · ไม่มีการอัปโหลดอัตโนมัติ');
+}
+async function importShotModel(event){
+ try{
+  const file=event?.target?.files?.[0];if(!file)return;
+  if(file.size>50000)throw Error('โมเดลใหญ่เกิน 50 KB');
+  const m=JSON.parse(await file.text());
+  if(!root.StoryShotML?.modelUsable(m))throw Error('โมเดล demo หรือ candidate ยังไม่ผ่านการอนุมัติ');
+  shotModel=m;status('โหลดโมเดล Shot ML ที่ผ่านอนุมัติแล้ว');
+  render();
+ }catch(err){shotModel=null;status('โหลด Shot ML ไม่สำเร็จ: '+err.message,true)}
+}
+function applyShotRecommendation(){
+ try{
+  if(!shotModel)throw Error('ต้องนำเข้าโมเดลที่ผ่านอนุมัติก่อน');
+  const {state,scene,location}=reviewedShot();
+  const advice=root.StoryShotML.recommend(shotModel,state.project,scene,location);
+  if(!advice.applicable){status('ยังไม่เสนอเปลี่ยนกล้อง: '+advice.reason);return}
+  const c=advice.camera;
+  const msg='Shot ML แนะนำกล้อง '+c.startX+'%–'+c.endX+
+   '% (โอกาสมุมไม่ดี '+Math.round(advice.current*100)+'% → '+Math.round(advice.best*100)+
+   '%) ใช้มุมใหม่นี้หรือไม่?';
+  if(!root.confirm(msg))return;
+  const editor=root.StudioAPI;
+  if(!editor?.apply)throw Error('ตัวแก้ฉากไม่พร้อม');
+  const ops=[{op:'updateScene',id:scene.id,patch:{camera:c}}],
+    dry=editor.apply(ops,{dryRun:true});
+  if(!dry.ok)throw Error('มุมกล้องไม่ผ่าน validator');
+  const result=editor.apply(ops);
+  if(!result.applied)throw Error('ไม่สามารถใช้มุมกล้องได้');
+  status('นำคำแนะนำ ML ไปใช้แล้ว กรุณาตรวจพรีวิวก่อนส่งออก');
+ }catch(err){status('Shot ML: '+err.message,true)}
+}
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
  pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
@@ -513,6 +577,21 @@ function renderChat(container){
    button('แก้ตำแหน่งล่าสุดแล้ว · เก็บตัวอย่าง',()=>exportApprovedLayoutFeedback('correction'),{disabled:busy})),
   e('small',{},'ไฟล์ .jsonl ดาวน์โหลดลงเครื่องเมื่อคุณกดเท่านั้น · ต้องนำข้อมูลที่ตรวจแล้วเข้าชุดฝึกก่อนฝึก CPU จริง · โมเดลทดลองยังไม่ควบคุมฉากอัตโนมัติ')
  ));
+
+ pane.append(e('details',{className:'ai-task'},
+  e('summary',{},'Shot ML · สอน AI เลือกมุมกล้องจากการตรวจงานจริง'),
+  e('p',{className:'ai-help'},'เลือกฉาก panorama ท่าเรือ แล้วดูพรีวิวก่อนกดประเมิน ระบบเก็บเฉพาะตัวเลขมุมกล้องและผลที่คุณกด ไม่มีบท/เสียง/วิดีโอ'),
+  e('div',{className:'ai-actions'},
+   button('มุมกล้องดีแล้ว · เก็บตัวอย่าง',()=>saveShotLabel('keep'),{disabled:busy}),
+   button('มุมกล้องไม่ตรงบท · เก็บตัวอย่าง',()=>saveShotLabel('reframe'),{disabled:busy}),
+   button('ดาวน์โหลดตัวอย่าง ('+shotRows.length+')',downloadShotLabels,{disabled:!shotRows.length,className:'shot-ml-download'})),
+  e('small',{},'ต้องมีอย่างน้อย 100 ตัวอย่างจาก 5 เรื่องขึ้นไป มีทั้งสองคำตอบ · ถ้ารีโหลดหน้าก่อนดาวน์โหลด ตัวอย่างในชุดนี้จะไม่ถูกเก็บไว้'),
+  e('div',{className:'ai-actions'},
+   e('label',{className:'ai-help'},'เลือกโมเดลที่ผ่านอนุมัติ (.json)',e('input',{type:'file',accept:'.json,application/json',onchange:importShotModel})),
+   button('ให้ ML เสนอและยืนยันมุมกล้อง',applyShotRecommendation,{disabled:busy||!shotModel})),
+  e('small',{},shotModel?'พร้อมแนะนำแบบต้องกดยืนยัน':'ยังไม่มีโมเดลอนุมัติ: โมเดล demo ไม่แก้ฉากจริง')
+ ));
+
  const latest=w().tasks.slice().reverse().find(x=>x.role==='production');
  const steps=latest?.steps?.length?latest.steps:productionSteps();
  const progressBox=e('section',{className:'ai-production-progress','aria-label':'สถานะผู้ช่วยทั้ง 6 ขั้น'},
