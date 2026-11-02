@@ -9,6 +9,10 @@ on:
       - 'autodub/teacher.py'
       - 'autodub/student_learning.py'
       - 'studio-student-learning.js'
+      - 'studio-story-coach.js'
+      - 'studio-story-coach-ui.js'
+      - 'tests/story-continuity-coach.test.cjs'
+      - 'tests/test_story_continuity.py'
       - 'studio-script-ml.js'
       - 'tests/test_student_learning.py'
       - 'tests/student-learning.test.cjs'
@@ -26,6 +30,10 @@ on:
       - 'autodub/teacher.py'
       - 'autodub/student_learning.py'
       - 'studio-student-learning.js'
+      - 'studio-story-coach.js'
+      - 'studio-story-coach-ui.js'
+      - 'tests/story-continuity-coach.test.cjs'
+      - 'tests/test_story_continuity.py'
       - 'studio-script-ml.js'
       - 'tests/test_student_learning.py'
       - 'tests/student-learning.test.cjs'
@@ -50,9 +58,12 @@ jobs:
           node --check studio-teacher.js
           node --check studio-ai-workspace.js
           node --check studio-student-learning.js
+          node --check studio-story-coach.js
+          node --check studio-story-coach-ui.js
           node --check studio-script-ml.js
           python3 -m py_compile autodub/teacher.py autodub/handler.py autodub/student_learning.py
           node --test tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs
           python3 tests/test_teacher_backend.py
           python3 tests/test_student_learning.py
           python3 tests/test_student_memory_browser.py
+          python3 tests/test_story_continuity.py
