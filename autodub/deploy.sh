@@ -54,6 +54,7 @@ rm -rf "$HERE/build" "$HERE/autodub.zip";mkdir -p "$HERE/build"
 python3 -m pip install --quiet --upgrade --target "$HERE/build" --platform manylinux2014_x86_64 --python-version 3.12 --implementation cp --only-binary=:all: edge-tts
 cp "$HERE/handler.py" "$HERE/build/"
 cp "$HERE/github_assets.py" "$HERE/build/"
+cp "$HERE/teacher.py" "$HERE/build/"
 python3 - "$HERE" <<'PY'
 import os,sys,zipfile
 root=os.path.join(sys.argv[1],"build")

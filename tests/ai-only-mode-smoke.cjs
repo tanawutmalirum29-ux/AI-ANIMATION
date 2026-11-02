@@ -24,6 +24,16 @@ const path=require('node:path');
     assert.equal(await visible(shown),true,shown+' visible together');
    for(const hidden of ['#tl','#studioToolNav','#ins','#lib'])
     assert.equal(await visible(hidden),false,hidden+' hidden in AI workspace');
+   // Teacher Studio is available within the same live-preview workspace.
+   await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'AI ครู / API'}).click();
+   assert.equal(await visible('.teacher-head'),true,'Teacher tab mounted');
+   assert.equal(await visible('.teacher-log'),true,'Teacher chat visible');
+   assert.equal(await page.locator('.teacher-commands button').count(),6,'one-tap AI commands');
+   await page.locator('.teacher-tabs').getByRole('button',{name:'เชื่อม API'}).click();
+   assert.equal(await visible('#teacherProvider'),true,'provider selection visible');
+   await page.locator('.teacher-tabs').getByRole('button',{name:'ความจำ AI ลูก'}).click();
+   assert.equal(await visible('.teacher-history'),true,'training feedback panel visible');
+   await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'6 ผู้ช่วย AI'}).click();
    assert.equal(await visible('#imp'),false,'paste editor starts collapsed');
    await page.locator('#aiHub').getByRole('button',{name:'วาง JSON / ตรวจสอบ'}).click();
    assert.equal(await visible('#imp'),true,'paste editor opens inline without leaving preview');

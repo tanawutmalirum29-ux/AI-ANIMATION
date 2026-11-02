@@ -2,6 +2,8 @@
 
 **เว็บไซต์ Story Studio Director:** [เปิดใช้งานบน AWS Amplify](https://main.d1wc6w01kiwpnk.amplifyapp.com/)
 
+**AI Teacher Studio (ใหม่):** [ติดตั้ง AI ครู / เชื่อม API / เก็บผลสอนบน AWS](./docs/TEACHER_STUDIO_TH.md) — เชื่อมผ่าน Lambda เดิมและต้องติดตั้ง Backend ก่อนใช้งานจริง
+
 เว็บตัดต่อ Story Studio Director พร้อม **คลังเสียงบรรยากาศ เอฟเฟกต์ และเพลงสังเคราะห์สำเร็จรูป 49 รายการ** บน GitHub (ตัวแอปเป็น HTML/JavaScript แบบ static)
 
 ## ภาพรวมไฟล์ใน Repository (ตรวจสอบ 1 พฤศจิกายน 2026)
