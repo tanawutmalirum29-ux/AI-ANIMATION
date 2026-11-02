@@ -12,6 +12,7 @@ const EPISODE_TARGET_SECONDS=60,EPISODE_GRACE_SECONDS=5;
 let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 let shotModel=null;const shotRows=[];
 let scriptReview=null,scriptBatch=null;
+const SCRIPT_EMOTION_LABELS=Object.freeze({neutral:'ปกติ',fear:'กลัว',anger:'โกรธ',sadness:'เศร้า',surprise:'ตกใจ',hesitation:'ลังเล',unknown:'ยังไม่ทราบ'});
 const SCRIPT_INTENT_LABELS=Object.freeze({remove:'เสนอแก้',keep:'ควรเก็บคำซ้ำ',review:'ตรวจบริบท',clean:'ไม่พบคำซ้ำที่ต้องแก้'});
 const MAX_TASKS=130;
 
@@ -564,7 +565,8 @@ function reviewCurrentScript(){
   if(!ml?.review)throw Error('ยังโหลด Script ML ไม่ครบ ลองเปิดแท็บ AI อีกครั้ง');
   const original=String(scene.voiceover||'');
   if(!original.trim())throw Error('ฉากนี้ไม่มี voiceover');
-  scriptReview={sceneId:scene.id,original,contextSnapshot:JSON.stringify(ml.sceneContext(scene)),result:ml.review(original,ml.sceneContext(scene))};
+  const context=ml.sceneContextById(bridge.get(),scene.id)||ml.sceneContext(scene);
+  scriptReview={sceneId:scene.id,original,contextSnapshot:JSON.stringify(context),result:ml.review(original,context)};
   status('วิเคราะห์บทฉาก '+scene.id+' แล้ว · โมเดลทดลอง AI เขียนตัวอย่าง ไม่ใช่ LLM');
  }catch(err){scriptReview=null;status('Script ML: '+String(err.message||err),true)}
  render();
@@ -573,7 +575,7 @@ async function applyScriptReview(){
  const proposal=scriptReview,scene=bridge.scene?.();
  if(busy||!proposal?.result?.hasEdit||!scene||scene.id!==proposal.sceneId||
   String(scene.voiceover||'')!==proposal.original||
-  JSON.stringify(root.StoryScriptML?.sceneContext(scene))!==proposal.contextSnapshot){
+  JSON.stringify(root.StoryScriptML?.sceneContextById(bridge.get(),scene.id))!==proposal.contextSnapshot){
   scriptReview=null;status('ฉากหรือบทเปลี่ยนไป กรุณาวิเคราะห์ใหม่',true);render();return;
  }
  const voiceClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute);
@@ -627,7 +629,10 @@ function exportBatchScriptReport(){
    warnings:e.result?.warnings||[],
    context:JSON.parse(e.contextSnapshot||'{}'),
    intent:e.result?.intent?{decision:e.result.intent.decision,label:e.result.intent.label,
-    reason:e.result.intent.reason,scoreIsUncalibrated:true}:null
+    reason:e.result.intent.reason,scoreIsUncalibrated:true,
+    inferredEmotion:e.result.intent.emotion?{
+     label:e.result.intent.emotion.label,source:e.result.intent.emotion.source,
+     evidence:e.result.intent.emotion.decisionEvidence}:null}:null
   }))};
  exportText('story-script-review-'+now().slice(0,10)+'.json',JSON.stringify(result,null,2));
 }
@@ -713,8 +718,8 @@ function renderChat(container){
 
  pane.append(e('details',{className:'ai-task',open:!!scriptBatch||!!scriptReview},
   e('summary',{},'Script ML · วิเคราะห์บททั้งโปรเจกต์ในครั้งเดียว'),
-  e('p',{className:'ai-help'},'แยกคำซ้ำ 3 แบบ: เสนอแก้ / เก็บตามอารมณ์ / ต้องตรวจบริบท · ใช้โมเดล SGD ทดลอง 200 ตัวอย่างสังเคราะห์กับข้อมูลอารมณ์ใน JSON ไม่ใช่ LLM เข้าใจเรื่อง'),
-  e('small',{className:'ai-help'},'กำหนด scriptMode: dialogue, emotion: fear/anger/sadness/surprise/hesitation และ situation ใน JSON เพื่อรักษาคำซ้ำที่ตั้งใจใช้ หากไม่มีข้อมูลจะถือ voiceover เป็นบทบรรยายทั่วไป'),
+  e('p',{className:'ai-help'},'ตรวจคำซ้ำ 4 สถานะ และช่วยประเมินอารมณ์ 6 ประเภทจากบท ฉากก่อน/หลัง และหมายเหตุด้วยโมเดล CPU ทดลอง 432 ตัวอย่างสังเคราะห์ · ไม่ได้ฟังเสียงหรือเข้าใจเหตุการณ์เหมือน LLM'),
+  e('small',{className:'ai-help'},'ใส่ scriptMode และ emotion เพื่อระบุเจตนาชัดเจนได้ แต่แม้ไม่มี emotion ระบบก็อ่านคำบ่งชี้อารมณ์จากบทและบริบทฉากใกล้เคียง ถ้าไม่แน่ใจจะเตือนให้ตรวจเอง ไม่ลบคำซ้ำโดยพลการ'),
   e('div',{className:'ai-actions'},
    button('วิเคราะห์ทุกฉาก · ทุกตอน',analyzeAllScripts,{disabled:busy,className:'ai-primary'}),
    button('วิเคราะห์ฉากที่เลือก',()=>{scriptBatch=null;reviewCurrentScript()},{disabled:busy})),
@@ -754,7 +759,11 @@ function renderChat(container){
        entry.hasText?[e('small',{className:'ai-help'},'บทเดิม: '+entry.original)]:[]),
       ...(result?.intent?[e('small',{className:'ai-help'},
        'ผลตรวจคำซ้ำ: '+(SCRIPT_INTENT_LABELS[result.intent.decision]||'ตรวจเอง')+
-       ' · '+result.intent.reason+' (โมเดลสาธิต; ไม่แสดงเปอร์เซ็นต์ที่ยังไม่ผ่านการสอบเทียบ)')]:[]),
+       ' · '+result.intent.reason+' (โมเดลสาธิต; ไม่แสดงเปอร์เซ็นต์ที่ยังไม่ผ่านการสอบเทียบ)'),
+       e('small',{className:'ai-help'},'สัญญาณอารมณ์ที่อ่านได้: '+
+       (SCRIPT_EMOTION_LABELS[result.intent.emotion?.label]||'ยังไม่ทราบ')+
+       ' · แหล่งข้อมูล: '+(result.intent.emotion?.source||'ไม่มีหลักฐาน')+
+       ' · เป็นการจำแนกเชิงทดลอง ไม่ใช่ข้อเท็จจริงเกี่ยวกับตัวละคร')]:[]),
       ...(result?.warnings||[]).map(w=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+w))
      );
      return group;
@@ -770,6 +779,9 @@ function renderChat(container){
     'บทเดิม:\n'+scriptReview.original+(scriptReview.result.hasEdit?'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed:'\n\nไม่มีข้อความแก้เพิ่มเติม')),
    e('small',{className:'ai-help'},'การประเมินคำซ้ำ: '+(SCRIPT_INTENT_LABELS[scriptReview.result.intent?.decision]||'ตรวจเอง')+
     ' · '+(scriptReview.result.intent?.reason||'')),
+   e('small',{className:'ai-help'},'ประเมินอารมณ์จากข้อความและฉากข้างเคียง: '+
+    (SCRIPT_EMOTION_LABELS[scriptReview.result.intent?.emotion?.label]||'ยังไม่ทราบ')+
+    ' · '+(scriptReview.result.intent?.emotion?.source||'ไม่มีหลักฐาน')+' (โมเดลทดลอง)'),
    ...(scriptReview.result.warnings||[]).map(msg=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+msg)),
    button('ยืนยันใช้บทที่เสนอในฉากนี้',applyScriptReview,{disabled:busy||!scriptReview.result.hasEdit})
   ]:[]),

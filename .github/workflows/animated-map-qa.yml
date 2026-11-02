@@ -40,6 +40,9 @@ on:
       - training-lab/train-repeat-intent.cjs
       - tests/script-repeat-intent.test.cjs
       - tests/script-ml-user-feedback-16.test.cjs
+      - tests/script-emotion-inference.test.cjs
+      - training-lab/train-emotion-context.cjs
+      - training-lab/datasets/script-emotion-context-demo-v1.json
       - training-lab/evaluations/repetition-intent-user-feedback-16-scenes.json
       - tests/shot-ml-contract.test.cjs
       - tests/shot-ml-browser.test.cjs
@@ -122,6 +125,9 @@ on:
       - training-lab/train-repeat-intent.cjs
       - tests/script-repeat-intent.test.cjs
       - tests/script-ml-user-feedback-16.test.cjs
+      - tests/script-emotion-inference.test.cjs
+      - training-lab/train-emotion-context.cjs
+      - training-lab/datasets/script-emotion-context-demo-v1.json
       - training-lab/evaluations/repetition-intent-user-feedback-16-scenes.json
       - tests/shot-ml-contract.test.cjs
       - tests/shot-ml-browser.test.cjs
@@ -209,6 +215,8 @@ jobs:
           node training-lab/train-repeat-intent.cjs
           node --test tests/script-repeat-intent.test.cjs
           node --test tests/script-ml-user-feedback-16.test.cjs
+          node training-lab/train-emotion-context.cjs
+          node --test tests/script-emotion-inference.test.cjs
           node tests/shot-ml-contract.test.cjs
           node tests/layout-ml-contract.test.cjs
           python3 training-lab/test-layout-ml.py
