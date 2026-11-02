@@ -1071,12 +1071,13 @@ function render(){
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
   commandDesk(),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['teacher','AI ครู / API'],['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );
  const area=rootElement.querySelector('#aiWorkspaceContent');
- if(view==='chat')renderChat(area);
+ if(view==='teacher'){if(root.StoryTeacherStudio)root.StoryTeacherStudio.mount(area,bridge);else area.append(e('p',{className:'ai-error'},'ไม่พบโมดูล AI ครู'))}
+ else if(view==='chat')renderChat(area);
  else if(view==='tasks')renderTasks(area);
  else if(view==='bible')renderBible(area);
  else if(view==='assets'){if(root.StoryArtVault)root.StoryArtVault.mount(area,bridge);else area.append(e('p',{className:'ai-error'},'ไม่พบโมดูลคลังรูป'))}
