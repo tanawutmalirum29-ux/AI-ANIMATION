@@ -148,7 +148,7 @@
    market(x(.66),79,.86,'#ad685e',!blackout&&(!seq||t<.5))+
    market(x(.77),79,.9,'#63918d',!blackout&&(!seq||t<.7))+
    market(x(.88),79,.86,'#a0845f',!blackout&&(!seq||t<.9))+
-   lighthouse(x(.97),62,.44,!blackout||effect(scene,'signalVisible'),'left',.7)+
+   lighthouse(x(.97),62,.44,effect(scene,'signalVisible')||effect(scene,'beaconOn'),'left',.7)+
    [0.24,0.39,0.61].map((v,i)=>{
     const xx=x(v),on=!blackout&&(!seq||t<.2+i*.28);
     return R(xx-.4,50,.8,14,'#45545a')+
