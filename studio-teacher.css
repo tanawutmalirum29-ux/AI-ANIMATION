@@ -129,3 +129,7 @@
 .story-only-notice[data-error="true"]{border-color:#bf8a5b;color:#ffd9a8}
 @media(max-width:530px){.story-only-workspace{padding:8px}
 .story-only-import{padding:9px}.story-only-actions button{flex:1 1 135px}}
+
+.teacher-auto-teach-errors{border:1px solid #7189a180;border-radius:9px;padding:10px 12px}
+.teacher-auto-teach-errors summary{font-size:13px;cursor:pointer}
+.teacher-auto-teach button{min-height:42px}

@@ -1,5 +1,5 @@
 """No-cloud unit QA for server-led auto-teaching.
-All automatic lessons must remain unverified until a human has checked them.
+Autonomous lessons are owner-delegated but not claimed to be human fact-checked.
 """
 import json,os,sys,types,unittest
 from unittest import mock
@@ -54,7 +54,7 @@ class AutoTeacherTests(unittest.TestCase):
                                              "boto3.dynamodb":dynamodb,
                                              "boto3.dynamodb.conditions":conditions})
 
-    def test_auto_training_saves_unverified_not_human_approved(self):
+    def test_auto_training_saves_delegated_qa_eligible_not_human_reviewed(self):
         table=FakeTable()
         with self.install(table),mock.patch.dict(os.environ,{"TEACHER_FEEDBACK_TABLE":"test"}),\
              mock.patch.object(teacher,"_chat",return_value=response([lesson()])) as call:
@@ -68,7 +68,9 @@ class AutoTeacherTests(unittest.TestCase):
         self.assertEqual(call.call_count,1)
         saved=list(table.rows.values())[0]
         self.assertEqual(saved["pk"],"learning#teacher-story-coherence")
-        self.assertEqual(saved["status"],"teacher-reviewed-unverified")
+        self.assertEqual(saved["status"],"teacher-qa-approved")
+        self.assertTrue(saved["record"]["ownerDelegatedTraining"])
+        self.assertTrue(saved["record"]["trainingEligible"])
         self.assertFalse(saved["record"]["reviewedByOwner"])
         self.assertFalse(saved["record"]["usedForWeightTraining"])
         self.assertIn("_internalMaxOutput",call.call_args.args[0])
@@ -99,11 +101,12 @@ class AutoTeacherTests(unittest.TestCase):
             code,result=unpack(teacher._auto_teach({
              "provider":"gemini","projectId":"story123","scenes":scenes()}))
         self.assertEqual(code,422)
-        self.assertEqual(result["reasonCode"],"TEACHER_LESSONS_REJECTED")
-        self.assertEqual(result["reasonCounts"]["invalid_revision"],1)
+        self.assertEqual(result["reasonCode"],"TEACHER_LESSONS_RETRY_QUEUED")
+        self.assertEqual(result["reasonCounts"]["missing_reason"],1)
         self.assertEqual(result["saved"],0)
         self.assertEqual(result["failed"],1)
-        self.assertEqual(len(table.puts),0)
+        self.assertEqual(len([x for x in table.puts if x["Item"]["status"]=="teacher-qa-approved"]),0)
+        self.assertEqual(len([x for x in table.puts if x["Item"]["status"]=="teacher-retry-queued"]),1)
 
     def test_reply_without_machine_readable_lessons_stops_and_explains(self):
         table=FakeTable()
@@ -112,9 +115,10 @@ class AutoTeacherTests(unittest.TestCase):
             code,result=unpack(teacher._auto_teach({
              "provider":"gemini","projectId":"story123","scenes":scenes()}))
         self.assertEqual(code,422)
-        self.assertEqual(result["reasonCode"],"TEACHER_NO_STRUCTURED_LESSONS")
+        self.assertEqual(result["reasonCode"],"TEACHER_LESSONS_RETRY_QUEUED")
         self.assertEqual(result["failed"],1)
-        self.assertEqual(len(table.rows),0)
+        self.assertEqual(len([r for r in table.rows.values() if r["status"]=="teacher-qa-approved"]),0)
+        self.assertEqual(len([r for r in table.rows.values() if r["status"]=="teacher-retry-queued"]),1)
 
     def test_dedicated_teacher_system_instructs_machine_readable_thai_lessons(self):
         fixture=json.dumps({"teachingLessons":[lesson()]},ensure_ascii=False)
@@ -131,6 +135,31 @@ class AutoTeacherTests(unittest.TestCase):
         self.assertEqual(payload["generationConfig"]["maxOutputTokens"],3200)
         self.assertIn("teachingLessons",payload["systemInstruction"]["parts"][0]["text"])
         self.assertIn("keep",payload["systemInstruction"]["parts"][0]["text"])
+
+    def test_ai_mother_repairs_invalid_lesson_without_user_intervention(self):
+        table=FakeTable()
+        wrong={**lesson(),"issue":"keep","revised":"ฝนตกหนัก ชาวบ้านกลับบ้าน"}
+        correct={"sceneId":"ep1-s1","issue":"keep",
+                 "revised":scenes()[0]["text"],
+                 "reason":"บทเดิมสอดคล้องกับเหตุการณ์ จึงควรเก็บไว้ตามต้นฉบับ"}
+        call_count=0
+        def model_reply(*args,**kwargs):
+            nonlocal call_count
+            call_count+=1
+            return response([wrong] if call_count==1 else [correct])
+        with self.install(table),mock.patch.dict(os.environ,{"TEACHER_FEEDBACK_TABLE":"test"}),\
+             mock.patch.object(teacher,"_chat",side_effect=model_reply):
+            status,result=unpack(teacher._auto_teach({
+               "provider":"gemini","projectId":"story123","scenes":scenes()}))
+        self.assertEqual(status,200)
+        self.assertEqual(result["saved"],1)
+        self.assertEqual(result["failed"],0)
+        self.assertEqual(call_count,2)
+        item=[r for r in table.rows.values() if r["status"]=="teacher-qa-approved"][0]
+        self.assertTrue(item["record"]["qa"]["structurePassed"])
+        self.assertEqual(item["record"]["qa"]["repairAttempts"],2)
+        self.assertTrue(item["record"]["ownerDelegatedTraining"])
+        self.assertFalse(item["record"]["reviewedByOwner"])
 
     def test_failed_teacher_call_never_reports_saved(self):
         table=FakeTable()
