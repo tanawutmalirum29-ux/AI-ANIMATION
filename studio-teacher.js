@@ -661,19 +661,25 @@ function memoryPanel(){
  return content;
 }
 
+function storyPanel(){
+ const area=el('div',{className:'teacher-content'});
+ if(root.StoryStoryCoachUI)root.StoryStoryCoachUI.mount(area,bridge,provider);
+ else area.append(el('p',{className:'teacher-warning'},'ยังไม่ได้โหลดระบบตรวจความต่อเนื่อง'));
+ return area;
+}
 function render(reset=true){
  if(!container)return;
  const active=$doc.activeElement;
  if(!reset&&active&&container.contains(active))active.blur();
  container.replaceChildren(header(),
   el('nav',{className:'teacher-tabs','aria-label':'AI Teacher Studio'},
-    ...[['chat','คุย / สั่งงาน'],['connect','เชื่อม API'],['student','สอน AI ลูก'],['memory','ประวัติ']].map(([id,label])=>
+    ...[['chat','คุย / สั่งงาน'],['story','ต่อเติมบท'],['connect','เชื่อม API'],['student','สอน AI ลูก'],['memory','ประวัติ']].map(([id,label])=>
      button(label,()=>{
        tab=id;render();
        if(id==='memory'&&!lessonBrowser.loaded&&!lessonBrowser.loading)loadLessonDashboard(true);
       },tab===id?'active':''))),
   el('p',{className:'teacher-notice',role:'status','aria-live':'polite','data-error':String(noticeError)},notice||'AI ครูต้องเชื่อมต่อ API ก่อนใช้งาน'),
-  tab==='connect'?connectPanel():tab==='memory'?memoryPanel():tab==='student'?studentPanel():chatPanel());
+  tab==='connect'?connectPanel():tab==='memory'?memoryPanel():tab==='student'?studentPanel():tab==='story'?storyPanel():chatPanel());
 }
 function mount(target,source){
  container=target;bridge=source;getWorkspace();
