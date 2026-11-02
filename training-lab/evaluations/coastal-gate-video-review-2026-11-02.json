@@ -1,0 +1,179 @@
+{
+  "schema": "video-feedback-evaluation-v1",
+  "source": {
+    "filename": "ฝึก-AI-ประตูน้ำก่อนตลาดท่วม-1.mp4",
+    "localOnly": true,
+    "durationSeconds": 20.2417,
+    "resolution": [
+      512,
+      910
+    ],
+    "fpsApprox": 29.94,
+    "audio": "AAC stereo (two channels identical)",
+    "sourceJson": "examples/coastal-gate-ml-training-one-episode.json",
+    "scenes": [
+      "train-s01",
+      "train-s02",
+      "train-s03",
+      "train-s04"
+    ]
+  },
+  "review": {
+    "date": "2026-11-02",
+    "method": "sampled actual MP4 frames at 0.75-second intervals plus higher-resolution scene frames and numerical audio RMS; compared with supplied source JSON",
+    "humanApproved": false,
+    "approvedForModelTraining": false,
+    "trainingDataset": false,
+    "notes": "Audio waveform analysis cannot verify exact words, pronunciation or emotional acting. Static frame samples cannot prove all rig motions or all frame-level defects."
+  },
+  "audio": {
+    "activeRegionsSeconds": [
+      [
+        0.2,
+        4.75
+      ],
+      [
+        5.8,
+        9.85
+      ],
+      [
+        10.9,
+        14.6
+      ],
+      [
+        15.65,
+        19.3
+      ]
+    ],
+    "silenceGapsSeconds": [
+      [
+        4.75,
+        5.8
+      ],
+      [
+        9.85,
+        10.9
+      ],
+      [
+        14.6,
+        15.65
+      ],
+      [
+        19.3,
+        20.2
+      ]
+    ],
+    "channelCorrelation": 1,
+    "notes": "Close to one second of digital silence at each scene boundary. No audible continuous ambiance can be inferred during these digital-zero intervals."
+  },
+  "issues": [
+    {
+      "id": "gate-01",
+      "priority": "P0",
+      "sceneId": "train-s01",
+      "timeSeconds": [
+        0,
+        5.65
+      ],
+      "category": "story-action",
+      "observed": "Wide storm/market and a grille-like gate in foreground; narration says sea level rises, but the water-rise event is not clearly discernible over these sampled frames.",
+      "required": "Introduce a legible waterline or gauge and animated water rising while market lights and vendors are established; avoid unrelated dark polygon in sky.",
+      "accept": "A viewer can point to water rising between two timestamps without relying on the caption."
+    },
+    {
+      "id": "gate-02",
+      "priority": "P0",
+      "sceneId": "train-s02",
+      "timeSeconds": [
+        5.65,
+        10.75
+      ],
+      "category": "svg-prop",
+      "observed": "Floodgate resembles an ordinary barred doorway/shutter; rust, gate mechanism, pressure side and discharge point are unclear. Leak is small/ambiguous relative to narration.",
+      "required": "Design recognizable concrete channel, gate leaf, hoist gear, upstream/downstream water levels, rust, clear lower-edge jet and splashes; use detail shot/push-in on leak.",
+      "accept": "Without reading subtitles, viewers recognize a leaking sluice gate rather than a building doorway."
+    },
+    {
+      "id": "gate-03",
+      "priority": "P0",
+      "sceneId": "train-s03",
+      "timeSeconds": [
+        10.75,
+        15.5
+      ],
+      "category": "story-action+motion",
+      "observed": "Pim runs/poses by essentially the same gate and market background. No shopkeepers, warning response or boxes being moved appear in sampled frames.",
+      "required": "Add distinct shopkeeper figures; visible warning gesture, reaction, and lifting crates to upper ground; route Pim along the quayside with a meaningful camera pan and verified feet/arm motion.",
+      "accept": "The warning and response are understandable without narration; feet stay grounded and no joints penetrate the body."
+    },
+    {
+      "id": "gate-04",
+      "priority": "P0",
+      "sceneId": "train-s04",
+      "timeSeconds": [
+        15.5,
+        20.24
+      ],
+      "category": "story-action+compositing",
+      "observed": "Water grows as a large translucent blue overlay across foreground/buildings; the market appears unattended earlier too, so evacuation and survival on high ground are never shown.",
+      "required": "Animate floodwater within street/pier geometry, with shoreline/ripples and correct occlusion. Establish market populated earlier, then remove people after evacuation; add hill/people safe as a concluding shot.",
+      "accept": "Water is constrained to the lowland and scene visually shows 'empty because evacuated' plus safe people on higher ground."
+    },
+    {
+      "id": "gate-05",
+      "priority": "P1",
+      "sceneId": null,
+      "timeSeconds": [
+        0,
+        20.24
+      ],
+      "category": "camera+composition",
+      "observed": "Four sections repeatedly use a similar gate-and-market medium framing; the giant dark planar/polygonal shape in the night sky is visually distracting and unmotivated.",
+      "required": "Shot sequence: establishing harbor/sea → close gate leak → tracking Pim toward merchant → flood impact → cut to hill. Remove or identify unexplained dark overlay; check camera coordinate/world cropping.",
+      "accept": "Each shot reveals its narrated object; panorama is perceptible and visual artefacts do not obscure narrative elements."
+    },
+    {
+      "id": "gate-06",
+      "priority": "P1",
+      "sceneId": null,
+      "timeSeconds": [
+        0,
+        20.24
+      ],
+      "category": "audio+timing",
+      "observed": "Four near-continuous voiced segments separated by ~1.05 s of digital silence; audio is dual-mono, and rain is visually present throughout.",
+      "required": "Remove rigid one-second dead air at cuts or use intentional crossfade, and add gently mixed weather/market/sluice sounds under narrator (without masking words). Match soundscape to actual weather.",
+      "accept": "No unexplained silent gaps >0.5s at scene cuts in a rainstorm; voice remains clear, ambience survives the cut."
+    },
+    {
+      "id": "gate-07",
+      "priority": "P1",
+      "sceneId": null,
+      "timeSeconds": [
+        0,
+        20.24
+      ],
+      "category": "subtitle",
+      "observed": "Export subtitles remain centered inside frame and no right-edge clipping found in sampled frames; several clauses are broken mid-phrase (e.g. 'พิมมองเห็นบานเหล็ก / ของ...').",
+      "required": "Use natural Thai phrase segmentation and timed speech-derived cues. Keep portrait safe region and avoid single-word orphan lines.",
+      "accept": "At most two readable lines with no orphan phrase or off-frame text and start/end near speech; manually confirm against the heard narration."
+    }
+  ],
+  "positives": [
+    "Export aspect 512×910 stays close to 9:16; no observed clipped subtitle at frame edge in sampled frames.",
+    "The app shortened original nominal 35 s timeline to ~20.24 s rather than padding silence to target 60 s.",
+    "Sea-storm mood, market silhouettes, foreground floodgate and a cartoon actor are now present; foundations exist but are not yet narratively clear."
+  ],
+  "recommendedTrainingOrder": [
+    "manual human acceptance of report",
+    "implement fixes to source SVG/worldEffects and storyboard",
+    "re-export same story",
+    "pair before/after segments with approved scene-action QA labels",
+    "train small CPU scene-selection/motion-ranking models on many stories; do not train on this single clip or put it into Layout approved dataset"
+  ],
+  "safety": {
+    "storeVideoInPublicGitHub": false,
+    "doNotAutoApproveSamples": true,
+    "doNotTreatHeuristicsAsVisualGroundTruth": true
+  }
+}
