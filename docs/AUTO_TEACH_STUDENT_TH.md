@@ -50,3 +50,22 @@ cd ~/AI-ANIMATION && git pull --ff-only origin main && AWS_REGION=ap-southeast-2
 python3 tests/test_teacher_auto_teach.py
 node --test tests/teacher-auto-teach.test.cjs
 ```
+
+## หาก AI ลูกตรวจได้ 141 ฉาก แต่ AWS ยืนยัน 0 ฉาก
+
+เวอร์ชันเดิมอาจแสดงว่า “สอนครบทุกชุด” ทั้งที่ AI แม่ตอบไม่ตรงโครงสร้าง JSON หรือ Lambda/API ยังไม่พร้อม และยังวนใช้โควตาจนครบทุกฉาก
+
+เวอร์ชันแก้ไข:
+- ตรวจ `teacher.status` และ `teacher.autoLessons` ก่อนเรียก AI แม่ เพื่อยืนยันว่า provider API, DynamoDB และ Lambda พร้อม
+- AI แม่ต้องคืน `teachingLessons` ด้วย system prompt เฉพาะการสอน หากไม่ส่งหรือไม่ผ่าน QA ฝั่ง Lambda จะตอบ HTTP 422 พร้อมรหัสสาเหตุ
+- หยุดเมื่อพบปัญหาในชุดแรก ไม่ส่งคำขอที่เหลือทั้งหมดต่อไป
+- ประมวลผลสูงสุด 2 ฉากต่อชุด หรือ 1 ฉากถ้าบทยาว เพื่อช่วยเลี่ยง JSON output ถูกตัด
+- หน้าเว็บรายงานสาเหตุจริงและจำนวนฉากที่ยังไม่ได้ประมวลผล แยกจากจำนวนที่ AWS ยืนยันว่าบันทึกแล้ว
+
+หาก Lambda รุ่นเก่ายังอยู่ ต้องอัปเดตหลัง merge ด้วย CloudShell:
+
+```bash
+cd ~/AI-ANIMATION && git pull --ff-only origin main && AWS_REGION=ap-southeast-2 AWS_DEFAULT_REGION=ap-southeast-2 bash autodub/deploy.sh https://main.d1wc6w01kiwpnk.amplifyapp.com
+```
+
+การแก้ไขไม่ได้ทำให้บทเรียน 141 ฉากที่เคยล้มเหลวกลายเป็นข้อมูลฝึกย้อนหลัง ต้องกด AI แม่สอนอีกครั้งหลัง Deploy สำเร็จ และนับเฉพาะบทเรียนที่ AWS ยืนยันจริงเท่านั้น

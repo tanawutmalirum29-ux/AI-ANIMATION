@@ -98,10 +98,39 @@ class AutoTeacherTests(unittest.TestCase):
                 self.assertEqual(unpack(teacher._auto_teach(body))[0],400)
             code,result=unpack(teacher._auto_teach({
              "provider":"gemini","projectId":"story123","scenes":scenes()}))
-        self.assertEqual(code,200)
+        self.assertEqual(code,422)
+        self.assertEqual(result["reasonCode"],"TEACHER_LESSONS_REJECTED")
+        self.assertEqual(result["reasonCounts"]["invalid_revision"],1)
         self.assertEqual(result["saved"],0)
         self.assertEqual(result["failed"],1)
         self.assertEqual(len(table.puts),0)
+
+    def test_reply_without_machine_readable_lessons_stops_and_explains(self):
+        table=FakeTable()
+        with self.install(table),mock.patch.dict(os.environ,{"TEACHER_FEEDBACK_TABLE":"test"}),\
+             mock.patch.object(teacher,"_chat",return_value=response([])):
+            code,result=unpack(teacher._auto_teach({
+             "provider":"gemini","projectId":"story123","scenes":scenes()}))
+        self.assertEqual(code,422)
+        self.assertEqual(result["reasonCode"],"TEACHER_NO_STRUCTURED_LESSONS")
+        self.assertEqual(result["failed"],1)
+        self.assertEqual(len(table.rows),0)
+
+    def test_dedicated_teacher_system_instructs_machine_readable_thai_lessons(self):
+        fixture=json.dumps({"teachingLessons":[lesson()]},ensure_ascii=False)
+        candidate={"candidates":[{"content":{"parts":[{"text":fixture}]}}]}
+        with mock.patch.object(teacher,"_settings",return_value={
+                "gemini":{"key":"test_key_abcdefghijklmnop","model":"gemini-2.5-flash"}}),\
+             mock.patch.object(teacher,"_post_json",return_value=candidate) as http:
+            code,out=unpack(teacher._chat({
+              "provider":"gemini","message":"Teach from narration",
+              "context":"{}","_internalMaxOutput":3200},teach_mode=True))
+        self.assertEqual(code,200)
+        self.assertEqual(len(out["teachingLessons"]),1)
+        payload=http.call_args.args[2]
+        self.assertEqual(payload["generationConfig"]["maxOutputTokens"],3200)
+        self.assertIn("teachingLessons",payload["systemInstruction"]["parts"][0]["text"])
+        self.assertIn("keep",payload["systemInstruction"]["parts"][0]["text"])
 
     def test_failed_teacher_call_never_reports_saved(self):
         table=FakeTable()

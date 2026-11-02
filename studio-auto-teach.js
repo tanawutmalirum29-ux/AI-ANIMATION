@@ -11,7 +11,7 @@ if(root)root.StoryAutoTeach=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(root){
 'use strict';
 let bridge=null,host=null,provider='openrouter',scanned=null,running=false,
-  progress='',error='',results=[],memory=[],loadedMemory=false;
+  progress='',error='',results=[],memory=[],loadedMemory=false,failReasons=[];
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const validIssues=['continuity','clarity','expand','pacing','keep'];
 const clip=(s,n)=>String(s||'').slice(0,n);
@@ -68,7 +68,7 @@ function signature(project){return digestSource(project)}
 function getState(){
  return {ready:!!scanned,scenes:scanned?.rows.length||0,skipped:scanned?.skipped.length||0,
   results:[...results],completed:results.reduce((n,x)=>n+(x.saved||0)+(x.reused||0),0),
-  running,progress,error,autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
+  running,progress,error,failReasons:[...failReasons],autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
 }
 function render(){
  if(!host||!root?.document)return;
@@ -87,6 +87,13 @@ function render(){
  rootPanel.append(buttons);
  rootPanel.append(el('p',progress||'เริ่มจากกดให้ AI ลูกตรวจทั้ง JSON','teacher-auto-teach-progress'));
  if(error)rootPanel.append(el('p',error,'teacher-warning'));
+ if(failReasons.length){
+  const details=el('details',null,'teacher-auto-teach-errors');
+  details.open=true;
+  details.append(el('summary','สาเหตุที่ AWS ยังไม่บันทึก ('+failReasons.length+' รายการ)'));
+  for(const reason of failReasons.slice(0,4))details.append(el('p',reason,'teacher-warning'));
+  rootPanel.append(details);
+ }
  if(scanned)rootPanel.append(el('p',
   'AI ลูกพบ '+scanned.rows.length+' ฉากที่ตรวจได้ · ข้าม '+scanned.skipped.length+
   ' ฉาก · '+(scanned.modelUsed?'ใช้โมเดล CPU พื้นฐาน':'ใช้กฎตรวจบทพื้นฐาน'),
@@ -104,7 +111,7 @@ function render(){
 }
 async function scan(){
  if(running)return getState();
- running=true;error='';progress='AI ลูกกำลังตรวจบททั้งหมด...';render();
+ running=true;error='';failReasons=[];progress='AI ลูกกำลังตรวจบททั้งหมด...';render();
  try{
   const project=sourceProject(),stamp=signature(project);
   let model=null;
@@ -127,77 +134,132 @@ async function loadMemory(){
  }catch(_){}
  return memory;
 }
+async function verifyTeacherReady(){
+ // Fail before touching the first paid/rate-limited inference when Lambda
+ // still runs an older version or the chosen API provider is not connected.
+ const status=await root.StoryStudioAccess.request({action:'teacher.status'});
+ if(!status?.feedbackReady)throw Error('AWS ไม่มีตารางบันทึกบทเรียน AI แม่ กรุณาตรวจการติดตั้ง Lambda');
+ const ready=(Array.isArray(status.providers)?status.providers:[]).filter(p=>p?.ready);
+ if(!ready.length)throw Error('ยังไม่มี API Key ของ AI แม่ที่พร้อมใช้ · ไปที่ AI ครู / API → เชื่อม API');
+ if(!ready.some(p=>p.id===provider)){
+  if(ready.length===1){
+   provider=ready[0].id;
+   progress='สลับไปใช้ AI แม่ที่เชื่อมไว้: '+provider;
+   render();
+  }else throw Error('AI แม่ '+provider+' ยังไม่พร้อม · กรุณาเลือก provider ที่เชื่อม API ไว้');
+ }
+ // The earlier Lambda lacks autoLessons; fail fast instead of attempting
+ // 47+ autoTeach requests and reporting 141 false failures.
+ const probe=await root.StoryStudioAccess.request({action:'teacher.autoLessons',limit:1});
+ if(!Array.isArray(probe?.lessons))throw Error('Lambda รุ่นนี้ยังไม่รองรับระบบสอนอัตโนมัติ กรุณา Deploy Lambda ล่าสุด');
+ return true;
+}
+function makeBatches(rows){
+ // Fewer outputs per call prevent the structured Thai JSON being truncated
+ // on free-tier models that have limited output tokens or reasoning budgets.
+ const batches=[],batch=[];let length=0;
+ function flush(){if(batch.length){batches.push(batch.splice(0));length=0}}
+ for(const item of rows){
+  if(item.text.length>500){flush();batches.push([item]);continue}
+  if(batch.length>=2||length+item.text.length>800)flush();
+  batch.push(item);length+=item.text.length;
+ }
+ flush();return batches;
+}
 async function teach(){
  if(running)return getState();
  if(!root?.StoryStudioAccess?.isReady?.()){
   error='กรุณาเข้าสู่ระบบ AWS Studio ก่อนใช้ AI แม่';render();throw Error(error);
  }
- if(!scanned){
-  await scan();
- }
+ if(!scanned)await scan();
  if(signature(sourceProject())!==scanned.stamp){
   error='บท JSON ถูกแก้หลัง AI ลูกตรวจ กรุณากดตรวจใหม่ก่อนสอน';
   render();throw Error(error);
  }
- const project=sourceProject();
- if(!project.project)project.project={};
- project.project.aiWorkspace=root.StoryAIWorkspaceCore?.ensure?.(
-  project.project.aiWorkspace||{});
- bridge.persist?.();
- const projectId=project.project.aiWorkspace?.projectId;
- if(!projectId)throw Error('ไม่พบรหัสโปรเจกต์');
- running=true;error='';results=[];render();
- const batches=[];
- for(let i=0;i<scanned.rows.length;i+=3)batches.push(scanned.rows.slice(i,i+3));
- let done=0,failures=0;
+ running=true;error='';failReasons=[];results=[];progress='กำลังตรวจ API, Lambda และ DynamoDB ก่อนเรียก AI แม่...';render();
+ let done=0,failed=0,attempted=0,stopEarly=false;
  try{
+  await verifyTeacherReady();
+  const project=sourceProject();
+  if(!project.project)project.project={};
+  project.project.aiWorkspace=root.StoryAIWorkspaceCore?.ensure?.(
+   project.project.aiWorkspace||{});
+  bridge.persist?.();
+  const projectId=project.project.aiWorkspace?.projectId;
+  if(!projectId)throw Error('ไม่พบรหัสโปรเจกต์');
+  const batches=makeBatches(scanned.rows);
   for(let index=0;index<batches.length;index++){
    if(signature(sourceProject())!==scanned.stamp)throw Error('JSON เปลี่ยนระหว่างการสอน ต้องตรวจใหม่');
    const chunk=batches[index];
-   progress='AI แม่กำลังสอนและบันทึก AWS ชุด '+(index+1)+'/'+batches.length+
-    ' · เสร็จแล้ว '+done+'/'+scanned.rows.length+' ฉาก';
+   progress='AI แม่ตรวจและบันทึก AWS ชุด '+(index+1)+'/'+batches.length+
+    ' · ยืนยันแล้ว '+done+'/'+scanned.rows.length+' ฉาก';
    render();
-   let payload=null;
    const params={action:'teacher.autoTeach',projectId,provider,
     scenes:chunk.map(x=>({
      id:x.id,episodeId:x.episodeId,text:x.text,previous:x.previous,
      next:x.next,studentIssue:x.studentIssue}))};
-   for(let attempts=0;attempts<2;attempts++){
+   let payload=null,why='';
+   for(let attempt=0;attempt<2;attempt++){
     try{
      payload=await root.StoryStudioAccess.request(params);
      break;
     }catch(e){
-     if(attempts===0&&/429|เกิน 6 คำขอ|rate.?limit/i.test(String(e.message||e))){
-      progress='AI แม่ติดโควตารายคำขอ กำลังพักแล้วลองชุดเดิมใหม่';
+     why=String(e.message||e);
+     if(attempt===0&&/429|เกิน 6 คำขอ|rate.?limit/i.test(why)){
+      progress='AI แม่ถูกจำกัดโควตา · พักก่อนลองชุดเดิมครั้งสุดท้าย';
       render();await sleep(62000);continue;
      }
-     failures+=chunk.length;results.push({failed:chunk.length,error:String(e.message||e)});
-     payload=null;break;
+     break;
     }
    }
-   if(payload){
-    if(!Number.isInteger(payload.saved)||!Number.isInteger(payload.reused)||
-     !Array.isArray(payload.lessons)) {
-     failures+=chunk.length;results.push({failed:chunk.length,error:'AWS ส่งผลสอนผิดรูปแบบ'});
-    }else{
-     done+=payload.saved+payload.reused;
-     failures+=payload.failed||0;
-     results.push({saved:payload.saved,reused:payload.reused,failed:payload.failed||0});
-    }
+   attempted+=chunk.length;
+   if(!payload){
+    failed+=chunk.length;results.push({failed:chunk.length,error:why});
+    failReasons.push('ชุด '+(index+1)+': '+(why||'ไม่สามารถเรียก AI แม่หรือ AWS ได้'));
+    stopEarly=true;break;
    }
-   // Existing Teacher API is warm-container throttled to six calls/minute.
-   // Pacing also reduces provider bursts on low-rate free API tiers.
+   const counts=[payload.saved,payload.reused,payload.failed];
+   if(!counts.every(x=>Number.isInteger(x)&&x>=0)||
+      !Array.isArray(payload.lessons)||
+      counts.reduce((a,b)=>a+b,0)!==chunk.length){
+    failed+=chunk.length;
+    results.push({failed:chunk.length,error:'AWS ส่งจำนวนบทเรียนไม่สอดคล้องกับฉากที่ส่ง'});
+    failReasons.push('ชุด '+(index+1)+': ผลตอบกลับ AWS ไม่ถูกต้อง · จะไม่ถือว่าบันทึกสำเร็จ');
+    stopEarly=true;break;
+   }
+   done+=payload.saved+payload.reused;
+   failed+=payload.failed;
+   results.push({saved:payload.saved,reused:payload.reused,failed:payload.failed});
+   if(payload.failed){
+    const reasons=payload.reasonCounts||{};
+    failReasons.push('ชุด '+(index+1)+' ตรวจไม่ผ่าน '+payload.failed+
+      ' ฉาก (บทแก้ไม่ตรงเงื่อนไข '+(reasons.invalid_revision||0)+
+      ', ฉากไม่ครบ '+(reasons.missing_scene||0)+')');
+   }
+   // Do not let a provider that returns invalid suggestions consume quotas
+   // for every single scene of a long 141-scene manuscript.
+   if(payload.saved+payload.reused===0){
+    failReasons.push('AI แม่ยังไม่สร้างบทเรียนที่ AWS รับรองเลย · หยุดเพื่อป้องกันโควตาหมด');
+    stopEarly=true;break;
+   }
    if(index<batches.length-1)await sleep(11000);
   }
-  progress='สอนครบทุกชุด · AWS ยืนยัน '+done+' ฉาก'+
-   (failures?' · ยังไม่สำเร็จ '+failures+' ฉาก':'')+
-   ' · ความจำ AI แม่พร้อมนำไปใช้เทียบเคียงครั้งต่อไป';
-  if(!done)error='ไม่มีบทเรียนที่ AWS ยืนยันว่าบันทึกสำเร็จ กรุณาตรวจ API และโควตา';
-  await loadMemory();
+  const pending=scanned.rows.length-attempted;
+  if(done===scanned.rows.length&&failed===0){
+   progress='บันทึกบทเรียนครบ '+done+'/'+scanned.rows.length+' ฉากบน AWS';
+   error='';
+  }else{
+   progress='ยังสอนไม่ครบ · AWS ยืนยัน '+done+'/'+scanned.rows.length+
+    ' ฉาก · ไม่สำเร็จ '+failed+' · ยังไม่ได้ประมวลผล '+pending;
+   if(stopEarly)error='ระบบหยุดเมื่อพบปัญหาเพื่อไม่ใช้โควตา AI แม่ซ้ำโดยเปล่าประโยชน์';
+   else if(failed)error='บางฉากยังไม่มีบทเรียนที่ AWS บันทึกสำเร็จ';
+  }
+  if(done)await loadMemory();
   return getState();
  }catch(e){
-  error=String(e.message||e);
-  progress='งานสอนหยุดกลางทาง · ส่วนที่ AWS ยืนยันแล้วไม่สูญหาย สามารถกดสอนซ้ำได้';
+  error='หยุดสอน: '+String(e.message||e);
+  failReasons.push(error);
+  progress='การสอนยังไม่สำเร็จ · AWS ยืนยัน '+done+'/'+scanned.rows.length+' ฉาก';
   throw e;
  }finally{running=false;render()}
 }
