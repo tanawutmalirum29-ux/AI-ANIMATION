@@ -4312,6 +4312,28 @@ if(out.length>1&&typeof Intl!=='undefined'&&Intl.Segmenter){
   }
  }
 }
+// Avoid isolated one-word tails such as “ตลาด” and “ทัน”. Redistribute the
+// preceding Thai word(s), preserving original text and original line limit.
+// This applies to timed cues and to automatically paginated subtitle text.
+if(out.length>1&&typeof Intl!=='undefined'&&Intl.Segmenter){
+ const segThai=new Intl.Segmenter('th',{granularity:'word'});
+ const size=s=>[...String(s).replace(/\s/g,'')].length;
+ for(let i=1;i<out.length;i++){
+  if(size(out[i])>=Math.min(8,Math.max(5,Math.floor(max*.42))))continue;
+  let left=out[i-1],right=out[i],steps=0;
+  while(size(right)<Math.min(8,Math.max(5,Math.floor(max*.42)))&&steps++<5){
+   const segments=[...segThai.segment(left)].map(v=>v.segment).filter(Boolean);
+   while(segments.length&&/^\s+$/.test(segments[segments.length-1]))segments.pop();
+   if(segments.length<2)break;
+   const moved=segments.pop().trim(),before=segments.join('').trimEnd();
+   const joining=String(line).includes(moved+' '+right)?' ':'';
+   const after=moved+joining+right;
+   if(size(before)<Math.min(6,Math.floor(max*.32))||[...after].length>max)break;
+   left=before;right=after;
+  }
+  out[i-1]=left;out[i]=right;
+ }
+}
 return out}
 
 /* Screen-safe captions: author can keep an entire paragraph; viewer shows only two short lines at once. */

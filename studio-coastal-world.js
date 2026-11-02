@@ -67,11 +67,11 @@
  }
  // Tiny animated background people live inside the same wide world as the market.
  // Each pose is driven from scene time, not from screen dimensions or browser FPS.
- function person(x,y,shirt='#c8a46f',arm='rest',carry=false){
+ function person(x,y,shirt='#c8a46f',arm='rest',carry=false,scale=1){
   const hands=arm==='warn'?
    L(x-1.1,y-6,x-3.3,y-11,'#c79a7f',.85)+L(x+1.2,y-6,x+4.2,y-9,'#c79a7f',.85):
    L(x-1.1,y-6,x-2.6,y-2.2,'#c79a7f',.85)+L(x+1.2,y-6,x+2.7,y-2.2,'#c79a7f',.85);
-  return '<g data-world-object="market-person">'+
+  return '<g data-world-object="market-person" transform="translate('+f(x)+' '+f(y)+') scale('+f(scale)+') translate('+f(-x)+' '+f(-y)+')">'+
    E(x,y+.5,3,1,'#182f40',.32)+
    L(x-.8,y-2.3,x-1.5,y,'#324756',1.15)+L(x+.8,y-2.3,x+1.6,y,'#324756',1.15)+
    P('M'+f(x-1.6)+' '+f(y-7.5)+'L'+f(x+1.6)+' '+f(y-7.5)+'L'+f(x+1.3)+' '+f(y-2)+'L'+f(x-1.3)+' '+f(y-2)+'Z',shirt)+
@@ -101,11 +101,19 @@
    }
    return foam;
   }
+  const floodArt=flood?(()=>{
+   const top=88-4.8*t,land=x(.605),end=x(.922);
+   return '<g data-world-object="market-street-flood">'+
+    P('M'+f(land)+' '+f(top+1)+'Q'+f(x(.68))+' '+f(top-.6)+' '+f(x(.75))+' '+f(top)+
+      'T'+f(end)+' '+f(top+.8)+'L'+f(end)+' 90L'+f(land)+' 90Z','#397b92',.83)+
+    Array.from({length:10},(_,i)=>L(x(.615+i*.031),top+1+(i%3)*.6,x(.628+i*.031),top+1+(i%3)*.6,'#a2d8d8',.34)).join('')+
+    '</g>';
+  })():'';
   let o=
    // Distant coast and sea: a quiet upper horizon, not a giant dark sky panel.
-   P('M0 49Q'+f(x(.18))+' 45 '+f(x(.34))+' 48T'+f(W)+' 47L'+f(W)+' 64L0 64Z','#29485a',.65)+
-   P('M0 61Q'+f(x(.22))+' 58 '+f(x(.42))+' 63L'+f(W)+' 67L'+f(W)+' 90L0 90Z','#243b4c')+
-   R(0,66,x(.48),24,'#2c5c70')+
+   P('M0 51Q'+f(x(.18))+' 46 '+f(x(.36))+' 49L'+f(x(.46))+' 57L'+f(x(.46))+' 63L0 63Z','#29485a',.55)+
+   P('M0 64Q'+f(x(.22))+' 60 '+f(x(.39))+' 63L'+f(x(.43))+' 72L'+f(x(.40))+' 90L0 90Z','#243b4c')+
+   P('M0 67Q'+f(x(.2))+' 65 '+f(x(.4))+' 69L'+f(x(.42))+' 79L'+f(x(.36))+' 90L0 90Z','#2c5c70')+
    Array.from({length:17},(_,i)=>L(x(i*.027),70+(i%5)*3,x(i*.027)+3,70+(i%5)*3,'#91bcc1',.3,.7)).join('')+
    boat(x(.13),72,.7)+boat(x(.3),72,.57)+
    // Concrete quay kept ABOVE the water. This establishes two real elevation levels.
@@ -145,6 +153,7 @@
    [0.65,0.76,0.89].map((v,i)=>tinyHouse(x(v),66,.55+i*.08,['#5a6770','#746b6c','#566c70'][i])).join('')+
    P('M'+f(x(.595))+' 81L'+f(x(.88))+' 81L'+f(x(.95))+' 69L'+f(W)+' 65L'+f(W)+' 90L'+f(x(.595))+' 90Z','#73746d')+
    L(x(.61),83,x(.89),83,'#b9b1a0',.5,.7)+
+   floodArt+
    market(x(.66),79,.86,'#ad685e',!blackout&&(!seq||t<.5))+
    market(x(.77),79,.9,'#63918d',!blackout&&(!seq||t<.7))+
    market(x(.88),79,.86,'#a0845f',!blackout&&(!seq||t<.9))+
@@ -163,16 +172,18 @@
    o+='<g data-world-object="populated-market">'+crowd.map((v,i)=>{
     const px=x(v+.065*q),py=79-q*(3.5+i*.8);
     return person(px,py,['#d8a15a','#9bb0a3','#c17d75'][i],
-      warning||evac?'warn':'rest',evac||warning);
+      warning||evac?'warn':'rest',evac||warning,warning?1.36:1.08);
    }).join('')+'</g>';
    if(warning||evac){
+    o+='<g data-world-object="merchant-acknowledgment">'+
+     person(x(.748),81.5,'#e3b076','warn',true,1.72)+'</g>';
     o+='<g data-world-object="merchant-response">'+
      // Box visibly LIFTS and MOVES uphill as the warning is acted on.
      [0,1].map((i)=>{
       const u=Math.max(0,Math.min(1,(t-.15-i*.14)*1.55)),xx=x(.705+i*.11)+u*x(.08);
       return '<g data-world-object="moving-crates">'+
-       R(xx,76-u*10,5.4,4,'#a57e52',.3)+
-       L(xx,77-u*10,xx+5.4,77-u*10,'#e7c18a',.55)+'</g>';
+       R(xx,76-u*11,7.5,5.2,'#a57e52',.3)+
+       L(xx,77-u*11,xx+7.5,77-u*11,'#e7c18a',.75)+'</g>';
      }).join('')+'</g>';
    }
   }
@@ -190,28 +201,20 @@
   if(effect(scene,'evacuation')&&!empty){
    const q=Math.min(1,t*1.2);
    o+='<g data-world-object="evacuating-villager">'+
-    person(x(.73+.17*q),78-9*q,'#d49d6e','warn',true)+
-    person(x(.79+.12*q),77-8*q,'#83b2a3','rest',true)+'</g>';
+    person(x(.71+.14*q),78-9*q,'#d49d6e','warn',true,1.38)+
+    person(x(.77+.11*q),77-8*q,'#83b2a3','rest',true,1.38)+'</g>';
   }
   // Water fills the LOWER street surface with a wavy shoreline; the top
   // stays below stall counters until the concluding moment, not over roofs.
-  if(flood){
-   const top=88-8*t,land=x(.605),end=x(.925);
-   o+='<g data-world-object="market-street-flood">'+
-    P('M'+f(land)+' '+f(top+2)+'Q'+f(x(.68))+' '+f(top-1)+' '+f(x(.74))+' '+f(top)+
-      'T'+f(end)+' '+f(top+1)+'L'+f(end)+' 90L'+f(land)+' 90Z','#387a91',.81)+
-    Array.from({length:10},(_,i)=>L(x(.615+i*.031),top+1+(i%3)*1.6,x(.63+i*.031),top+1+(i%3)*1.6,'#a2d8d8',.35)).join('')+
-    '</g>';
-  }
   // End-state reveal: high-ground path and visible SAFE group, not an empty
   // market at the start. This sits at the far end of the same wide panorama.
   if(safeHill){
    o+='<g data-world-object="safe-hill">'+
-    P('M'+f(x(.885))+' 76Q'+f(x(.94))+' 58 '+f(W)+' 61L'+f(W)+' 90L'+f(x(.885))+' 90Z','#6f8776')+
-    L(x(.895),76,x(.99),62,'#c0b294',.8)+
-    person(x(.948),65,'#d79e55','rest',false)+
-    person(x(.965),63,'#8bbaa7','rest',false)+
-    person(x(.982),65,'#ba8581','rest',false)+'</g>';
+    P('M'+f(x(.8))+' 83Q'+f(x(.87))+' 63 '+f(W)+' 59L'+f(W)+' 90L'+f(x(.8))+' 90Z','#6f8776')+
+    L(x(.8),83,x(.95),62,'#c0b294',.8)+
+    person(x(.855),70,'#d79e55','rest',false,1.7)+
+    person(x(.883),66,'#8bbaa7','rest',false,1.7)+
+    person(x(.911),65,'#ba8581','rest',false,1.65)+'</g>';
   }
   return o;
  }
