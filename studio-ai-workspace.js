@@ -422,8 +422,24 @@ async function runCoordinatedProduction(){
    if(before.voiced===0)return {status:'skipped',summary:'ยังไม่มีคลิปเสียงจริง; ไม่เดาเวลาพากย์',
      warnings:before.missing?['ต้องเชื่อม Edge TTS หรือเพิ่มเสียงจริงก่อนจัดจังหวะ']:[]};
    const result=await applyTiming('all',1,true);
-   return {summary:'แก้เวลาหรือแบ่งตอน '+result.changes+' จุด; ไม่ยืดภาพนิ่งให้ครบ 60 วิ',
-    status:result.changes?'done':'skipped',warnings:result.split?.warnings||[]};
+   // The exported rainy coastal story used to contain digital-zero gaps at
+   // every scene cut: the one-click producer made VO but never laid ambience.
+   // Use only the studio's own synthesized catalog, never a model/sound API.
+   // Re-applying replaces auto-produced clips and preserves manual audio.
+   let addedAmbience=0,soundWarnings=[];
+   const st=bridge.get(),coastalIds=new Set((st.locations||[])
+    .filter(x=>x?.set?.worldArt==='coastal-harbor').map(x=>x.id));
+   const hasCoastalScenes=(st.episodes||[]).some(e=>(e.scenes||[]).some(sc=>
+    coastalIds.has(sc.location)&&/rain|storm/i.test(String(sc.atmosphere||''))));
+   if(hasCoastalScenes&&typeof bridge.applyAudioPlan==='function'){
+    try{
+     const sound=bridge.applyAudioPlan('all');
+     addedAmbience=sound?.applied||0;
+    }catch(err){soundWarnings.push('จัดบรรยากาศจากคลังเสียงไม่สำเร็จ: '+String(err.message||err));}
+   }
+   return {summary:'แก้เวลาหรือแบ่งตอน '+result.changes+' จุด · เพิ่มเสียงประกอบ '+addedAmbience+' คลิป; ไม่ยืดภาพนิ่งให้ครบ 60 วิ',
+    status:result.changes||addedAmbience?'done':soundWarnings.length?'warning':'skipped',
+    warnings:[...(result.split?.warnings||[]),...soundWarnings]};
   });
   await step('qa',async()=>{
    const state=bridge.get(),v=root.StoryVisualQA?.inspect(state,{scope:'all'}),
