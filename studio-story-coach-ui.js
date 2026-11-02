@@ -120,13 +120,15 @@ async function teacherReview(){
    const data=await request('student.storyLessons',{limit:60});
    if(Array.isArray(data.lessons))examples=data.lessons;
   }catch(_){}
+  await root.StoryAutoTeach?.loadMemory?.();
+  const teacherMemory=root.StoryAutoTeach?.examples?.(state.bundle,1)||[];
   const related=core().examples(state.bundle,examples,2);
   const trained=root.StoryNarrativeFoundation?.summary?.();
   const foundationSamples=foundationInfo?.samples||[];
   const result=await request('teacher.chat',{
    provider,message:promptReview(state.bundle),
    context:core().prompt(state.bundle,related,foundationSamples,
-    foundationInfo?.advisory||null),history:[]});
+    foundationInfo?.advisory||null,teacherMemory),history:[]});
   if(typeof result.reply!=='string'&&!Array.isArray(result.ops))
    throw Error('AI แม่ไม่ส่งคำตอบที่เข้าใจได้');
   ensureFresh();
