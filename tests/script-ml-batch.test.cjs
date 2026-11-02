@@ -19,7 +19,7 @@ function sample(){
 test('one request reviews every scene across all episodes without edits',()=>{
  const project=sample(),snapshot=JSON.stringify(project);
  const r=ml.reviewProject(project);
- assert.deepEqual(r.stats,{scenes:6,withNarration:5,changes:2,attention:1,passed:2,missing:1});
+ assert.deepEqual(r.stats,{scenes:6,withNarration:5,changes:2,attention:1,passed:2,clean:2,kept:0,missing:1});
  assert.equal(r.entries.length,6);
  assert.equal(r.entries[0].result.proposed,cleaned);
  assert.equal(r.entries[1].result.hasEdit,false);
