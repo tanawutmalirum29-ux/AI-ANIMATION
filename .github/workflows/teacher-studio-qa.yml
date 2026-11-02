@@ -1,0 +1,40 @@
+name: AI Teacher Studio QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'studio-teacher.js'
+      - 'studio-teacher.css'
+      - 'studio-ai-workspace.js'
+      - 'autodub/teacher.py'
+      - 'autodub/handler.py'
+      - 'autodub/setup-teacher.sh'
+      - 'tests/test_teacher_backend.py'
+      - 'tests/teacher-studio-contract.test.cjs'
+  pull_request:
+    paths:
+      - 'studio-teacher.js'
+      - 'studio-teacher.css'
+      - 'studio-ai-workspace.js'
+      - 'autodub/teacher.py'
+      - 'autodub/handler.py'
+      - 'autodub/setup-teacher.sh'
+      - 'tests/test_teacher_backend.py'
+      - 'tests/teacher-studio-contract.test.cjs'
+permissions:
+  contents: read
+jobs:
+  teacher-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript and Python
+        run: |
+          node --check studio-teacher.js
+          node --check studio-ai-workspace.js
+          python3 -m py_compile autodub/teacher.py autodub/handler.py
+          node --test tests/teacher-studio-contract.test.cjs
+          python3 tests/test_teacher_backend.py
