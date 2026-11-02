@@ -74,13 +74,14 @@ function examples(bundle,lessons,limit=3){
    before:trim(item.original,230),after:trim(item.revised,230),
    reason:trim(item.ownerReason||item.teacherReason,200),similarity:+score.toFixed(3)}));
 }
-function prompt(bundle,related=[],foundationExamples=[],childAdvice=null){
+function prompt(bundle,related=[],foundationExamples=[],childAdvice=null,teacherMemory=[]){
  if(!bundle?.current?.voiceover)throw Error('เลือกฉากที่มีบทพากย์ก่อน');
  const data={task:'thai-story-coherence',
   instructions:'Review Thai narration PREVIOUS/CURRENT/NEXT using editorialChecklist. Identify evidence and distinguish contradictions from unknown information. Prefer minimal changes, preserve deliberate repetition, uncertainty, suspense, emotion and spoken cadence. Preserve canon, established facts and chronology; no invented canon or irreversible events. If no justified change, return ops:[]. Return Thai rationale and at most one updateScene operation for CURRENT voiceover; never auto-apply.',
   editorialChecklist:[...EDITORIAL_CHECKLIST],
   context:bundle,localReviewHints:signals(bundle),
   ownerApprovedExamples:related.slice(0,2),
+  teacherSuggestedUnverifiedExamples:teacherMemory.slice(0,1),
   syntheticFoundationExamples:foundationExamples.slice(0,1),
   experimentalChildAdvice:childAdvice?{label:childAdvice.label,
    source:'assistant-authored-synthetic',notProductionValidated:true}:null};
