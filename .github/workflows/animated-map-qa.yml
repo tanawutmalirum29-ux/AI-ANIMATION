@@ -26,6 +26,7 @@ on:
       - tests/coastal-world-svg.test.cjs
       - tests/coastal-story-action-regression.test.cjs
       - tests/coastal-world-browser-smoke.cjs
+      - tests/coastal-video-v3-visual-browser.test.cjs
       - examples/coastal-gate-ml-training-one-episode.json
       - studio-production-planner.js
       - studio-layout-ml.js
@@ -94,6 +95,7 @@ on:
       - tests/coastal-world-svg.test.cjs
       - tests/coastal-story-action-regression.test.cjs
       - tests/coastal-world-browser-smoke.cjs
+      - tests/coastal-video-v3-visual-browser.test.cjs
       - examples/coastal-gate-ml-training-one-episode.json
       - studio-production-planner.js
       - studio-layout-ml.js
@@ -246,6 +248,7 @@ jobs:
           node tests/production-browser-smoke.cjs
           node tests/preview-ipad-caption-scale-smoke.cjs
           node tests/coastal-world-browser-smoke.cjs
+          node tests/coastal-video-v3-visual-browser.test.cjs
           node tests/art-vault-browser-smoke.cjs
           node tests/voice-preview-smoke.cjs
           node tests/preview-audio-mobile-recovery.cjs
