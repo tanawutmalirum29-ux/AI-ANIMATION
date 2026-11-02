@@ -4640,7 +4640,616 @@ function parseAiJSON(raw){
  throw new Error('รูปแบบ JSON ไม่สมบูรณ์: '+(err&&err.message||'อ่านไม่ได้'))
 }
 function plan(){let parsed;try{parsed=parseAiJSON($('#imp').value)}catch(x){return{issues:[E1('$',x.message,'ถ้า AI ส่งมาไม่ครบ ให้คัดลอก JSON ทั้งก้อนใหม่')],log:[],note:''}}
-let d=parsed.data;const detected=detectImportMode(d),requested=$('#mode').value,mode=requested==='auto'?detected:requested;
+let d=parsed.data;let isTextOnly=false;
+ try{isTextOnly=!!window.StoryOnlyJSON?.appearsTextOnly(d);
+  if(isTextOnly)d=window.StoryOnlyJSON.convert(d)
+ }catch(err){return {issues:[E1('
+const note=[parsed.note,isTextOnly?'แปลงเนื้อเรื่องล้วนแล้ว (ไม่สร้างภาพ/ตัวละคร Rig)':'',detected&&requested==='auto'?'ตรวจพบ: '+MODE_LABELS[detected]:''].filter(Boolean).join(' · ');
+const fail=(msg,fix)=>({issues:[E1('$',msg,fix)],log:[],note,mode});
+if(!mode)return fail('ไม่ทราบว่า JSON ที่วางมาเป็นรูปแบบไหน','ใช้ {"ops":[...]} สำหรับแก้ไข หรือ JSON ทั้งโปรเจกต์สำหรับสร้างใหม่');
+if(detected==='patch'&&mode!=='patch')return fail('ข้อมูลนี้เป็นคำสั่ง ops ไม่ใช่โปรเจกต์ใหม่','เลือก "ตรวจจับรูปแบบอัตโนมัติ" หรือ "แก้ด้วยคำสั่ง (ops)"');
+if(mode==='patch'&&detected!=='patch')return fail('ข้อมูลนี้ไม่ใช่คำสั่ง ops','ใช้โหมดอัตโนมัติ หรือให้ AI ส่ง {"ops":[...]}');
+if(mode==='merge'&&detected!=='merge'&&detected!=='replace')return fail('ข้อมูลนี้ไม่ใช่ชุดตัวละคร/สถานที่/กฎ','เลือกโหมดอัตโนมัติหรือตรวจ JSON ที่วาง');
+const done=(issues,C,log=[])=>{const draft=smartRepairProject(C);const yes=!!$('#smartImportApply')?.checked&&smartEnabled('import');const data=yes?draft.data:C;
+ const normalizedAliases=repairCommonJsonAliases(data);
+ const checked=[...issues.filter(i=>i.level==='error'),...diagnose(data)];
+ const unique=new Map();checked.forEach(i=>unique.set(i.path+'|'+i.msg,i));const report=[...unique.values()];
+ const suggestions=draft.changes.map(c=>(yes?'✓ ปรับแล้ว: ':'◯ แนะนำ: ')+c);
+ suggestions.push(...normalizedAliases.map(c=>'✓ รองรับ JSON จาก AI: '+c));
+ return {issues:report,log:[...log,...suggestions],note,mode,cand:report.some(i=>i.level==='error')?null:normalize(data)};};
+const addNew=(C,k)=>(Array.isArray(d[k])?d[k]:[]).forEach(x=>{if(isObj(x)&&!C[k].some(y=>y.id===x.id))C[k].push(x)});
+if(mode==='replace')return done([],d);
+const C=clone(S);
+if(mode==='patch'){let list;try{list=toOps(d)}catch(x){return fail(x.message)}
+const r=runOps(C,list);const issues=r.errors.map(e=>E1(`ops[${e.index}]`+(e.op?` (${e.op})`:''),e.msg));return done(issues,C,r.log)}
+if(mode==='ep'){if(!isObj(d)||!Array.isArray(d.episodes)||!d.episodes.length)return fail('ไม่พบอาร์เรย์ episodes');
+['characters','locations','rules'].forEach(k=>addNew(C,k));const used=new Set(C.episodes.flatMap(E=>E.scenes.map(s=>s.id)));
+d.episodes.forEach(E=>{if(!isObj(E))return;while(C.episodes.some(x=>x.id===E.id))E.id+='x';
+(Array.isArray(E.scenes)?E.scenes:[]).forEach(s=>{if(!isObj(s))return;if(used.has(s.id)){const n=E.id+'-'+s.id;(Array.isArray(E.clues)?E.clues:[]).forEach(c=>{if(c&&c.sceneId===s.id)c.sceneId=n});s.id=n}used.add(s.id)});C.episodes.push(E)})}
+else if(isObj(d))['characters','locations','rules'].forEach(k=>addNew(C,k));
+return done([],C)}
+function showIssues(is,log=[],note=''){const e=is.filter(i=>i.level==='error').length,w=is.filter(i=>i.level==='warn').length;
+const rows=is.filter(i=>i.level!=='info').map(i=>h('div',{className:i.level==='error'?'warn':'',style:'margin:3px 0'+(i.level==='error'?'':';color:#e8c98a')},(i.level==='error'?'✕ ':'⚠ ')+i.path+' — '+i.msg,i.fix?h('div',{style:'opacity:.7;font-size:11px'},'แก้: '+i.fix):''));
+$('#rep').replaceChildren(note?h('div',{className:'import-note'},'ℹ '+note):'',h('div',{className:e?'warn':'ok',style:'font-weight:700'},e?`✕ พบ error ${e} รายการ — ยังนำเข้าไม่ได้ (ไม่มีอะไรถูกเปลี่ยน)`:'✓ ผ่านการตรวจสอบ'+(w?` (คำเตือน ${w})`:'')),...log.map(l=>h('div',{className:'ok'},'• '+l)),...rows)}
+function importIt(){const r=plan();showIssues(r.issues,r.log,r.note);if(!r.cand)return;const m=r.mode;
+commit(()=>{S=r.cand;if(m==='replace'){selEp=0;sel=0;T=0}else if(m==='ep'){selEp=S.episodes.length-1;sel=0;T=0}});$('#rep').replaceChildren();$('#dlg').close()}
+
+/* ===== exporters ===== */
+const ts=x=>{const ms=Math.round(x*1000),p=(n,l=2)=>String(n).padStart(l,'0');return`${p(Math.floor(ms/3600000))}:${p(Math.floor(ms/60000)%60)}:${p(Math.floor(ms/1000)%60)},${p(ms%1000,3)}`};
+function srt(){const st=starts(),rows=[];ep().scenes.forEach((s,i)=>{const cues=effectiveSubtitleCues(s);if(cues.length){cues.forEach(c=>{if(c.end<=c.start)return;const a=st[i]+Math.max(0,+c.start||0),b=st[i]+Math.min(s.duration,+c.end||0);rows.push(`${rows.length+1}\n${ts(a)} --> ${ts(Math.max(a+.06,b))}\n${safeShortText(c.text,160)}\n`)});return}const pages=captionPages(s),n=pages.length;pages.forEach((txt,k)=>{const a=st[i]+k*s.duration/n,b=st[i]+(k+1)*s.duration/n;rows.push(`${rows.length+1}\n${ts(a)} --> ${ts(Math.max(a+.06,b-.04))}\n${txt}\n`)})});return rows.join('\n')}
+function voiceCues(){const st=starts();return ep().scenes.map((s,i)=>{const d=s.voiceDirection||{},char=S.characters.find(c=>c.id===d.speaker),body=(s.voiceover||s.subtitle.join(' ')).trim().replace(/^(ผู้บรรยาย|บรรยาย|Narrator)\s*[:：]\s*/i,'');return {id:s.id,scene:i+1,startSeconds:+st[i].toFixed(2),endSeconds:+(st[i]+s.duration).toFixed(2),targetDurationSeconds:s.duration,speakerId:d.speaker||null,speakerName:char?.name||'ผู้บรรยาย',characterVoiceProfile:char?.voice||'เสียงไทยเป็นธรรมชาติ ชัดเจน ไม่อ่านเหมือนหุ่นยนต์',voiceProfileId:sceneVoiceProfileId(s),voiceProfile:publicVoiceProfile(getVoiceProfile(sceneVoiceProfileId(s))),text:body,emotion:d.emotion||'neutral',tone:d.tone||'natural, cinematic, conversational',delivery:d.delivery||'',energy:d.energy||'medium',articulation:d.articulation||'clear Thai diction',breath:d.breath||'natural',accent:d.accent||'standard Thai',emphasis:d.emphasis||'',recordingTips:d.recordingTips||'',pace:d.pace||'normal',pauses:d.pause||'short natural pauses',pronunciation:d.pronunciation||'',direction:d.notes||'',subtitleTiming:effectiveSubtitleCues(s).map((q,j)=>({id:q.id||'line'+j,startSeconds:+(st[i]+q.start).toFixed(2),endSeconds:+(st[i]+q.end).toFixed(2),speakerId:q.speaker||d.speaker||null,speakerName:S.characters.find(c=>c.id===(q.speaker||d.speaker))?.name||'ผู้บรรยาย',emotion:q.emotion||d.emotion||'neutral',delivery:q.delivery||d.delivery||'',energy:q.energy||d.energy||'medium',pace:q.pace||d.pace||'normal',pause:q.pause||d.pause||'natural',emphasis:q.emphasis||d.emphasis||'',pronunciation:q.pronunciation||d.pronunciation||'',text:q.text})),fileSuggestion:s.id+'-voice.wav'}})}
+function aiVoiceScript(){return '# Story Studio — AI Voice Director / '+S.project.title+' / '+ep().title+'\n\n'+
+ 'ภารกิจ: สังเคราะห์เสียงพากย์ภาษาไทยจาก dialogue แต่ละฉาก แยกไฟล์ตาม id ความเร็วและอารมณ์ต่อเนื่องตามบทบาท ไม่อ่านคำอธิบายหรือชื่ออารมณ์ออกมา ไม่เติมคำใหม่ ไม่สร้างเพลงประกอบลงในเสียงพากย์ ส่ง WAV หรือ MP3 โดยแยกไฟล์เพื่อให้ตัดต่อใน Sound Desk แล้ว Export วิดีโอรวมเสียงได้จริง\n'+
+ 'เน้นการแสดง: ออกเสียงภาษาไทยชัด มีลมหายใจและจังหวะมนุษย์ อ่านให้จบภายในระยะเวลาที่กำหนดโดยไม่เร่งจนผิดธรรมชาติ ถ้าบทมากเกินกำหนดให้แจ้งก่อน ไม่ตัดคำเอง ไม่มีเสียงรบกวนและเสียงสะท้อนยกเว้นสั่งไว้\n\n'+
+ voiceCues().map(c=>`### ${c.fileSuggestion} · ${c.startSeconds}–${c.endSeconds}s\nผู้พูด: ${c.speakerName}\nVoice Identity: ${c.characterVoiceProfile}\nVoice Profile: ${JSON.stringify(c.voiceProfile)}\nEmotion: ${c.emotion}; Tone: ${c.tone}; Pace: ${c.pace}; Pauses: ${c.pauses}\nPronunciation: ${c.pronunciation||'-'}\nActing notes: ${c.direction||'-'}\nSubtitle / acting beats (seconds, speaker, emotion, exact words): ${c.subtitleTiming?.length?JSON.stringify(c.subtitleTiming):'ใช้เวลาแบบเดิมของฉาก'}\nบทพูดที่ให้ออกเสียงเท่านั้น:\n${c.text||'(ไม่มีบทพูด เว้นความเงียบ)'}\n`).join('\n')}
+function voicePack(){return {version:1,type:'story-studio-voice-directions',title:S.project.title,episodeId:ep().id,episodeTitle:ep().title,durationSeconds:total(),voiceProfiles:S.voiceProfiles.map(publicVoiceProfile),instructions:'Produce natural Thai dialogue matched to voiceProfile. If subtitleTiming is present, match each beat start/end, speaker and emotion; when a scene changes speaker, generate separate voice files for those segments. Do not read instructions aloud. Return clean independent WAV/MP3 with filenames tagged by speakerId and cue id. A user may record every role using the same natural male voice and use Auto Dubbing in Story Studio to match profiles; DSP is not identity/gender/age voice conversion. Do not speak voiceDirection metadata. Import and align files in Sound Desk; Browser TTS is not included in export automatically.',cues:voiceCues()}}
+function downloadVoicePack(kind='json'){if(kind==='md')dl('story-studio-voice-director.md',aiVoiceScript(),'text/markdown');else dl('story-studio-voice-directions.json',JSON.stringify(voicePack(),null,2),'application/json')}
+function scriptMd(){return aiVoiceScript()}
+function promptsMd(){return`# ${S.project.title} — ${ep().title}\n\n`+ep().scenes.map((s,i)=>`## ฉาก ${i+1} (${s.duration}s)\n${autoPrompt(s)}\n\nข้อความ UI: ${s.uiBox||'-'}\n`).join('\n')}
+
+/* ===== AI control surface: window.StudioAPI ===== */
+const SCHEMA=AI_PROMPT.slice(AI_PROMPT.indexOf('{"version"'));
+const OPS_DOC=`ส่งเป็น {"ops":[{"op":"ชื่อคำสั่ง",...},...]} ทำงานตามลำดับแบบ atomic: ถ้ามีคำสั่งใดผิด หรือผลตรวจหลังแก้ยังมี error จะไม่เปลี่ยนอะไรเลย
+- setProject {patch}
+- upsertCharacter {item:{id,name,role,promptBlock,voice}} | deleteCharacter {id}   (ลบแล้วเอาออกจากฉากให้)
+- upsertLocation {item:{id,name,promptBlock}} | deleteLocation {id}
+- upsertRule {item:{id,text}} | deleteRule {id}
+- addEpisode {episode:{id,title,targetSeconds,scenes:[...],clues:[...]}, index?}
+- updateEpisode {id?, patch}   (id ว่าง = ตอนที่เปิดอยู่; แก้ scenes ตรงนี้ไม่ได้)
+- deleteEpisode {id} | moveEpisode {id,to}
+- insertScene {scene:{id,...}, after?:sceneId | before?:sceneId | episode?:epId, index?}   (ไม่ระบุตำแหน่ง = ท้ายตอน)
+- updateScene {id, patch:{...}}   (เปลี่ยนเฉพาะฟิลด์ที่ส่ง; camera/transition merge ลึก; อาร์เรย์เช่น subtitle แทนที่ทั้งอัน)
+- deleteScene {id} | duplicateScene {id, patch?} | moveScene {id, after?|before?|index?, episode?}
+- replaceScenes {episode?, scenes:[...]}   (เขียนฉากทั้งตอนใหม่)
+- upsertClue {episode?, clue:{id,label,sceneId}} | deleteClue {id, episode?}
+- placeCharacter {id,char,at,to?,pose?,view?,route?,...} | setPose {id,char,pose?,endPose?,override?,...} | addProp {id,prop:{kind,at|x,y}} | removeProp {id,index?|kind?} | applySetPreset {id:locId,preset} (ดูหัวข้อ ผังสถานที่)
+- setActor {id:sceneId, actor:{char,pose,x,y,view,route,facing,face,override}} | removeActor {id,char} | setActors {id,actors:[...]}   (ตัวละครโครงกระดูก ดูหัวข้อ rig ด้านล่าง; ตั้งรูปร่างด้วย upsertCharacter {item:{id,rig:{...}}})
+- autoWrapSubtitles {id?, episode?}   (ตัดซับยาวเกิน subMax ตามคำไทย; ไม่ระบุ id = ทั้งตอน/ทั้งโปรเจกต์)
+ฟิลด์ที่ไม่ระบุในฉากใหม่ใช้ค่าเริ่มต้น; id ฉากต้องไม่ซ้ำทั้งโปรเจกต์; ตัวอย่าง: {"ops":[{"op":"updateScene","id":"s3","patch":{"duration":5,"subtitle":["บรรทัดใหม่"]}},{"op":"insertScene","after":"s3","scene":{"id":"s3b","duration":3,"subtitle":["..."],"imagePrompt":"..."}}]}`;
+const PRODUCTION_PLAYBOOK="# STORY STUDIO — MASTER PRODUCTION CONTRACT v5\n\n## บทบาทและการส่งมอบ\nคุณคือ AI Director / Storyboard Artist / Animation Layout Supervisor / Continuity Editor / Lighting Artist / Technical QA ประจำ Story Studio v5. ภารกิจของคุณคือสร้าง **ไฟล์ .json ที่เปิดและเล่นได้จริง** ไม่ใช่แค่เล่าแนวคิดหรือส่งข้อความ JSON ยาวในแชต. ถ้าอินเทอร์เฟซ AI มีเครื่องมือสร้างไฟล์ ให้ส่งไฟล์ `.json` จริงเป็นหลัก และสรุปการส่งมอบสั้น ๆ พร้อม QA. หากเครื่องมือสร้างไฟล์ไม่มี ให้ตอบ JSON object ดิบที่ผู้ใช้บันทึกเป็นไฟล์ .json ได้ ห้ามหุ้ม Markdown code fences. ห้ามอ้างว่าเรนเดอร์วิดีโอหรือสร้างเสียงแล้ว ถ้ายังไม่ทำจริง.\n\n## แยกงานสองโหมด\n1. งานสร้างใหม่ = JSON โปรเจกต์เต็ม ประกอบด้วย version, project, characters, locations, rules, episodes; `episodes[].scenes` อย่างน้อย 1 ฉาก (ไม่ใช่เพียง ops).\n2. งานแก้ของเดิม = `{\"ops\":[...]}` โดยใช้ id ที่มีอยู่จริงจาก Context; ส่งเป็น JSON patch เดียว ไม่เขียนทับทั้งเรื่อง และต้องตรวจความเข้ากันได้ของ id ก่อน.\n3. ห้ามแทรกหนังหรือเนื้อหาตัวอย่างลงในสตูดิโอเอง; ทำเนื้อหาเฉพาะเรื่องที่ผู้ใช้มอบหมาย และทำแยกออกเป็นโปรเจกต์.\n\n## Planning / Preflight ก่อนเขียน JSON\n- สรุปโครงสร้างเรื่องแบบภายใน: บท/ตอน/ฉาก/ระยะเวลา/จังหวะ/วัตถุประสงค์เชิงภาพ; ไม่มี subtitle ซ้ำกับ uiBox.\n- Character Bible: id คงที่ + promptBlock ภาษาอังกฤษที่ละเอียด (ทรงผม สีผิว ชุด สัดส่วน ลักษณะเด่น สไตล์) + characters[].rig สำหรับการวาดและขยับจริง. อย่าใช้ rig ที่แตกต่างในแต่ละช็อตถ้าเป็นคนเดียวกัน.\n- Location Bible: id คงที่ + locations[].set หรือเลือกผังสำเร็จรูปของแอป + named anchors ประตู โต๊ะ หน้าต่าง ทางเดิน + props แยกหลัง/หน้า + floorY/light/mood.\n- ทุกฉากต้องมีเหตุผลของกล้อง/ช่วงเวลา/การกระทำ และการจัดพื้นที่ว่างสำหรับซับ + uiBox ไม่ซ้อนใบหน้าและสิ่งสำคัญ.\n\n## Blocking & Motion: ทำให้คนดูเห็นการกระทำจริง\n- ทุกฉากที่มีตัวละครต้องมี `actors` ไม่ใช่แค่ `characters` และคำบรรยาย. actors[].char ต้องตรง characters[].id.\n- ระบุ `pose`, `view`, `facing`, และ `at` (เมื่อใช้จุดยึด) หรือ x/y, route[], toX/toY, endPose ตามสถานการณ์. ใช้ route ที่มี 2+ จุดสำหรับการเดินผ่านพื้นที่; hold เป็นวินาที, duration เป็นน้ำหนักสัมพัทธ์ของช่วงเดิน.\n- ปฏิสัมพันธ์กับฉาก: เปิดประตูที่ anchor door, นั่งหลังโต๊ะโดย front:true, ยกของเมื่อมี props ที่ตรงตำแหน่ง, ปรับมุมแขน/มือให้เข้าเป้าหมาย. ท่าที่แอปรองรับเท่านั้น; ห้ามสร้างชื่อท่าใหม่โดยไม่แก้ตัวเครื่องยนต์.\n- การซ้อนทับ: สถานที่วาดเป็น `set` ด้านหลัง; props หน้าใช้ `front:true` สำหรับโต๊ะ/ประตู/ราว/สิ่งบัง; อย่าให้เฟอร์นิเจอร์ทับใบหน้าอย่างไม่ตั้งใจ. จัดภาพคนหน้า-หลังด้วย y, scale และระยะจากพื้นอย่างสอดคล้อง.\n- อย่ายัดทุกคนกลางเฟรม; wide shot establish space, medium shot for actions, close shot for emotion. ใช้ camera.world >1 สำหรับฉากกว้างและ pan; orbit/rotate เป็นแค่ 2.5D ไม่ใช่กล้อง 3D จริง.\n\n## Continuity — ห้ามฉากกระโดด\n- สำหรับสถานที่เดิม: `location`, แสง, atmosphere และชุด/ทรงผมต้องต่อเนื่อง, ตำแหน่งเริ่มของฉากใหม่ควรตรงตำแหน่งจบจากฉากเก่า, ทิศหันและท่าต้องมีเหตุผล. ให้ scene A actors[].toX/toY หรือจุด route สุดท้ายตรงกับ scene B actors[].x/y หรือ anchor แรก.\n- การเปลี่ยนห้อง/เวลา/สภาพอากาศตั้งใจทำได้ แต่ต้องมี establishing shot หรือบท/ภาพที่สื่อว่าผ่านเวลา.\n- คุมเส้นสายการมอง (eyeline) และกฎ 180 องศา; หากเปลี่ยนฝั่งกล้องให้มีภาพเปลี่ยนแกนที่ชัดเจน.\n- ใช้เครื่องมือ `＋ ต่อฉากจากช็อตนี้` / `เชื่อมตำแหน่ง/แสงจากฉากก่อน` ในแอปเมื่อจัดด้วยมือ. AI ส่งให้ต่อเนื่องตั้งแต่ใน JSON เลย.\n\n## Lighting & Atmosphere\n- `scenes[].light` เป็นชื่อแสงที่แอปรองรับ เช่น day/evening/night (ต้องตรวจรายชื่อจริงจาก SET_DOC), หรือ color/opacity; `scenes[].lighting` ใช้ exposure [.6,1.5], glow [0,1], vignette [0,1], focusX/Y [0,100], flicker [0,1]. ขอบแสงไม่ควรทับซับ.\n- atmosphere ใช้ none, rain, storm, snow, fog, wind, dust, fireflies, stars เท่านั้น. อย่าตัดจากฝนเป็นแดดกลางฉากต่อเนื่องโดยไม่มีเหตุผล.\n- โทนภาพทั้งตอนควรสอดคล้อง แม้เป็นคนละสถานที่; แสงควรสื่ออารมณ์และที่มาของแสงอย่างสมจริง.\n\n## Composition, Camera & Transitions\n- camera.subjectLock=true เมื่อใช้ panorama เพื่อคงตัวละครแรกในเฟรม; actors[].scale คือขนาดเฉพาะฉาก .3–3. camera.type รองรับ static, zoom-in, zoom-out, pan-left, pan-right, pan-up, pan-down, shake, panorama, orbit, dolly, crane, follow, tilt, rotate, handheld.\n- กำหนด camera.from, to, world (1–3.5), startX, endX, rotation ตามความเหมาะสม ไม่แพนทุกฉาก ไม่สั่นทุกฉาก. ฉากยาว 5–8 วิควรมีการเคลื่อนไหวที่มีจุดประสงค์; ฉากสั้น 2–4 วิใช้กล้องนิ่งได้.\n- transition.type: cut/fade/fadeblack/wipe-left/wipe-right/wipe-up/wipe-down/flash/iris/slide/push-left/push-right/zoom/blur/dissolve; ใช้ cut ส่วนใหญ่, fade เมื่อต้องการแสดงเวลาผ่านไป, flash เท่าที่จำเป็น.\n- มีพื้นที่ว่างด้านล่างรองรับซับ 2 บรรทัด, ป้าย UI ควรสั้นและไม่ซ้ำข้อความพูด; ถ้า uiBox ไม่จำเป็น ใส่ null.\n\n## Subtitles, Speech, Timing\n- subtitle เป็นรายการข้อความไทย; ไม่ใช่บทบรรยายภาพ. ให้ความยาวแต่ละ subtitle เหมาะกับเวลาพูด/อ่าน, ไม่เกิน project.subMax ตัวอักษรต่อบรรทัดโดยยึดคำไทยไม่ตัดกลางคำ. พรีวิวแบ่งเป็นหน้าละไม่เกิน 2 บรรทัด; อย่าใส่คำพูดยาว 20 บรรทัดในฉาก 3 วินาที.\n- voiceover ภาษาไทยสัมพันธ์กับซับ, เว้นการพูดเมื่อควรปล่อยภาพ. duration ให้สมจริงตามการอ่าน (โดยประมาณ 3–5 คำไทย/วินาทีขึ้นกับการเว้นวรรค/จังหวะ), หลีกเลี่ยงซับค้างเมื่อไม่มีคำพูด.\n- imagePrompt ใช้ภาษาอังกฤษ ระบุ shot/subject/action/location/light/mood/visual continuity/no embedded text; project.styleSuffix กำหนดสไตล์ร่วม.\n\n## Motion Studio v14: animations and editable keyframes\n- actors[].motionKeys = [{t,x,y,scale,bodyYaw,headYaw,pose,override,easing}] measured in seconds relative to the scene, sorted by t; use for actor movement and articulated gestures.\n- Always keep coordinates x,y in 0–100 and maintain consistent named character rigs, not copies per frame.\n- easing is smooth or linear.\n- Existing actors without motionKeys continue unchanged.\n\n## Technical QA ที่ต้องทำก่อนส่ง\n- ไฟล์เป็น UTF-8 JSON ถูกต้อง parse ได้, version=1, มี project, characters, locations, rules, episodes; episodes ไม่ว่าง, scenes แต่ละตอนอย่างน้อย 1; ids ไม่ซ้ำ; char/location/anchor reference ถูกต้อง.\n- ตรวจแบบ data: duration >0, camera และ transition ชื่อถูกต้อง, rig style/species/สี/pose/props valid, ไม่มีอ้าง id หลอน, ทุก scene มี action หรือเล่าเรื่องที่ชัดเจน, ไม่ซ้ำบท.\n- ตรวจแบบ visual: ไม่มีหัว/มือหลุดเฟรมโดยไม่ตั้งใจ, แขนไม่ทะลุตัวเองอย่างเด่นชัด, ขนาดคน–ของพอดี, floor contact, layering, safe-area captions, scene-to-scene pose and lighting. หากเปิดสตูดิโอได้ ให้ scrub ที่ 0%, 50%, 100% ของทุกช็อต; ตรวจมือถือ 9:16 และ desktop 16:9 ตามที่ผู้ใช้กำหนด.\n- เพิ่ม scenes[].subtitleCues=[{id,text,start,end,speaker,emotion}] เมื่อจำเป็นต้องวางซับ/เสียงพากย์เป็นช่วงเวลาที่กำหนดเอง; start/end คือวินาทีภายในฉากและไม่เกิน duration; หากไม่มีจะใช้ subtitle แบบเดิม\n- เพิ่ม scenes[].graphicCards=[{id,type,position,kicker,text,note,start,end}] สำหรับป้ายข้อมูลที่ขึ้นเฉพาะเวลา type=title/card/question/emphasis; position=top/center/bottom; หลีกเลี่ยงบังใบหน้าหรือซับ\n- สามารถระบุ scenes[].directorShot=establish/dialogue/emotion/mystery/action/reveal/explain/ending เป็นแนวทางกำกับ แต่อย่าคิดว่าเพียงระบุค่านี้แล้วจะปรับกล้องอัตโนมัติ; ต้องใส่ camera/lighting/transition ตามจริงด้วย\n- เมื่อเข้าถึงหน้าเว็บ ให้ใช้ `StudioAPI.validate(data)` และ `StudioAPI.apply(ops,{dryRun:true})` ก่อนลงจริง; `StudioAPI.getSummary()` เพื่อตรวจ id. ถ้าไม่ได้เข้าถึงเว็บ อย่าอ้างว่าทดสอบในเว็บแล้ว.\n- สิ่งที่ต้องส่งสุดท้ายคือ JSON ที่นำเข้าได้ + สรุปรายการฉาก/เวลา + ประเด็นที่ยังไม่ได้ทำจริงถ้ามี; ไม่ใช่บทบรรยายการสั่ง AI อีกชั้น.\n";
+const AI_GUIDE=`## แนวทางสำคัญสำหรับ AI (Story Studio รุ่นผัง + เส้นทาง + OpenPose)
+- ผู้ใช้กำลังแก้โปรเจกต์เดิม: ตอบเป็นไฟล์ JSON เดียวหรือ JSON ล้วนเท่านั้น โดยเนื้อหาต้องเป็น {"ops":[...]}; ห้ามใส่ backslash หน้าเครื่องหมายคำพูดหรือวงเล็บ เช่น ห้าม \"ops\" หรือ \[; ห้ามใช้ Markdown fences หรืออธิบายนอก JSON; อย่าลบเนื้อหาเดิมที่ไม่ได้สั่ง
+- หากผู้ใช้ขอเริ่มโปรเจกต์ใหม่จริง ๆ ให้ใช้ JSON ทั้งโปรเจกต์ที่โหมด "แทนที่ทั้งโปรเจกต์" ไม่ใช่ {"ops":[]}; แยกรูปแบบสองโหมดนี้เด็ดขาด
+- ก่อนแก้ ตรวจ scene id, character id, location id และชื่อ anchor จากสถานะปัจจุบัน อย่าประดิษฐ์ id ที่ไม่ได้ประกาศ หรือใช้ at/to ที่ไม่มีในผังสถานที่
+- มีผังสถานที่มาตรฐาน ${Object.keys(SETS).length} แห่ง; ดูชื่อ ID + anchor ทั้งหมดใน SET_DOC; ถ้าสถานที่ยังไม่มีผัง ให้เพิ่ม/แก้ locations[].set ด้วย upsertLocation แล้วค่อยอ้าง at หรือ route
+- ให้ความสำคัญกับ actors[].at/route มากกว่าการเดาตำแหน่ง x/y; เส้นทางหลายจุดใช้ [{"at":"door","pose":"walk"},{"at":"desk","pose":"typing","hold":1},{"at":"window","pose":"stand"}]
+- รูปร่างตัวละครกำหนดที่ characters[].rig ครั้งเดียว; ทุกฉากอ้างด้วย char รหัสเดิม. อย่าสร้างตัวละครซ้ำเมื่อเพียงต้องเปลี่ยน pose, face, view หรือ endPose
+- view มี side, front, threeQuarter; สำหรับภาพโครงกระดูกของ ControlNet เลือก front หรือ threeQuarter เมื่อท่าสองแขนต้องอ่านชัด และส่งออก OpenPose PNG ผ่านเมนู
+- เริ่มและจบฉากให้สื่อเจตนาชัดด้วย pose, endPose; เพิ่มการหยุดเฉพาะจุดด้วย route[].hold; ใช้ typing, carry, openDoor, handshake เมื่อสัมพันธ์กับสิ่งของ/anchor จริง
+- พร็อพต่าง ๆ ใช้ scenes[].props หรือ locations[].set.props; ใช้ front:true สำหรับของที่ต้องวาดทับตัวละคร; สัดส่วนเฟรม 9:16 ไม่ใช่ข้ออ้างให้ยัดพร็อพใหญ่เกินพื้นที่
+- อย่าอ้างว่าภาพที่ส่งออกผ่าน ControlNet หรือโมเดลสร้างภาพจริงแล้ว ถ้ายังไม่ได้ประมวลผลภายนอก
+- ถ้ารู้ข้อมูลปัจจุบันไม่ครบ ให้ขอ "คัดลอกบริบทปัจจุบัน" ที่มี project summary, SCHEMA, OPS_DOC, RIG_DOC, SET_DOC และผล QA
+ตัวอย่างแพตช์ฉากที่มีตัวละครเดิมและสถานที่ office:
+{"ops":[{"op":"placeCharacter","id":"demo2","char":"host","view":"front","pose":"walk","route":[{"at":"door","pose":"walk"},{"at":"desk","pose":"typing","hold":1},{"at":"window","pose":"stand"}],"endPose":"stand"}]}
+(ตัวอย่างใช้ได้เฉพาะเมื่อฉาก demo2 และตัวละคร host มีอยู่จริง อย่านำ id นี้ไปใช้กับโปรเจกต์อื่นโดยไม่ตรวจ)
+`;
+const PRESET_DOC=`## ชุดสำเร็จรูปให้ AI ใช้ได้ทันที
+### Action presets (แนะนำให้ใช้กับ actors[])
+- arrivalDoor: {"pose":"walk","route":[{"at":"door","pose":"openDoor","hold":0.4},{"at":"center","pose":"walk"}],"endPose":"stand"}
+- typingDesk: {"at":"desk","pose":"typing","view":"threeQuarter","hold":1}
+- inspectWindow: {"route":[{"at":"desk","pose":"walk"},{"at":"window","pose":"think","hold":0.8}],"endPose":"think"}
+- carryBox: {"pose":"carry","view":"front","endPose":"stand"}
+- tensePhoneCall: {"pose":"talk","view":"threeQuarter","face":"surprised","endPose":"think"}
+- handshakeGreeting: ใช้ตัวละคร 2 คน หันเข้าหากัน pose="handshake" view="front"
+### Atmosphere presets (เติมใน imagePrompt / notes)
+- eerieHospitalNight: cold fluorescent light, long empty corridor, subtle haze, reflective floor, suspenseful mood
+- rooftopWindyReveal: windy rooftop at night, city glow, moody rim light, cinematic tension
+- warmCafeEvening: warm amber light, cozy interior, shallow depth of field, soft bokeh
+### Prompt recipe สำหรับภาพ
+- ระบุ camera + subject + action + location + lighting + mood + composition + key props ให้ครบ
+- ตัวอย่าง: "Cinematic anime frame, medium shot, Thai female nurse in teal scrubs slowly opening a hospital door, eerie cold fluorescent hallway, reflective floor, light fog, tense expression, layered foreground counter, no text"
+### Prompt recipe สำหรับตัวละคร
+- promptBlock ควรระบุอายุคร่าว ๆ เพศ บุคลิก เสื้อผ้า โทนสี เอกลักษณ์ผม/เครื่องประดับ และสไตล์ภาพให้คงที่ทุกฉาก`
+
+const DIRECTOR_DOC=`## Director v4: staging, camera, captions\n- scenes[].subtitle เก็บเนื้อหาเต็ม แต่พรีวิวจำกัดสูงสุด 2 บรรทัดและแบ่งช่วงตามระยะเวลาฉาก; ไม่ยัดข้อความทั้งหมดลงหน้าจอ หลีกเลี่ยงกล่อง UI ซ้ำกับซับ\n- ป้ายข้อความ scenes[].uiBox ต้องเป็นข้อมูลสั้นๆ ที่จำเป็นเท่านั้น; ป้ายอยู่มุมบน ไม่แย่งพื้นที่แสดงตัวละคร\n- scenes[].atmosphere = none | rain | storm | snow | fog | wind | dust | fireflies | stars (แสดงด้วย CSS จริง)\n- scenes[].camera.type = ${CAM.join(' / ')}; camera.world = 1..3.5 สำหรับโลกกว้าง / pan panorama, startX/endX เป็นตำแหน่งการแพน 0..100, rotation มุมสำหรับ rotate\n- scenes[].transition.type = ${TRN.join(' / ')}; transition.duration วินาที\n- scenes[].transition ฟิลด์เสริม (ไม่ใส่ = ค่าเริ่มต้น): ease (นุ่ม/linear/ease-in/ease-out/ease-in-out), live true|false (ฉากเดิมยังขยับระหว่างเปลี่ยนฉาก), turn:false (ปิดการหมุนตัวละครเมื่อทิศหันต่างจากฉากก่อน), mode overlap|preroll|handle, match:true + matchDur วินาที (ใช้กับ type cut เท่านั้น: กล้องไหลต่อจากเฟรมสุดท้ายของฉากก่อนเข้าสู่มุมของฉากนี้ — match cut ที่ตั้งใจ ไม่ถูกเตือนเรื่องวาร์ปต่างสถานที่)\n- 'orbit' คือ 2.5D แบบเลเยอร์ ไม่ใช่หมุนโมเดล 3D จริง; ใช้ panorama และ camera.world>1 สำหรับภาพกว้างจริง\n- ตัวละครสำเร็จรูป ${CHAR_PRESETS.length} แบบ และสัตว์/สิ่งมีชีวิต ${CREATURE_PRESETS.length} แบบ สามารถใช้ rig แบบแก้ไขได้;\n- Motion Studio v14: actors[].motionKeys = [{t,x,y,scale,bodyYaw,headYaw,pose,override,easing}]; ใช้ t เป็นวินาทีภายในฉาก สำหรับทำ Keyframe; แสดงผลทั้งในพรีวิวและ Export costume = ${D6_COSTUMES.map(x=>x[0]).join(" | ")}\n- สัตว์ใช้ characters[].rig={style:'creature',species:'cat|dog|rabbit|bird|owl|fox|bear|deer|duck|chicken',skin:'#...',hair:'#...',shirt:'#...',pants:'#...',eye:'#...'} และ actors[].pose ใช้ ${CREATURE_POSES.map(x=>x[0]).join(' / ')}; ห้ามใช้ท่าของคนกับสัตว์ถ้าไม่ตรงกายวิภาค.
+- มีผังสถานที่ ${Object.keys(SETS).length} แบบ โดยชื่อ ID เป็น ${Object.keys(SETS).join(' / ')}\n- เพื่อให้รู้สึกเป็นภาพยนตร์ ให้สั่งการแสดง actors[].pose/route/endPose, การเดินเข้าออกจากจุดยึด และกำหนดบรรยากาศตามฉาก; ห้ามอัดซับทั้งหมดลงฉากเดียว`;
+const VOICE_DESK_DOC=`## Director v9 · เสียงและขั้นตอน AI พากย์
+- บทพากย์ฉาก: scenes[].voiceover เป็นข้อความพูดจริง ห้ามใส่คำกำกับการแสดงลงไปในบทพูด
+- กำกับเสียง: scenes[].voiceDirection = {speaker,emotion,tone,pace,pause,pronunciation,notes}; speaker อ้าง characters[].id หรือ "" สำหรับผู้บรรยาย; characters[].voice คือเอกลักษณ์เสียงที่ต้องคงที่ทุกฉาก
+- AI ต้องให้ emotion, tone, pace, pause, pronunciation, notes แยกครบเมื่อฉากมีบทพูด เช่น whisper/urgent/afraid และคำอ่านชื่อเฉพาะ; ระยะเวลาพูดเหมาะกับ scenes[].duration
+- scenes[].audioClips เป็นคลิปเสียงที่ผู้ใช้ใส่หลังได้ไฟล์จาก AI โดย {id,kind:"voice"|"sfx",name,data,duration,at,trimStart,trimEnd,volume,fadeIn,fadeOut,rate,mute}; episodes[].musicClips สำหรับเพลงทั้งตอน kind=music และ at เป็นวินาทีจากต้นตอน
+- audioClips.at ของเสียงพากย์เป็นวินาทีจากต้นฉาก; ตัดหัว/ท้ายใช้ trimStart/trimEnd (วินาทีจากต้นฉบับ) เสียงที่ยังไม่สังเคราะห์ให้ละไฟล์ data เป็น null อย่าอ้างว่ามีเสียงจริง
+- สคริปต์พากย์ไฟล์ .md และ Voice Directions .json ส่งให้ AI TTS แยกจากไฟล์วิดีโอ; ตัวเว็บไม่ได้เรียกบริการ TTS อัตโนมัติ ต้องนำเสียงกลับมาวางใน Sound Desk และ Export อีกครั้ง
+- หากแก้โปรเจกต์เดิมผ่าน ops.updateScene สามารถใส่ voiceDirection และ audioClips ใน patch ได้; ห้ามฝังเสียงจริงใน JSON ที่ AI สร้างโดยไม่มีไฟล์ที่ได้รับจากผู้ใช้
+- ส่งออกไฟล์วิดีโอผ่าน MediaRecorder. Android เบราว์เซอร์โหลดไป Downloads ไม่รับประกัน Gallery; MP4 พร้อมเสียงมีเฉพาะเบราว์เซอร์ที่รองรับ; WebM อาจต้องเปิดผ่าน Files/Downloads
+`;
+function aiGuide(){return ['# Story Studio — คู่มือ AI สำหรับทำงานกับโปรเจกต์', '## Smart Director v15 — ระบบช่วยกำกับด้วยกฎ ไม่ใช่บริการ AI ออนไลน์', '- ระบุ smartCamera:true เฉพาะฉากที่อนุญาตให้เว็บเลือก camera ตาม directorShot; หากกล้องตั้งชัดแล้วจะไม่เปลี่ยน', '- ระบุ actors[].smartActing:false เพื่อปิดการแสดงรองเฉพาะตัว; motionKeys และ override จาก AI ต้องได้สิทธิ์ก่อน', '- สั่งเว็บรายงานข้อผิดพลาดด้วย StudioAPI.smartReport() และรับรายการจริงด้วย StudioAPI.smartManifest(); ต้องทำ JSON Patch ไม่เขียนทับโปรเจกต์', '## Director v12 — ข้อกำหนดเสียงและภาพจากตัวอย่างวิดีโอ', '- ใช้ shot variety: establishing / medium / reaction / close-up ไม่ซูมทุกฉาก', '- scenes[].subtitleCues = [{id,text,start,end,speaker,emotion}] สำหรับซับตรงจังหวะพูด; หากไม่ใส่จะใช้ subtitle[] แบบเฉลี่ย', '- กำกับนักแสดง: ใช้ actors[].pose, face, view, facing, toX/toY, bodyYaw/toBodyYaw, headYaw/toHeadYaw ตามท่าจริง ไม่แค่บอกให้เดินในพรอมต์', '- scenes[].graphicCards = [{id,type,position,kicker,text,note,start,end}] ใช้การ์ดข้อมูลแสดงเฉพาะเวลา อย่าฝังตัวอักษรในภาพ', '- การเปลี่ยนท่าระหว่างฉากและการเดินต้องระบุ actors[].route, pose, view, facing ให้สัมพันธ์กับกล้อง', '- บทพากย์ที่ยังเป็นข้อความไม่ใช่เสียงใน Export ต้องบันทึก/นำเข้าไฟล์เสียงด้วย', '## Smart Director v15 — Smart Import + QA + Auto Acting','## Focus Workspace v17 — การทำงานพากย์ในเว็บ', '- แยก subtitleCues ตามผู้พูดพร้อม start/end, speaker ที่อ้าง character id เพื่อให้อัดเสียงจากไมค์แยกคลิปได้', '- ตั้ง voiceDirection ของแต่ละฉากให้ครบ โดยเว็บจะแสดงบท+อารมณ์ในแท็บพากย์ทันที', '- ไฟล์เสียงจริงเป็นคลิปฉากที่บันทึก/นำเข้าในเบราว์เซอร์ ไม่ใช่เสียงอ่าน TTS ทดลอง', '## Auto Dubbing v16 — ผู้ใช้พากย์ด้วยเสียงเดียวให้หลายตัวละคร', '- เมื่อสร้าง JSON ต้องมี characters[].voiceProfileId สำหรับแต่ละตัวและ voiceProfiles จริงที่ id ไม่ซ้ำ', '- scenes[].voiceDirection ให้ใส่ speaker,voiceProfileId,emotion,tone,delivery,energy,pace,articulation,pause,breath,accent,emphasis,pronunciation,recordingTips,notes', '- scenes[].subtitleCues แยกผู้พูดแต่ละช่วงด้วย speaker; ถ้าหลายคนในฉากเดียวให้เตรียมไฟล์พากย์คนละคลิปตาม subtitleCues[].id', '- ไฟล์เสียงที่อัดจากคนเดียวผูกกับคลิปผ่าน speakerId/cueId; เว็บจับคู่ voiceProfile ของตัวละครจาก JSON โดยไม่แตะคลิปที่ล็อกโปรไฟล์เอง', '- effect EQ, compression, pitch and rate ใช้ทั้งฟังและ Export แต่ pitch จาก WebAudio เปลี่ยนความเร็วและความยาวพร้อมกัน; ไม่สัญญาแปลงเพศหรืออายุให้สมจริง', '- คัดลอกแผนพากย์ได้จาก Auto Dubbing ใน Voice Studio; หากไม่มีไฟล์เสียงจะมีเพียงสคริปต์ ไม่ใช่เสียงสังเคราะห์', '## Voice Studio v10 — กำกับเสียงอย่างละเอียด', '- ทุกตัวละครต้องมี voiceProfileId อ้างอิงรายการ voiceProfiles ที่มีอยู่จริงใน JSON หรือเลือกตามเอกลักษณ์เสียงที่ต้องการ', '- voiceProfiles แต่ละตัวมี id,name,type,description,rate,ttsVoice,fx: {pitch,bass,mid,treble,compress,echo,pan}; ถ้า AI ตั้งโปรไฟล์ใหม่ให้เพิ่มใน voiceProfiles โดยไม่เปลี่ยน id ของตัวละครเก่า', '- voiceDirection รายฉากมี speaker,voiceProfileId,emotion,tone,pace,pause,pronunciation,notes; ผู้ใช้สามารถแก้ไขทุกค่าใน Voice Studio/Inspector', '- ส่ง WAV/MP3 ที่สร้างภายนอกเข้ามาจัดใน Sound Desk; ไม่อ้างว่าเสียงอ่านจากระบบรวมเข้า Export ได้โดยอัตโนมัติ', '## รายชื่อเสียงที่โปรเจกต์ใช้', JSON.stringify((S?.voiceProfiles||[]).map(publicVoiceProfile)),PRODUCTION_PLAYBOOK,DIRECTOR_DOC,VOICE_DESK_DOC,AI_GUIDE,PRESET_DOC,'## เมื่อขอสร้างโปรเจกต์ใหม่ทั้งก้อนเท่านั้น',AI_PROMPT,'## ข้อตกลง JSON และการนำเข้า','- แก้โปรเจกต์เดิมต้องส่ง {"ops":[...]} โดยตรง ไม่ใช่ JSON string ที่มีเครื่องหมาย backslash ครอบทุก quote','- ตัวนำเข้าเลือกชนิด JSON อัตโนมัติ; ระบบตรวจทุกคำสั่งก่อน commit และไม่แทนที่โปรเจกต์เดิมเมื่อเป็น ops',RIG_DOC,SET_DOC,OPS_DOC].join('\n\n')}
+function copyAiGuide(){const guide=aiGuide();(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(guide):Promise.reject()).then(()=>alert('คัดลอกคู่มือ AI ฉบับอัปเดตแล้ว')).catch(()=>dl('story-studio-ai-guide.md',guide,'text/markdown'))}
+const strip=o=>JSON.parse(JSON.stringify(o,(k,v)=>typeof v==='string'&&v.startsWith('data:')?`[asset ${v.length>>10}KB]`:v));
+function stats(D){return D.episodes.map(E=>({id:E.id,scenes:E.scenes.length,seconds:+E.scenes.reduce((a,s)=>a+(+s.duration||0),0).toFixed(2),target:E.targetSeconds||0}))}
+function summary(D=S){const p=D.project||{};return{project:{title:p.title,aspect:p.aspect,fps:p.fps,subMax:p.subMax,styleSuffix:p.styleSuffix},
+characters:D.characters.map(c=>({id:c.id,name:c.name,promptBlock:c.promptBlock,voice:c.voice,rig:c.rig})),
+locations:D.locations.map(l=>{const st=locSet(D,l.id);return l.id+':'+l.name+(st?' [anchors: '+Object.keys(st.anchors||{}).join(',')+']':'')}),rules:D.rules.map(r=>r.id+': '+r.text),
+episodes:D.episodes.map(E=>({id:E.id,title:E.title,targetSeconds:E.targetSeconds,totalSeconds:stats({episodes:[E]})[0].seconds,hiddenMistake:E.hiddenMistake,cliffhanger:E.cliffhanger,clues:E.clues,
+scenes:E.scenes.map((s,i)=>({n:i+1,id:s.id,dur:s.duration,chars:s.characters,loc:s.location,sub:s.subtitle,vo:s.voiceover,voiceDirection:s.voiceDirection,clips:(s.audioClips||[]).map(c=>({name:c.name,kind:c.kind,at:c.at,duration:safeClipDuration(c)})),ui:s.uiBox,cam:s.camera.type,tr:s.transition.type,art:s.art||undefined,actors:(s.actors&&s.actors.length)?s.actors:undefined,img:!!(s.image||s.video),aud:!!s.audio,prompt:(s.imagePrompt||'').slice(0,100)}))}))}}
+function applyOps(ops,opt={}){let list;try{list=toOps(ops)}catch(x){return{ok:false,applied:false,errors:[{index:-1,msg:x.message}],issues:[],log:[]}}
+const D=clone(S),{log,errors}=runOps(D,list);const all=errors.length?[]:diagnose(D),bad=all.filter(i=>i.level==='error');
+const ok=!errors.length&&(!bad.length||!!opt.force),res={ok,applied:false,log,errors,issues:all.filter(i=>i.level!=='info'),stats:stats(D)};
+if(ok&&!opt.dryRun){const f=FOCUS;syncClues(D);commit(()=>{S=D});res.applied=true;if(f){const L=locate(S,f);if(L){selEp=L.ei;sel=L.k;T=starts()[L.k]||0;playing=false;render()}}}
+return res}
+function selectTo(o={}){if(o.episode!=null){const i=S.episodes.findIndex(e=>e.id===o.episode);if(i<0)return false;selEp=i;sel=0}
+if(o.scene!=null){const L=locate(S,o.scene);if(!L)return false;selEp=L.ei;sel=L.k}T=starts()[sel]||0;playing=false;render();return true}
+function exportAll(){const keep=selEp,out={json:strip(S),episodes:{}};S.episodes.forEach((E,i)=>{selEp=i;out.episodes[E.id]={srt:srt(),voiceScript:scriptMd(),imagePrompts:promptsMd()}});selEp=keep;return out}
+function checkReport(D=S){const issues=diagnose(D);return{ok:!issues.some(i=>i.level==='error'),errors:issues.filter(i=>i.level==='error').length,warnings:issues.filter(i=>i.level==='warn').length,issues,stats:stats(D)}}
+function aiContext(){const is=diagnose(S).filter(i=>i.level!=='info');
+return['# Story Studio — บริบทสำหรับ AI','','## วิธีทำงาน',
+'- คุณกำลังช่วยแก้โปรเจกต์วิดีโอเล่าเรื่องที่ผู้ใช้เปิดอยู่ใน Story Studio',
+'- ตอบ JSON object แบบไม่ escape อักขระ: {"ops":[...]} (ห้าม \\\"ops\\\" และห้าม \\[); ไม่มี Markdown ไม่มีคำอธิบายนอก JSON; นำเข้าที่เมนู AI แล้วเลือกตรวจจับรูปแบบอัตโนมัติ',
+'- แก้เฉพาะจุดที่จำเป็นด้วย ops ไม่ต้องส่งโปรเจกต์ทั้งก้อน ยกเว้นผู้ใช้ขอเริ่มโปรเจกต์ใหม่ (โหมด "แทนที่ทั้งโปรเจกต์")',
+'- ถ้ามี error ในผลตรวจ ให้แก้ก่อน แล้วค่อยทำงานที่ผู้ใช้ขอ; คำเตือน (warn) ควรแก้ถ้าไม่ขัดกับที่ผู้ใช้ต้องการ',
+'- id เป็นอังกฤษพิมพ์เล็กและตัวเลข ไม่ซ้ำ (id ฉากไม่ซ้ำทั้งโปรเจกต์) / imagePrompt ภาษาอังกฤษ / ซับและบทพากย์ภาษาไทย / ซับไม่เกิน 3 บรรทัด บรรทัดละไม่เกิน project.subMax ตัวอักษร',
+'- ถ้าคุณควบคุมเบราว์เซอร์ได้ ให้ใช้ window.StudioAPI โดยตรง: getSummary(), apply(ops,{dryRun:true}) แล้ว apply(ops), validate(), exportAll(), undo()',
+'','## คู่มือกำกับการผลิต v5',PRODUCTION_PLAYBOOK,'','## Auto Dubbing v16 — เอกลักษณ์เสียงและการกำกับละเอียด', '- ทุกเสียงที่อัดจากคนเดียวใช้ speakerId แยกตามตัวละคร และ cueId เมื่อมี subtitleCues หลายผู้พูด', '- สามารถจับคู่จาก AI ด้วย voiceDirection.voiceProfileId และ characters[].voiceProfileId แล้วปรับโปรไฟล์ด้วยตนเอง', '- คำกำกับเพิ่มเติมที่ต้องส่ง: delivery,energy,articulation,breath,accent,emphasis,recordingTips ให้เหมาะกับบทและเวลาซับ', '- Pitch ด้วย DSP เปลี่ยนความเร็วและความยาว ไม่ใช่ AI แปลงเสียงหญิง/เด็ก/คนแก่ที่สมจริง', '', '## Voice Studio v10 — โปรไฟล์เสียงที่ AI ต้องใส่ใน JSON','- โปรเจกต์มี voiceProfiles: [{id,name,type,description,ttsVoice,rate,fx:{loudness,pitch,bass,mid,treble,compress,echo,pan}}] เก็บเป็นค่าจริงในโปรเจกต์','- ตัวละครใช้ characters[].voiceProfileId; ฉากใช้ scenes[].voiceDirection.voiceProfileId เมื่ออยาก override; ถ้าไม่ระบุจะใช้โปรไฟล์ตัวละคร','- หากต้องการโทนเสียงเฉพาะฉากให้ตั้ง voiceDirection emotion / tone / pace / pause / notes และกำหนดโปรไฟล์ตาม id ที่มีอยู่จริง','- ห้ามสั่งแปลงเสียงจริงเป็นเพศ/วัยอื่นอย่างสมบูรณ์ด้วย EQ — โปรไฟล์ปรับเพียงลักษณะเสียงพื้นฐาน บันทึกคลิปไมค์/นำเข้าไฟล์เพื่อให้ Export ได้','',JSON.stringify(S.voiceProfiles.map(publicVoiceProfile)), '','## การกำกับเสียง AI รายฉาก',VOICE_DESK_DOC,'','## คู่มือ AI รุ่นล่าสุด',AI_GUIDE,'','## ชุดสำเร็จรูป',PRESET_DOC,'','## สคีมาเต็ม',SCHEMA,'','## คำสั่ง (ops)',OPS_DOC,'','## ตัวละครโครงกระดูก (rig)',RIG_DOC,'','## ผังสถานที่ + จุดยึด + ท่าแรก/ท่าสุดท้าย',SET_DOC,'','## สถานะปัจจุบัน (ย่อ ไม่รวมไฟล์ภาพ/เสียง; locations มีชุดสำเร็จรูปรวมอยู่)',JSON.stringify(summary()),'','## ผลตรวจปัจจุบัน (ไม่รวม info)',is.length?JSON.stringify(is):'ไม่มี error/warning'].join('\n')}
+function copyCtx(){const t=aiContext();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>alert(`คัดลอกบริบทให้ AI แล้ว (${t.length} ตัวอักษร) นำไปวางในแชต AI ได้เลย`)).catch(()=>dl('ai-context.md',t))}
+function aiPackage(){return{version:2,kind:'story-studio-ai-request',createdAt:new Date().toISOString(),responseRules:{returnFile:true,fileType:'application/json',noMarkdown:true,neverEmbedDemo:true,continuityRequired:true,visualQaRequired:true,patchMode:'ops',fullProjectMode:'full-project-json'},guide:aiGuide(),context:aiContext(),summary:summary(),qa:diagnose(S).filter(i=>i.level!=='info')}}
+function downloadAiGuide(){dl('story-studio-ai-guide.md',aiGuide(),'text/markdown')}
+function downloadAiContext(){dl('story-studio-ai-context.md',aiContext(),'text/markdown')}
+function downloadAiPackage(){dl('story-studio-ai-request.json',JSON.stringify(aiPackage(),null,2),'application/json')}
+
+function issuesList(){const is=diagnose(S).filter(i=>i.level!=='info'),e=is.filter(i=>i.level==='error').length,w=is.length-e;
+if(!is.length)return[h('div',{className:'ok',style:'margin-top:6px'},'✓ ผลตรวจ JSON (สำหรับ AI) ผ่านทั้งหมด')];
+return[h('h3',{},`ผลตรวจสำหรับ AI: ${e} error · ${w} warn`),...is.slice(0,15).map(i=>h('div',{className:i.level==='error'?'warn':'sum',style:'font-size:11px;margin:2px 0'},(i.level==='error'?'✕ ':'⚠ ')+i.path+': '+i.msg)),is.length>15?h('div',{className:'sum'},`…และอีก ${is.length-15} รายการ`):'']}
+window.StudioAPI={version:15,smartReport:()=>smartAnalyze(S),smartManifest,smartFeedback:smartFeedbackPack,smartPlan:()=>smartRepairProject(S),help:()=>OPS_DOC,schema:()=>SCHEMA,ops:Object.keys(OPS),
+getState:(o)=>o&&o.assets?clone(S):strip(S),getSummary:()=>summary(),getScene:id=>{const L=locate(S,id);return L?strip(L.s):null},
+poseKeypoints:id=>{const L=locate(S,id);return L?poseJSON(L.s):null},poseAt:(id,time)=>{const L=locate(S,id);return L?poseKeys(L.s,time):null},validate:(data)=>checkReport(data===undefined?S:data),apply:applyOps,select:selectTo,undo,redo,exportAll,voicePack,voiceProfiles:()=>S.voiceProfiles.map(publicVoiceProfile),context:aiContext};
+
+
+
+$('#smartClose').onclick=()=>{$('#smartDialog').close();if(STUDIO_WORKSPACE_READY)switchStudioTool('scene')};
+$('#smartMode').onchange=e=>{commit(()=>S.project.smartDirector.mode=e.target.value);smartSyncUI();smartRenderReport();smartSetStatus('บันทึกโหมดในโปรเจกต์แล้ว · ย้อนกลับได้')};
+$('#smartRefresh').onclick=()=>{smartRenderReport();smartSetStatus('ตรวจซ้ำทุกตอนแล้ว')};
+$('#smartRepair').onclick=()=>{if(smartMode()==='off'||!smartEnabled('import')){smartSetStatus('เปิด Smart Import ก่อน');return}const r=smartRepairProject(S);if(!r.changes.length){smartSetStatus('ไม่พบฟิลด์ที่ขาดและแก้ได้อย่างปลอดภัย');return}commit(()=>S=r.data);smartSyncUI();smartRenderReport();smartSetStatus(`แก้ ${r.changes.length} รายการแล้ว · Undo ได้: ${r.changes.slice(0,3).join(' · ')}`)};
+$('#smartCamera').onclick=()=>{if(!smartEnabled('camera')){smartSetStatus('เปิด Camera Assist ก่อน');return}const edits=smartShotCandidates(S);if(!edits.length){smartSetStatus('ไม่มีฉากที่ระบุ smartCamera:true หรือ camera.helper:auto และยังใช้กล้องค่าเริ่มต้น');return}commit(()=>edits.forEach(x=>Object.assign(S.episodes[x.ei].scenes[x.si].camera,x.preset)));smartRenderReport();smartSetStatus(`ใช้คำกำกับกล้องกับ ${edits.length} ฉาก · Undo ได้`)};
+$('#smartManifest').onclick=()=>dl('story-studio-v15-capabilities.json',JSON.stringify(smartManifest(),null,2),'application/json');
+$('#smartFeedback').onclick=()=>dl('story-studio-v15-feedback-for-ai.json',JSON.stringify(smartFeedbackPack(),null,2),'application/json');
+$('#smartReport').onclick=()=>dl('story-studio-v15-qa.json',JSON.stringify({version:15,project:S.project.title,issues:smartAnalyze(S)},null,2),'application/json');
+
+/* ===== Director v11: preview theater, navigation and robust root scrolling ===== */
+let THEATER_ACTIVE=false,THEATER_NATIVE=false,THEATER_SCROLL=0,THEATER_FOCUS=null;
+function updateTheaterTitle(sceneIndex=sel){const t=$('#theaterTitle');if(t&&S?.episodes?.length)t.textContent=`${S.project.title||'โปรเจกต์'} · ตอน ${selEp+1} · ฉาก ${sceneIndex+1}/${ep().scenes.length}`}
+function updateTheaterCaptionButtons(){
+ $('#theaterCaptions').classList.toggle('off',!PREVIEW_SHOW_CAPTIONS);
+ $('#theaterLabels').classList.toggle('off',!PREVIEW_SHOW_LABELS);
+ $('#theaterCaptions').setAttribute('aria-pressed',String(PREVIEW_SHOW_CAPTIONS));
+ $('#theaterLabels').setAttribute('aria-pressed',String(PREVIEW_SHOW_LABELS));
+}
+function openPreviewTheater(){
+ if(THEATER_ACTIVE)return;
+ THEATER_FOCUS=document.activeElement;THEATER_SCROLL=window.scrollY||document.scrollingElement?.scrollTop||0;
+ if(THEATER_FOCUS?.blur)THEATER_FOCUS.blur();
+ THEATER_ACTIVE=true;const view=$('#previewTheater');view.hidden=false;
+ document.documentElement.classList.add('preview-active');document.body.classList.add('preview-active');
+ view.append($('#stageWrap'),$('#ctl'));updateTheaterTitle();updateTheaterCaptionButtons();fit();draw();
+ $('#theaterClose').focus({preventScroll:true});
+ // Native element fullscreen is optional (e.g. iPad webviews). The fixed theater is a working fallback.
+ if(typeof view.requestFullscreen==='function'){
+  try{const result=view.requestFullscreen({navigationUI:'hide'});if(result?.then)result.then(()=>{if(THEATER_ACTIVE)THEATER_NATIVE=true;fit()}).catch(()=>{THEATER_NATIVE=false;fit()})}catch(_){THEATER_NATIVE=false}
+ }
+}
+function closePreviewTheater(){
+ if(!THEATER_ACTIVE)return;
+ THEATER_ACTIVE=false;const native=THEATER_NATIVE;THEATER_NATIVE=false;
+ if(native&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+ const pre=$('#pre');pre.append($('#stageWrap'),$('#ctl'));
+ $('#previewTheater').hidden=true;
+ document.documentElement.classList.remove('preview-active');document.body.classList.remove('preview-active');
+ fit();draw();
+ requestAnimationFrame(()=>{window.scrollTo({top:THEATER_SCROLL,behavior:'instant'});if(THEATER_FOCUS?.isConnected&&THEATER_FOCUS.focus)THEATER_FOCUS.focus({preventScroll:true})});
+}
+function scrollEditorToTop(){const root=document.scrollingElement||document.documentElement;const opts={top:0,behavior:"smooth"};root.scrollTo(opts);window.scrollTo(opts)}
+function syncJumpTop(){const current=window.scrollY||document.scrollingElement?.scrollTop||0;const hidden=THEATER_ACTIVE||window.innerWidth>820||current<150;const b=$('#jumpTop');if(b)b.hidden=hidden;const quick=$('#previewScrollTop');if(quick)quick.hidden=hidden}
+$('#previewFullscreenQuick').addEventListener('click',openPreviewTheater);
+$('#theaterClose').addEventListener('click',closePreviewTheater);
+$('#theaterCaptions').addEventListener('click',()=>{$('#capToggle').click();updateTheaterCaptionButtons()});
+$('#theaterLabels').addEventListener('click',()=>{$('#labelToggle').click();updateTheaterCaptionButtons()});
+$('#jumpTop').addEventListener('click',scrollEditorToTop);
+$('#previewScrollTop').addEventListener('click',scrollEditorToTop);
+window.addEventListener('scroll',syncJumpTop,{passive:true});
+window.addEventListener('resize',()=>{syncJumpTop();if(THEATER_ACTIVE)requestAnimationFrame(fit)},{passive:true});
+if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{if(THEATER_ACTIVE)requestAnimationFrame(fit)},{passive:true});
+document.addEventListener('fullscreenchange',()=>{if(THEATER_ACTIVE&&THEATER_NATIVE&&!document.fullscreenElement)closePreviewTheater()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&THEATER_ACTIVE){e.stopPropagation();closePreviewTheater()}else if((e.key==='f'||e.key==='F')&&!/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName||'')&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();THEATER_ACTIVE?closePreviewTheater():openPreviewTheater()}},true);
+
+
+/* v17: Focus Workspace and single-step microphone dubbing */
+let STUDIO_WORKSPACE_READY=false,STUDIO_CURRENT_TOOL='scene',STUDIO_DUB_AUTOPLAY=true,STUDIO_DUB_STATUS='';
+const STUDIO_TOOLS=[
+ ['scene','ฉาก','แก้เนื้อหา กล้อง และการแสดง'],
+  ['ai','AI สั่งงาน','คุยงานกับ AI ในเครื่อง · คิวงาน · สมุดเรื่อง · ประวัติโปรเจกต์'],
+ ['characters','ตัวละคร','แก้ตัวละครที่เพิ่มแล้ว'],
+ ['library','ไลบรารี','เลือกคน สัตว์ และฉาก'],
+ ['record','พากย์ทันที','อัดเสียงและฟังคลิปโดยไม่ออกจากหน้าตัดต่อ'],
+ ['audio','ไทม์ไลน์เสียง','ตัด คลิป เลื่อนเวลา และปรับมิกซ์'],
+ ['voices','โทนเสียง','ปรับโปรไฟล์เสียงของแต่ละตัวละคร'],
+ ['smart','AI ตรวจงาน','ตรวจและปรับงานจาก JSON'],
+ ['export','ส่งออก','บันทึกวิดีโอทั้งตอน']
+];
+function setupStudioWorkspace(){
+ const dst=$('#studioToolBody');if(!dst)return;
+ for(const id of ['ins','lib','audioDesk','voiceStudio','smartDialog','videoDialog'])dst.append($('#'+id));
+ const d=h('section',{id:'dubPanel',role:'region','aria-label':'ห้องพากย์เสียงทันที'});dst.append(d);
+  dst.append(h('section',{id:'aiWorkspacePanel',role:'region','aria-label':'AI Production Workspace'}));
+ const nav=$('#studioToolNav');nav.replaceChildren(...STUDIO_TOOLS.map(([id,name])=>h('button',{type:'button','data-tool':id,onclick:()=>{if(id==='audio')openAudioDesk();else if(id==='voices')openVoiceStudio();else if(id==='smart')openSmartDirector();else if(id==='export')openVideoExport();else switchStudioTool(id)}},name)),h('button',{id:'workspaceJumpTop',type:'button',onclick:scrollEditorToTop},'↑ บนสุด'));
+ STUDIO_WORKSPACE_READY=true;switchStudioTool('scene');
+}
+function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_TOOL=id;document.body.classList.toggle('export-focus',id==='export');document.body.classList.remove('m-ins','m-lib');
+ const root=$('#studioToolBody'),targets={scene:'ins',characters:'lib',library:'lib',record:'dubPanel',audio:'audioDesk',voices:'voiceStudio',smart:'smartDialog',export:'videoDialog',ai:'aiWorkspacePanel'};
+ if(id==='library'||id==='characters'){tab=id==='library'?'gallery':'ch';if(id==='library')ASSET_PANEL='characters';lib()}
+ for(const n of root.children){n.style.display=(n.id===targets[id])?'':'none'}
+ // Non-modal dialog surfaces must remain open while active, but be hidden when another tool is chosen.
+ if(['audio','voices','smart','export'].includes(id)){
+  const target=$('#'+targets[id]);if(!target.open){
+   if(id==='audio'){AUDIO_DESK_SCENE=sel;renderAudioDesk()}
+   if(id==='voices')renderVoiceStudio();
+   if(id==='smart'){smartSyncUI();smartRenderReport()}
+   if(id==='export'){const opts=compatibleVideoFormats();$('#videoFormat').replaceChildren(...opts.map((f,i)=>h('option',{value:f.id,selected:i===0},f.name)));$('#videoStart').disabled=!opts.length;updateExportPipelineHint()}
+   target.show();
+  }
+ }
+ if(id==='record')renderDubDesk();
+ if(id==='ai')window.StoryAIWorkspace?.render();
+ const title=STUDIO_TOOLS.find(x=>x[0]===id);$('#studioToolTitle').textContent=title?title[2]:'';
+ [...$('#studioToolNav').children].forEach(b=>{const on=b.dataset.tool===id;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false')});
+ if(id==='export'){window.scrollTo({top:0,behavior:'instant'});$('#studioToolBody').scrollTop=0;}
+ requestAnimationFrame(fit);
+  if(innerWidth<=820&&id!=='export'){const body=$('#studioToolBody');const y=body.getBoundingClientRect().top;if(y>innerHeight*.85)window.scrollTo({top:Math.max(0,scrollY+y-innerHeight*.58),behavior:'smooth'})}
+}
+/* ===== Auto Dub: พากย์อัตโนมัติฟรี (Lambda + Edge TTS) ===== */
+let AUTODUB_RUNNING=false,AUTODUB_CANCEL=false,AUTODUB_SCOPE='scene',AUTODUB_SKIP=true,AUTODUB_SMART=true,AUTODUB_GAP=.16;
+const AUTODUB_LS={url:'storyStudio.autodub.url',key:'storyStudio.autodub.key'};
+const AUTODUB_MALE_TYPES=['male','deep','senior','villain'];
+function autoDubCfg(){const access=window.StoryStudioAccess;if(access?.enabled)return{url:access.apiUrl,key:'',session:true};let url='',key='';try{url=localStorage.getItem(AUTODUB_LS.url)||'';key=localStorage.getItem(AUTODUB_LS.key)||''}catch(e){}return{url:url.trim(),key:key.trim(),session:false}}
+function autoDubSave(url,key){if(window.StoryStudioAccess?.enabled)return;try{localStorage.setItem(AUTODUB_LS.url,String(url||'').trim());localStorage.setItem(AUTODUB_LS.key,String(key||'').trim())}catch(e){}}
+function autoDubVoiceFor(scene,speaker){const id=speakerVoiceProfileId(scene,speaker)||sceneVoiceProfileId(scene),p=getVoiceProfile(id);return AUTODUB_MALE_TYPES.includes(p?.type)?'th-TH-NiwatNeural':'th-TH-PremwadeeNeural'}
+async function autoDubFetch(cfg,text,voice,options={}){
+ let j=null;
+ if(cfg.session){j=await window.StoryStudioAccess.request({text,voice,...(options.rate?{rate:options.rate}:{})})}
+ else{const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice,...(options.rate?{rate:options.rate}:{})})});try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&j.error)||('HTTP '+r.status))}
+ if(!j?.audio)throw new Error((j&&j.error)||'ไม่พบไฟล์เสียงจาก AI');
+ const bin=atob(j.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+ return new Blob([u],{type:'audio/mpeg'})}
+function autoDubJobs(scope,skipExisting){
+ const jobs=[],eps=scope==='all'?S.episodes.map((E,i)=>i):[selEp],director=window.StoryNarrationDirector;
+ for(const ei of eps)S.episodes[ei].scenes.forEach((scene,si)=>{
+  if(scope==='scene'&&si!==sel)return;
+  const narrated=String(scene.voiceover||'').trim();
+  // Voiceover is the author's narration, not a request to write dialogue.
+  // Keep subtitle cues untouched; the sound clip uses a stable synthetic cue ID.
+  const cues=narrated?[{id:'narration-'+scene.id,text:narrated,start:0,end:scene.duration,speaker:''}]:
+   effectiveSubtitleCues(scene).length?effectiveSubtitleCues(scene):
+   ((scene.subtitle||[]).some(x=>String(x||'').trim())?autoCaptionCues(scene):[]);
+  const existingClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute&&!c.staleNarration);
+  const existing=new Set(existingClips.flatMap(c=>Array.isArray(c.cueIds)&&c.cueIds.length?c.cueIds:[c.cueId]).filter(Boolean));
+  if(narrated){
+   // One external JSON scene can contain minutes of narration. Chunk only TTS requests;
+   // preserve the scene, actors, animation, visuals and original authored voiceover.
+   if(skipExisting&&existingClips.some(c=>!director?.isAuto(c)))return;
+   const parts=director?.splitNarration?.(narrated,175)||[narrated];
+   for(let i=0;i<parts.length;i++){
+    const id='narration-'+scene.id+'-part'+(i+1);
+    if(skipExisting&&existing.has(id))continue;
+    jobs.push({ei,si,cueId:id,cueIds:[id],text:parts[i],speaker:'',narrator:true});
+   }
+   return;
+  }
+  if(AUTODUB_SMART&&director){
+   for(const group of director.plan(cues,{existing,skipExisting,speaker:scene.voiceDirection?.speaker||''}))
+    jobs.push({ei,si,cueId:group.cueIds[0],cueIds:group.cueIds,text:group.text,speaker:group.speaker});
+  }else for(const cue of cues){if(skipExisting&&existing.has(cue.id))continue;jobs.push({ei,si,cueId:cue.id,cueIds:[cue.id]})}
+ });return jobs;
+}
+async function autoDubTest(){
+ const cfg=autoDubCfg();if(!cfg.url){setVoiceStatus('ใส่ URL ของ Lambda ก่อน');return}
+ setVoiceStatus('กำลังทดสอบเสียง ...');
+ try{const blob=await autoDubFetch(cfg,'สวัสดีครับ ทดสอบเสียงพากย์','th-TH-NiwatNeural');const a=new Audio(URL.createObjectURL(blob));a.play().catch(()=>{});setVoiceStatus('ทดสอบสำเร็จ — ได้ไฟล์เสียงแล้ว ('+Math.round(blob.size/1024)+' KB)')}
+ catch(e){setVoiceStatus('ทดสอบไม่ผ่าน: '+e.message)}}
+async function autoDubRun(){
+ if(AUTODUB_RUNNING)return;
+ const cfg=autoDubCfg();
+ if(!cfg.url||(!cfg.session&&!cfg.key)){setVoiceStatus('ยังไม่พบการเชื่อมต่อ AI — หากยังไม่ได้ติดตั้งเว็บไซต์ให้ดูขั้นตอน AWS ใน README');return {ok:false,error:'ยังไม่ได้เชื่อมบริการพากย์ Edge TTS'}}
+ const keepEp=selEp,keepSel=sel,keepScene=AUDIO_DESK_SCENE,keepPast=past.length,before=JSON.stringify(S);
+ // สร้างช่วงเวลาซับให้ฉากที่ยังไม่มี (ต้องมี cue เพื่อรู้เวลาเริ่มพูด)
+ const targets=AUTODUB_SCOPE==='all'?S.episodes.flatMap((E,ei)=>E.scenes.map((s,si)=>[ei,si])):S.episodes[selEp].scenes.map((s,si)=>[selEp,si]).filter(([,si])=>AUTODUB_SCOPE!=='scene'||si===sel);
+ for(const [ei,si] of targets){const scene=S.episodes[ei].scenes[si];if(!effectiveSubtitleCues(scene).length&&(scene.subtitle||[]).some(x=>String(x||'').trim()))scene.subtitleCues=autoCaptionCues(scene)}
+ const jobs=autoDubJobs(AUTODUB_SCOPE,AUTODUB_SKIP);
+ if(!jobs.length){setVoiceStatus('ไม่มีบทที่ต้องพากย์ในขอบเขตที่เลือก (หรือทุกบรรทัดมีเสียงแล้ว)');return {ok:true,made:0,failed:0}}
+ AUTODUB_RUNNING=true;AUTODUB_CANCEL=false;
+ let made=0,failed=0,lastErr='';const long=[];
+ try{
+  for(let n=0;n<jobs.length;n++){
+   if(AUTODUB_CANCEL)break;
+   const {ei,si,cueId,cueIds}=jobs[n],scene=S.episodes[ei].scenes[si],
+    cue=(scene.subtitleCues||[]).find(q=>q.id===cueId)||
+      (jobs[n].narrator?{id:cueId,text:jobs[n].text,start:0,end:scene.duration,speaker:''}:null);
+   const text=String(jobs[n].text||cue?.text||'').replace(/\s*\n\s*/g,' ').trim();
+   if(!cue||!text)continue;
+   setVoiceStatus('กำลังสร้างเสียง '+(n+1)+'/'+jobs.length+' · ตอน '+(ei+1)+' ฉาก '+(si+1));
+   const speaker=jobs[n].speaker||cue.speaker||scene.voiceDirection?.speaker||'';
+   let blob=null;
+   for(let attempt=0;attempt<2&&!blob;attempt++){try{blob=await autoDubFetch(cfg,text,autoDubVoiceFor(scene,speaker),AUTODUB_SMART?{rate:'+6%'}:{})}catch(e){lastErr=e.message;await new Promise(r=>setTimeout(r,1200))}}
+   if(!blob){failed++;continue}
+   selEp=ei;sel=si;AUDIO_DESK_SCENE=si;
+   await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id,smartTrim:AUTODUB_SMART});
+   past.length=keepPast; // ไม่สะสมสแนปชอตทีละคลิป (กันหน่วยความจำเต็ม) — รวมเป็น undo ครั้งเดียวตอนจบ
+   const sc2=S.episodes[ei].scenes[si],clip=(sc2.audioClips||[]).at(-1);
+   if(clip&&clip.kind==='voice'&&(clip.cueId===cue.id||jobs[n].narrator)){clip.cueId=cue.id;clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
+  }
+ }catch(e){lastErr=e.message;failed++}
+ finally{
+  let planned=0,extended=0,tightened={edits:0,seconds:0};
+  if(made&&AUTODUB_SMART&&window.StoryNarrationDirector){
+   for(const [ei,si] of targets){const info=window.StoryNarrationDirector.layout(S.episodes[ei].scenes[si],{gap:AUTODUB_GAP,rateOf:effectiveClipRate});planned+=info.clips;extended+=info.extended}
+   tightened=autoDubTighten(targets.map(([ei,si])=>S.episodes[ei].scenes[si]));
+   save();
+  }
+  selEp=Math.min(keepEp,S.episodes.length-1);sel=Math.min(keepSel,Math.max(0,ep().scenes.length-1));AUDIO_DESK_SCENE=keepScene;
+  if(made){past.length=keepPast;past.push(before);if(past.length>100)past.shift();future=[]}
+  AUTODUB_RUNNING=false;
+  try{render()}catch(e){}
+  setVoiceStatus((AUTODUB_CANCEL?'หยุดแล้ว · ':'เสร็จ · ')+'สร้างเสียง '+made+' คลิป'+(failed?' · ล้มเหลว '+failed+(lastErr?' ('+lastErr+')':''):'')+(long.length?'\nเสียงยาวเกินช่องซับ '+long.length+' จุด: '+long.slice(0,5).join(', ')+(long.length>5?' ...':'')+' — ปรับเวลาซับ/ความเร็วคลิปใน Sound Desk':'')+(planned?'\nผู้ช่วยจัดเฟรมเสียง '+planned+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ'+(extended?' · ขยายเวลาฉาก '+extended.toFixed(1)+' วิ':'')+(tightened.edits?' · ลดช่วงเงียบท้ายฉาก '+tightened.seconds.toFixed(1)+' วิ / '+tightened.edits+' ฉาก':''):'')+(made?'\nกดย้อนกลับ (undo) ครั้งเดียวเพื่อลบเสียงที่เพิ่งสร้างทั้งหมด':''));
+  return {ok:made>0||failed===0,made,failed,error:lastErr,cancelled:AUTODUB_CANCEL};
+ }}
+/* Retiming only applies to complete auto-generated narration. Manual takes,
+ * SFX, explicit holds and missing TTS segments are left untouched. */
+function autoDubTighten(targetScenes){
+ const auditor=window.StoryTimingAuditor,director=window.StoryNarrationDirector;
+ if(!auditor?.planAutoDubTightening||!director)return {edits:0,seconds:0};
+ const plan=auditor.planAutoDubTightening(S,targetScenes,{
+  rateOf:effectiveClipRate,splitNarration:director.splitNarration
+ });
+ const byId=new Map(targetScenes.filter(s=>s&&s.id).map(s=>[s.id,s]));
+ let edits=0;
+ for(const op of plan.ops){
+  const scene=byId.get(op.id);if(!scene)continue;
+  Object.assign(scene,op.patch);edits++;
+ }
+ return {edits,seconds:plan.shortenedSeconds,skipped:plan.skipped.length};
+}
+async function autoDubReflowExisting(){
+ if(AUTODUB_RUNNING)return;
+ const director=window.StoryNarrationDirector;if(!director){setVoiceStatus('โมดูลจัดเฟรมเสียงยังไม่พร้อม');return}
+ const targetScenes=AUTODUB_SCOPE==='all'?S.episodes.flatMap(E=>E.scenes):AUTODUB_SCOPE==='scene'?[sc()]:ep().scenes;
+ const voices=targetScenes.flatMap(scene=>(scene.audioClips||[]).filter(c=>director.isAuto(c)&&c.data));
+ if(!voices.length){setVoiceStatus('ไม่พบคลิปพากย์อัตโนมัติในขอบเขตนี้');return}
+ AUTODUB_RUNNING=true;let n=0,extra=0,trimmed=0,tightened={edits:0,seconds:0};const trims=new Map();
+ try{
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  try{
+   for(let i=0;i<voices.length;i++){
+    const c=voices[i];setVoiceStatus('กำลังตรวจความเงียบคลิปเดิม '+(i+1)+'/'+voices.length);
+    try{const b=await ctx.decodeAudioData(await(await fetch(c.data)).arrayBuffer());trims.set(c,director.silenceTrim(b));trimmed++}catch(err){}
+   }
+  }finally{await ctx.close().catch(()=>{})}
+  commit(()=>{for(const [clip,t] of trims){clip.trimStart=t.start;clip.trimEnd=t.end}
+   for(const scene of targetScenes){const r=director.layout(scene,{gap:AUTODUB_GAP,rateOf:effectiveClipRate});n+=r.clips;extra+=r.extended}
+   tightened=autoDubTighten(targetScenes);});
+  setVoiceStatus('จัดเฟรมเสียงเดิม '+n+' คลิป · ตรวจหัว/ท้าย '+trimmed+' คลิป · เว้น '+AUTODUB_GAP.toFixed(2)+' วิ · ขยายฉาก '+extra.toFixed(1)+' วิ'+(tightened.edits?' · ลดช่วงเงียบท้ายฉาก '+tightened.seconds.toFixed(1)+' วิ / '+tightened.edits+' ฉาก':'')+' (ย้อนกลับได้)');
+ }catch(e){setVoiceStatus('จัดเฟรมไม่สำเร็จ: '+e.message)}
+ finally{AUTODUB_RUNNING=false}
+}
+function autoDubPanel(){
+ const cfg=autoDubCfg();
+ const url=h('input',{type:'text',value:cfg.url,placeholder:'https://xxxx.lambda-url.ap-southeast-1.on.aws/',autocomplete:'off',autocapitalize:'off','aria-label':'URL ของ Lambda'}),
+  key=h('input',{type:'password',value:cfg.key,placeholder:'รหัสลับ (DUB_KEY)',autocomplete:'off','aria-label':'รหัสลับ'});
+ const save=()=>autoDubSave(url.value,key.value);url.addEventListener('change',save);key.addEventListener('change',save);
+ const scope=h('select',{onchange:e=>{AUTODUB_SCOPE=e.target.value}},...[['scene','ฉากนี้'],['episode','ทั้งตอนนี้'],['all','ทั้งเรื่อง (ทุกตอน)']].map(([v,t])=>h('option',{value:v,selected:v===AUTODUB_SCOPE},t)));
+ const skip=h('input',{type:'checkbox',checked:AUTODUB_SKIP,onchange:e=>{AUTODUB_SKIP=e.target.checked}});
+  const smart=h('input',{type:'checkbox',checked:AUTODUB_SMART,onchange:e=>{AUTODUB_SMART=e.target.checked}});
+  const gap=h('input',{type:'range',min:.08,max:.5,step:.02,value:AUTODUB_GAP,oninput:e=>{AUTODUB_GAP=+e.target.value;e.target.nextSibling.textContent=AUTODUB_GAP.toFixed(2)+' วินาที'}});
+ return h('details',{className:'dub-detail autodub',open:AUTODUB_RUNNING||!!cfg.session||!cfg.url},h('summary',{},'✦ พากย์อัตโนมัติ (ฟรี · Lambda + Edge TTS)'),
+  h('div',{className:'dub-directions'},
+   h('p',{},'สร้างเสียงไทยจากซับของแต่ละช่วง แล้ววางที่เวลาเริ่มของช่วงนั้นให้เอง ตัวละครที่ใช้โปรไฟล์เสียงทุ้ม/ลึก/ผู้สูงอายุ/ตัวร้ายจะใช้เสียงชาย นอกนั้นใช้เสียงหญิง แล้วโปรไฟล์เสียงเดิมยังแต่งเสียงต่อได้'),
+   ...(cfg.session?[h('p',{className:'dub-note'},window.StoryStudioAccess.isReady()?'เชื่อมต่อ AI พร้อมใช้งานด้วยรหัสผ่านเว็บไซต์แล้ว — ไม่ต้องใส่ URL หรือรหัสลับ Lambda':'รอการเข้าสู่ระบบเว็บไซต์เพื่อเปิด AI'),h('button',{type:'button',onclick:()=>window.StoryStudioAccess.logout()},'ล็อกสตูดิโอ / เปลี่ยนผู้ใช้')]:[h('label',{},'URL ของ Lambda',url),h('label',{},'รหัสลับ',key)]),
+   h('label',{},'ขอบเขต',scope),
+   h('label',{style:'display:flex;gap:7px;align-items:center'},skip,'ข้ามบรรทัดที่มีเสียงอยู่แล้ว'),
+    h('h4',{},'ผู้ช่วย AI จัดจังหวะเสียงและเฟรม (Speech Director)'),
+    h('p',{},'รวมคำพูดต่อเนื่องของผู้พูดคนเดียวกันเป็นเสียงชุดเดียว ลดความเงียบหัว/ท้าย ปรับเวลาซับให้ตรงเสียง และขยายฉากที่สั้นเกินโดยอัตโนมัติ ใช้ตัววางแผนในเว็บ ไม่เรียก AI ภายนอกหรือแก้เนื้อหาบทพูด'),
+    h('label',{style:'display:flex;gap:7px;align-items:center'},smart,'เปิดผู้ช่วยจัดจังหวะอัตโนมัติขณะพากย์'),
+    h('label',{},'ระยะเว้นช่วงเสียง',h('div',{style:'display:flex;align-items:center;gap:10px'},gap,h('span',{},AUTODUB_GAP.toFixed(2)+' วินาที'))),
+   h('div',{className:'dub-actions'},
+    h('button',{className:'dub-primary',disabled:AUTODUB_RUNNING,onclick:()=>{save();autoDubRun()}},AUTODUB_RUNNING?'กำลังสร้างเสียง ...':'✦ เริ่มพากย์อัตโนมัติ'),
+    h('button',{onclick:()=>{AUTODUB_CANCEL=true;setVoiceStatus('กำลังหยุดหลังคลิปนี้ ...')}},'■ หยุด'),
+    h('button',{onclick:()=>{save();autoDubTest()}},'▶ ทดสอบการเชื่อมต่อ'),
+     h('button',{disabled:AUTODUB_RUNNING,onclick:()=>autoDubReflowExisting()},'จัดเฟรมคลิปพากย์เดิม'))))}
+
+function renderDubDesk(){const root=$('#dubPanel');if(!root||!S?.episodes?.length)return;
+ const s=sc(),cueList=Array.isArray(s.subtitleCues)?s.subtitleCues:[],who=VOICE_TARGET_SPEAKER??s.voiceDirection?.speaker??'',voiceId=speakerVoiceProfileId(s,who)||sceneVoiceProfileId(s),vprof=getVoiceProfile(voiceId),clips=(s.audioClips||[]).filter(c=>c.kind==='voice');
+ const selScene=h('select',{onchange:e=>{sel=+e.target.value;T=starts()[sel];VOICE_TARGET_SPEAKER=null;STUDIO_DUB_CUE='';STUDIO_DUB_STATUS='';render()}},...ep().scenes.map((v,i)=>h('option',{value:i,selected:i===sel},'ฉาก '+(i+1)+' · '+Number(v.duration||0).toFixed(1)+' วินาที')));
+ const selSpeaker=h('select',{onchange:e=>{VOICE_TARGET_SPEAKER=e.target.value;renderDubDesk()}},...[['','ผู้บรรยาย'],...S.characters.map(c=>[c.id,c.name||c.id])].map(([v,t])=>h('option',{value:v,selected:v===who},t)));
+ const cueOptions=[['','ทั้งหมด / ตั้งต้นฉาก'],...cueList.map(q=>[q.id,(Number(q.start)||0).toFixed(1)+'s · '+(q.text||'').slice(0,55)])];
+ if(!cueOptions.some(x=>x[0]===STUDIO_DUB_CUE))STUDIO_DUB_CUE='';
+ const cues=h('select',{onchange:e=>{STUDIO_DUB_CUE=e.target.value;renderDubDesk()}},...cueOptions.map(([v,t])=>h('option',{value:v,selected:v===STUDIO_DUB_CUE},t)));
+ const cue=cueList.find(q=>q.id===STUDIO_DUB_CUE),script=cue?.text||s.voiceover||s.subtitle.join(' ')||'';
+ root.replaceChildren(
+  h('div',{className:'dub-hero'},h('strong',{},'พากย์เสียงในเว็บ · ฉาก '+(sel+1)),h('p',{},'อัดจากไมโครโฟนโดยตรง → คลิปถูกเพิ่มในฉาก → เลือกตัด/ปรับเสียงได้ทันที เสียงอ่านทดลองของระบบไม่ได้บันทึกเป็นไฟล์วิดีโอ')),
+  h('div',{className:'dub-grid'},h('label',{},'เลือกฉาก',selScene),h('label',{},'ผู้พูดในฉาก',selSpeaker),h('label',{},'ช่วงบทพูดที่จะอัด',cues),h('label',{},'เสียงตัวละครจาก AI',h('div',{className:'dub-directions',style:'margin:5px 0;padding:8px'},vprof?.name||'เสียงต้นฉบับ'))),
+  h('div',{className:'dub-script',role:'region','aria-label':'บทสำหรับพากย์'},script||'ยังไม่มีบทพากย์ — กดแก้บทที่แผงฉาก'),
+  h('details',{className:'dub-detail'},h('summary',{},'ดูคำกำกับน้ำเสียงจาก AI'),h('div',{className:'dub-directions'},voiceAIExpandedBrief(s))),
+  h('label',{className:'dub-autoplay'},h('input',{type:'checkbox',checked:STUDIO_DUB_AUTOPLAY,onchange:e=>{STUDIO_DUB_AUTOPLAY=e.target.checked}}),' เล่นภาพประกอบอัตโนมัติขณะอัด (ไม่เล่นเสียงคลิปเดิม ป้องกันเสียงย้อนเข้าไมค์)'),
+  h('div',{className:'dub-actions'},
+   h('button',{className:'dub-primary',id:'dubRecordBtn',onclick:toggleVoiceRecord},VOICE_RECORDER?.state==='recording'?'■ หยุดและบันทึกเสียง':'● เริ่มพากย์ผ่านไมค์'),
+   h('button',{onclick:()=>{AUDIO_DESK_SCENE=sel;const input=h('input',{type:'file',accept:'audio/*',onchange:async e=>{await addAudioFile(e.target.files[0],'voice',{speakerId:VOICE_TARGET_SPEAKER??s.voiceDirection?.speaker??'',cueId:STUDIO_DUB_CUE});renderDubDesk()}});input.click()}},'↑ ใส่ไฟล์เสียง'),
+   h('button',{onclick:()=>{VOICE_EDIT_ID=voiceId||VOICE_EDIT_ID;speakCurrentScene()}},'▶ ฟังเสียงอ่านทดลอง'),
+   h('button',{onclick:()=>switchStudioTool('scene')},'✎ แก้บท / ซับ')),
+  autoDubPanel(),
+  h('div',{id:'dubStatus',className:'dub-note',role:'status','aria-live':'polite'},STUDIO_DUB_STATUS),
+  h('div',{className:'dub-indicator'+(VOICE_RECORDER?.state==='recording'?' recording':''),role:'status','aria-live':'polite'},VOICE_RECORDER?.state==='recording'?'● กำลังอัดเสียง — กด “หยุดและบันทึกเสียง” เมื่อพูดจบ':(clips.length?'บันทึกแล้ว '+clips.length+' คลิป · เลือกกดเล่นเพื่อฟังซ้ำหรือเปิดตัดต่อ':'ยังไม่มีเสียงพากย์ในฉากนี้ · อนุญาตไมค์เมื่อเบราว์เซอร์ถาม')),
+  h('h3',{},'คลิปพากย์ฉากนี้ ('+clips.length+')'),
+  ...(clips.length?clips.map((c,i)=>h('article',{className:'dub-clip'},h('strong',{},c.name||'คลิป '+(i+1)),h('div',{className:'dub-meta'},(c.duration||0).toFixed(1)+' วินาที · เริ่ม '+(+c.at||0).toFixed(1)+'s · '+(S.characters.find(x=>x.id===c.speakerId)?.name||'ผู้บรรยาย')),h('audio',{controls:true,preload:'none',src:c.data||''}),h('button',{onclick:()=>{AUDIO_DESK_SCENE=sel;openAudioDesk()}},'✂ ตัด / ปรับเสียงคลิป'))):[h('p',{className:'dub-note'},'อัดเสียงผ่านไมค์ หรืออัปโหลดไฟล์เสียงเพื่อเริ่มจัดบทพากย์')]),
+  h('p',{className:'dub-note'},'ต้องเปิดเว็บไซต์ผ่าน HTTPS และอนุญาตไมโครโฟนบนอุปกรณ์ · iPad/iPhone อาจรองรับไฟล์บันทึกเสียงคนละนามสกุลตามเบราว์เซอร์ · เสียงเปลี่ยนเพศหรือวัยแบบสมจริงต้องใช้บริการ AI เพิ่มเติม'));
+}
+
+/* ===== AI Workspace bridge: controlled project persistence + existing JSON workflows ===== */
+function autoSoundPlan(scope='episode'){
+ const assistant=window.StoryAudioAssistant;
+ if(!assistant)throw Error('ยังไม่ได้โหลดตัวจัดเสียงตามเหตุการณ์');
+ return assistant.plan(S,SOUND_PRESETS,scope,sel,selEp);
+}
+function autoSoundApply(scope='episode'){
+ if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตเสียงไม่ถูกต้อง');
+ const result=autoSoundPlan(scope),totalSounds=result.reduce((n,x)=>n+x.sounds.length,0);
+ if(totalSounds>120)throw Error('พบแผนเสียงจำนวนมากเกิน 120 คลิป กรุณาเลือกเฉพาะตอน');
+ let applied=0;
+ if(!totalSounds&&!result.some(x=>S.episodes[x.episodeIndex].scenes[x.sceneIndex].audioClips?.some(c=>c.aiAutoSound)))return {applied:0,scenes:result.length};
+ // Synthesize only from the pre-existing, curated sound catalog, never from AI raw URLs.
+ const prepared=result.map(item=>({
+  ...item,clips:item.sounds.map(s=>{
+   const preset=SOUND_PRESETS.find(p=>p.id===s.presetId);if(!preset)throw Error('เสียงไม่อยู่ในคลังที่อนุญาต');
+   const audio=soundData(preset);
+   return {id:'clip'+uid(),kind:s.kind==='music'?'music':'sfx',
+    name:'AI จัดเสียง · '+preset.name,data:audio.data,duration:audio.duration,wave:audio.wave,
+    at:clampN(s.at,0,S.episodes[item.episodeIndex].scenes[item.sceneIndex].duration),
+    trimStart:0,trimEnd:0,volume:clampN(s.volume,0,.5),fadeIn:s.loop?.22:.02,
+    fadeOut:s.loop?.25:.05,rate:1,mute:false,loop:!!s.loop,
+    presetId:preset.id,presetType:preset.group,aiAutoSound:true};
+  })
+ }));
+ commit(()=>{
+  for(const item of prepared){
+   const scene=S.episodes[item.episodeIndex].scenes[item.sceneIndex];
+   // Only replace clips originally created by this assistant. Preserve all manual clips.
+   scene.audioClips=(scene.audioClips||[]).filter(c=>!c.aiAutoSound);
+   const manual=new Set(scene.audioClips.filter(c=>c.presetId).map(c=>c.presetId));
+   const unique=item.clips.filter(c=>!manual.has(c.presetId));
+   scene.audioClips.push(...unique);applied+=unique.length;
+  }
+ });
+ return {applied,scenes:result.length};
+}
+window.StoryStudioBridge={
+ narrate:async(scope='episode')=>{
+  if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตพากย์ไม่ถูกต้อง');
+  if(AUTODUB_RUNNING)throw Error('ระบบพากย์กำลังทำงานอยู่');
+  const prev=AUTODUB_SCOPE;AUTODUB_SCOPE=scope;
+  try{return await autoDubRun()}finally{AUTODUB_SCOPE=prev}
+ },
+ auditTiming:(scope='episode',opts={})=>{
+  if(!window.StoryTimingAuditor)throw Error('ยังไม่โหลดระบบตรวจเวลาจริง');
+  return window.StoryTimingAuditor.audit(S,{scope,episodeIndex:selEp,sceneId:sc()?.id,
+    rateOf:effectiveClipRate,...opts});
+ },
+ audioPlan:(scope='episode')=>autoSoundPlan(scope),
+ applyAudioPlan:(scope='episode')=>autoSoundApply(scope),
+ soundCatalog:()=>SOUND_PRESETS.map(p=>({id:p.id,name:p.name,group:p.group})),
+
+ get:()=>S,episodeIndex:()=>selEp,episode:()=>S?.episodes?.[selEp],
+ loadStoryOnly:(input)=>{
+  if(!window.StoryOnlyJSON)throw Error('Story Only module unavailable');
+  const project=window.StoryOnlyJSON.convertIfNeeded(input);
+  if(project?.project?.mode!=='story-only')throw Error('ไม่ใช่ JSON เนื้อเรื่องล้วน');
+  const errors=diagnose(project).filter(x=>x.level==='error');
+  if(errors.length)throw Error(errors[0].path+': '+errors[0].msg);
+  commit(()=>{S=normalize(project);selEp=0;sel=0;T=0});
+ },
+ updateStoryOnlyScene:(id,text)=>{
+  if(S?.project?.mode!=='story-only')throw Error('ต้องอยู่ในโหมดเนื้อเรื่องล้วน');
+  if(typeof text!=='string'||!text.trim()||text.length>1200)throw Error('บทต้องมีความยาว 1–1200 ตัวอักษร');
+  const scene=S.episodes.flatMap(ep=>ep.scenes||[]).find(x=>x.id===id);
+  if(!scene)throw Error('ไม่พบฉากนี้');
+  if(scene.voiceover===text)return;
+  commit(()=>{scene.voiceover=text;scene.subtitle=[];scene.subtitleCues=[];
+   scene.audioClips=[];scene.audio=null});
+ },
+ layoutFeedback:(action)=>{
+  const ML=window.StoryLayoutML;
+  if(!ML)throw Error('โมดูล ML Feedback ยังไม่โหลด');
+  const current=sc(),workspace=window.StoryAIWorkspaceCore?.ensure(S.project.aiWorkspace||{});
+  // Keep a stable pseudonymous group ID across exports, even on old projects
+  // that did not yet have an AI workspace object.
+  if(!S.project.aiWorkspace){S.project.aiWorkspace=workspace;save()}
+  const group=workspace?.projectId;
+  if(action==='keep'){
+   const pair=ML.closestPair(current);
+   return ML.makeExample(S.project,current,pair.i,pair.j,'keep',group);
+  }
+  if(action==='correction'){
+   if(!past.length)throw Error('ยังไม่มีการแก้ไขตำแหน่งล่าสุดให้ใช้เป็นตัวอย่าง');
+   const previous=JSON.parse(past[past.length-1]);
+   const old=previous.episodes?.flatMap(E=>E.scenes||[]).find(x=>x.id===current.id);
+   const record=ML.correction(old,current,S.project,group);
+   if(!record)throw Error('การแก้ล่าสุดไม่ได้แยกตัวละครคู่เดิมอย่างชัดเจน กรุณาปรับตำแหน่งก่อน');
+   return record;
+  }
+  throw Error('คำสั่งรับรองตัวอย่างไม่ถูกต้อง');
+ },
+ previewAudioReport:()=>previewAudioReport(),
+ scene:()=>sc(),
+ persist:()=>save(),
+ load:(d)=>{if(!window.StoryAIWorkspaceCore)throw Error('AI workspace module unavailable');window.StoryAIWorkspaceCore.validateSnapshot(d);commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});},
+ exportJSON:()=>dl((S?.project?.title||'story-studio').replace(/[\\/:*?"<>|]/g,'_').slice(0,40)+'.json',JSON.stringify(S,null,1),'application/json'),
+ importJSON:()=>$('#file').click(),openWorkspace:()=>switchStudioTool('ai'),
+ continueEpisode:()=>commit(()=>nextEpisodeContinuing()),
+ addAsset:(asset)=>commit(()=>{if(!window.StoryAssetCore)throw Error("Asset module missing");const a=window.StoryAssetCore.asset(asset),scene=sc();scene.customAssets=Array.isArray(scene.customAssets)?scene.customAssets:[];if(scene.customAssets.length>=40)throw Error("ฉากมีรูปได้ไม่เกิน 40 รายการ");scene.customAssets.push({asset:a,x:50,y:83,scale:1,front:true})}),
+ updateAsset:(index,patch)=>commit(()=>{const list=sc().customAssets||[],a=list[index];if(!a)throw Error("ไม่พบรูปที่เลือก");for(const k of ["x","y","scale"]){if(patch[k]!==undefined)a[k]=clampN(Number(patch[k])||0,k==="scale"?.12:0,k==="scale"?3:100)}if(patch.front!==undefined)a.front=patch.front===true;if(patch.flip!==undefined)a.flip=patch.flip===true}),
+ removeAsset:(index)=>commit(()=>{if(Array.isArray(sc().customAssets))sc().customAssets.splice(index,1)}),
+ refresh:()=>render()
+};
+
+/* ===== boot ===== */
+function fit(){
+ const w=$('#stageWrap'),st=$('#stage'),[a,b]=S.project.aspect.split(':').map(Number);
+ if(!w||!st||!(a>0&&b>0))return;
+ const mob=matchMedia('(max-width:820px), (orientation:portrait) and (max-width:1100px)').matches,
+   cinema=THEATER_ACTIVE,exportFocus=document.body.classList.contains('export-focus')&&innerWidth<=1100;
+ // A portrait iPad can report 810 CSS px and was treated like a tiny PHONE:
+ // the 230px height cap turned a 9:16 export into a ~129px-wide thumbnail.
+ // Size the whole logical video from the available screen, not from fixed
+ // minimum font pixels; CSS and SVG content must scale together.
+ const portrait=innerHeight>innerWidth,tabletPortrait=mob&&!cinema&&!exportFocus&&portrait&&innerWidth>=600,
+   phone=mob&&!cinema&&!exportFocus&&innerWidth<=820&&portrait,
+   side=phone&&b>a;
+ document.body.classList.toggle('pre-phone',phone);
+ document.body.classList.toggle('pre-side',side);
+ const pad=phone?12:24;
+ // Side mode shares the row with transport and the scene picker; the iPad
+ // gets a larger stage while still reserving room for the editor below.
+ const sideWidth=tabletPortrait?innerWidth*.47:innerWidth*.40;
+ const widthLimit=side?Math.max(80,sideWidth):Math.max(100,(w.clientWidth||innerWidth)-pad);
+ const maxPhoneH=Math.max(150,Math.min(innerHeight*.34,330,innerHeight-280));
+ const maxTabletH=Math.max(220,Math.min(innerHeight*.51,620,innerHeight-325));
+ const heightLimit=cinema?Math.max(120,(w.clientHeight||innerHeight-120)-20):
+   exportFocus?Math.max(95,Math.min(innerHeight*.19,180)):
+   tabletPortrait?maxTabletH:
+   phone?maxPhoneH:
+   mob?Math.max(155,Math.min(innerHeight*.40,460)):
+   Math.max(100,(w.clientHeight||300)-24);
+ const sh=Math.min(heightLimit,widthLimit*b/a),sw=sh*a/b;
+ st.style.width=sw+'px';st.style.height=sh+'px';
+ // Match the actual rendered video's h*.033 subtitle typography instead of
+ // a hard 11px floor which made captions HUGE on small portrait previews.
+ // On a smaller screen, the entire scene (actors, SVG and captions) shrinks.
+ st.style.setProperty('--fs',Math.max(4,sh*.055)+'px');
+ st.style.setProperty('--cap-font',Math.max(4,Math.min(30,sh*.033))+'px');
+ st.style.setProperty('--label-font',Math.max(4,Math.min(23,sh*.027))+'px');
+ w.style.width=side?(sw+pad)+'px':'';
+ w.style.height=cinema?'':mob?(sh+(phone?pad:24))+'px':'';
+}
+function render(){const savedScroll=window.scrollY;pauseAudioPlayers();hydrateAudioDurations();resetTransitionCache();renderTop();lib();inspector();timeline();ctl();renderMotionBar();showWelcome();const p=$('#previewContext');if(p)p.textContent=`ฉาก ${sel+1}/${ep().scenes.length} · ${S.project.aspect}`;fit();draw();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='record')renderDubDesk();if(innerWidth<=820&&!THEATER_ACTIVE&&Math.abs(window.scrollY-savedScroll)>4)requestAnimationFrame(()=>window.scrollTo({top:savedScroll,behavior:'instant'}));if(THEATER_ACTIVE)updateTheaterTitle();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='ai')window.StoryAIWorkspace?.render()}
+document.body.append(h('input',{type:'file',id:'file',accept:'.json',style:'display:none',onchange:e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(x){alert('ไฟล์ JSON ไม่ถูกต้อง');return}try{d=window.StoryOnlyJSON?.convertIfNeeded(d)||d}catch(err){alert('ไฟล์เนื้อเรื่องล้วนไม่ถูกต้อง: '+err.message);return}
+ const importedSmart=d?.project?.smartDirector?.mode||smartMode();const repairs=importedSmart==='auto'&&smartEnabled('import')?smartRepairProject(d):{data:d,changes:[]};d=repairs.data;const er=diagnose(d).filter(i=>i.level==='error');if(er.length&&!(Array.isArray(d.episodes)&&d.episodes.length&&d.episodes.every(E=>E&&Array.isArray(E.scenes)&&E.scenes.length))){alert('เปิดไฟล์ไม่ได้: '+er[0].path+' — '+er[0].msg);return}if(er.length&&!confirm('พบ error '+er.length+' รายการ (เช่น '+er[0].path+': '+er[0].msg+') เปิดต่อไหม?'))return;commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});if(repairs.changes.length){openSmartDirector();smartSetStatus(`ปรับข้อมูลที่ขาดอัตโนมัติ ${repairs.changes.length} รายการ · Undo ได้`)} })}}));
+$('#smartImportApply').checked=smartMode()==='auto';$('#bChk').onclick=()=>{const r=plan();showIssues(r.issues,r.log,r.note)};$('#bCtx').onclick=copyCtx;$('#bImp').onclick=importIt;$('#bClose').onclick=()=>$('#dlg').close();
+$('#bAi').onclick=copyAiGuide;$('#bAiFile').onclick=downloadAiGuide;$('#bAiPack').onclick=downloadAiPackage;$('#dlgX').onclick=()=>$('#dlg').close();
+function updateImportHint(){const v=$('#imp').value;let txt='วาง JSON แล้วระบบจะเลือกวิธีนำเข้าให้อัตโนมัติ';try{const r=parseAiJSON(v),mode=detectImportMode(r.data);txt=(r.note?r.note+' · ':'')+(mode?'ตรวจพบ: '+MODE_LABELS[mode]:'ไม่ทราบประเภท JSON');if(mode&&$('#mode').value!=='auto'&&$('#mode').value!==mode)txt+=' · โหมดที่เลือกไม่ตรงกับข้อมูล'}catch(x){if(v.trim())txt='ต้องตรวจรูปแบบ JSON ก่อนนำเข้า'}$('#impHint').textContent=txt}
+$('#imp').addEventListener('input',()=>{updateImportHint();$('#rep').replaceChildren()});$('#mode').addEventListener('change',updateImportHint);
+$('#dlg').addEventListener('close',()=>{$('#rep').replaceChildren()});
+addEventListener('keydown',e=>{const t=e.target.tagName;if(/INPUT|TEXTAREA|SELECT/.test(t)&&!(e.ctrlKey||e.metaKey))return;
+if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}else if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo()}
+else if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();dl('project.json',JSON.stringify(S,null,1),'application/json')}
+else if(/INPUT|TEXTAREA|SELECT/.test(t))return;else if(e.code==='Space'){e.preventDefault();toggle()}else if(e.key==='ArrowLeft')go(-1);else if(e.key==='ArrowRight')go(1)});
+$('#directorQuick').addEventListener('click',openDirector);$('#smartQuick').addEventListener('click',openSmartDirector);$('#aiQuick').addEventListener('click',()=>switchStudioTool('ai'));
+$('#capToggle').addEventListener('click',e=>{PREVIEW_SHOW_CAPTIONS=!PREVIEW_SHOW_CAPTIONS;e.currentTarget.classList.toggle('off',!PREVIEW_SHOW_CAPTIONS);draw()});
+$('#labelToggle').addEventListener('click',e=>{PREVIEW_SHOW_LABELS=!PREVIEW_SHOW_LABELS;e.currentTarget.classList.toggle('off',!PREVIEW_SHOW_LABELS);draw()});
+$('#menubackdrop').addEventListener('click',()=>setMenuOpen(false));
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#menu').hidden)setMenuOpen(false)});
+addEventListener('click',e=>{const m=$('#menu');if(!m.hidden&&!m.contains(e.target)&&e.target.id!=='mbtn')setMenuOpen(false)});
+$('#mtabs').replaceChildren(...[['ins','✎ ฉาก'],['lib','☰ ไลบรารี']].map(([k,t])=>h('button',{className:k==='ins'?'on':'',onclick:e=>{document.body.classList.remove('m-ins','m-lib');document.body.classList.add('m-'+k);[...$('#mtabs').children].forEach(b=>b.classList.toggle('on',b===e.currentTarget))}},t)));document.body.classList.add('m-ins');
+try{S=JSON.parse(localStorage.getItem(LS))}catch(e){}
+if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.episodes&&old.project&&old.project.title!=='เปิดตัว Story Studio'&&old.project.title!=='ตัวอย่างผัง จุดยึด และ OpenPose')S=old}catch(e){}}
+if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
+render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
+new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
+</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script></body></html>,err.message)],log:[],note:'นำเข้าเนื้อเรื่องล้วน',mode:'replace'}}
+ const detected=detectImportMode(d),requested=$('#mode').value,mode=requested==='auto'?detected:requested;
 const note=[parsed.note,detected&&requested==='auto'?'ตรวจพบ: '+MODE_LABELS[detected]:''].filter(Boolean).join(' · ');
 const fail=(msg,fix)=>({issues:[E1('$',msg,fix)],log:[],note,mode});
 if(!mode)return fail('ไม่ทราบว่า JSON ที่วางมาเป็นรูปแบบไหน','ใช้ {"ops":[...]} สำหรับแก้ไข หรือ JSON ทั้งโปรเจกต์สำหรับสร้างใหม่');
@@ -5227,4 +5836,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script></body></html>
+</script><script src="./studio-ai-core.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script></body></html>
