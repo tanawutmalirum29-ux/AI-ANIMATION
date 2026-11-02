@@ -8,12 +8,12 @@ const data=JSON.parse(fs.readFileSync(file,'utf8'));
 const verified=ml.validate(data),report=ml.evaluate(data);
 const split=ml.splitByStory(data),trainGroups=new Set(split.train.map(x=>x.group)),
  testGroups=new Set(split.test.map(x=>x.group));
-assert.equal(data.rows.length,75);
-assert.equal(verified.groups,15);
-assert.deepEqual(Object.values(verified.counts),[15,15,15,15,15]);
+assert.equal(data.rows.length,105);
+assert.equal(verified.groups,21);
+assert.deepEqual(Object.values(verified.counts),[21,21,21,21,21]);
 assert.equal([...testGroups].filter(x=>trainGroups.has(x)).length,0,
  'No story may appear in both training and holdout sets');
-assert.equal(report.testRows,15);
+assert.equal(report.testRows,20);
 const model=ml.fit(data.rows);
 assert.equal(model.task,'thai-narrative-edit-diagnosis');
 console.log(JSON.stringify({

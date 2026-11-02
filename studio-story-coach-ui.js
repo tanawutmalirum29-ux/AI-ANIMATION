@@ -46,10 +46,11 @@ function scene(){
 function promptReview(bundle){
  return 'Review CURRENT Thai narration for causal continuity, missing transitions and clarity. '+
   'Check PREVIOUS and NEXT scene. Identify specific evidence before concluding something contradicts. '+
+  'Preserve purposeful stutters, urgent repetition, uncertainty, suspense and flashback timeline; do not over-edit. '+
   'You may propose a minimal bridge or improved Thai narration when appropriate, without adding canon, names or invented facts. '+
   'Return JSON with reply in Thai and ops:[{op:"updateScene",id:"'+bundle.sceneId+
   '",patch:{voiceover:"edited Thai text"}}] ONLY if a change is useful; otherwise ops:[]. '+
-  'No fabricated audiovisual observations or invented events. This is owner-review only.';
+  'No fabricated audiovisual observations or invented events. If the original is sound use ops:[]; explain Thai evidence. This is owner-review only.';
 }
 function ownerSnapshot(){
  return JSON.stringify(bridge.get().episodes.flatMap(ep=>ep.scenes||[]).find(x=>x.id===state?.bundle?.sceneId)||null);

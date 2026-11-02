@@ -10,6 +10,16 @@ if(root)root.StoryContinuityCoach=mod;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
 'use strict';
 const ISSUES=Object.freeze(['continuity','clarity','expand','pacing','keep']);
+const EDITORIAL_CHECKLIST=Object.freeze([
+ 'ระบุข้อเท็จจริงที่ปรากฏในฉากก่อนหน้า ฉากปัจจุบัน และฉากถัดไปก่อนสรุป',
+ 'รักษาลำดับเหตุและผล เวลา สถานที่ มุมมองของผู้เล่า และสิ่งที่ตัวละครยังไม่รู้',
+ 'แยกความทรงจำ ความฝัน ข้อสงสัย และการคาดเดาออกจากเหตุการณ์จริง',
+ 'อย่าเฉลยปริศนา ระบุตัวผู้กระทำ เพิ่มตัวละคร หรือสร้างเหตุการณ์ที่ไม่มีหลักฐาน',
+ 'ตรวจคำซ้ำตามเจตนา: ความกลัว ความลังเล คำสั่งเร่งด่วน เสียงเลียนธรรมชาติ และจังหวะวรรณศิลป์อาจต้องเก็บไว้',
+ 'ปรับบทพากย์ให้เข้าใจง่าย กระชับ แต่ไม่ตัดภาพ เสียง อารมณ์ หรือรายละเอียดที่ทำหน้าที่สำคัญ',
+ 'ถ้าจะต่อเติม ให้ใช้เฉพาะรายละเอียดที่มีหลักฐานในบริบท; ข้อเสนอเชิงสร้างสรรค์ใหม่ต้องแยกต่างหาก',
+ 'หากบทเดิมเหมาะสมแล้ว หรือหลักฐานไม่พอ ให้คงต้นฉบับและอธิบายเหตุผล'
+]);
 const trim=(v,n)=>String(v==null?'':v).trim().slice(0,n);
 function selected(project,sceneId){
  const episodes=Array.isArray(project?.episodes)?project.episodes:[];
@@ -37,6 +47,10 @@ function signals(bundle){
   clues.push('บทพากย์ฉากก่อนหน้าและฉากนี้เหมือนกัน ควรตรวจว่าเป็นการย้ำโดยเจตนาหรือคัดลอกผิด');
  if(prev?.location&&current.location&&prev.location!==current.location)
   clues.push('สถานที่เปลี่ยนจากฉากก่อนหน้า: ตรวจว่ามีคำเชื่อมหรือฉากเปลี่ยนสถานที่เพียงพอ');
+ if(/(?:\.\.\.|…|!)[ ]*(?:ผม|ฉัน|ไป|เดี๋ยว|ไม่|ช่วย)[^\n]{0,15}|(?:ไป!\s*ไป|ผม\.\.\.\s*ผม)/u.test(current.voiceover))
+  clues.push('พบจังหวะหยุดหรือคำซ้ำที่อาจสื่ออารมณ์: อย่าตัดทิ้งก่อนตรวจเจตนาของผู้พูด');
+ if(/ไม่แน่ใจ|ยังไม่รู้|ไม่ทราบ|อาจจะ|เหมือนว่า/u.test(current.voiceover))
+  clues.push('ผู้เล่ายังไม่แน่ใจ: ห้ามเปลี่ยนถ้อยคำสงสัยให้กลายเป็นข้อเท็จจริง');
  // A warning is a review hint, not proof of logical contradiction.
  return clues;
 }
@@ -49,7 +63,7 @@ function grams(text){
 function examples(bundle,lessons,limit=3){
  const sample=Array.isArray(lessons)?lessons:[];
  const target=grams([bundle?.previous?.voiceover,bundle?.current?.voiceover,bundle?.next?.voiceover].filter(Boolean).join(' '));
- return sample.filter(x=>x&&x.issue!=='keep'&&typeof x.original==='string'&&typeof x.revised==='string')
+ return sample.filter(x=>x&&ISSUES.includes(x.issue)&&typeof x.original==='string'&&typeof x.revised==='string')
   .map(x=>{
    const other=grams([x.previous,x.original,x.next].filter(Boolean).join(' '));
    let shared=0;for(const term of target)if(other.has(term))shared++;
@@ -63,7 +77,8 @@ function examples(bundle,lessons,limit=3){
 function prompt(bundle,related=[],foundationExamples=[],childAdvice=null){
  if(!bundle?.current?.voiceover)throw Error('เลือกฉากที่มีบทพากย์ก่อน');
  const data={task:'thai-story-coherence',
-  instructions:'Assess the relation of PREVIOUS/CURRENT/NEXT Thai narration. Separate proven contradiction from missing context. Preserve canon, names, chronology and author intent. If needed propose the smallest Thai rewrite or short bridging line. Do not invent a new character, fact or irreversible event. Label optional creative additions as suggestions. Return JSON reply and at most one updateScene op for CURRENT scene voiceover; no automatic changes. Explain the reason in Thai. If nothing should change return ops:[].',
+  instructions:'Review Thai narration PREVIOUS/CURRENT/NEXT using editorialChecklist. Identify evidence and distinguish contradictions from unknown information. Prefer minimal changes, preserve deliberate repetition, uncertainty, suspense, emotion and spoken cadence. Preserve canon, established facts and chronology; no invented canon or irreversible events. If no justified change, return ops:[]. Return Thai rationale and at most one updateScene operation for CURRENT voiceover; never auto-apply.',
+  editorialChecklist:[...EDITORIAL_CHECKLIST],
   context:bundle,localReviewHints:signals(bundle),
   ownerApprovedExamples:related.slice(0,2),
   syntheticFoundationExamples:foundationExamples.slice(0,1),
@@ -78,5 +93,5 @@ function validLesson(l){
   typeof l.revised==='string'&&l.revised.trim().length>=4&&
   l.original.length<=1200&&l.revised.length<=1200;
 }
-return Object.freeze({ISSUES,selected,signals,examples,prompt,validLesson});
+return Object.freeze({ISSUES,EDITORIAL_CHECKLIST,selected,signals,examples,prompt,validLesson});
 });

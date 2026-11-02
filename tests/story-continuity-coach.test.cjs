@@ -58,3 +58,20 @@ test('narrative coach is mounted and never directly sends a key or trains weight
  assert.match(build,/studio-story-coach\.js studio-story-coach-ui\.js/);
  assert.doesNotMatch(ui,/localStorage\.setItem/);
 });
+
+test('teacher checklist requires uncertainty, suspense and expressive repetition; approved keep is retrievable',()=>{
+ const bundle=coach.selected(project,'s2'),prompt=JSON.parse(coach.prompt(bundle));
+ assert.ok(prompt.editorialChecklist.some(x=>x.includes('คำซ้ำ')));
+ assert.ok(prompt.editorialChecklist.some(x=>x.includes('ความทรงจำ')));
+ assert.ok(prompt.editorialChecklist.some(x=>x.includes('ปริศนา')));
+ const current=bundle.current.voiceover;
+ const related=coach.examples(bundle,[{
+  issue:'keep',previous:bundle.previous.voiceover,original:current,
+  revised:current,next:bundle.next.voiceover,ownerReason:'รักษาบทเดิม'
+ }]);
+ assert.equal(related.length,1);
+ assert.equal(related[0].issue,'keep');
+ const emotional={...bundle,current:{...bundle.current,voiceover:'ผม... ผมไม่แน่ใจว่าเห็นเขาหรือเปล่า'}};
+ assert.ok(coach.signals(emotional).some(x=>x.includes('จังหวะหยุด')));
+ assert.ok(coach.signals(emotional).some(x=>x.includes('ยังไม่แน่ใจ')));
+});

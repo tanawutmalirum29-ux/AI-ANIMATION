@@ -4,10 +4,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),
 const model=require('../studio-story-foundation.js'),coach=require('../studio-story-coach.js');
 const data=JSON.parse(fs.readFileSync(path.join(__dirname,
  '../training-lab/datasets/thai-narrative-editor-foundation-v1.json'),'utf8'));
-test('75 original Thai editorial cases, five balanced labels, 15 distinct stories',()=>{
+test('105 original Thai editorial cases, five balanced labels, 21 distinct stories',()=>{
  const summary=model.validate(data);
- assert.equal(summary.rows,75);assert.equal(summary.groups,15);
- for(const label of model.LABELS)assert.equal(summary.counts[label],15);
+ assert.equal(summary.rows,105);assert.equal(summary.groups,21);
+ for(const label of model.LABELS)assert.equal(summary.counts[label],21);
  for(const row of data.rows){
   assert.ok(row.original.trim().length>=10&&row.revised.trim().length>=10);
   assert.ok(row.reason.trim().length>=10);
@@ -19,10 +19,10 @@ test('75 original Thai editorial cases, five balanced labels, 15 distinct storie
 test('training and evaluation are separated by story, never by individual scene',()=>{
  const split=model.splitByStory(data),
   train=new Set(split.train.map(x=>x.group)),testGroups=new Set(split.test.map(x=>x.group));
- assert.equal(split.test.length,15);
+ assert.equal(split.test.length,20);
  for(const g of testGroups)assert.ok(!train.has(g));
  const qa=model.evaluate(data);
- assert.equal(qa.trainRows,60);assert.equal(qa.testRows,15);
+ assert.equal(qa.trainRows,85);assert.equal(qa.testRows,20);
  assert.equal(qa.syntheticOnly,true);
  assert.equal(qa.notOwnerApproved,true);
  assert.equal(qa.holdoutGroupDisjoint,true);
@@ -72,4 +72,23 @@ test('runtime and build package all required files and do not auto-edit',()=>{
  assert.match(ui,/StoryNarrativeFoundation\.nearest/);
  assert.match(foundation,/notProductionValidated:true/);
  assert.doesNotMatch(foundation,/localStorage|indexedDB|apiKey/);
+});
+
+test('curriculum retains emotion and suspense instead of deleting expressive words',()=>{
+ assert.equal(data.count,105);
+ const keep=data.rows.filter(x=>x.issue==='keep'&&x.focus);
+ assert.equal(keep.length,6);
+ assert.ok(keep.some(x=>x.original.includes('ดะ...เดี๋ยว')));
+ assert.ok(keep.some(x=>x.original.includes('ผม... ผม')));
+ assert.ok(keep.some(x=>x.original.includes('กึก... กึก')));
+ for(const row of keep)assert.equal(row.original,row.revised);
+ const unsafe={...data,rows:data.rows.map(x=>({...x}))};
+ unsafe.rows.find(x=>x.id==='radio-panic-keep').revised='เดี๋ยว อย่าเพิ่งเข้ามา';
+ assert.throws(()=>model.validate(unsafe),/keep/);
+});
+test('synthetic curriculum detects duplicate editorial labels within same story',()=>{
+ const unsafe={...data,rows:data.rows.map(x=>({...x}))};
+ const duplicate=unsafe.rows.find(x=>x.id==='radio-panic-clarity');
+ duplicate.issue='keep';duplicate.revised=duplicate.original;
+ assert.throws(()=>model.validate(unsafe),/ซ้ำ/);
 });
