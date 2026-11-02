@@ -20,6 +20,7 @@ assert.ok(tokens(opener,'floodgate'));
 assert.ok(tokens(opener,'water-level-gauge'));
 assert.ok(tokens(opener,'upstream-water'));
 assert.ok(tokens(opener,'populated-market'));
+assert.doesNotMatch(opener,/#f8d994/i,'harbor must not emit a giant lighthouse beam unless the story requests it');
 assert.equal((opener.match(/data-world-object="market-stall"/g)||[]).length,3);
 assert.notEqual(opener,openerLate,'waterline/gauge must rise with time');
 
