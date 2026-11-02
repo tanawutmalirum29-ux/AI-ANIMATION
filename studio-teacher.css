@@ -93,3 +93,14 @@
 .story-coach-example p{line-height:1.55;font-size:13px;margin:4px 0}
 .story-coach-example small{white-space:pre-wrap}
 @media(max-width:520px){.story-coach .teacher-row button{flex:1 1 145px}}
+
+/* Thai narrative CPU foundation — explicit provenance and bounded results. */
+.story-coach-foundation,.story-coach-foundation-examples{
+ display:grid;gap:7px;min-width:0;padding:12px;border-radius:11px;
+ border:1px solid #7189a184;background:#14253a;
+}
+.story-coach-foundation strong{font-size:14px}
+.story-coach-foundation p{font-size:13px;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.story-coach-foundation small{font-size:12px;color:#bccbdb;line-height:1.55}
+.story-coach-foundation-examples summary{cursor:pointer;font-size:13px;line-height:1.6}
+.story-coach-foundation-examples .story-coach-example{padding:9px 0}
