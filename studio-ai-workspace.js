@@ -514,7 +514,8 @@ function saveShotLabel(label){
   }
   if(shotRows.length>=500)throw Error('ครบ 500 ตัวอย่างแล้ว กรุณาดาวน์โหลดก่อน');
   shotRows.push(row);status('บันทึกตัวอย่างมุมกล้อง '+shotRows.length+' รายการโดยมนุษย์ตรวจ');
-  render();
+  const download=rootElement?.querySelector('.shot-ml-download');
+  if(download){download.textContent='ดาวน์โหลดตัวอย่าง ('+shotRows.length+')';download.disabled=false}
  }catch(err){status('Shot ML: '+err.message,true)}
 }
 function downloadShotLabels(){
@@ -583,7 +584,7 @@ function renderChat(container){
   e('div',{className:'ai-actions'},
    button('มุมกล้องดีแล้ว · เก็บตัวอย่าง',()=>saveShotLabel('keep'),{disabled:busy}),
    button('มุมกล้องไม่ตรงบท · เก็บตัวอย่าง',()=>saveShotLabel('reframe'),{disabled:busy}),
-   button('ดาวน์โหลดตัวอย่าง ('+shotRows.length+')',downloadShotLabels,{disabled:!shotRows.length})),
+   button('ดาวน์โหลดตัวอย่าง ('+shotRows.length+')',downloadShotLabels,{disabled:!shotRows.length,className:'shot-ml-download'})),
   e('small',{},'ต้องมีอย่างน้อย 100 ตัวอย่างจาก 5 เรื่องขึ้นไป มีทั้งสองคำตอบ · ถ้ารีโหลดหน้าก่อนดาวน์โหลด ตัวอย่างในชุดนี้จะไม่ถูกเก็บไว้'),
   e('div',{className:'ai-actions'},
    e('label',{className:'ai-help'},'เลือกโมเดลที่ผ่านอนุมัติ (.json)',e('input',{type:'file',accept:'.json,application/json',onchange:importShotModel})),
