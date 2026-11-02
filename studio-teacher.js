@@ -62,13 +62,22 @@ function context(){
  const scenes=(selected?.scenes||[]);
  const focus=scenes.findIndex(x=>x.id===current);
  const sample=focus>=0?scenes.slice(Math.max(0,focus-3),focus+4):scenes.slice(0,8);
- return JSON.stringify({project:{title:String(s.project?.title||'').slice(0,160),aspect:s.project?.aspect,fps:s.project?.fps},
+ const info={project:{title:String(s.project?.title||'').slice(0,160),aspect:s.project?.aspect,fps:s.project?.fps},
   episodeOutline:episodes.slice(0,20).map(ep=>({id:ep.id,title:String(ep.title||'').slice(0,80),
     sceneCount:(ep.scenes||[]).length,scenes:(ep.scenes||[]).slice(0,12).map(sc=>({
       id:sc.id,duration:sc.duration,voiceoverPreview:String(sc.voiceover||'').slice(0,75),
       actors:(sc.actors||[]).length,audioClips:(sc.audioClips||[]).length}))})),
   selectedEpisode:selected?.id,selectedSceneId:current,
-  selectedSceneDetails:sample.map(sceneData)}).slice(0,13800);
+  selectedSceneDetails:sample.map(sceneData)};
+ if(JSON.stringify(info).length>13000)
+  info.episodeOutline=info.episodeOutline.map(ep=>({
+   id:ep.id,title:ep.title,sceneCount:ep.sceneCount,
+   scenes:ep.scenes.slice(0,3).map(sc=>({id:sc.id,duration:sc.duration}))}));
+ if(JSON.stringify(info).length>13000)
+  info.selectedSceneDetails=info.selectedSceneDetails.map(sc=>({
+   ...sc,voiceover:sc.voiceover.slice(0,220),notes:sc.notes.slice(0,120),actors:sc.actors.slice(0,3)}));
+ if(JSON.stringify(info).length>13000)info.selectedSceneDetails=info.selectedSceneDetails.slice(0,3);
+ return JSON.stringify(info);
 }
 function summarizeDraft(ops){return ops.map(op=>({id:op.id,patch:op.patch}))}
 function snapshotFor(ops){
