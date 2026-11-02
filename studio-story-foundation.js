@@ -43,22 +43,34 @@ function tokens(row){
   ['transition',/หลัง|เมื่อ|เพราะ|จึง|ก่อน|ระหว่าง|ทันที/u.test(text)],
   ['repeat',/(?:มาก){2}|(?:อย่าง){2}|(?:ที่){2}|ได้มีการ|เนื่องจากว่า/u.test(text)],
   ['quote',/[“”"‘’]/u.test(text)],
-  ['context',previous.length>0&&next.length>0]
+  ['context',previous.length>0&&next.length>0],
+  ['pause',/…|\.{2,}|—/u.test(text)],
+  ['urgency',/!|ช่วยด้วย|เร็วเข้า|อย่าเพิ่ง/u.test(text)],
+  ['uncertainty',/ไม่แน่ใจ|ยังไม่รู้|ไม่ทราบ|อาจจะ|เหมือนว่า/u.test(text)],
+  ['flashback',/ความทรงจำ|ย้อน|วัยเด็ก|เมื่อก่อน/u.test(text)],
+  ['mystery',/เงา|ไร้ชื่อ|ปริศนา|ไม่มีคำอธิบาย/u.test(text)]
  ])if(flag)counts['f:'+key]=2;
  return counts;
 }
 function validate(data){
  if(data?.task!=='thai-narrative-edit-diagnosis'||data?.quality!=='synthetic-foundation-not-human-approved'||
   !Array.isArray(data.rows)||data.rows.length<50)throw Error('ชุดข้อมูลพื้นฐานไม่ถูกต้อง');
- const groups=new Set(),ids=new Set();
+ const groups=new Set(),ids=new Set(),perGroup=new Map();
  const counts=Object.fromEntries(LABELS.map(l=>[l,0]));
  for(const row of data.rows){
   if(!LABELS.includes(row.issue)||row.source!==SOURCE||row.ownerApproved!==false||
    !row.group||!row.id||ids.has(row.id)||!row.original||!row.revised||
    typeof row.reason!=='string'||!row.reason.trim())throw Error('ข้อมูลฝึกไม่ผ่าน QA');
   ids.add(row.id);groups.add(row.group);counts[row.issue]++;
+  if(!perGroup.has(row.group))perGroup.set(row.group,new Set());
+  if(perGroup.get(row.group).has(row.issue))throw Error('หมวดซ้ำในเรื่องเดียวกัน');
+  perGroup.get(row.group).add(row.issue);
+  if(row.issue==='keep'&&row.original!==row.revised)throw Error('ตัวอย่าง keep ต้องไม่แก้ต้นฉบับ');
  }
- if(groups.size<10||LABELS.some(l=>counts[l]<10))throw Error('ชุดข้อมูลไม่สมดุล');
+ if(groups.size<10||LABELS.some(l=>counts[l]!==groups.size)||
+  [...perGroup.values()].some(x=>x.size!==LABELS.length))throw Error('ชุดข้อมูลไม่สมดุล');
+ if(data.count!==data.rows.length||data.groups!==groups.size)
+  throw Error('metadata จำนวนชุดข้อมูลไม่ตรงกัน');
  return {groups:groups.size,counts,rows:data.rows.length};
 }
 function fit(rows){
