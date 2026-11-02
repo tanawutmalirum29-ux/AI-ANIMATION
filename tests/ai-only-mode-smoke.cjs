@@ -95,6 +95,7 @@ const path=require('node:path');
    await page.waitForFunction(()=>StoryStudioBridge.get().episodes[0].scenes[0].voiceover==='ฝนตกในตลาดอย่างหนัก');
    assert.equal(await visible('#pre'),true,'video preview remains unaffected');
    await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'AI ครู / API'}).click();
+   await page.locator('.teacher-tabs').getByRole('button',{name:'คุย / สั่งงาน'}).click();
    assert.equal(await visible('.teacher-auto-teach'),true,'teacher remains available with text-only project');
    await openMenu();
    await page.locator('#menu .menu-action',{hasText:'เปิดสตูดิโอตัดต่อเต็ม'}).click();
