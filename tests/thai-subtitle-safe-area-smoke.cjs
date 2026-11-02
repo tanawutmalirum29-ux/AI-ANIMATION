@@ -50,9 +50,12 @@ const path=require('node:path');
      leftInset:rect.left-stageRect.left,rightInset:stageRect.right-rect.right,
      centered:Math.abs((rect.left+rect.right)/2-(stageRect.left+stageRect.right)/2)};
     sub.textContent=oldText;
-    return {canvases,preview};
+    return {canvases,preview,thaiPhrase:wrapOne('พิมมองเห็นบานเหล็กของประตู',19)};
    }finally{S.project.aspect=originalAspect}
   });
+  assert.ok(result.thaiPhrase.length>=2,'test phrase wraps on 9:16 canvas');
+  assert.ok(!/^ของ/.test(result.thaiPhrase[1]),'do not orphan ของ at the beginning of the second line');
+  assert.ok(result.thaiPhrase.every(x=>[...x].length<=19),'respect established portrait caption width');
   for(const row of result.canvases){
    assert.ok(row.whiteCount>50,'Thai glyphs must actually be drawn: '+row.text);
    assert.ok(row.minX>=row.w*.07,'caption text must not cross left margin: '+JSON.stringify(row));
