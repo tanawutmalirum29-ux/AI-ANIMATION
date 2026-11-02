@@ -236,6 +236,21 @@ def _model(body):
     return _resp(200, {"active": active, "candidate": candidate})
 
 
+def _candidates():
+    from boto3.dynamodb.conditions import Key
+    result = _table().query(
+        KeyConditionExpression=_key() & Key("sk").begins_with("model#"),
+        ScanIndexForward=False, Limit=10)
+    summaries = []
+    for item in result.get("Items", []):
+        model = item.get("model") or {}
+        if model.get("version"):
+            summaries.append({"version": model["version"],
+                              "metrics": model.get("metrics", {}),
+                              "status": model.get("status", "candidate")})
+    return _resp(200, {"candidates": summaries})
+
+
 def _activate(body):
     version = str(body.get("version") or "")
     if not re.fullmatch(r"[0-9]{8,12}-[a-f0-9]{8}", version) or body.get("approvedByOwner") is not True:
@@ -262,6 +277,8 @@ def handle(action, body):
             return _model(body)
         if action == "student.activate":
             return _activate(body)
+        if action == "student.candidates":
+            return _candidates()
     except Exception as exc:
         # Never leak raw text, storage contents, environment variables or API keys.
         return _resp(503, {"error": "AI Student service unavailable: " + type(exc).__name__})
