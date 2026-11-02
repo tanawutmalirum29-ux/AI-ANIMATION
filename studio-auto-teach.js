@@ -339,6 +339,9 @@ async function teach(){
        render();await sleep(62000);
        continue;
       }
+      // Hard model/provider failures cannot be repaired by repeating the
+      // identical request and must not consume the remaining 141-scene quota.
+      break;
      }
     }
     if(!payload){
