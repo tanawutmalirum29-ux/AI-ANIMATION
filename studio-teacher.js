@@ -12,6 +12,7 @@ const MODES=[
  {id:'produce',title:'วางแผนผลิตทุกตอน',prompt:'Create a safe execution plan to produce and validate all episodes. Do not claim to render or export without a tool that actually does so.'}
 ];
 let bridge,container,tab='chat',provider='openrouter',statusData=null,thread=[],pending=[],busy=false,notice='',noticeError=false,lastResponse=null;
+let connectionDraft={url:'',model:''};
 const el=(tag,attrs={},...children)=>{
  const n=$doc.createElement(tag);
  for(const [key,value] of Object.entries(attrs)){
@@ -193,6 +194,10 @@ async function saveReply(outcome){
 }
 function chatPanel(){
  const content=el('div',{className:'teacher-content'});
+ if(!modelOptions().some(p=>p.ready))content.append(el('div',{className:'teacher-quick-banner'},
+  el('strong',{},'ยังไม่ได้เชื่อม AI ครู'),
+  el('p',{},'ใช้ลิงก์ API และ API Key เท่านั้น ระบบเลือกโมเดลเริ่มต้นให้'),
+  button('เชื่อม AI ครู',()=>{tab='connect';render()},'teacher-primary')));
  const providerSelect=el('select',{onchange:ev=>{provider=ev.target.value;render()}},
   ...modelOptions().map(p=>el('option',{value:p.id,selected:p.id===provider},p.id+' · '+(p.ready?'พร้อมใช้งาน':'ยังไม่เชื่อม'))));
  content.append(el('label',{className:'teacher-field'},'AI ครูที่เลือก',providerSelect));
@@ -213,33 +218,97 @@ function chatPanel(){
   button('ตั้งค่า API',()=>{tab='connect';render()},'',busy)));
  return content;
 }
+/* Quick Connect deliberately recognizes only exact provider hosts. A dashboard URL
+ * identifies the provider, not credentials. Arbitrary endpoints remain AWS-allowlisted. */
+function resolveTeacherApiLink(value){
+ let raw=String(value||'').trim();
+ if(!raw)return {error:'กรุณาวางลิงก์ API หรือเลือกผู้ให้บริการด้านล่าง'};
+ if(/^(?:openrouter\.ai|aistudio\.google\.com|generativelanguage\.googleapis\.com)(?:\/|$)/i.test(raw))raw='https://'+raw;
+ let uri;try{uri=new URL(raw)}catch(_){return {error:'ลิงก์ไม่ถูกต้อง ต้องเป็น URL แบบ https://'};}
+ if(uri.protocol!=='https:'||uri.username||uri.password||uri.search||uri.hash||!['','443'].includes(uri.port))
+  return {error:'ใช้ HTTPS และอย่าใส่คีย์ในลิงก์ ให้แยก API Key ลงช่องด้านล่าง'};
+ const host=uri.hostname.toLowerCase(),path=uri.pathname.replace(/\/+$/,'')||'/';
+ if(host==='openrouter.ai'||host==='www.openrouter.ai')
+  return {provider:'openrouter',url:'https://openrouter.ai/api/v1',name:'OpenRouter'};
+ if(['aistudio.google.com','ai.google.dev','generativelanguage.googleapis.com'].includes(host))
+  return {provider:'gemini',url:'https://generativelanguage.googleapis.com/v1beta',name:'Google Gemini'};
+ if(!/^[a-z0-9.-]+$/i.test(host)||host==='localhost')
+  return {error:'โดเมน API ไม่ถูกต้อง'};
+ const base=path.replace(/\/chat\/completions$/,'').replace(/\/+$/,'');
+ if(!base||base==='/')return {error:'ลิงก์ API อื่นต้องระบุ Base URL เช่น https://api.example.com/v1'};
+ return {provider:'compatible',url:uri.origin+base,name:'OpenAI-compatible'};
+}
+function teacherModelFor(providerId){
+ return modelOptions().find(x=>x.id===providerId)?.model||
+  (providerId==='gemini'?'gemini-2.5-flash':providerId==='openrouter'?'google/gemma-3-27b-it:free':'');
+}
 async function saveConnection(){
- const p=container.querySelector('#teacherProvider')?.value||provider;
- const model=container.querySelector('#teacherModel')?.value.trim();
- const apiKey=container.querySelector('#teacherApiKey')?.value.trim();
- const baseUrl=container.querySelector('#teacherBaseUrl')?.value.trim();
- busy=true;render(false);
- try{await api('teacher.configure',{provider:p,model,apiKey,baseUrl});
-  provider=p;setNotice('บันทึกการเชื่อมต่อใน AWS Secrets Manager สำเร็จ');
-  await loadStatus();tab='connect';render();
- }catch(e){setNotice('ตั้งค่า AI ครูไม่สำเร็จ: '+e.message,true)}
- finally{busy=false;render()}
+ if(busy)return;
+ const input=container.querySelector('#teacherQuickUrl');
+ const link=resolveTeacherApiLink(input?.value||connectionDraft.url);
+ if(link.error){setNotice(link.error,true);return;}
+ const p=link.provider,configured=modelOptions().find(x=>x.id===p);
+ const model=(container.querySelector('#teacherAdvancedModel')?.value||'').trim()||teacherModelFor(p);
+ if(p==='compatible'&&!model){setNotice('สำหรับ API อื่น ต้องใส่ Model ID ในตัวเลือกขั้นสูงก่อน',true);return;}
+ const keyInput=container.querySelector('#teacherQuickKey');
+ const apiKey=keyInput?.value.trim()||'';
+ if(!apiKey&&!configured?.ready){setNotice('ยังไม่มี API Key ที่บันทึกไว้ ต้องใส่ API Key ก่อน (ลิงก์อย่างเดียวใช้ไม่ได้)',true);return;}
+ if(!session()){setNotice('กรุณาเข้าสู่ระบบสตูดิโอก่อนเชื่อม API',true);return;}
+ busy=true;
+ if(keyInput)keyInput.value='';
+ const submit=container.querySelector('#teacherQuickSubmit');
+ if(submit)submit.disabled=true;
+ try{
+  const data=await api('teacher.configure',{provider:p,model,apiKey,
+   baseUrl:p==='compatible'?link.url:''});
+  if(!data.ok)throw Error('AWS ไม่ยืนยันการบันทึกการเชื่อมต่อ');
+  statusData=await api('teacher.status');
+  if(!statusData.providers?.some(x=>x.id===p&&x.ready))
+   throw Error('ยังตรวจไม่พบการบันทึกคีย์บน AWS');
+  provider=p;connectionDraft={url:link.url,model:''};tab='chat';
+  setNotice('บันทึก API '+link.name+' บน AWS แล้ว · ทดลองส่งคำสั่งในแชตเพื่อตรวจการตอบจริง');
+ }catch(e){
+  setNotice('เชื่อม API ไม่สำเร็จ: '+String(e.message||e),true);
+ }finally{busy=false;render();}
 }
 function connectPanel(){
  const content=el('div',{className:'teacher-content'});
- const providers=modelOptions();const item=providers.find(x=>x.id===provider)||providers[0];
- const picker=el('select',{id:'teacherProvider',onchange:ev=>{provider=ev.target.value;render()}},
-  ...providers.map(p=>el('option',{value:p.id,selected:p.id===provider},p.id+(p.ready?' (เชื่อมแล้ว)':''))));
- content.append(el('label',{className:'teacher-field'},'ผู้ให้บริการ',picker),
-  textField('Model ID',item.model||'',{id:'teacherModel',placeholder:'model-id'}),
-  textField('API key (ใส่ตอนเชื่อมหรือเปลี่ยนคีย์เท่านั้น)','',{id:'teacherApiKey',type:'password',autocomplete:'off',placeholder:item.ready?'เว้นว่างเพื่อใช้คีย์บน AWS':'วาง API key ที่นี่'}));
- if(provider==='compatible')content.append(textField('API Base URL · ต้องอนุญาต host บน AWS ก่อน',item.baseUrl||'',{id:'teacherBaseUrl',placeholder:'https://approved-host.example/v1'}));
- content.append(el('p',{className:'teacher-muted'},
-  'คีย์ส่งผ่าน HTTPS ไปยัง Lambda ที่ยืนยันตัวตน และบันทึกไว้ใน AWS SSM SecureString หรือ Secrets Manager เท่านั้น ไม่ถูกเก็บในไฟล์โปรเจกต์/เบราว์เซอร์/GitHub'),
-  el('div',{className:'teacher-row'},button('บันทึกและเชื่อมต่อ',saveConnection,'teacher-primary',busy||!session()),
-    button('ตรวจสถานะ',loadStatus,'',busy)),
-  el('p',{className:'teacher-muted'},'ต้องตั้งค่า TEACHER_SETTINGS_PARAMETER หรือ TEACHER_SETTINGS_SECRET_ID และสิทธิ์ AWS Lambda ก่อน ปิดการเชื่อมต่อหรือหมุนคีย์จาก AWS Secrets Manager ได้'));
- if(!statusData?.settingsReady)content.append(el('p',{className:'teacher-warning'},'ยังไม่พบที่เก็บคีย์บน AWS โปรดรัน setup-teacher.sh หลังติดตั้ง Lambda'));
+ const sample=connectionDraft.url||'';
+ const initial=resolveTeacherApiLink(sample);
+ const connected=modelOptions().filter(p=>p.ready);
+ const saved=initial.provider&&connected.some(p=>p.id===initial.provider);
+ content.append(el('h3',{},'เชื่อม AI ครูแบบง่าย'),
+  el('p',{className:'teacher-muted'},'วางลิงก์ API → ใส่ API Key → กดเชื่อม ระบบจะรู้จัก OpenRouter หรือ Gemini ให้อัตโนมัติ'),
+  el('label',{className:'teacher-field'},el('span',{},'1. ลิงก์ API'),
+   el('input',{id:'teacherQuickUrl',value:connectionDraft.url,inputMode:'url',autocomplete:'off',
+    spellcheck:'false',placeholder:'https://openrouter.ai/api/v1',
+    oninput:ev=>{
+      connectionDraft.url=ev.target.value;
+      const match=resolveTeacherApiLink(ev.target.value);
+      const hint=container.querySelector('#teacherUrlHint');
+      if(hint)hint.textContent=match.error?match.error:'ตรวจพบ '+match.name+
+       ' · โมเดล '+(connectionDraft.model||teacherModelFor(match.provider)||'ตั้งค่าในขั้นสูง');
+    }})),
+  el('p',{id:'teacherUrlHint',className:'teacher-muted'},
+    initial.provider?'ตรวจพบ '+initial.name+' · '+(saved?'มีคีย์บันทึกไว้แล้ว':'ต้องใส่ API Key'): 'รองรับลิงก์ OpenRouter, Google AI Studio และ API ที่อนุญาตบน AWS'),
+  el('div',{className:'teacher-row teacher-provider-preset'},
+   button('OpenRouter',()=>{connectionDraft.url='https://openrouter.ai/api/v1';connectionDraft.model='';render()}),
+   button('Gemini',()=>{connectionDraft.url='https://generativelanguage.googleapis.com/v1beta';connectionDraft.model='';render()})),
+  el('label',{className:'teacher-field'},el('span',{},'2. API Key'),
+   el('input',{id:'teacherQuickKey',type:'password',autocomplete:'new-password',spellcheck:'false',
+    placeholder:saved?'มีคีย์เดิมบน AWS แล้ว (เว้นว่างได้)':'วาง API Key ที่นี่'})),
+  el('details',{className:'teacher-advanced'},
+   el('summary',{},'ตัวเลือกขั้นสูง · เลือกโมเดลเอง / API อื่น'),
+   el('p',{className:'teacher-muted'},'OpenRouter ใช้เฉพาะโมเดล :free ตามค่าเริ่มต้น API อื่นต้องมี Model ID และโดเมนต้องอยู่ในรายการที่อนุญาตบน AWS'),
+   textField('Model ID (ไม่บังคับสำหรับ OpenRouter / Gemini)',connectionDraft.model,{
+    id:'teacherAdvancedModel',placeholder:'เว้นว่างเพื่อเลือกให้อัตโนมัติ',
+    oninput:ev=>{connectionDraft.model=ev.target.value;}})),
+  el('div',{className:'teacher-row'},
+   button(busy?'กำลังบันทึก...':'เชื่อมต่อ AI ครู',saveConnection,'teacher-primary',busy||!session()),
+   button('ตรวจสถานะ AWS',loadStatus,'',busy)),
+  el('p',{className:'teacher-muted'},'ต้องใช้ API Key ของผู้ให้บริการด้วย (ลิงก์อย่างเดียวไม่ใช่สิทธิ์ใช้งาน AI) · คีย์จะส่งผ่าน HTTPS และเก็บใน SSM SecureString หรือ Secrets Manager ไม่บันทึกลงโปรเจกต์หรือ GitHub'));
+ if(connected.length)content.append(el('p',{className:'teacher-muted'},'บันทึกคีย์ไว้แล้ว: '+connected.map(x=>x.id).join(', ')+' · ยังต้องทดลองส่งข้อความเพื่อยืนยันว่าโมเดลตอบได้จริง'));
+ if(!statusData?.settingsReady)content.append(el('p',{className:'teacher-warning'},'ยังไม่ได้ตรวจพบสถานะที่เก็บคีย์บน AWS กรุณาเข้าสู่ระบบและกดตรวจสถานะ'));
  return content;
 }
 async function showHistory(){
