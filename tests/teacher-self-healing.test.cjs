@@ -46,10 +46,35 @@ test('partial teacher failure is retried automatically and final script can expo
  assert.equal(result.completed,2);
  assert.equal(result.readyExport,true);
  assert.deepEqual(result.pendingSceneIds,[]);
+ assert.equal(result.unresolved,0);
+ assert.equal(result.resolvedRetries,1);
+ assert.equal(result.failReasons.length,0);
+ assert.equal(result.error,'');
+ // The historical retry remains in diagnostics, but does NOT become a
+ // permanent "still failed" count after AWS has accepted the scene.
+ assert.equal(result.results.reduce((n,x)=>n+(x.failed||0),0),1);
+ assert.equal(result.completed,2);
  assert.equal(result.trainingStatus.status,'collecting-diverse-teacher-lessons');
  const ready=auto.downloadableProject();
  assert.equal(ready.episodes[0].scenes.length,2);
  assert.equal(ready.episodes[0].scenes[0].voiceover,project.episodes[0].scenes[0].voiceover);
+});
+test('new scan clears stale completed status and prevents old project export',async()=>{
+ init();
+ await auto.scan();
+ const st=auto.getState();
+ assert.equal(st.completed,0);
+ assert.equal(st.readyExport,false);
+ assert.equal(st.unresolved,2);
+ assert.equal(st.resolvedRetries,0);
+ assert.deepEqual(st.failReasons,[]);
+ assert.throws(()=>auto.downloadableProject(),/ไม่ครบทุกฉาก|ไม่ตรงกับ JSON/);
+});
+test('finished screen computes outstanding from unique confirmed scenes, not historical retry failures',()=>{
+ assert.match(source,/Math\.max\(0,\(scanned\?\.rows\.length\|\|0\)-completedLessons\.size\)/);
+ assert.match(source,/pendingSceneIds=allRows\.filter/);
+ assert.match(source,/if\(readyExport\)\{[\s\S]{0,180}failReasons=\[\];error=''/);
+ assert.match(source,/ความหลากหลาย/);
 });
 test('auto-training endpoint and owner-delegated provenance are wired',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../autodub/teacher.py'),'utf8'),
