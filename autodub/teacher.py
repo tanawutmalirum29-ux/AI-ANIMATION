@@ -2,6 +2,7 @@
 Only call after handler.py has validated a signed site session.
 Provider keys live in AWS SSM SecureString or Secrets Manager, never in GitHub or logs.
 """
+import hashlib
 import json
 import os
 import re
@@ -177,8 +178,22 @@ def _extract_json(answer):
     if isinstance(lesson, dict) and lesson.get("label") in ("keep", "remove", "review"):
         advice = {"label": lesson["label"],
                   "reason": str(lesson.get("reason") or "")[:600]}
+    teaching = []
+    for item in result.get("teachingLessons", []) if isinstance(result.get("teachingLessons"), list) else []:
+        if not isinstance(item, dict) or len(teaching) >= 3:
+            continue
+        if item.get("issue") not in ("continuity", "clarity", "expand", "pacing", "keep"):
+            continue
+        if not isinstance(item.get("sceneId"), str) or not isinstance(item.get("revised"), str):
+            continue
+        if not isinstance(item.get("reason"), str):
+            continue
+        teaching.append({"sceneId": item["sceneId"][:100],
+                         "issue": item["issue"],
+                         "revised": item["revised"][:1200],
+                         "reason": item["reason"][:700]})
     return {"reply": str(result.get("reply") or "")[:4000], "ops": ops,
-            "lessonDecision": advice}
+            "lessonDecision": advice, "teachingLessons": teaching}
 
 def _chat(body):
     settings = _settings()
@@ -261,6 +276,145 @@ def _chat(body):
     return _response(200, {**parsed, "provider": provider, "model": model,
                            "applied": False, "trained": False})
 
+
+def _auto_teach(body):
+    """Call the AI teacher and archive its own lessons as UNVERIFIED suggestions.
+
+    No owner approval is inferred; these examples must never enter the CPU
+    human-approved training partition or automatically modify a JSON project.
+    One HTTP invocation handles up to three scenes. A stable hash deduplicates
+    calls and stored lessons on retries (including a browser reconnect).
+    """
+    import boto3
+    from boto3.dynamodb.conditions import Key
+    project = body.get("projectId")
+    provider = body.get("provider", "openrouter")
+    scenes = body.get("scenes")
+    if not isinstance(project, str) or not re.fullmatch(r"[a-zA-Z0-9_-]{5,90}", project):
+        return _response(400, {"error": "รหัสโปรเจกต์ไม่ถูกต้อง"})
+    if provider not in PROVIDERS or not isinstance(scenes, list) or not 1 <= len(scenes) <= 3:
+        return _response(400, {"error": "เลือก AI ครูและส่งฉากครั้งละ 1–3 ฉาก"})
+    clean = []
+    ids = set()
+    for x in scenes:
+        if not isinstance(x, dict) or not isinstance(x.get("id"), str):
+            return _response(400, {"error": "ข้อมูลฉากไม่ถูกต้อง"})
+        sid, narration = x["id"], x.get("text")
+        if (not 1 <= len(sid) <= 100 or sid in ids or
+            not isinstance(narration, str) or not 4 <= len(narration.strip()) <= 700):
+            return _response(400, {"error": "ฉากหรือบทพากย์ไม่ถูกต้อง/ยาวเกินไป"})
+        ids.add(sid)
+        before, after = x.get("previous", ""), x.get("next", "")
+        if (not isinstance(before, str) or len(before) > 350 or
+            not isinstance(after, str) or len(after) > 350):
+            return _response(400, {"error": "บริบทฉากยาวเกินไป"})
+        clean.append({"id": sid, "episodeId": str(x.get("episodeId") or "")[:90],
+                      "text": narration.strip(), "previous": before,
+                      "next": after, "studentIssue": str(x.get("studentIssue") or "")[:40]})
+    table_name = os.environ.get("TEACHER_FEEDBACK_TABLE")
+    if not table_name:
+        return _response(503, {"error": "ยังไม่ได้ติดตั้งฐานข้อมูลบทเรียนบน AWS"})
+    table = boto3.resource("dynamodb").Table(table_name)
+    pk = "learning#teacher-story-coherence"
+    for x in clean:
+        fingerprint = json.dumps({"project": project, "scene": x["id"],
+                                  "episode": x["episodeId"], "text": x["text"],
+                                  "previous": x["previous"], "next": x["next"]},
+                                 ensure_ascii=False, sort_keys=True)
+        x["key"] = "teach#" + hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
+    # Reuse saved work: no additional teacher tokens for identical scenes.
+    cached = {}
+    fresh = []
+    for x in clean:
+        response = table.query(KeyConditionExpression=Key("pk").eq(pk) & Key("sk").eq(x["key"]),
+                               Limit=1)
+        items = response.get("Items", [])
+        if items and items[0].get("status") == "teacher-reviewed-unverified":
+            cached[x["id"]] = items[0]["record"]
+        else:
+            fresh.append(x)
+    if not fresh:
+        return _response(200, {"saved": 0, "reused": len(cached), "failed": 0,
+                               "trainedWeights": False, "lessons": list(cached.values()),
+                               "verifiedByOwner": False})
+    prompt = (
+        "You are teaching a junior AI that checks Thai story continuity. "
+        "For EVERY supplied scene, review the narration against previous and next. "
+        "Correct only grounded errors; keep already-good scenes unchanged. "
+        "Preserve characters, canon and emotion. Do not invent events. "
+        "Reply in concise JSON: "
+        '{"reply":"Thai summary","ops":[],"teachingLessons":['
+        '{"sceneId":"exact id","issue":"continuity|clarity|expand|pacing|keep",'
+        '"revised":"entire improved or unchanged Thai narration",'
+        '"reason":"specific Thai rationale with contextual evidence"}]}. '
+        "Return exactly one teachingLessons entry per scene. "
+        "Do NOT claim humans approved the lessons, trained weights or changed files."
+    )
+    context = json.dumps({"scenes": [
+        {key: x[key] for key in ("id", "text", "previous", "next", "studentIssue")}
+        for x in fresh]}, ensure_ascii=False)
+    called = _chat({"provider": provider, "message": prompt, "context": context, "history": []})
+    if called["statusCode"] != 200:
+        return called
+    result = json.loads(called["body"])
+    available = {x["id"]: x for x in fresh}
+    persisted = []
+    for lesson in result.get("teachingLessons", []):
+        x = available.get(lesson["sceneId"])
+        if not x or x["id"] in {r["sceneId"] for r in persisted}:
+            continue
+        revised = lesson["revised"].strip()
+        reason = lesson["reason"].strip()
+        issue = lesson["issue"]
+        if (not 4 <= len(revised) <= 1200 or len(reason) < 12 or
+            (issue == "keep" and revised != x["text"]) or
+            (issue != "keep" and revised == x["text"])):
+            continue
+        record = {"projectId": project, "sceneId": x["id"], "episodeId": x["episodeId"],
+                  "issue": issue, "original": x["text"], "revised": revised,
+                  "previous": x["previous"], "next": x["next"],
+                  "studentDecision": x["studentIssue"], "teacherReason": reason,
+                  "ownerReason": "", "provider": result.get("provider", provider),
+                  "model": result.get("model", ""), "source": "teacher-auto-unverified",
+                  "reviewedByOwner": False, "usedForWeightTraining": False}
+        try:
+            table.put_item(Item={"pk": pk, "sk": x["key"], "record": record,
+                                 "status": "teacher-reviewed-unverified",
+                                 "createdAt": int(time.time())},
+                           ConditionExpression="attribute_not_exists(pk) AND attribute_not_exists(sk)")
+        except Exception as exc:
+            if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                raise
+            # Same idempotent source is already stored; treat retry as a reused lesson.
+            cached[x["id"]] = record
+            continue
+        persisted.append(record)
+    return _response(200, {"saved": len(persisted), "reused": len(cached),
+                           "failed": len(fresh) - len(persisted),
+                           "lessons": list(cached.values()) + persisted,
+                           "verifiedByOwner": False, "trainedWeights": False,
+                           "mode": "teacher-reviewed-unverified-memory"})
+
+
+def _auto_lessons(body):
+    import boto3
+    from boto3.dynamodb.conditions import Key
+    limit = body.get("limit", 30)
+    if type(limit) is not int or not 1 <= limit <= 60:
+        return _response(400, {"error": "limit ต้องเป็น 1–60"})
+    table_name = os.getenv("TEACHER_FEEDBACK_TABLE")
+    if not table_name:
+        return _response(503, {"error": "ฐานข้อมูลบทเรียนยังไม่พร้อม"})
+    response = boto3.resource("dynamodb").Table(table_name).query(
+        KeyConditionExpression=Key("pk").eq("learning#teacher-story-coherence"),
+        Limit=limit, ScanIndexForward=False)
+    lessons = [r["record"] for r in response.get("Items", [])
+               if r.get("status") == "teacher-reviewed-unverified" and
+               isinstance(r.get("record"), dict)]
+    return _response(200, {"lessons": lessons, "verifiedByOwner": False,
+                           "trainedWeights": False, "nextCursorAvailable":
+                           bool(response.get("LastEvaluatedKey"))})
+
 def _feedback(body):
     table = os.getenv("TEACHER_FEEDBACK_TABLE")
     if not table:
@@ -310,6 +464,10 @@ def handle(action, body):
             return _configure(body)
         if action == "teacher.chat":
             return _chat(body)
+        if action == "teacher.autoTeach":
+            return _auto_teach(body)
+        if action == "teacher.autoLessons":
+            return _auto_lessons(body)
         if action == "teacher.feedback":
             return _feedback(body)
         if action == "teacher.history":
