@@ -396,7 +396,7 @@ def _auto_teach(body):
             continue
         persisted.append(record)
     return _response(200, {"saved": len(persisted), "reused": len(cached),
-                           "failed": len(fresh) - len(persisted),
+                           "failed": len(fresh) - len(persisted) - (len(cached) - (len(clean) - len(fresh))),
                            "lessons": list(cached.values()) + persisted,
                            "verifiedByOwner": False, "trainedWeights": False,
                            "mode": "teacher-reviewed-unverified-memory"})
