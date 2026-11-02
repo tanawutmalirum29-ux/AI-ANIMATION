@@ -1,80 +1,92 @@
-/* Story Studio · AI-only mode (หน้าเดียว: งานกับ AI)
-   Active only while <html class="ai-only"> (set by an inline script in <head> before first paint). Full editor is untouched when the class is absent. */
-
-/* the hub page never shows in the full editor */
+/* AI Production · single-screen layout.
+ * Higher specificity than studio-pro.css, which is loaded later.
+ * Full editor is unchanged without html.ai-only.
+ */
 html:not(.ai-only) #aiHub{display:none!important}
-
-/* ---- hide everything that is not part of the AI workflow ----
-   The class is repeated on purpose: studio-pro.css forces #pre visible with "body.pre-side:not(.export-focus) #pre{display:grid!important}". */
-html.ai-only.ai-only.ai-only #pre,
-html.ai-only.ai-only.ai-only #tl,
-html.ai-only.ai-only.ai-only #lib,
-html.ai-only.ai-only.ai-only #ins,
-html.ai-only.ai-only.ai-only #mtabs,
-html.ai-only.ai-only.ai-only #welcome,
-html.ai-only.ai-only.ai-only #jumpTop,
-html.ai-only.ai-only.ai-only #studioToolNav,
-html.ai-only.ai-only.ai-only #studioToolTitle,
-html.ai-only.ai-only.ai-only #workspaceJumpTop,
-html.ai-only.ai-only.ai-only header#top .export-btn,
-html.ai-only.ai-only.ai-only header#top .sep,
-html.ai-only.ai-only.ai-only header#top .top-spacer{display:none!important}
-
-/* ---- page switching: hub / ai / smart ---- */
-html.ai-only.ai-only.ai-only[data-ai-page="hub"] #studioWorkspace{display:none!important}
-html.ai-only.ai-only.ai-only:not([data-ai-page="hub"]) #aiHub{display:none!important}
-
-/* ---- layout: one centred column ---- */
-@media(min-width:821px){
- html.ai-only body{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:52px minmax(0,1fr)!important;grid-template-areas:"top" "main"!important}
- html.ai-only #studioWorkspace,
- html.ai-only #aiHub{grid-area:main;width:min(100%,880px);justify-self:center;min-height:0}
- html.ai-only #studioWorkspace{border-left:1px solid var(--work-border);border-right:1px solid var(--work-border)}
- html.ai-only #aiHub{overflow-y:auto}
-}
-@media(max-width:820px){
- html.ai-only #studioWorkspace{min-height:calc(100dvh - 52px);border-top:none}
- html.ai-only #studioToolBody{min-height:0}
- html.ai-only #aiHub{order:1;min-height:calc(100dvh - 52px)}
-}
-
-/* ---- hub page ---- */
-#aiHub{box-sizing:border-box;background:#1c1e22;color:#e8ddca;padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px))}
+html.ai-only.ai-only body{overflow:hidden!important}
+html.ai-only.ai-only #lib,
+html.ai-only.ai-only #ins,
+html.ai-only.ai-only #tl,
+html.ai-only.ai-only #mtabs,
+html.ai-only.ai-only #welcome,
+html.ai-only.ai-only #jumpTop,
+html.ai-only.ai-only #studioToolNav,
+html.ai-only.ai-only #studioToolTitle,
+html.ai-only.ai-only #workspaceJumpTop,
+html.ai-only.ai-only #motionBar,
+html.ai-only.ai-only header#top .export-btn{display:none!important}
+html.ai-only.ai-only #pre{display:flex!important;grid-area:pre;flex-direction:column;min-width:0;min-height:0;overflow:hidden!important}
+html.ai-only.ai-only #studioWorkspace{display:flex!important;grid-area:studio;flex-direction:column!important;min-height:0!important;min-width:0!important;max-width:none!important;width:auto!important;overflow:hidden!important;background:#1a1c21;border-left:1px solid #3c3f47}
+html.ai-only.ai-only #studioToolBody{display:block!important;flex:1 1 auto!important;min-height:0!important;width:100%;padding:0!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain}
+html.ai-only.ai-only #studioToolBody>#aiWorkspacePanel{display:block;width:100%;min-height:0!important;padding:12px}
+html.ai-only.ai-only #pre #motionQuick,
+html.ai-only.ai-only #pre #directorQuick,
+html.ai-only.ai-only #pre #voiceQuick,
+html.ai-only.ai-only #pre #soundQuick,
+html.ai-only.ai-only #pre #smartQuick,
+html.ai-only.ai-only #pre #aiQuick{display:none!important}
+html.ai-only.ai-only #pre .preview-toolbar{flex:0 0 auto}
+html.ai-only.ai-only #pre #stageWrap{flex:1 1 auto;min-height:90px;min-width:0}
+html.ai-only.ai-only #pre #ctl{flex:0 0 auto;min-height:0}
+html.ai-only.ai-only #pre #stage{max-width:100%}
+html.ai-only.ai-only #aiHub{display:block;position:relative;z-index:3;flex:0 0 auto;max-height:52dvh;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 8px;border-bottom:1px solid #40444b;background:#22252a;color:#eee3d1}
 #aiHub *{box-sizing:border-box}
-#aiHub .aih-head h2{margin:0 0 4px;font-size:20px;color:#f1e4c8}
-#aiHub .aih-head p{margin:0;font-size:12.5px;color:#c9bb9f;line-height:1.5;overflow-wrap:anywhere}
-#aiHub .aih-status{min-height:20px;margin:12px 0 0;padding:0;font-size:13px;color:#9fe0b0;line-height:1.45}
+#aiHub .aih-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 9px}
+#aiHub .aih-head h2{font-size:18px;line-height:1.3;color:#f5dfae;margin:0;font-weight:800}
+#aiHub .aih-summary{font-size:12px;color:#c8cbd0;line-height:1.5;margin:3px 0 0;overflow-wrap:anywhere}
+#aiHub .aih-live{font-size:11px;color:#bad9c4;border:1px solid #5b7562;padding:4px 8px;border-radius:12px}
+#aiHub .aih-actions{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin;padding:0 0 4px}
+#aiHub button{flex:0 0 auto;min-height:40px;padding:7px 12px;border-radius:9px;background:#34373d;color:#f1f1f1;border:1px solid #5a5e67;font:600 12.5px system-ui,"Noto Sans Thai",sans-serif;white-space:nowrap;cursor:pointer}
+#aiHub button.aih-primary{background:#dfbc7e;color:#22242a;border-color:#e1c58e;font-weight:800}
+#aiHub button:focus-visible,#aiHub summary:focus-visible{outline:2px solid #ffe0a0;outline-offset:2px}
+#aiHub .aih-status{font-size:12px;color:#9ed5b1;line-height:1.5;margin:5px 0 0;overflow-wrap:anywhere}
 #aiHub .aih-status:empty{display:none}
-#aiHub .aih-status[data-error="true"]{color:#f2a49b}
-#aiHub .aih-card{margin-top:14px;padding:14px;background:#202227;border:1px solid #42444b;border-radius:14px}
-#aiHub .aih-card h3{margin:0 0 4px;font-size:16px;color:#f1e4c8;display:flex;align-items:center;gap:9px}
-#aiHub .aih-step{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#d9bd83;color:#212328;font-size:13px;font-weight:800;flex:none}
-#aiHub .aih-card>p{margin:0 0 12px;font-size:12.5px;color:#c9bb9f;line-height:1.5}
-#aiHub .aih-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
-#aiHub button{min-height:46px;padding:9px 12px;font-size:14px;font-weight:650;border-radius:10px;background:#2b2d33;border:1px solid #4d5057;color:#e8ddca;cursor:pointer;white-space:normal;overflow-wrap:anywhere}
-#aiHub button:hover{background:#33363d}
-#aiHub button.aih-primary{background:#d9bd83;color:#212328;border-color:#d9bd83}
-#aiHub button.aih-primary:hover{background:#e4cb96}
-#aiHub button:focus-visible,#aiHub summary:focus-visible{outline:2px solid #edce89;outline-offset:2px}
-#aiHub details{margin-top:10px;background:#1b1c21;border:1px solid #3a3c43;border-radius:10px;padding:2px 10px}
-#aiHub summary{min-height:40px;display:flex;align-items:center;font-size:12.5px;color:#e6d19c;cursor:pointer}
-#aiHub details .aih-actions{margin:4px 0 10px}
-#aiHub .aih-adv label{display:block;margin:4px 0 5px;font-size:12.5px}
-#aiHub .aih-adv select{width:100%;min-height:42px}
-#aiHub .aih-adv #smartImportWrap{margin:8px 0 10px;font-size:12.5px;line-height:1.5}
-#aiHub .aih-file{margin-top:8px}
-#aiHub .aih-file button{width:100%}
-
-/* ---- the import dialog, embedded inline as a normal block ---- */
-#dlg.aih-embedded{position:static;display:block;width:100%;max-width:100%;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;color:inherit;overflow:visible;inset:auto}
-#dlg.aih-embedded:not([open]){display:none}
-#dlg.aih-embedded .import-head,
-#dlg.aih-embedded #bClose,
-#dlg.aih-embedded #bAi,
-#dlg.aih-embedded #bCtx,
-#dlg.aih-embedded #bAiFile,
-#dlg.aih-embedded #bAiPack{display:none!important}
-#dlg.aih-embedded #imp{height:clamp(130px,22dvh,240px);min-height:120px}
-#dlg.aih-embedded .import-actions{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 0 0;background:transparent}
-#dlg.aih-embedded .import-actions button{min-height:46px;font-size:14px}
-#dlg.aih-embedded .import-actions .import-primary{background:#d9bd83;color:#212328;border-color:#d9bd83}
+#aiHub .aih-status[data-error="true"]{color:#ffbbad}
+#aiHub .aih-import{margin:5px 0 0;border:1px solid #42464e;border-radius:9px;background:#1b1d22;overflow:hidden}
+#aiHub .aih-import>summary{display:block;padding:8px 10px;font-size:12px;font-weight:650;color:#edce97;cursor:pointer;list-style:none;min-height:32px}
+#aiHub .aih-import>summary::after{content:'▾';float:right}
+#aiHub .aih-import[open]>summary::after{content:'▴'}
+#aiHub .aih-import>summary::-webkit-details-marker{display:none}
+#aiHub #aihImportSlot{padding:4px 10px 12px}
+html.ai-only.ai-only #dlg.aih-embedded,
+html.ai-only.ai-only #dlg.aih-embedded[open]{display:block!important;position:static!important;inset:auto!important;margin:0!important;padding:0!important;max-width:none!important;max-height:none!important;width:100%!important;overflow:visible!important;border:0!important;border-radius:0!important;background:transparent!important;color:inherit!important;box-shadow:none!important}
+html.ai-only.ai-only #dlg.aih-embedded:not([open]){display:none!important}
+html.ai-only.ai-only #dlg.aih-embedded .import-head,
+html.ai-only.ai-only #dlg.aih-embedded #bClose,
+html.ai-only.ai-only #dlg.aih-embedded #bAi,
+html.ai-only.ai-only #dlg.aih-embedded #bCtx,
+html.ai-only.ai-only #dlg.aih-embedded #bAiFile,
+html.ai-only.ai-only #dlg.aih-embedded #bAiPack{display:none!important}
+html.ai-only.ai-only #dlg.aih-embedded #imp{width:100%!important;min-height:110px!important;height:clamp(120px,21dvh,210px)!important;font-size:13px!important;resize:vertical}
+html.ai-only.ai-only #dlg.aih-embedded #rep{max-height:20dvh;overflow:auto}
+html.ai-only.ai-only #dlg.aih-embedded .import-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important;position:static!important;padding:8px 0 0!important;background:transparent!important}
+html.ai-only.ai-only #dlg.aih-embedded .import-actions button{font-size:13px!important;min-height:42px!important;white-space:normal}
+#aiHub .aih-advanced{margin:6px 0;border:1px solid #41444b;border-radius:8px;padding:6px 10px}
+#aiHub .aih-advanced summary{font-size:12px;color:#e3d2b7;cursor:pointer}
+#aiHub .aih-advanced select{min-height:40px}
+#aiHub .aih-advanced label{display:block;margin-top:8px}
+@media (min-width:821px) and (orientation:landscape){
+ html.ai-only.ai-only body{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(390px,47%)!important;grid-template-rows:52px minmax(0,1fr)!important;grid-template-areas:"top top" "pre studio"!important}
+ html.ai-only.ai-only #pre{height:100%;max-height:none!important}
+ html.ai-only.ai-only #studioWorkspace{height:100%}
+}
+@media (max-width:820px), (orientation:portrait) and (max-width:1100px){
+ html.ai-only.ai-only body{display:flex!important;flex-direction:column!important;height:100dvh!important;min-height:0!important;overflow:hidden!important}
+ html.ai-only.ai-only header#top{order:0;flex:0 0 auto}
+ html.ai-only.ai-only #pre{order:1;flex:0 0 auto!important;width:100%!important;max-height:42dvh!important;min-height:170px!important;padding:0!important}
+ html.ai-only.ai-only #studioWorkspace{order:2;flex:1 1 auto!important;width:100%!important;border-left:0;border-top:1px solid #40434c}
+ html.ai-only.ai-only #stageWrap{height:auto!important;width:100%!important;min-height:100px!important;padding:5px!important}
+ html.ai-only.ai-only #studioToolBody{height:auto!important;min-height:0!important}
+ html.ai-only.ai-only #aiHub{max-height:38dvh;padding:9px 10px 6px}
+ html.ai-only.ai-only #aiHub .aih-head h2{font-size:16px}
+ html.ai-only.ai-only #aiHub .aih-live{display:none}
+ html.ai-only.ai-only #aiHub button{min-height:39px;font-size:12px}
+ html.ai-only.ai-only #aiWorkspacePanel{padding:9px!important}
+ html.ai-only.ai-only #pre .preview-actions #videoQuick{display:none!important}
+}
+@media (max-width:820px) and (orientation:portrait){
+ html.ai-only.ai-only body.pre-side:not(.export-focus) #pre{display:flex!important;flex-direction:column!important;max-height:42dvh!important}
+ html.ai-only.ai-only body.pre-side:not(.export-focus) #pre>*{grid-column:auto!important;grid-row:auto!important}
+ html.ai-only.ai-only body.pre-side:not(.export-focus) #pre>#stageWrap{display:flex!important;justify-content:center!important;align-items:center!important;flex:1 1 auto!important;max-width:none!important;min-width:0!important}
+ html.ai-only.ai-only body.pre-side:not(.export-focus) #pre>#ctl{width:100%!important;max-width:none!important}
+}
