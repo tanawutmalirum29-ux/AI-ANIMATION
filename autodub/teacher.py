@@ -276,7 +276,7 @@ def _chat(body):
         choices = result.get("choices") or []
         content = choices[0].get("message", {}).get("content", "") if choices else ""
     parsed = _extract_json(content)
-    if not parsed["reply"] and not parsed["ops"]:
+    if not parsed["reply"] and not parsed["ops"] and not parsed.get("teachingLessons"):
         return _response(502, {"error": "AI provider ไม่ส่งคำตอบที่อ่านได้"})
     return _response(200, {**parsed, "provider": provider, "model": model,
                            "applied": False, "trained": False})
@@ -344,6 +344,8 @@ def _auto_teach(body):
                                "verifiedByOwner": False})
     prompt = (
         "You are teaching a junior AI that checks Thai story continuity. "
+        "OwnerApprovedExamples are human-reviewed. TeacherUnverifiedExamples are only "
+        "past AI hypotheses, not facts or gold labels; never copy errors from them. "
         "For EVERY supplied scene, review the narration against previous and next. "
         "Correct only grounded errors; keep already-good scenes unchanged. "
         "Preserve characters, canon and emotion. Do not invent events. "
@@ -355,9 +357,38 @@ def _auto_teach(body):
         "Return exactly one teachingLessons entry per scene. "
         "Do NOT claim humans approved the lessons, trained weights or changed files."
     )
+    # Retrieval memory improves later reviews without treating AI-teacher guesses as
+    # human gold labels. Owner-approved examples are explicitly higher trust.
+    excerpt = " ".join(x["text"] + " " + x["previous"] for x in fresh)
+    def similarity(txt):
+        source = set(excerpt[i:i + 2] for i in range(max(0, len(excerpt) - 1)))
+        other = set(txt[i:i + 2] for i in range(max(0, len(txt) - 1)))
+        return len(source & other)
+    def recall(partition, status, max_items):
+        response = table.query(KeyConditionExpression=Key("pk").eq(partition),
+                               Limit=max_items, ScanIndexForward=False)
+        found = []
+        for row in response.get("Items", []):
+            lesson = row.get("record")
+            if row.get("pk") != partition or row.get("status") != status or not isinstance(lesson, dict):
+                continue
+            if not isinstance(lesson.get("original"), str) or not isinstance(lesson.get("revised"), str):
+                continue
+            found.append(lesson)
+        found.sort(key=lambda x: similarity(x["original"]), reverse=True)
+        return found[:1]
+    trusted = recall("learning#story-coherence", "editorial-memory-only", 30)
+    unverified = recall(pk, "teacher-reviewed-unverified", 30)
+    def compact(examples):
+        return [{"issue": x.get("issue", ""), "before": x["original"][:170],
+                 "after": x["revised"][:170],
+                 "reason": str(x.get("ownerReason") or x.get("teacherReason") or "")[:150]}
+                for x in examples]
     context = json.dumps({"scenes": [
         {key: x[key] for key in ("id", "text", "previous", "next", "studentIssue")}
-        for x in fresh]}, ensure_ascii=False)
+        for x in fresh],
+        "ownerApprovedExamples": compact(trusted),
+        "teacherUnverifiedExamples_not_golden": compact(unverified)}, ensure_ascii=False)
     called = _chat({"provider": provider, "message": prompt, "context": context,
                     "history": [], "_internalMaxOutput": 2000})
     if called["statusCode"] != 200:
