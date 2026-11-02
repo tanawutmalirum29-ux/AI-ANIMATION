@@ -144,10 +144,14 @@
    Array.from({length:7},(_,i)=>R(x(.479+i*.016),56+(i%3)*5,1.1,1.6,'#a96754',.15, .82)).join('')+
    C(x(.528),38.3,4,'#465461')+C(x(.528),38.3,2.7,'#bdaf95')+
    Array.from({length:8},(_,i)=>{const a=i*Math.PI/4;return L(x(.528)+Math.cos(a),38.3+Math.sin(a),x(.528)+Math.cos(a)*3.5,38.3+Math.sin(a)*3.5,'#51646b',.8)}).join('')+
-   R(x(.525),42,1.5,9,'#d0bb9e')+
-   // Channel banks visibly funnel water through the gate.
-   P('M'+f(x(.44))+' 78L'+f(x(.48))+' 80L'+f(x(.61))+' 80L'+f(x(.64))+' 89L'+f(x(.42))+' 89Z','#556970')+
-   '</g>'+
+   R(x(.525),42,1.5,9,'#d0bb9e')+'</g>'+
+   // Concrete sluice discharge is a physical waterway, not a doorway
+   // leading directly into the market building.
+   '<g data-world-object="sluice-discharge-channel">'+
+   P('M'+f(x(.44))+' 78L'+f(x(.48))+' 80L'+f(x(.61))+' 80L'+f(x(.68))+' 87L'+f(x(.70))+' 90L'+f(x(.42))+' 90Z','#536770')+
+   P('M'+f(x(.579))+' 78L'+f(x(.61))+' 80L'+f(x(.675))+' 87L'+f(x(.685))+' 90L'+f(x(.595))+' 90L'+f(x(.576))+' 80Z','#2b667c',.95)+
+   L(x(.602),80,x(.665),87,'#b4dbdf',.55,.85)+
+   Array.from({length:5},(_,i)=>L(x(.614+i*.012),82+i*.5,x(.632+i*.012),83.1+i*.75,'#b7e4e8',.4,.55)).join('')+'</g>'+
    // The lowland market is elevated above the shoreline with a street in front.
    P('M'+f(x(.605))+' 63L'+f(x(.72))+' 57L'+f(x(.85))+' 61L'+f(W)+' 57L'+f(W)+' 82L'+f(x(.60))+' 82Z','#465763')+
    [0.65,0.76,0.89].map((v,i)=>tinyHouse(x(v),66,.55+i*.08,['#5a6770','#746b6c','#566c70'][i])).join('')+
@@ -175,16 +179,27 @@
       warning||evac?'warn':'rest',evac||warning,warning?1.36:1.08);
    }).join('')+'</g>';
    if(warning||evac){
-    o+='<g data-world-object="merchant-acknowledgment">'+
-     person(x(.748),81.5,'#e3b076','warn',true,1.72)+'</g>';
+    // Three readable beats within the SAME camera shot: the shopkeeper
+    // acknowledges Pim -> reaches down/lifts a box -> carries it uphill.
+    // The old implementation drew a box in their hands on frame zero,
+    // so even a perfect camera could not show a causal response.
+    const lift=Math.max(0,Math.min(1,(t-.20)/.30));
+    const escape=Math.max(0,Math.min(1,(t-.53)/.45));
+    const phase=t<.20?'acknowledge':t<.53?'lift':'carry';
+    const mx=x(.735+.105*escape),my=81-9*escape;
+    o+='<g data-world-object="merchant-acknowledgment" data-story-phase="'+phase+'">'+
+     person(mx,my,'#e3b076',phase==='acknowledge'?'warn':'rest',phase==='carry',2.05)+'</g>';
+    // The same crate is on the floor, lifted into the hands, then carried.
+    // A second crate follows later so the movement remains legible at 540p.
     o+='<g data-world-object="merchant-response">'+
-     // Box visibly LIFTS and MOVES uphill as the warning is acted on.
-     [0,1].map((i)=>{
-      const u=Math.max(0,Math.min(1,(t-.15-i*.14)*1.55)),xx=x(.705+i*.11)+u*x(.08);
-      return '<g data-world-object="moving-crates">'+
-       R(xx,76-u*11,7.5,5.2,'#a57e52',.3)+
-       L(xx,77-u*11,xx+7.5,77-u*11,'#e7c18a',.75)+'</g>';
-     }).join('')+'</g>';
+      [0,1].map(i=>{
+       const u=Math.max(0,Math.min(1,(t-.20-i*.13)/.30));
+       const move=Math.max(0,Math.min(1,(t-.53-i*.14)/.45));
+       const xx=x(.725+i*.032+.105*move),yy=79-9*u-9*move;
+       return '<g data-world-object="moving-crates">'+
+        R(xx,yy,7.5,5.2,'#a57e52',.3)+
+        L(xx,yy+1,xx+7.5,yy+1,'#e7c18a',.75)+'</g>';
+      }).join('')+'</g>';
    }
   }
   // Water jet has source and destination; no giant transparent triangle.

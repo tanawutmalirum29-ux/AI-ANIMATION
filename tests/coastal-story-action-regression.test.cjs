@@ -14,6 +14,9 @@ assert.ok(sc.every(s=>s.camera.type==='panorama'&&s.camera.world>=3));
 assert.ok(sc[1].camera.from>sc[0].camera.from,'gate closeup must be closer than establishing shot');
 assert.ok(sc[2].camera.endX>sc[1].camera.endX,'warning tracks towards the market');
 assert.ok(sc[3].camera.endX>=95,'conclusion must reveal far high ground');
+assert.ok(sc[3].camera.startX>=92,'safe hill finale starts after tall gate clears the crop');
+assert.ok(sc[0].camera.endX<=58,'establishing shot reveals water gauge');
+
 
 const opener=render(sc[0],.1),openerLate=render(sc[0],5.5);
 assert.ok(tokens(opener,'floodgate'));
@@ -33,6 +36,10 @@ const warningEarly=render(sc[2],.1),warningLate=render(sc[2],5.5);
 assert.ok(tokens(warningEarly,'merchant-response'),'a warning must get an on-screen response');
 assert.ok(tokens(warningEarly,'moving-crates'),'seller must visibly move goods');
 assert.ok(tokens(warningLate,'evacuating-villager'));
+assert.match(render(sc[2],.35),/data-story-phase="acknowledge"/);
+assert.match(render(sc[2],2.5),/data-story-phase="lift"/);
+assert.match(render(sc[2],5),/data-story-phase="carry"/);
+assert.ok(tokens(leak,'sluice-discharge-channel'),'water gate must connect to a visible waterway');
 assert.notEqual(warningEarly,warningLate,'merchants/crates must actually move along scene timeline');
 
 const ending=render(sc[3],5.5);
