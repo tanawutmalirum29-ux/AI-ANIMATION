@@ -253,7 +253,7 @@ function memoryPanel(){
   el('div',{className:'teacher-row'},
     button('โหลดประวัติการสอน',showHistory,'teacher-primary',busy||!statusData?.feedbackReady),
     button('ดู GitHub Training Lab',()=>root.open('https://github.com/tanawutmalirum29-ux/AI-ANIMATION/tree/main/training-lab','_blank','noopener'))),
-  el('div',{className:'teacher-history'}));
+  el('div',{className:'teacher-history'},el('p',{className:'teacher-muted'},'กดโหลดประวัติเพื่อดูตัวอย่างที่บันทึกอยู่ใน AWS')));
  if(!statusData?.feedbackReady)content.append(el('p',{className:'teacher-warning'},'ฐานข้อมูล Feedback ยังไม่ได้ติดตั้งบน AWS การกดเลือกจะไม่อ้างว่าบันทึกเป็นความจำ'));
  return content;
 }
