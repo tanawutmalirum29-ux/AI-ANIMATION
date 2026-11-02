@@ -46,3 +46,30 @@ test('teacher context for long projects stays valid JSON without audio payloads'
  assert.ok(data.episodeOutline.length>0);
  assert.ok(!raw.includes('NEVER_SEND_BINARY_AUDIO_CONTENT'));
 });
+
+test('quick connect recognizes trusted provider links and rejects secret-bearing URLs',()=>{
+ const src=read('studio-teacher.js'),start=src.indexOf('function resolveTeacherApiLink(value){');
+ const end=src.indexOf('\nfunction teacherModelFor(',start);
+ assert.ok(start>=0&&end>start);
+ const resolve=new Function(src.slice(start,end)+';return resolveTeacherApiLink;')();
+ assert.deepEqual(resolve('https://openrouter.ai/api/v1/chat/completions'),{
+   provider:'openrouter',url:'https://openrouter.ai/api/v1',name:'OpenRouter'});
+ assert.equal(resolve('https://aistudio.google.com/app/apikey').provider,'gemini');
+ assert.equal(resolve('https://generativelanguage.googleapis.com/v1beta').provider,'gemini');
+ assert.deepEqual(resolve('https://api.example.com/v1/chat/completions'),{
+   provider:'compatible',url:'https://api.example.com/v1',name:'OpenAI-compatible'});
+ for(const uri of ['http://openrouter.ai/api/v1','https://openrouter.ai/?key=SECRET',
+  'https://someone:token@openrouter.ai/api/v1','javascript:alert(1)']){
+  assert.ok(resolve(uri).error,'must refuse '+uri);
+ }
+ assert.notEqual(resolve('https://openrouter.ai.evil.example/v1').provider,'openrouter');
+});
+test('simple connect still uses authenticated AWS gateway and hides advanced model',()=>{
+ const src=read('studio-teacher.js');
+ assert.match(src,/id:'teacherQuickUrl'/);
+ assert.match(src,/id:'teacherQuickKey',type:'password'/);
+ assert.match(src,/id:'teacherAdvancedModel'/);
+ assert.match(src,/teacher\.configure/);
+ assert.match(src,/statusData=await api\('teacher\.status'\)/);
+ assert.doesNotMatch(src,/localStorage\.setItem\([^)]*apiKey/);
+});

@@ -32,3 +32,17 @@
 .teacher-memory-item small{display:block;opacity:.7}
 .teacher-memory-item p{margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:520px){.teacher-content{gap:10px}.teacher-commands{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-row>button{flex:1 1 140px}.teacher-tabs button{flex:1 1 90px;font-size:13px}.teacher-head strong{font-size:1rem}.teacher-log{max-height:38vh}}
+
+/* Quick Connect — the default flow fits a narrow phone viewport. */
+.teacher-content h3{font-size:1.05rem;line-height:1.45;margin:0}
+.teacher-quick-banner{display:grid;gap:8px;padding:12px;border:1px solid #9cb1c477;border-radius:12px;background:#20344a}
+.teacher-quick-banner p{font-size:13px;line-height:1.5;margin:0;opacity:.86}
+.teacher-quick-banner button{justify-self:start}
+.teacher-provider-preset button{min-height:38px;font-size:13px;padding:7px 13px}
+.teacher-advanced{border:1px solid #667b9680;border-radius:10px;padding:10px 12px}
+.teacher-advanced summary{cursor:pointer;font-size:13px;line-height:1.55;min-height:24px}
+.teacher-advanced[open]{display:grid;gap:11px}
+.teacher-advanced .teacher-field{margin-top:10px}
+.teacher-advanced .teacher-muted{margin-top:8px}
+.teacher-content input:focus-visible,.teacher-content textarea:focus-visible{outline:2px solid #d6b976;outline-offset:2px}
+@media(max-width:520px){.teacher-provider-preset button{flex:1 1 110px}}
