@@ -401,8 +401,12 @@ async function saveStudentLesson(){
    teacherReason:studentReview.teacherReason,ownerReason:studentOwnerReason}});
   if(!result.saved)throw Error('AWS ยังไม่ยืนยันการจัดเก็บบทเรียน');
   studentReview=null;
-  await root.StoryStudentLearning?.load?.(true);
-  setNotice('บันทึกบทเรียนบน AWS แล้ว · AI ลูกสามารถค้นคืนได้ในงานถัดไป (ยังไม่ได้เปลี่ยนน้ำหนักโมเดล)');
+  try{
+   await root.StoryStudentLearning?.load?.(true);
+   setNotice('บันทึกบทเรียนบน AWS แล้ว · AI ลูกสามารถค้นคืนได้ในงานถัดไป (ยังไม่ได้เปลี่ยนน้ำหนักโมเดล)');
+  }catch(_){
+   setNotice('AWS ยืนยันว่าบันทึกบทเรียนแล้ว แต่การรีเฟรชความจำล้มเหลว · กดโหลดความจำ AWS เพื่อทดลองใหม่',true);
+  }
  }catch(e){setNotice('สอน AI ลูกไม่สำเร็จ: '+e.message,true)}
  finally{busy=false;render()}
 }
@@ -472,7 +476,7 @@ function studentPanel(){
       el('option',{value,selected:value===studentChoice},label)))),
    el('label',{className:'teacher-field'},el('span',{},'เหตุผลเพิ่มเติม (ไม่บังคับ)'),
     el('textarea',{rows:2,maxLength:700,oninput:ev=>{studentOwnerReason=ev.target.value}},studentOwnerReason)),
-   button('อนุมัติและบันทึกเป็นบทเรียนถาวร',saveStudentLesson,'teacher-primary',busy)));
+   button('อนุมัติและบันทึกบทเรียนบน AWS',saveStudentLesson,'teacher-primary',busy)));
  }
  content.append(el('div',{className:'teacher-memory-training'},
   el('strong',{},'ฝึกน้ำหนักโมเดล CPU'),
