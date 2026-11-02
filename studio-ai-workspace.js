@@ -563,7 +563,7 @@ function reviewCurrentScript(){
   if(!ml?.review)throw Error('ยังโหลด Script ML ไม่ครบ ลองเปิดแท็บ AI อีกครั้ง');
   const original=String(scene.voiceover||'');
   if(!original.trim())throw Error('ฉากนี้ไม่มี voiceover');
-  scriptReview={sceneId:scene.id,original,result:ml.review(original)};
+  scriptReview={sceneId:scene.id,original,result:ml.review(original,{subtitle:scene.subtitle})};
   status('วิเคราะห์บทฉาก '+scene.id+' แล้ว · โมเดลทดลอง AI เขียนตัวอย่าง ไม่ใช่ LLM');
  }catch(err){scriptReview=null;status('Script ML: '+String(err.message||err),true)}
  render();
@@ -637,12 +637,13 @@ function renderChat(container){
 
  pane.append(e('details',{className:'ai-task',open:!!scriptReview},
   e('summary',{},'Script ML · ทดลองเกลาบทพากย์ภาษาไทย'),
-  e('p',{className:'ai-help'},'SGD ฝึกจริงจาก 30 คู่ตัวอย่างที่ AI เขียนเอง ช่วยจับคำซ้ำและจังหวะอ่านติดขัดอย่างง่าย ไม่ใช่ LLM เขียนบทใหม่'),
+  e('p',{className:'ai-help'},'SGD ฝึกจริงจาก 55 คู่ตัวอย่างที่ AI เขียนเอง (110 ประโยค) · รอบ 2 ไม่แก้ข้อความซ้ำ · มีตัวเตือนซับและเหตุการณ์ขัดแย้งที่เป็นกฎ ไม่ใช่ LLM เขียนบท'),
   button('วิเคราะห์บทฉากปัจจุบัน',reviewCurrentScript,{disabled:busy,className:'ai-primary'}),
   ...(scriptReview?.sceneId===bridge.scene?.()?.id?[
    e('small',{},'ค่าความเสี่ยงของโมเดล '+Math.round(scriptReview.result.risk*100)+'% (ไม่ใช่คะแนนคุณภาพจริง) · '+scriptReview.result.explanation),
    e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
-    'บทเดิม:\n'+scriptReview.original+'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed),
+    'บทเดิม:\n'+scriptReview.original+(scriptReview.result.hasEdit?'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed:'\n\nไม่มีข้อความแก้เพิ่มเติม (ตรวจซ้ำแล้วไม่ต้องเปลี่ยน)')),
+   ...(scriptReview.result.warnings||[]).map(msg=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+msg)),
    button('ยืนยันใช้บทที่เสนอในฉากนี้',applyScriptReview,{disabled:busy||!scriptReview.result.hasEdit})
   ]:[]),
   e('small',{},'ตรวจตัวอย่างด้วยตนเองก่อนยืนยัน · สำรองก่อนแก้ · เสียงเก่าจะถูกพักไว้หากบทเปลี่ยน')
