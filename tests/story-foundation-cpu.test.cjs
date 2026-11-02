@@ -88,6 +88,7 @@ test('curriculum retains emotion and suspense instead of deleting expressive wor
 });
 test('synthetic curriculum detects duplicate editorial labels within same story',()=>{
  const unsafe={...data,rows:data.rows.map(x=>({...x}))};
- unsafe.rows.find(x=>x.id==='radio-panic-clarity').issue='keep';
+ const duplicate=unsafe.rows.find(x=>x.id==='radio-panic-clarity');
+ duplicate.issue='keep';duplicate.revised=duplicate.original;
  assert.throws(()=>model.validate(unsafe),/ซ้ำ/);
 });
