@@ -133,3 +133,8 @@
 .teacher-auto-teach-errors{border:1px solid #7189a180;border-radius:9px;padding:10px 12px}
 .teacher-auto-teach-errors summary{font-size:13px;cursor:pointer}
 .teacher-auto-teach button{min-height:42px}
+
+.teacher-saved-provider{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0;padding:8px;border:1px solid #7189a160;border-radius:10px}
+.teacher-saved-provider>span{flex:1 1 160px;overflow-wrap:anywhere}
+.teacher-saved-provider .teacher-disconnect{border-color:#b96e6e;color:var(--muted,#dfb2b2);background:transparent}
+.teacher-saved-provider button{min-height:40px}
