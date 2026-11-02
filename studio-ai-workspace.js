@@ -11,7 +11,7 @@ let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',l
 const EPISODE_TARGET_SECONDS=60,EPISODE_GRACE_SECONDS=5;
 let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 let shotModel=null;const shotRows=[];
-let scriptReview=null;
+let scriptReview=null,scriptBatch=null;
 const MAX_TASKS=130;
 
 
@@ -598,6 +598,77 @@ async function applyScriptReview(){
  finally{busy=false;render()}
 }
 
+function analyzeAllScripts(){
+ try{
+  if(busy)throw Error('มีงานอื่นกำลังทำ');
+  const ml=root.StoryScriptML;
+  if(!ml?.reviewProject)throw Error('โมดูล Script ML ยังไม่พร้อม กรุณาเปิดหน้าต่างนี้อีกครั้ง');
+  const result=ml.reviewProject(bridge.get());
+  const selected=new Set(result.entries.filter(e=>e.result?.hasEdit&&!e.result.warnings.length).map(e=>e.key));
+  scriptBatch={...result,selected};
+  scriptReview=null;
+  const st=result.stats;
+  status('วิเคราะห์ทั้งโปรเจกต์ '+st.scenes+' ฉาก · เสนอแก้ '+st.changes+
+   ' · ต้องตรวจเพิ่ม '+st.attention+' · ผ่าน '+st.passed+' · ไม่มีบท '+st.missing+
+   ' (ยังไม่แก้ไฟล์)');
+ }catch(err){scriptBatch=null;status('Script ML: '+String(err.message||err),true)}
+ render();
+}
+function exportBatchScriptReport(){
+ if(!scriptBatch){status('กรุณาวิเคราะห์ทั้งโปรเจกต์ก่อน',true);return}
+ const result={schema:1,task:'thai-narration-batch-review',createdAt:now(),
+  model:'experimental-assistant-demo',note:'For manual review only. No API upload, and not training labels.',
+  stats:scriptBatch.stats,entries:scriptBatch.entries.map(e=>({
+   episodeIndex:e.episodeIndex,sceneIndex:e.sceneIndex,sceneId:e.sceneId,episodeTitle:e.episodeTitle,
+   original:e.original,proposed:e.result?.proposed||e.original,selected:scriptBatch.selected.has(e.key),
+   hasEdit:!!e.result?.hasEdit,needsReview:!!e.result?.needsReview,
+   warnings:e.result?.warnings||[]
+  }))};
+ exportText('story-script-review-'+now().slice(0,10)+'.json',JSON.stringify(result,null,2));
+}
+async function applyBatchScriptReview(){
+ if(busy||!scriptBatch)return;
+ const ml=root.StoryScriptML;
+ let selected;
+ try{
+  selected=ml.verifyBatchSelection(bridge.get(),scriptBatch.entries,[...scriptBatch.selected]);
+  if(!selected.length){status('ไม่มีฉากที่เลือกแก้ · โปรเจกต์ยังไม่ถูกเปลี่ยน');return}
+ }catch(err){status('Script ML: '+String(err.message||err),true);return}
+ const dubbed=selected.filter(({scene})=>(scene.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&!c.mute)).length;
+ const summary='ยืนยันแก้บท '+selected.length+' ฉากในโปรเจกต์ครั้งเดียว?'+
+  '\nระบบสำรองโปรเจกต์ก่อนแก้ ตรวจทุกฉาก และอาจต้องพากย์เสียงใหม่ '+dubbed+
+  ' ฉาก เนื่องจากบทเปลี่ยน\nไม่สามารถใช้ Undo ทีละฉากได้ ให้กู้ผ่านคลังเวอร์ชันหากต้องการ';
+ if(!root.confirm(summary))return;
+ busy=true;render();
+ try{
+  // Recheck snapshot immediately before creating all the changes.
+  selected=ml.verifyBatchSelection(bridge.get(),scriptBatch.entries,[...scriptBatch.selected]);
+  if(!root.StudioAPI?.apply)throw Error('StudioAPI ไม่พร้อม');
+  const ops=selected.map(({entry,scene,proposed})=>{
+   const prepared=standardNarrative({...scene,voiceover:proposed,subtitle:[],subtitleCues:[]});
+   if(!prepared)throw Error('จัดซับสำหรับฉาก '+entry.sceneId+' ไม่สำเร็จ');
+   const patch={voiceover:proposed,subtitle:prepared.subtitle,subtitleCues:prepared.subtitleCues};
+   if((scene.audioClips||[]).some(c=>c.kind==='voice'&&c.data&&!c.mute))
+    patch.audioClips=scene.audioClips.map(c=>c.kind==='voice'&&c.data?
+     {...c,mute:true,staleNarration:true}:c);
+   return {op:'updateScene',id:entry.sceneId,patch};
+  });
+  const dry=root.StudioAPI.apply(ops,{dryRun:true});
+  if(!dry.ok)throw Error('ตรวจแผนก่อนแก้ไม่ผ่าน: '+
+   JSON.stringify((dry.errors||[]).slice(0,3))+
+   JSON.stringify((dry.issues||[]).filter(x=>x.level==='error').slice(0,3)));
+  await backupBeforeEdit();
+  // If another editor changed the project during async backup, abort rather than overwrite.
+  ml.verifyBatchSelection(bridge.get(),scriptBatch.entries,[...scriptBatch.selected]);
+  const applied=root.StudioAPI.apply(ops);
+  if(!applied.applied)throw Error('บันทึกทุกฉากไม่สำเร็จ กรุณาตรวจคลังเวอร์ชันสำรอง');
+  scriptBatch=null;scriptReview=null;
+  status('แก้บทตามที่อนุมัติแล้ว '+ops.length+' ฉาก · สำรองโปรเจกต์แล้ว'+
+   (dubbed?' · พากย์ใหม่ '+dubbed+' ฉากก่อนส่งออก':'')+' · กดวิเคราะห์ทั้งโปรเจกต์อีกครั้งเพื่อตรวจผล');
+ }catch(err){status('Script ML: '+String(err.message||err),true)}
+ finally{busy=false;render()}
+}
+
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
  pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
@@ -635,18 +706,59 @@ function renderChat(container){
   e('small',{},shotModel?'พร้อมแนะนำแบบต้องกดยืนยัน':'ยังไม่มีโมเดลอนุมัติ: โมเดล demo ไม่แก้ฉากจริง')
  ));
 
- pane.append(e('details',{className:'ai-task',open:!!scriptReview},
-  e('summary',{},'Script ML · ทดลองเกลาบทพากย์ภาษาไทย'),
-  e('p',{className:'ai-help'},'SGD ฝึกจริงจาก 55 คู่ตัวอย่างที่ AI เขียนเอง (110 ประโยค) · รอบ 2 ไม่แก้ข้อความซ้ำ · มีตัวเตือนซับและเหตุการณ์ขัดแย้งที่เป็นกฎ ไม่ใช่ LLM เขียนบท'),
-  button('วิเคราะห์บทฉากปัจจุบัน',reviewCurrentScript,{disabled:busy,className:'ai-primary'}),
+ pane.append(e('details',{className:'ai-task',open:!!scriptBatch||!!scriptReview},
+  e('summary',{},'Script ML · วิเคราะห์บททั้งโปรเจกต์ในครั้งเดียว'),
+  e('p',{className:'ai-help'},'วิเคราะห์ทุกตอนและทุกฉาก รวมสรุปจุดที่ควรแก้และคำเตือน · ยังเป็นโมเดล SGD ทดลองพร้อมกฎแก้คำซ้ำ ไม่ใช่ LLM เขียนบท'),
+  e('div',{className:'ai-actions'},
+   button('วิเคราะห์ทุกฉาก · ทุกตอน',analyzeAllScripts,{disabled:busy,className:'ai-primary'}),
+   button('วิเคราะห์ฉากที่เลือก',()=>{scriptBatch=null;reviewCurrentScript()},{disabled:busy})),
+  ...(scriptBatch?[
+   e('p',{className:'ai-help'},
+    'ตรวจทั้งหมด '+scriptBatch.stats.scenes+' ฉาก · มีบท '+scriptBatch.stats.withNarration+
+    ' · เสนอแก้ '+scriptBatch.stats.changes+' · เตือนเพิ่มเติม '+
+    scriptBatch.stats.attention+' · ผ่าน '+scriptBatch.stats.passed+
+    ' · ไม่มีบท '+scriptBatch.stats.missing),
+   e('div',{className:'ai-actions'},
+    button('เลือกข้อเสนอที่ไม่มีคำเตือนทั้งหมด',()=>{
+     scriptBatch.selected=new Set(scriptBatch.entries.filter(x=>x.result?.hasEdit&&!x.result.warnings.length).map(x=>x.key));render()
+    },{disabled:busy}),
+    button('ยกเลิกการเลือกทั้งหมด',()=>{scriptBatch.selected.clear();render()},{disabled:busy}),
+    button('ดาวน์โหลดรายงาน JSON',exportBatchScriptReport,{disabled:busy})),
+   e('div',{style:'max-height:56vh;overflow-y:auto;border:1px solid #ffffff22;border-radius:10px;padding:8px'},
+    ...scriptBatch.entries.map(entry=>{
+     const result=entry.result,modifiable=!!result?.hasEdit,selected=scriptBatch.selected.has(entry.key);
+     const group=e('article',{className:'ai-audio-agent',style:'margin-bottom:8px;padding:9px'},
+      e('strong',{},entry.episodeTitle+' · ฉาก '+(entry.sceneIndex+1)+' ('+String(entry.sceneId||'ไม่มี ID')+')'),
+      e('small',{},!entry.hasText?'ไม่มีบทพากย์':
+       modifiable?'มีข้อเสนอแก้ · '+(result.warnings.length?'ต้องอ่านคำเตือนก่อนเลือก':'ตรวจข้อเสนอได้'):
+       result.needsReview?'มีจุดต้องตรวจ แต่ไม่มีการแก้แบบปลอดภัย':'ผ่านเบื้องต้น · ไม่จำเป็นต้องแก้'),
+      ...(modifiable?[e('label',{className:'ai-help'},
+       e('input',{type:'checkbox',checked:selected,disabled:busy,onchange:ev=>{
+        if(ev.target.checked)scriptBatch.selected.add(entry.key);
+        else scriptBatch.selected.delete(entry.key);
+        const label=rootElement?.querySelector('#scriptBatchSelectedCount');
+        if(label)label.textContent='เลือกแก้ '+scriptBatch.selected.size+' ฉาก';
+       }}),' เลือกใช้ข้อเสนอแก้บทฉากนี้'),
+       e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
+        'บทเดิม:\n'+entry.original+'\n\nบทที่เสนอ:\n'+result.proposed)]:
+       entry.hasText?[e('small',{className:'ai-help'},'บทเดิม: '+entry.original)]:[]),
+      ...(result?.warnings||[]).map(w=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+w))
+     );
+     return group;
+    })
+   ),
+   e('div',{className:'ai-actions'},
+    e('strong',{id:'scriptBatchSelectedCount'},'เลือกแก้ '+scriptBatch.selected.size+' ฉาก'),
+    button('ยืนยันแก้ฉากที่เลือกทั้งหมด',applyBatchScriptReview,{disabled:busy||!scriptBatch.selected.size,className:'ai-primary'}))
+  ]:[]),
   ...(scriptReview?.sceneId===bridge.scene?.()?.id?[
-   e('small',{},'ค่าความเสี่ยงของโมเดล '+Math.round(scriptReview.result.risk*100)+'% (ไม่ใช่คะแนนคุณภาพจริง) · '+scriptReview.result.explanation),
+   e('small',{},'ความเสี่ยงของโมเดล '+Math.round(scriptReview.result.risk*100)+'% · '+scriptReview.result.explanation),
    e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
-    'บทเดิม:\n'+scriptReview.original+(scriptReview.result.hasEdit?'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed:'\n\nไม่มีข้อความแก้เพิ่มเติม (ตรวจซ้ำแล้วไม่ต้องเปลี่ยน)')),
+    'บทเดิม:\n'+scriptReview.original+(scriptReview.result.hasEdit?'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed:'\n\nไม่มีข้อความแก้เพิ่มเติม')),
    ...(scriptReview.result.warnings||[]).map(msg=>e('small',{className:'ai-help'},'ตรวจเพิ่มเติม: '+msg)),
    button('ยืนยันใช้บทที่เสนอในฉากนี้',applyScriptReview,{disabled:busy||!scriptReview.result.hasEdit})
   ]:[]),
-  e('small',{},'ตรวจตัวอย่างด้วยตนเองก่อนยืนยัน · สำรองก่อนแก้ · เสียงเก่าจะถูกพักไว้หากบทเปลี่ยน')
+  e('small',{},'วิเคราะห์ได้ทั้งโปรเจกต์ครั้งเดียว • ข้อเสนอที่มีคำเตือนไม่ถูกเลือกอัตโนมัติ • ยืนยันก่อนแก้ • สำรองเวอร์ชันก่อนแก้')
  ));
  const latest=w().tasks.slice().reverse().find(x=>x.role==='production');
  const steps=latest?.steps?.length?latest.steps:productionSteps();
