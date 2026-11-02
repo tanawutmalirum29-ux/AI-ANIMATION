@@ -60,11 +60,15 @@ function examples(bundle,lessons,limit=3){
    before:trim(item.original,230),after:trim(item.revised,230),
    reason:trim(item.ownerReason||item.teacherReason,200),similarity:+score.toFixed(3)}));
 }
-function prompt(bundle,related=[]){
+function prompt(bundle,related=[],foundationExamples=[],childAdvice=null){
  if(!bundle?.current?.voiceover)throw Error('เลือกฉากที่มีบทพากย์ก่อน');
  const data={task:'thai-story-coherence',
   instructions:'Assess the relation of PREVIOUS/CURRENT/NEXT Thai narration. Separate proven contradiction from missing context. Preserve canon, names, chronology and author intent. If needed propose the smallest Thai rewrite or short bridging line. Do not invent a new character, fact or irreversible event. Label optional creative additions as suggestions. Return JSON reply and at most one updateScene op for CURRENT scene voiceover; no automatic changes. Explain the reason in Thai. If nothing should change return ops:[].',
-  context:bundle,localReviewHints:signals(bundle),ownerApprovedExamples:related.slice(0,3)};
+  context:bundle,localReviewHints:signals(bundle),
+  ownerApprovedExamples:related.slice(0,2),
+  syntheticFoundationExamples:foundationExamples.slice(0,1),
+  experimentalChildAdvice:childAdvice?{label:childAdvice.label,
+   source:'assistant-authored-synthetic',notProductionValidated:true}:null};
  // Preserve structurally valid JSON rather than truncating an escaped string.
  return JSON.stringify(data);
 }
