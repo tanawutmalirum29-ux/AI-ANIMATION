@@ -1,95 +1,84 @@
-/* Story Studio · AI-only mode (หน้าเดียว: งานกับ AI)
- *
- * While <html class="ai-only"> is set (the default, decided by an inline script in <head>), the editor shows
- * only the AI workflow:
- *   hub   - "ส่งให้ AI" (copy guide / context, download pack) + "นำงานกลับเข้า" (paste JSON / open file)
- *   ai    - the existing AI Workspace (6 helpers, history, story bible, ML Lab)
- *   smart - the existing Smart Director check
- * The ☰ menu is replaced by a short list of those pages plus a way back to the full editor.
- * Nothing in the project data or in the full editor is changed; switching mode only toggles visibility.
+/* Unified AI Production workspace: preview, JSON import and real AI tools on one screen.
+ * Shares the full editor's project, video preview, transport, importer and undo stack.
+ * This UI does not create an AI model or silently upload files.
  */
 (function(root){
 'use strict';
-const doc=document,html=doc.documentElement;
-const KEY='storyStudio.uiMode';
-const REQUIRED=['aiGuide','aiContext','dl','downloadAiPackage','downloadAiGuide','downloadAiContext','switchStudioTool','renderTop','setMenuOpen','fit'];
-if(REQUIRED.some(n=>typeof root[n]!=='function'))return;
-
+const doc=document,html=doc.documentElement,KEY='storyStudio.uiMode';
+const required=['switchStudioTool','renderTop','setMenuOpen','aiGuide','aiContext','downloadAiPackage','dl','fit'];
+if(required.some(k=>typeof root[k]!=='function'))return;
+const origSwitch=root.switchStudioTool,origTop=root.renderTop;
 const q=s=>doc.querySelector(s);
-const el=(tag,attrs={},...kids)=>{
+const el=(tag,attrs={},...children)=>{
  const n=doc.createElement(tag);
- for(const [k,v] of Object.entries(attrs)){
-  if(k==='className')n.className=v;
-  else if(k.startsWith('on')&&typeof v==='function')n.addEventListener(k.slice(2),v);
-  else if(v!==false&&v!==null&&v!==undefined)n.setAttribute(k,v===true?'':String(v));
+ for(const [key,value] of Object.entries(attrs)){
+  if(key==='className')n.className=value;
+  else if(key.startsWith('on')&&typeof value==='function')n.addEventListener(key.slice(2),value);
+  else if(value!==null&&value!==undefined&&value!==false)n.setAttribute(key,value===true?'':String(value));
  }
- for(const c of kids.flat())if(c!==null&&c!==undefined&&c!==false)n.append(c);
+ for(const child of children.flat())if(child!==null&&child!==undefined&&child!==false)n.append(child);
  return n;
 };
-const isAi=()=>html.classList.contains('ai-only');
-const page=()=>html.dataset.aiPage||'hub';
-
-let hub=null,adv=null,statusNode=null,summaryNode=null,ignoreClose=0;
-
-/* ---------------- hub page ---------------- */
+const aiOn=()=>html.classList.contains('ai-only');
+let hub=null,statusNode=null,summaryNode=null,adv=null,ignoreClose=0;
 function summary(){
  try{
-  const e=S.episodes[selEp];
-  return (S.project.title||'โปรเจกต์')+' · ตอน '+(selEp+1)+' จาก '+S.episodes.length+' · '+e.scenes.length+' ฉากในตอนนี้';
- }catch(_){return ''}
+  const b=root.StoryStudioBridge,s=b?.get(),epi=b?.episodeIndex()||0,episode=s?.episodes?.[epi];
+  return (s?.project?.title||'โปรเจกต์')+' · ตอน '+(epi+1)+'/'+(s?.episodes?.length||0)+' · '+(episode?.scenes?.length||0)+' ฉาก';
+ }catch(_){return 'โปรเจกต์ปัจจุบัน'}
 }
-function say(message,fail=false){
+function say(message,error=false){
  if(!statusNode)return;
  statusNode.textContent=message||'';
- statusNode.dataset.error=String(!!fail);
+ statusNode.dataset.error=String(!!error);
 }
-async function copyOrSave(text,okMessage,fileName,mime){
+async function copyOrFile(content,label,name,mime='text/plain'){
  try{
-  if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error('no clipboard');
-  await navigator.clipboard.writeText(text);
-  say('✓ '+okMessage+' ('+text.length.toLocaleString('th-TH')+' ตัวอักษร) — ไปวางในแชต AI ได้เลย');
+  if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+  await navigator.clipboard.writeText(content);
+  say('คัดลอก'+label+'แล้ว · วางในแชต AI ภายนอกได้');
  }catch(_){
-  root.dl(fileName,text,mime);
-  say('คัดลอกอัตโนมัติไม่ได้ในเบราว์เซอร์นี้ จึงดาวน์โหลดเป็นไฟล์ให้แทน',true);
+  root.dl(name,content,mime);
+  say('เบราว์เซอร์ไม่อนุญาตให้คัดลอก จึงบันทึก'+label+'เป็นไฟล์ให้');
  }
+}
+function openImport(){
+ const details=q('#aihImportDetails');
+ if(details)details.open=true;
+ const input=q('#imp');
+ if(input){input.focus();input.scrollIntoView({block:'nearest',behavior:'smooth'})}
 }
 function buildHub(){
  if(hub)return;
+ const workspace=q('#studioWorkspace'),body=q('#studioToolBody');
+ if(!workspace||!body)return;
+ summaryNode=el('p',{className:'aih-summary'},summary());
  statusNode=el('p',{className:'aih-status',role:'status','aria-live':'polite','data-error':'false'});
- summaryNode=el('p',{id:'aihSummary'},summary());
- hub=el('main',{id:'aiHub','aria-label':'งานกับ AI'},
-  el('div',{className:'aih-head'},el('h2',{},'งานกับ AI'),summaryNode),
-  statusNode,
-  el('section',{className:'aih-card','aria-labelledby':'aihSend'},
-   el('h3',{id:'aihSend'},el('span',{className:'aih-step','aria-hidden':'true'},'1'),'ส่งให้ AI'),
-   el('p',{},'คัดลอกไปวางในแชต AI ภายนอก (หรือดาวน์โหลดเป็นไฟล์) แล้วบอกว่าต้องการให้แก้อะไร'),
-   el('div',{className:'aih-actions'},
-    el('button',{type:'button',className:'aih-primary',onclick:()=>copyOrSave(root.aiGuide(),'คัดลอกคู่มือ AI แล้ว','story-studio-ai-guide.md','text/markdown')},'คัดลอกคู่มือ AI'),
-    el('button',{type:'button',className:'aih-primary',onclick:()=>copyOrSave(root.aiContext(),'คัดลอกบริบทงานแล้ว','story-studio-ai-context.md','text/markdown')},'คัดลอกบริบทงาน'),
-    el('button',{type:'button',onclick:()=>{root.downloadAiPackage();say('✓ ดาวน์โหลดแพ็กให้ AI แล้ว — แนบไฟล์นี้ในแชต AI')}},'ดาวน์โหลดแพ็ก (.json)')),
-   el('details',{},
-    el('summary',{},'ดาวน์โหลดคู่มือ / บริบท แยกเป็นไฟล์ .md'),
-    el('div',{className:'aih-actions'},
-     el('button',{type:'button',onclick:()=>{root.downloadAiGuide();say('✓ ดาวน์โหลดคู่มือ AI (.md) แล้ว')}},'คู่มือ AI (.md)'),
-     el('button',{type:'button',onclick:()=>{root.downloadAiContext();say('✓ ดาวน์โหลดบริบท AI (.md) แล้ว')}},'บริบทงาน (.md)')))),
-  el('section',{className:'aih-card','aria-labelledby':'aihImport'},
-   el('h3',{id:'aihImport'},el('span',{className:'aih-step','aria-hidden':'true'},'2'),'นำงานกลับเข้า'),
-   el('p',{},'วาง JSON ที่ AI ตอบกลับ แล้วกด “นำเข้า” · ย้อนกลับได้ด้วย ↶ ด้านบน'),
-   el('div',{id:'aihImportSlot'}),
-   el('div',{className:'aih-file'},
-    el('button',{type:'button',onclick:()=>{const f=doc.getElementById('file');if(f)f.click()}},'เปิดไฟล์ .json จากเครื่อง'))));
- const anchor=doc.getElementById('studioWorkspace');
- if(anchor)anchor.before(hub);else doc.body.append(hub);
+ hub=el('section',{id:'aiHub','aria-label':'นำเข้า JSON และจัดการด้วย AI'},
+  el('div',{className:'aih-head'},
+   el('div',{},el('h2',{},'สตูดิโอ AI'),summaryNode),
+   el('span',{className:'aih-live'},'พรีวิวและงาน AI ในหน้าเดียว')),
+  el('div',{className:'aih-actions'},
+   el('button',{type:'button',className:'aih-primary',onclick:()=>q('#file')?.click()},'เปิดไฟล์ JSON'),
+   el('button',{type:'button',onclick:openImport},'วาง JSON / ตรวจสอบ'),
+   el('button',{type:'button',onclick:()=>root.StoryStudioBridge?.exportJSON?.()},'บันทึก JSON'),
+   el('button',{type:'button',onclick:()=>copyOrFile(root.aiContext(),'บริบทงาน','story-studio-context.md','text/markdown')},'คัดลอกบริบท'),
+   el('button',{type:'button',onclick:()=>copyOrFile(root.aiGuide(),'คู่มือ AI','story-studio-ai-guide.md','text/markdown')},'คู่มือให้ AI'),
+   el('button',{type:'button',onclick:()=>{root.downloadAiPackage();say('สร้างแพ็กข้อมูลส่งให้ AI ภายนอกแล้ว')}},'แพ็กให้ AI')),
+  el('details',{id:'aihImportDetails',className:'aih-import'},
+   el('summary',{},'นำเข้า JSON จากผู้เขียนหรือ AI · ตรวจสอบก่อนใช้'),
+   el('div',{id:'aihImportSlot'})),
+  statusNode
+ );
+ workspace.insertBefore(hub,body);
 }
-
-/* ---------------- the import dialog, embedded inline ---------------- */
 function embedImport(){
  const dlg=q('#dlg'),slot=q('#aihImportSlot');
  if(!dlg||!slot||dlg.classList.contains('aih-embedded'))return;
- const label=dlg.querySelector('label[for="mode"]'),select=dlg.querySelector('#mode'),smart=dlg.querySelector('#smartImportWrap');
  if(dlg.open){ignoreClose++;dlg.close()}
- adv=el('details',{className:'aih-adv'},el('summary',{},'ตัวเลือกการนำเข้า (ปกติไม่ต้องแตะ)'));
- if(label)adv.append(label);if(select)adv.append(select);if(smart)adv.append(smart);
+ const label=dlg.querySelector('label[for="mode"]'),mode=q('#mode'),smart=q('#smartImportWrap');
+ adv=el('details',{className:'aih-advanced'},el('summary',{},'ตัวเลือกนำเข้าขั้นสูง'));
+ for(const node of [label,mode,smart])if(node)adv.append(node);
  dlg.append(adv);
  dlg.classList.add('aih-embedded');
  slot.append(dlg);
@@ -97,127 +86,88 @@ function embedImport(){
 }
 function restoreImport(){
  const dlg=q('#dlg');
- if(!dlg||!dlg.classList.contains('aih-embedded'))return;
- if(dlg.open)dlg.close();
- const hint=dlg.querySelector('#impHint');
+ if(!dlg?.classList.contains('aih-embedded'))return;
+ if(dlg.open){ignoreClose++;dlg.close()}
  if(adv){
-  const parts=[...adv.children].filter(n=>n.tagName!=='SUMMARY');
-  if(hint)hint.before(...parts);else dlg.prepend(...parts);
+  const hint=q('#impHint');
+  const nodes=[...adv.children].filter(node=>node.tagName!=='SUMMARY');
+  if(hint)hint.before(...nodes);else dlg.prepend(...nodes);
   adv.remove();adv=null;
  }
  dlg.classList.remove('aih-embedded');
  doc.body.append(dlg);
 }
-/* importIt() closes the dialog after a successful import: keep it open as the page's paste box. */
-(function watchImportClose(){
- const dlg=q('#dlg');
- if(!dlg)return;
- dlg.addEventListener('close',()=>{
-  if(!isAi()||!dlg.classList.contains('aih-embedded'))return;
-  if(ignoreClose){ignoreClose--;return}
-  const box=q('#imp');
-  if(box)box.value='';
-  if(typeof root.updateImportHint==='function')root.updateImportHint();
-  dlg.show();
-  say('✓ นำเข้างานจาก AI แล้ว — ถ้าไม่ถูกใจกด ↶ ด้านบนเพื่อย้อนกลับ');
-  if(hub)hub.scrollTop=0;
-  root.scrollTo(0,0);
- });
-})();
-
-/* ---------------- page switching ---------------- */
-const origSwitch=root.switchStudioTool;
-function setPage(p){
- html.dataset.aiPage=p;
- if(hub)hub.scrollTop=0;
- root.scrollTo(0,0);
- buildMenu();
- if(p==='hub'&&summaryNode)summaryNode.textContent=summary();
-}
-root.switchStudioTool=function(id){
- if(!isAi())return origSwitch.apply(this,arguments);
- if(id==='ai'||id==='smart'){setPage(id);return origSwitch.call(this,id)}
- setPage('hub'); /* any other tool (scene, export, ...) falls back to the hub in AI mode */
-};
-
-/* ---------------- menu ---------------- */
-function menuAction(label,fn,icon,cls=''){
- return el('button',{type:'button',className:'menu-action '+cls,'aria-current':null,onclick:()=>{root.setMenuOpen(false);fn()}},
+function menuButton(label,fn,icon){
+ return el('button',{type:'button',className:'menu-action wide',onclick:()=>{root.setMenuOpen(false);fn()}},
   el('span',{className:'mi','aria-hidden':'true'},icon),el('span',{className:'ml'},label));
 }
-function buildMenu(){
+function buildAiMenu(){
  const menu=q('#menu');
- if(!menu||!isAi())return;
- const here=page();
- const item=(id,label,icon,fn)=>{
-  const b=menuAction(label,fn,icon,'wide'+(here===id?' primary':''));
-  if(here===id)b.setAttribute('aria-current','page');
-  return b;
- };
+ if(!menu||!aiOn())return;
  menu.replaceChildren(
-  el('div',{className:'menu-head'},
-   el('div',{},el('strong',{},'เมนูงาน AI'),el('small',{},'ไปหน้าที่ใช้กับ AI')),
-   el('button',{type:'button',className:'menu-close','aria-label':'ปิดเมนู',onclick:()=>root.setMenuOpen(false)},'×')),
-  el('section',{className:'menu-group'},
-   el('h3',{},'หน้าทำงานกับ AI'),
-   el('div',{className:'menu-grid'},
-    item('hub','ส่งให้ AI · นำงานเข้า','⌁',()=>setPage('hub')),
-    item('ai','AI สั่งงาน · 6 ผู้ช่วย','✦',()=>root.switchStudioTool('ai')),
-    item('smart','AI ตรวจงาน · Smart Director','✓',()=>root.switchStudioTool('smart')))),
-  el('section',{className:'menu-group'},
-   el('h3',{},'ต้องการแก้ภาพ เสียง หรือส่งออกวิดีโอ'),
-   el('div',{className:'menu-grid'},
-    menuAction('เปิดโหมดตัดต่อเต็ม (พรีวิว · ไทม์ไลน์ · ส่งออก)',()=>setMode('full'),'▶','wide'))));
+  el('div',{className:'menu-head'},el('div',{},el('strong',{},'สตูดิโอ AI'),el('small',{},'พรีวิว · JSON · สั่งงาน')),
+   el('button',{type:'button',className:'menu-close',onclick:()=>root.setMenuOpen(false),'aria-label':'ปิดเมนู'},'×')),
+  el('section',{className:'menu-group'},el('div',{className:'menu-grid'},
+   menuButton('กลับพื้นที่สั่งงาน AI',()=>root.switchStudioTool('ai'),'✦'),
+   menuButton('เปิดไฟล์ JSON',()=>q('#file')?.click(),'↥'),
+   menuButton('วาง JSON / ตรวจสอบ',openImport,'⌁'),
+   menuButton('ส่งออกวิดีโอ',()=>q('#videoQuick')?.click(),'▶'),
+   menuButton('เปิดสตูดิโอตัดต่อเต็ม',()=>setMode('full'),'▦')))
+ );
 }
-/* In the full editor, add one way back into AI-only mode at the top of the existing AI group. */
 function augmentFullMenu(){
  const menu=q('#menu');
- if(!menu||isAi())return;
- const group=[...menu.querySelectorAll('.menu-group')].find(g=>(g.querySelector('h3')||{}).textContent==='ทำงานกับ AI');
- const grid=group&&group.querySelector('.menu-grid');
+ if(!menu||aiOn())return;
+ const group=[...menu.querySelectorAll('.menu-group')].find(n=>n.querySelector('h3')?.textContent==='ทำงานกับ AI');
+ const grid=group?.querySelector('.menu-grid');
  if(grid&&!grid.querySelector('[data-ai-mode-entry]')){
-  const b=menuAction('โหมดหน้าเรียบ · เหลือแค่งาน AI',()=>setMode('ai'),'◐','wide primary');
-  b.dataset.aiModeEntry='1';
-  grid.prepend(b);
+  const entry=menuButton('เปิดสตูดิโอ AI พร้อมพรีวิว',()=>setMode('ai'),'✦');
+  entry.dataset.aiModeEntry='1';grid.prepend(entry);
  }
 }
-const prevTop=root.renderTop;
 root.renderTop=function(){
- prevTop.apply(this,arguments);
- if(isAi()){buildMenu();if(summaryNode&&page()==='hub')summaryNode.textContent=summary()}
+ origTop.apply(this,arguments);
+ if(aiOn()){if(summaryNode)summaryNode.textContent=summary();buildAiMenu()}
  else augmentFullMenu();
 };
-
-/* ---------------- mode switch ---------------- */
+root.switchStudioTool=function(id){
+ if(!aiOn())return origSwitch.apply(this,arguments);
+ return origSwitch.call(this,['ai','smart','audio','voices','record','export'].includes(id)?id:'ai');
+};
 function remember(mode){try{localStorage.setItem(KEY,mode)}catch(_){}}
-function enterAi(){
- buildHub();
- html.classList.add('ai-only');
- embedImport();
- setPage('hub');
- root.renderTop();
-}
-function leaveAi(){
- restoreImport();
- html.classList.remove('ai-only');
- delete html.dataset.aiPage;
- origSwitch.call(root,'scene');
- root.renderTop();
- requestAnimationFrame(()=>{try{root.fit()}catch(_){}root.scrollTo(0,0)});
-}
 function setMode(mode){
  remember(mode);
- if(mode==='ai')enterAi();else leaveAi();
+ if(mode==='ai'){
+  html.classList.add('ai-only');
+  html.dataset.aiPage='workspace';
+  buildHub();embedImport();
+  origSwitch.call(root,'ai');
+ }else{
+  restoreImport();
+  html.classList.remove('ai-only');
+  delete html.dataset.aiPage;
+  origSwitch.call(root,'scene');
+ }
+ root.renderTop();
+ requestAnimationFrame(()=>{root.fit();root.scrollTo(0,0)});
 }
-root.StoryAIMode=Object.freeze({set:setMode,page:()=>page(),isAi});
-
-/* ---------------- boot ---------------- */
+root.StoryAIMode=Object.freeze({set:setMode,page:()=>aiOn()?'workspace':'full',isAi:aiOn});
+const dlg=q('#dlg');
+if(dlg)dlg.addEventListener('close',()=>{
+ if(ignoreClose){ignoreClose--;return}
+ if(!aiOn()||!dlg.classList.contains('aih-embedded'))return;
+ const input=q('#imp');
+ if(input)input.value='';
+ root.updateImportHint?.();
+ dlg.show();
+ say('นำเข้า JSON แล้ว · ตรวจพรีวิวและผลในพื้นที่ AI · ย้อนกลับได้ด้วยปุ่ม ↶');
+});
 buildHub();
-if(isAi()){
+if(aiOn()){
+ html.dataset.aiPage='workspace';
  embedImport();
- setPage('hub');
- /* the inline <head> script already hid the full UI; make sure the workspace is on a safe tool */
- try{origSwitch.call(root,'scene')}catch(_){}
+ origSwitch.call(root,'ai');
 }
 root.renderTop();
+requestAnimationFrame(()=>{if(aiOn())root.fit()});
 })(window);
