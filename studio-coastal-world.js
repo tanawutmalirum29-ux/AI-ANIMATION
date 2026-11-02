@@ -201,12 +201,14 @@
   // Market must be OCCUPIED before the warning. Evacuation is a causal event,
   // not an unmotivated empty row of stalls.
   if(!empty&&!safeHill){
-   const q=evac?Math.min(1,t*1.4):0;
+   // The crowd must still BE in the market for the first half of the
+   // warning scene. Previously everyone was already carrying crates at t=0.
+   const q=evac?Math.max(0,Math.min(1,(t-.50)/.50)):0;
    const crowd=[.645,.752,.865];
    o+='<g data-world-object="populated-market">'+crowd.map((v,i)=>{
     const px=x(v+.065*q),py=79-q*(3.5+i*.8);
     return person(px,py,['#d8a15a','#9bb0a3','#c17d75'][i],
-      warning||evac?'warn':'rest',evac||warning,warning?1.36:1.08);
+      (warning||evac)&&t>.1?'warn':'rest',q>.25,warning?1.36:1.08);
    }).join('')+'</g>';
    if(warning||evac){
     // Three readable beats within the SAME camera shot: the shopkeeper
@@ -244,7 +246,7 @@
   // Evacuation itself moves figures from lowland to uphill; unlike the old
   // disappearing silhouettes, the market is clearly shown populated first.
   if(effect(scene,'evacuation')&&!empty){
-   const q=Math.min(1,t*1.2);
+   const q=Math.max(0,Math.min(1,(t-.48)/.52));
    o+='<g data-world-object="evacuating-villager">'+
     person(x(.71+.14*q),78-9*q,'#d49d6e','warn',true,1.38)+
     person(x(.77+.11*q),77-8*q,'#83b2a3','rest',true,1.38)+'</g>';
