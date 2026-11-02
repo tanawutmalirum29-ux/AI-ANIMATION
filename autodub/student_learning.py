@@ -327,13 +327,13 @@ def _story_lesson(body):
 
 
 def _story_lessons(body):
-    from boto3.dynamodb.conditions import Key
     limit, cursor = body.get("limit", 40), body.get("cursor")
     if type(limit) is not int or not 1 <= limit <= 80:
         return _resp(400, {"error": "limit ต้องมีค่า 1–80"})
     if cursor is not None and (not isinstance(cursor, str)
             or not re.fullmatch(r"lesson#[0-9]{12}#[0-9a-f-]{36}", cursor)):
         return _resp(400, {"error": "cursor ไม่ถูกต้อง"})
+    from boto3.dynamodb.conditions import Key
     options = {"KeyConditionExpression": Key("pk").eq(STORY_PK)
                & Key("sk").begins_with("lesson#"),
                "ScanIndexForward": False, "Limit": limit}
