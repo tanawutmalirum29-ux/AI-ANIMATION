@@ -13,6 +13,8 @@ const MODES=[
 ];
 let bridge,container,tab='chat',provider='openrouter',statusData=null,thread=[],pending=[],busy=false,notice='',noticeError=false,lastResponse=null;
 let connectionDraft={url:'',model:''};
+const lessonBrowser={loaded:false,loading:false,items:[],nextCursor:null,
+ query:'',label:'all',showCount:40,models:[],activeVersion:null,error:''};
 let studentReview=null,studentChoice='review',studentOwnerReason='',lastStudentCandidate=null,studentCandidates=[];
 const el=(tag,attrs={},...children)=>{
  const n=$doc.createElement(tag);
@@ -459,7 +461,11 @@ function studentPanel(){
   el('p',{className:'teacher-muted'},
    '1. นำเข้า JSON แล้วเลือกฉาก · 2. ให้ AI ลูกวิเคราะห์และ AI แม่ตรวจ · 3. เลือกผลที่ถูกต้องและบันทึกบน AWS · 4. สะสมหลายเรื่องเพื่อฝึกน้ำหนัก'),
   el('div',{className:'teacher-row'},button('AI ลูกวิเคราะห์ → AI แม่ตรวจ',reviewStudent,'teacher-primary',busy),
-    button('โหลดความจำ AWS',refreshStudentMemory,'',busy)),
+    button('โหลดความจำ AWS',refreshStudentMemory,'',busy),
+    button('ดูบทเรียนที่บันทึก',()=>{
+      tab='memory';render();
+      if(!lessonBrowser.loaded&&!lessonBrowser.loading)loadLessonDashboard(true);
+    },'',busy)),
   el('p',{className:'teacher-muted'},'ตัวอย่างในหน่วยความจำ '+(summary.lessonCount||0)+
    ' · โมเดลปัจจุบัน '+(summary.activeVersion||'ยังไม่มีรุ่นอนุมัติ')));
  if(studentReview){
@@ -498,17 +504,162 @@ function studentPanel(){
    ' · '+(lastStudentCandidate.metrics.qaPassed?'ผ่าน QA':'ไม่ผ่าน QA'))]:[])));
  return content;
 }
+const LESSON_LABELS={keep:'ควรเก็บคำซ้ำ',remove:'ควรลบคำซ้ำ',review:'ต้องตรวจเพิ่มเติม'};
+function filteredMemoryLessons(items,query,label){
+ const q=String(query||'').trim().toLowerCase();
+ return (Array.isArray(items)?items:[]).filter(item=>{
+  if(label!=='all'&&item.label!==label)return false;
+  if(!q)return true;
+  return [item.text,item.label,item.projectId,item.episodeId,item.sceneId,
+   item.teacherReason,item.ownerReason,item.studentDecision,
+   item.context?.emotion,item.context?.situation,item.context?.mode]
+   .some(v=>String(v||'').toLowerCase().includes(q));
+ });
+}
+function lessonDate(value){
+ const seconds=Number(value);
+ if(!Number.isFinite(seconds)||seconds<=0)return 'ไม่ทราบวันที่';
+ return new Date(seconds*1000).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});
+}
+function lessonCard(item){
+ const text=String(item.text||'').slice(0,1000),reason=String(item.teacherReason||'');
+ const approved=String(item.ownerReason||'');
+ const label=LESSON_LABELS[item.label]||'ไม่ทราบประเภท';
+ const article=el('details',{className:'teacher-lesson-card'},
+  el('summary',{},
+   el('span',{className:'teacher-lesson-label'},label),
+   el('span',{className:'teacher-lesson-snippet'},text.slice(0,130)),
+   el('small',{},lessonDate(item.createdAt)+' · '+String(item.sceneId||'ไม่ระบุฉาก'))),
+  el('div',{className:'teacher-lesson-detail'},
+   el('strong',{},'บทต้นฉบับ'),
+   el('p',{},text),
+   el('strong',{},'เหตุผลของ AI ครู'),
+   el('p',{},reason||'ไม่มีเหตุผลจาก AI ครูบันทึกไว้'),
+   el('strong',{},'เหตุผลที่คุณบันทึก'),
+   el('p',{},approved||'ไม่ได้ระบุเหตุผลเพิ่มเติม'),
+   el('strong',{},'AI ลูกเคยตัดสินใจ'),
+   el('p',{},String(item.studentDecision||'ไม่ทราบ')),
+   el('small',{},'โปรเจกต์ '+String(item.projectId||'-')+
+    ' · ตอน '+String(item.episodeId||'-')+
+    ' · ฉาก '+String(item.sceneId||'-')),
+   el('small',{},'บริบท: '+JSON.stringify(item.context||{})),
+   el('small',{},'สถานะ: ผู้ใช้อนุมัติสำหรับการฝึก ไม่ได้ยืนยันว่าใช้ฝึกน้ำหนักแล้ว')));
+ return article;
+}
+function paintLessonList(){
+ const list=container?.querySelector('.teacher-lesson-list'),
+  summary=container?.querySelector('.teacher-memory-count');
+ if(!list)return;
+ const filtered=filteredMemoryLessons(lessonBrowser.items,lessonBrowser.query,lessonBrowser.label);
+ if(summary)summary.textContent='โหลดจาก AWS แล้ว '+lessonBrowser.items.length+
+  ' บทเรียน · ตรงเงื่อนไข '+filtered.length+
+  (lessonBrowser.nextCursor?' · ยังมีหน้าถัดไป':' · ไม่มีหน้าถัดไปที่ทราบ');
+ list.replaceChildren();
+ if(!lessonBrowser.loaded&&!lessonBrowser.loading)
+  list.append(el('p',{className:'teacher-muted'},'กดโหลดข้อมูล AWS เพื่อดูบทเรียนจริง'));
+ if(lessonBrowser.loading&&(!lessonBrowser.loaded||!lessonBrowser.items.length))
+  list.append(el('p',{className:'teacher-muted'},'กำลังโหลดบทเรียนจาก AWS...'));
+ if(lessonBrowser.error)
+  list.append(el('p',{className:'teacher-warning'},lessonBrowser.error));
+ if(lessonBrowser.loaded&&!filtered.length)
+  list.append(el('p',{className:'teacher-muted'},lessonBrowser.items.length?
+   'ไม่มีบทเรียนตรงกับคำค้นหาในรายการที่โหลดแล้ว':'ยังไม่มีบทเรียนที่ได้รับการอนุมัติบน AWS'));
+ for(const item of filtered.slice(0,lessonBrowser.showCount))list.append(lessonCard(item));
+ if(filtered.length>lessonBrowser.showCount)
+  list.append(button('แสดงรายการที่โหลดไว้เพิ่ม',()=>{
+   lessonBrowser.showCount+=40;paintLessonList()},'',lessonBrowser.loading));
+ if(lessonBrowser.nextCursor)list.append(button(
+  lessonBrowser.loading?'กำลังโหลด...':'โหลดบทเรียนหน้าถัดไปจาก AWS',
+  ()=>loadLessonDashboard(false),'',lessonBrowser.loading));
+}
+function renderModelHistory(){
+ const area=el('div',{className:'teacher-model-history'},
+  el('strong',{},'ประวัติรุ่นโมเดล AI ลูก'),
+  el('p',{className:'teacher-muted'},'แสดงรุ่นล่าสุดสูงสุด 10 รุ่น · คะแนนจากชุดทดสอบ ไม่ใช่การรับประกันความถูกต้องทุกฉาก'),
+  el('p',{},'รุ่นที่เปิดใช้: '+(lessonBrowser.activeVersion||'ยังไม่มีโมเดลที่เปิดใช้')));
+ if(!lessonBrowser.models.length)area.append(el('p',{className:'teacher-muted'},'ยังไม่มีโมเดลที่ฝึก หรือยังไม่ได้โหลดข้อมูล AWS'));
+ for(const m of lessonBrowser.models){
+  const metrics=m.metrics||{};
+  const percentage=Number(metrics.accuracy);
+  area.append(el('article',{className:'teacher-model-row'},
+   el('strong',{},String(m.version||'-')+(m.version===lessonBrowser.activeVersion?' · กำลังใช้งาน':'')),
+   el('small',{},'Holdout '+(Number.isFinite(percentage)?(percentage*100).toFixed(1)+'%':'ไม่ทราบ')+
+    ' · ตัวอย่างฝึก '+String(metrics.trainRows??'-')+
+    ' · ทดสอบ '+String(metrics.testRows??'-')+
+    ' · '+(metrics.qaPassed?'ผ่าน QA':'ยังไม่ผ่าน QA')),
+   el('small',{},'สถานะ '+String(m.status||'candidate')+
+    ' · ไม่แก้บทเองโดยอัตโนมัติ')));
+ }
+ return area;
+}
+async function loadLessonDashboard(reset=true){
+ if(lessonBrowser.loading)return;
+ if(!session()){lessonBrowser.error='ต้องเข้าสู่ระบบสตูดิโอก่อนดูบทเรียน';paintLessonList();return}
+ lessonBrowser.loading=true;lessonBrowser.error='';
+ if(reset){
+  lessonBrowser.loaded=false;lessonBrowser.items=[];lessonBrowser.nextCursor=null;
+  lessonBrowser.showCount=40;
+ }
+ paintLessonList();
+ try{
+  const args={limit:40};
+  if(!reset&&lessonBrowser.nextCursor)args.cursor=lessonBrowser.nextCursor;
+  const requests=[api('student.lessons',args)];
+  if(reset)requests.push(api('student.candidates'),api('student.model'));
+  const data=await Promise.all(requests);
+  if(!Array.isArray(data[0]?.lessons))throw Error('AWS ไม่ส่งรายการบทเรียนที่อ่านได้');
+  const prev=new Map(lessonBrowser.items.map(row=>[row.id,row]));
+  for(const item of data[0].lessons)if(item&&typeof item.id==='string')prev.set(item.id,item);
+  lessonBrowser.items=[...prev.values()];
+  lessonBrowser.nextCursor=typeof data[0].nextCursor==='string'?data[0].nextCursor:null;
+  if(reset){
+   lessonBrowser.models=Array.isArray(data[1]?.candidates)?data[1].candidates:[];
+   lessonBrowser.activeVersion=data[2]?.active?.version||null;
+  }
+  lessonBrowser.loaded=true;
+  setNotice('อ่านข้อมูล AI ลูกจาก AWS แล้ว '+lessonBrowser.items.length+
+    ' รายการ'+(lessonBrowser.nextCursor?' · มีบทเรียนให้โหลดเพิ่ม':'')+
+    ' · ไม่ได้หมายความว่าฝึกน้ำหนักแล้ว');
+ }catch(e){
+  lessonBrowser.error='อ่าน AWS ไม่สำเร็จ: '+String(e.message||e);
+  setNotice(lessonBrowser.error,true);
+ }finally{
+  lessonBrowser.loading=false;
+  if(tab==='memory')render();
+ }
+}
 function memoryPanel(){
- const content=el('div',{className:'teacher-content'},
-  el('strong',{},'Training Feedback Memory'),
-  el('p',{className:'teacher-muted'},'ตัวอย่างที่คุณอนุมัติหรือปฏิเสธจะเก็บบน AWS DynamoDB ไม่ใช่การเปลี่ยนน้ำหนักโมเดลทันที'),
+ const content=el('div',{className:'teacher-content teacher-memory-dashboard'},
+  el('strong',{},'ความจำ AI ลูก · ข้อมูลจริงจาก AWS'),
+  el('p',{className:'teacher-muted'},
+   'บทเรียนที่คุณอนุมัติไว้จากทุกโปรเจกต์จะอยู่ใน DynamoDB ไม่หายเมื่อรีเว็บ (หากยังเก็บอยู่บน AWS) การค้นหาจะค้นเฉพาะหน้าที่โหลดมาแล้ว'),
   el('div',{className:'teacher-row'},
-    button('โหลดประวัติการสอน',showHistory,'teacher-primary',busy||!statusData?.feedbackReady),
-    button('ดู GitHub Training Lab',()=>root.open('https://github.com/tanawutmalirum29-ux/AI-ANIMATION/tree/main/training-lab','_blank','noopener'))),
-  el('div',{className:'teacher-history'},el('p',{className:'teacher-muted'},'กดโหลดประวัติเพื่อดูตัวอย่างที่บันทึกอยู่ใน AWS')));
- if(!statusData?.feedbackReady)content.append(el('p',{className:'teacher-warning'},'ฐานข้อมูล Feedback ยังไม่ได้ติดตั้งบน AWS การกดเลือกจะไม่อ้างว่าบันทึกเป็นความจำ'));
+   button(lessonBrowser.loading?'กำลังโหลด...':'รีเฟรชข้อมูล AWS',
+    ()=>loadLessonDashboard(true),'teacher-primary',lessonBrowser.loading),
+   button('ไปหน้าสอน AI ลูก',()=>{tab='student';render()},'',lessonBrowser.loading)),
+  el('p',{className:'teacher-memory-count',role:'status'},'ยังไม่ได้โหลดบทเรียน'),
+  el('div',{className:'teacher-memory-filters'},
+   el('label',{className:'teacher-field'},el('span',{},'ค้นหาบท / เหตุผล / ฉาก'),
+    el('input',{id:'studentMemorySearch',type:'search',value:lessonBrowser.query,
+     placeholder:'พิมพ์คำไทยหรือ Scene ID',oninput:ev=>{
+      lessonBrowser.query=ev.target.value;lessonBrowser.showCount=40;paintLessonList()}})),
+   el('label',{className:'teacher-field'},el('span',{},'ประเภทคำตอบ'),
+    el('select',{id:'studentMemoryLabel',value:lessonBrowser.label,onchange:ev=>{
+      lessonBrowser.label=ev.target.value;lessonBrowser.showCount=40;paintLessonList()}},
+     ...[['all','ทุกประเภท'],['keep','ควรเก็บ'],['remove','ควรลบ'],['review','ต้องตรวจ']].map(
+      ([value,label])=>el('option',{value,selected:value===lessonBrowser.label},label))))),
+  el('div',{className:'teacher-lesson-list','aria-live':'polite'}),
+  renderModelHistory(),
+  el('details',{className:'teacher-feedback-details'},
+   el('summary',{},'ประวัติ Feedback จาก AI ครู (เฉพาะโปรเจกต์นี้)'),
+   el('p',{className:'teacher-muted'},'ข้อมูลนี้แยกจากบทเรียนที่อนุมัติสำหรับฝึก AI ลูก'),
+   button('โหลด Feedback โปรเจกต์นี้',showHistory,'',busy),
+   el('div',{className:'teacher-history'},el('p',{className:'teacher-muted'},'กดโหลดเพื่อดู Feedback รายการล่าสุด'))));
+ if(!statusData?.feedbackReady)content.append(el('p',{className:'teacher-muted'},
+  'หากยังไม่โหลดข้อมูล โปรดตรวจการเชื่อมต่อ AWS · บทเรียนต้องบันทึกสำเร็จจึงจะปรากฏ'));
  return content;
 }
+
 function render(reset=true){
  if(!container)return;
  const active=$doc.activeElement;
@@ -516,7 +667,10 @@ function render(reset=true){
  container.replaceChildren(header(),
   el('nav',{className:'teacher-tabs','aria-label':'AI Teacher Studio'},
     ...[['chat','คุย / สั่งงาน'],['connect','เชื่อม API'],['student','สอน AI ลูก'],['memory','ประวัติ']].map(([id,label])=>
-     button(label,()=>{tab=id;render()},tab===id?'active':''))),
+     button(label,()=>{
+       tab=id;render();
+       if(id==='memory'&&!lessonBrowser.loaded&&!lessonBrowser.loading)loadLessonDashboard(true);
+      },tab===id?'active':''))),
   el('p',{className:'teacher-notice',role:'status','aria-live':'polite','data-error':String(noticeError)},notice||'AI ครูต้องเชื่อมต่อ API ก่อนใช้งาน'),
   tab==='connect'?connectPanel():tab==='memory'?memoryPanel():tab==='student'?studentPanel():chatPanel());
 }
