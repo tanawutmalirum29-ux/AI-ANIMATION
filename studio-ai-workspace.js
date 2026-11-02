@@ -11,6 +11,7 @@ let bridge,rootElement,view='chat',audioScope='episode',busy=false,progress='',l
 const EPISODE_TARGET_SECONDS=60,EPISODE_GRACE_SECONDS=5;
 let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 let shotModel=null;const shotRows=[];
+let scriptReview=null;
 const MAX_TASKS=130;
 
 
@@ -555,6 +556,48 @@ function applyShotRecommendation(){
   status('นำคำแนะนำ ML ไปใช้แล้ว กรุณาตรวจพรีวิวก่อนส่งออก');
  }catch(err){status('Shot ML: '+err.message,true)}
 }
+function reviewCurrentScript(){
+ try{
+  const scene=bridge.scene?.(),ml=root.StoryScriptML;
+  if(!scene?.id)throw Error('เลือกฉากก่อน');
+  if(!ml?.review)throw Error('ยังโหลด Script ML ไม่ครบ ลองเปิดแท็บ AI อีกครั้ง');
+  const original=String(scene.voiceover||'');
+  if(!original.trim())throw Error('ฉากนี้ไม่มี voiceover');
+  scriptReview={sceneId:scene.id,original,result:ml.review(original)};
+  status('วิเคราะห์บทฉาก '+scene.id+' แล้ว · โมเดลทดลอง AI เขียนตัวอย่าง ไม่ใช่ LLM');
+ }catch(err){scriptReview=null;status('Script ML: '+String(err.message||err),true)}
+ render();
+}
+async function applyScriptReview(){
+ const proposal=scriptReview,scene=bridge.scene?.();
+ if(busy||!proposal?.result?.hasEdit||!scene||scene.id!==proposal.sceneId||
+  String(scene.voiceover||'')!==proposal.original){
+  scriptReview=null;status('ฉากหรือบทเปลี่ยนไป กรุณาวิเคราะห์ใหม่',true);render();return;
+ }
+ const voiceClips=(scene.audioClips||[]).filter(c=>c.kind==='voice'&&c.data&&!c.mute);
+ if(voiceClips.length&&!root.confirm('บทเปลี่ยนแล้ว เสียงพากย์เดิมจะถูกพักไว้และต้องพากย์ใหม่ ยืนยันหรือไม่?'))return;
+ busy=true;render();
+ try{
+  const text=proposal.result.proposed;
+  const prepared=standardNarrative({...scene,voiceover:text,subtitle:[],subtitleCues:[]});
+  if(!prepared)throw Error('เตรียมซับของบทใหม่ไม่สำเร็จ');
+  const patch={voiceover:text,subtitle:prepared.subtitle,subtitleCues:prepared.subtitleCues};
+  if(voiceClips.length)patch.audioClips=(scene.audioClips||[]).map(c=>
+   c.kind==='voice'&&c.data?{...c,mute:true,staleNarration:true}:c);
+  const ops=[{op:'updateScene',id:scene.id,patch}];
+  if(!root.StudioAPI?.apply)throw Error('StudioAPI ไม่พร้อม');
+  const dry=root.StudioAPI.apply(ops,{dryRun:true});
+  if(!dry.ok)throw Error('ตรวจบทไม่ผ่าน: '+JSON.stringify((dry.errors||[]).slice(0,3))+
+   JSON.stringify((dry.issues||[]).filter(x=>x.level==='error').slice(0,2)));
+  await backupBeforeEdit();
+  const result=root.StudioAPI.apply(ops);
+  if(!result.applied)throw Error('บันทึกบทที่แก้ไม่สำเร็จ');
+  scriptReview=null;
+  status('ใช้บทที่เกลาคำซ้ำแล้ว 1 ฉาก · จัดซับใหม่แล้ว'+(voiceClips.length?' · ต้องพากย์เสียงใหม่':''));
+ }catch(err){status('Script ML: '+String(err.message||err),true)}
+ finally{busy=false;render()}
+}
+
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
  pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
@@ -592,6 +635,18 @@ function renderChat(container){
   e('small',{},shotModel?'พร้อมแนะนำแบบต้องกดยืนยัน':'ยังไม่มีโมเดลอนุมัติ: โมเดล demo ไม่แก้ฉากจริง')
  ));
 
+ pane.append(e('details',{className:'ai-task',open:!!scriptReview},
+  e('summary',{},'Script ML · ทดลองเกลาบทพากย์ภาษาไทย'),
+  e('p',{className:'ai-help'},'SGD ฝึกจริงจาก 30 คู่ตัวอย่างที่ AI เขียนเอง ช่วยจับคำซ้ำและจังหวะอ่านติดขัดอย่างง่าย ไม่ใช่ LLM เขียนบทใหม่'),
+  button('วิเคราะห์บทฉากปัจจุบัน',reviewCurrentScript,{disabled:busy,className:'ai-primary'}),
+  ...(scriptReview?.sceneId===bridge.scene?.()?.id?[
+   e('small',{},'ค่าความเสี่ยงของโมเดล '+Math.round(scriptReview.result.risk*100)+'% (ไม่ใช่คะแนนคุณภาพจริง) · '+scriptReview.result.explanation),
+   e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
+    'บทเดิม:\n'+scriptReview.original+'\n\nข้อเสนอแก้:\n'+scriptReview.result.proposed),
+   button('ยืนยันใช้บทที่เสนอในฉากนี้',applyScriptReview,{disabled:busy||!scriptReview.result.hasEdit})
+  ]:[]),
+  e('small',{},'ตรวจตัวอย่างด้วยตนเองก่อนยืนยัน · สำรองก่อนแก้ · เสียงเก่าจะถูกพักไว้หากบทเปลี่ยน')
+ ));
  const latest=w().tasks.slice().reverse().find(x=>x.role==='production');
  const steps=latest?.steps?.length?latest.steps:productionSteps();
  const progressBox=e('section',{className:'ai-production-progress','aria-label':'สถานะผู้ช่วยทั้ง 6 ขั้น'},
@@ -794,6 +849,9 @@ function render(){
  else renderProjects(area);
 }
 function mount(){
+ if(!root.StoryScriptML&&!document.querySelector('script[data-script-ml]')){
+  const s=document.createElement('script');s.src='./studio-script-ml.js';s.dataset.scriptMl='1';document.head.appendChild(s);
+ }
  bridge=root.StoryStudioBridge;
  rootElement=document.querySelector('#aiWorkspacePanel');
  if(!rootElement||!bridge)return;
