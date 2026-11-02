@@ -31,6 +31,38 @@ jobs:
             exit 1
           fi
 
+      - name: Verify GitHub immutable OIDC claims (no tokens logged)
+        shell: bash
+        env:
+          EXPECTED_SUB: repo:tanawutmalirum29-ux@225819900/AI-ANIMATION@1440864911:ref:refs/heads/main
+        run: |
+          python3 - <<'PY'
+          import os,json,base64,urllib.parse,urllib.request
+          url=os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"]
+          parts=urllib.parse.urlsplit(url)
+          query=dict(urllib.parse.parse_qsl(parts.query))
+          query["audience"]="sts.amazonaws.com"
+          request_url=urllib.parse.urlunsplit((parts.scheme,parts.netloc,parts.path,
+                        urllib.parse.urlencode(query),parts.fragment))
+          req=urllib.request.Request(request_url,headers={
+              "Authorization":"bearer "+os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})
+          with urllib.request.urlopen(req,timeout=20) as resp:
+              encoded=json.load(resp)["value"]
+          body=encoded.split(".")[1]
+          claims=json.loads(base64.urlsafe_b64decode(body+"="*(-len(body)%4)))
+          actual=claims.get("sub","")
+          print("GitHub OIDC issuer:",claims.get("iss",""))
+          print("GitHub OIDC audience:",claims.get("aud",""))
+          print("GitHub OIDC subject:",actual)
+          # The sensitive signed token and signature are deliberately never printed.
+          assert claims.get("iss")=="https://token.actions.githubusercontent.com","Wrong OIDC issuer"
+          assert claims.get("aud")=="sts.amazonaws.com","Wrong OIDC audience"
+          if actual!=os.environ["EXPECTED_SUB"]:
+              raise SystemExit("OIDC subject differs from the main-only IAM role trust. "+
+                               "Re-check GitHub OIDC repository owner/repo IDs and IAM trust.")
+          print("OIDC immutable subject matches IAM bootstrap configuration")
+          PY
+
       - name: Authorize short-lived AWS credentials through GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
