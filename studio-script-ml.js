@@ -88,12 +88,15 @@ function classifyIntent(text,context={}){
   /danger|confront|panic|threat|argument|ทะเลาะ|วิกฤต/u.test(situation);
  const uncertain=mode==='unknown'||/uncertain|unknown|ไม่แน่ใจ/u.test(emotion)||
   /…|\.{3}/u.test(text);
+ const indicators=intentFeatures(text,context);
+ const hasRepetition=indicators.slice(0,5).some(Boolean)||!!indicators[11];
  let decision='review';
- if(protectedExpression)decision='keep';
+ if(!hasRepetition)decision='keep';
+ else if(protectedExpression)decision='keep';
  else if(uncertain)decision='review';
  else if(label==='remove'&&best>=.85)decision='remove';
  return {label,decision,confidence:best,probabilities,
-  reason:decision==='keep'?'มีสัญญาณบทพูด/อารมณ์/เหตุการณ์ที่อาจตั้งใจย้ำ — เก็บคำซ้ำไว้':
+  reason:decision==='keep'?(hasRepetition?'มีสัญญาณบทพูด/อารมณ์/เหตุการณ์ที่อาจตั้งใจย้ำ — เก็บคำซ้ำไว้':'ไม่พบรูปแบบคำซ้ำที่ต้องเสนอแก้'):
    decision==='review'?'บริบทกำกวมหรือความมั่นใจไม่พอ — ต้องให้ผู้เขียนพิจารณา':
    'บทบรรยายปกติและโมเดลทดลองประเมินว่าคำซ้ำอาจเป็นข้อผิดพลาด'};
 }
