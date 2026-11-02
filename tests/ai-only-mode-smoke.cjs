@@ -82,7 +82,7 @@ const path=require('node:path');
    assert.equal(await visible('.story-only-workspace'),true,'text-only workspace visible');
    await page.locator('#storyOnlyPaste').fill(JSON.stringify({
     type:'story-only',title:'ทดสอบบทล้วน',chapters:[{title:'ตอนแรก',
-     text:'ฝนเริ่มตกกลางตลาด\\n\\nคนขายของรีบยกกล่องขึ้นที่สูง'}]}));
+     text:'ฝนเริ่มตกกลางตลาด\n\nคนขายของรีบยกกล่องขึ้นที่สูง'}]}));
    await page.getByRole('button',{name:'นำเข้าข้อความ JSON'}).click();
    await page.waitForFunction(()=>StoryStudioBridge.get().project.mode==='story-only');
    const story=await page.evaluate(()=>StoryStudioBridge.get());
