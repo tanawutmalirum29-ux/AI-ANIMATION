@@ -13,7 +13,7 @@ if(root)root.StoryAutoTeach=api;
 'use strict';
 let bridge=null,host=null,provider='openrouter',scanned=null,running=false,
   progress='',error='',results=[],memory=[],loadedMemory=false,failReasons=[],repairModelChoice=null,
-  completedLessons=new Map(),pendingSceneIds=[],trainingStatus=null,readyExport=false;
+  completedLessons=new Map(),pendingSceneIds=[],retrySceneIds=new Set(),trainingStatus=null,readyExport=false;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const validIssues=['continuity','clarity','expand','pacing','keep'];
 const clip=(s,n)=>String(s||'').slice(0,n);
@@ -67,9 +67,14 @@ function childScan(project,model,coach){
   syntheticModelAccuracy:null};
 }
 function signature(project){return digestSource(project)}
+function resolvedRetryCount(){
+ const completedIds=new Set([...completedLessons.values()].map(x=>x.sceneId));
+ return [...retrySceneIds].filter(id=>completedIds.has(id)).length;
+}
 function getState(){
  return {ready:!!scanned,scenes:scanned?.rows.length||0,skipped:scanned?.skipped.length||0,
-  results:[...results],completed:results.reduce((n,x)=>n+(x.saved||0)+(x.reused||0),0),
+  results:[...results],completed:completedLessons.size,resolvedRetries:resolvedRetryCount(),
+  unresolved:Math.max(0,(scanned?.rows.length||0)-completedLessons.size),
   running,progress,error,pendingSceneIds:[...pendingSceneIds],trainingStatus,
   readyExport,failReasons:[...failReasons],repairSuggestion:repairModelChoice?{...repairModelChoice}:null,autoMemoryCount:memory.length,modelUsed:scanned?.modelUsed||false};
 }
@@ -100,6 +105,10 @@ function render(){
   const fix=btn(label,()=>repair404Model().catch(()=>{}));
   rootPanel.append(fix);
  }
+ if(!running&&readyExport&&resolvedRetryCount()){
+  rootPanel.append(el('p','AI แม่ตรวจแก้ฉากที่เคยไม่ผ่านสำเร็จแล้ว '+
+   resolvedRetryCount()+' ฉาก · ไม่มีฉากค้างสอน','teacher-muted'));
+ }
  if(failReasons.length){
   const details=el('details',null,'teacher-auto-teach-errors');
   details.open=true;
@@ -112,18 +121,28 @@ function render(){
   ' ฉาก · '+(scanned.modelUsed?'ใช้โมเดล CPU พื้นฐาน':'ใช้กฎตรวจบทพื้นฐาน'),
   'teacher-muted'));
  if(results.length){
-  const stats={saved:0,reused:0,failed:0};
-  for(const r of results)for(const key of Object.keys(stats))stats[key]+=r[key]||0;
-  rootPanel.append(el('p','AWS บันทึกใหม่ '+stats.saved+' · ใช้ความจำเดิม '+stats.reused+
-    ' · ยังไม่สำเร็จ '+stats.failed,'teacher-auto-teach-stats'));
+  const saved=results.reduce((total,r)=>total+(r.saved||0),0);
+  const reused=results.reduce((total,r)=>total+(r.reused||0),0);
+  const pending=Math.max(0,(scanned?.rows.length||0)-completedLessons.size);
+  rootPanel.append(el('p','AWS บันทึกใหม่ '+saved+' · ใช้ความจำเดิม '+reused+
+    (running?' · กำลังสอนและตรวจซ้ำ':' · ยังค้างจริง '+pending),
+    'teacher-auto-teach-stats'));
  }
  if(pendingSceneIds.length)rootPanel.append(el('p','รอสอนซ้ำ '+pendingSceneIds.length+
   ' ฉาก · ระบบจะลองแก้ซ้ำอัตโนมัติ / ถ้าถูกจำกัดโควตา ข้อมูลค้างยังเก็บบน AWS','teacher-muted'));
- if(trainingStatus)rootPanel.append(el('p',
-  'ฝึก CPU: '+(trainingStatus.status||'ยังไม่มีผล')+
-  ' · '+(trainingStatus.counts?.projects||0)+' เรื่อง · '+
-  (trainingStatus.metrics?'ผลทดสอบ '+Math.round(100*Number(trainingStatus.metrics.accuracy||0))+'%':'ยังรอข้อมูลหลายเรื่อง'),
-  'teacher-muted'));
+ if(trainingStatus){
+  const projects=Number(trainingStatus.counts?.projects||0);
+  const required=Number(trainingStatus.counts?.minimumProjects||5);
+  const count=Number(trainingStatus.counts?.rows||0);
+  const minimum=Number(trainingStatus.counts?.minimumRows||60);
+  rootPanel.append(el('p',
+   'ฝึก CPU: '+(trainingStatus.status||'ยังไม่มีผล')+
+   ' · ความหลากหลาย '+projects+'/'+required+' เรื่อง · ตัวอย่าง '+count+'/'+minimum+
+   (trainingStatus.metrics?' · ทดสอบ '+Math.round(100*Number(trainingStatus.metrics.accuracy||0))+'%':
+     ' · ยังไม่เปิดโมเดลใหม่จนผ่าน QA ข้ามเรื่อง'),
+   'teacher-muted'));
+  if(trainingStatus.error)rootPanel.append(el('p',trainingStatus.error,'teacher-warning'));
+ }
  if(readyExport){
   const exportButton=btn('ดาวน์โหลด JSON เนื้อเรื่องที่ AI แม่แก้ครบแล้ว',downloadCompletedStory);
   rootPanel.append(exportButton);
@@ -135,7 +154,10 @@ function render(){
 }
 async function scan(){
  if(running)return getState();
- running=true;error='';failReasons=[];repairModelChoice=null;progress='AI ลูกกำลังตรวจบททั้งหมด...';render();
+ running=true;error='';failReasons=[];repairModelChoice=null;
+ results=[];completedLessons=new Map();pendingSceneIds=[];retrySceneIds=new Set();
+ readyExport=false;trainingStatus=null;
+ progress='AI ลูกกำลังตรวจบททั้งหมด...';render();
  try{
   const project=sourceProject(),stamp=signature(project);
   let model=null;
@@ -298,7 +320,7 @@ async function teach(){
   render();throw Error(error);
  }
  running=true;error='';failReasons=[];results=[];completedLessons=new Map();
- pendingSceneIds=[];readyExport=false;trainingStatus=null;
+ pendingSceneIds=[];retrySceneIds=new Set();readyExport=false;trainingStatus=null;
  progress='กำลังตรวจ AWS และโมเดล AI แม่...';render();
  const byId=new Map(scanned.rows.map(x=>[x.id,x]));
  const allRows=scanned.rows,originalSignature=scanned.stamp;
@@ -346,6 +368,7 @@ async function teach(){
     }
     if(!payload){
      failedRows.push(...chunk);
+     for(const scene of chunk)retrySceneIds.add(scene.id);
      failReasons.push('ชุด '+(index+1)+': '+(reason||'AI provider ไม่ตอบ'));
      const lessonFormatError=/422|TEACHER_LESSONS_RETRY_QUEUED|ตรวจซ้ำ/i.test(reason);
      if(!rateLimited&&!lessonFormatError){critical=true;break}
@@ -355,6 +378,7 @@ async function teach(){
         !Array.isArray(payload.lessons)||
         counts.reduce((a,b)=>a+b,0)!==chunk.length){
       failedRows.push(...chunk);
+      for(const scene of chunk)retrySceneIds.add(scene.id);
       failReasons.push('ชุด '+(index+1)+': AWS ไม่ยืนยันจำนวนบทเรียน');
       critical=true;break;
      }
@@ -370,6 +394,7 @@ async function teach(){
      }
      const misses=chunk.filter(x=>!accepted.has(x.id));
      failedRows.push(...misses);
+     for(const scene of misses)retrySceneIds.add(scene.id);
      results.push({saved:payload.saved,reused:payload.reused,failed:misses.length});
      if(misses.length)failReasons.push('ชุด '+(index+1)+': AI แม่ยังต้องแก้ซ้ำ '+misses.length+' ฉาก');
     }
@@ -384,7 +409,17 @@ async function teach(){
     await sleep(11000);
    }
   }
-  readyExport=completedLessons.size===allRows.length&&scanned.skipped.length===0;
+  // Reconcile final outstanding scenes against successful AWS lesson records
+  // across ALL retry passes. Intermediate failures are an audit trail, not
+  // unfinished lessons when a later pass succeeds.
+  pendingSceneIds=allRows.filter(x=>!completedLessons.has(x.episodeId+'::'+x.id))
+   .map(x=>x.id);
+  readyExport=pendingSceneIds.length===0&&scanned.skipped.length===0;
+  if(readyExport){
+   // Clear now-resolved warnings so the screen cannot say both "141/141"
+   // and "AWS failed one scene" at the same time.
+   failReasons=[];error='';
+  }
   if(readyExport){
    progress='สอนครบและ AWS ยืนยัน '+completedLessons.size+'/'+allRows.length+
     ' ฉาก · ดาวน์โหลดบทที่ AI แม่เรียบเรียงได้แล้ว';
