@@ -13,6 +13,17 @@ const MODES=[
 ];
 let bridge,container,tab='chat',provider='openrouter',statusData=null,thread=[],pending=[],busy=false,notice='',noticeError=false,lastResponse=null;
 let connectionDraft={url:'',model:''};
+// Store only the non-secret provider preference. API keys remain in AWS SSM.
+const PROVIDER_STORAGE_KEY='storyStudio.teacher.selectedProvider';
+try{
+ const remembered=root.localStorage?.getItem(PROVIDER_STORAGE_KEY);
+ if(['openrouter','gemini','compatible'].includes(remembered))provider=remembered;
+}catch(_){}
+function selectProvider(id){
+ if(!['openrouter','gemini','compatible'].includes(id))return;
+ provider=id;
+ try{root.localStorage?.setItem(PROVIDER_STORAGE_KEY,id)}catch(_){}
+}
 const lessonBrowser={loaded:false,loading:false,items:[],nextCursor:null,
  query:'',label:'all',showCount:40,models:[],activeVersion:null,error:''};
 let studentReview=null,studentChoice='review',studentOwnerReason='',lastStudentCandidate=null,studentCandidates=[];
@@ -96,15 +107,23 @@ function saveRecovery(){
  $doc.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
 }
 async function loadStatus(){
- try{statusData=await api('teacher.status');const ready=modelOptions().find(x=>x.id===provider);
-  if(!ready)provider='openrouter';setNotice('อ่านสถานะ AI ครูจาก AWS แล้ว');}
- catch(e){statusData=null;setNotice(String(e.message||e),true)}
+ try{
+  statusData=await api('teacher.status');
+  const savedProviders=modelOptions().filter(p=>p.ready);
+  // On a fresh browser session automatically restore a connected AI mother.
+  // The API key itself remains only in encrypted AWS storage.
+  if(!modelOptions().some(p=>p.id===provider&&p.ready)&&savedProviders.length)
+   selectProvider(savedProviders[0].id);
+  setNotice(savedProviders.length?
+   'คืนค่าการเชื่อมต่อ AI แม่จาก AWS แล้ว: '+savedProviders.map(p=>p.id).join(', '):
+   'ยังไม่มี API แม่ที่เชื่อมไว้ใน AWS');
+ }catch(e){statusData=null;setNotice(String(e.message||e),true)}
  render();
 }
 function header(){
  return el('div',{className:'teacher-head'},
   el('div',{},el('strong',{},'AI Teacher Studio'),el('small',{},'AI ครูควบคุมงานผ่านคำสั่งที่ผ่านการตรวจสอบ · ไม่แก้โปรเจกต์เองโดยไม่อนุมัติ')),
-  el('span',{className:'teacher-signal','data-ready':String(!!modelOptions().find(x=>x.id===provider)?.ready)},session()?'AWS Session':'ยังไม่เชื่อม AWS'));
+  el('span',{className:'teacher-signal','data-ready':String(!!modelOptions().find(x=>x.id===provider)?.ready)},session()?(modelOptions().find(x=>x.id===provider)?.ready?'AI แม่ '+provider+' · เชื่อมแล้ว':'AWS Session · ยังไม่ได้เลือก API แม่'):'ต้องเข้าสู่ระบบ AWS Studio'));
 }
 function textField(label,value,attrs={}){
  return el('label',{className:'teacher-field'},el('span',{},label),el('input',{...attrs,value}));
@@ -207,7 +226,7 @@ function chatPanel(){
   el('strong',{},'ยังไม่ได้เชื่อม AI ครู'),
   el('p',{},'ใช้ลิงก์ API และ API Key เท่านั้น ระบบเลือกโมเดลเริ่มต้นให้'),
   button('เชื่อม AI ครู',()=>{tab='connect';render()},'teacher-primary')));
- const providerSelect=el('select',{onchange:ev=>{provider=ev.target.value;render()}},
+ const providerSelect=el('select',{onchange:ev=>{selectProvider(ev.target.value);render()}},
   ...modelOptions().map(p=>el('option',{value:p.id,selected:p.id===provider},p.id+' · '+(p.ready?'พร้อมใช้งาน':'ยังไม่เชื่อม'))));
  content.append(el('label',{className:'teacher-field'},'AI ครูที่เลือก',providerSelect));
  const autoPanel=el('div',{className:'teacher-auto-panel'});
@@ -278,11 +297,28 @@ async function saveConnection(){
   statusData=await api('teacher.status');
   if(!statusData.providers?.some(x=>x.id===p&&x.ready))
    throw Error('ยังตรวจไม่พบการบันทึกคีย์บน AWS');
-  provider=p;connectionDraft={url:link.url,model:''};tab='chat';
+  selectProvider(p);connectionDraft={url:link.url,model:''};tab='chat';
   setNotice('บันทึก API '+link.name+' บน AWS แล้ว · ทดลองส่งคำสั่งในแชตเพื่อตรวจการตอบจริง');
  }catch(e){
   setNotice('เชื่อม API ไม่สำเร็จ: '+String(e.message||e),true);
  }finally{busy=false;render();}
+}
+async function disconnectProvider(p){
+ if(busy||!session())return;
+ if(!modelOptions().some(x=>x.id===p&&x.ready))return;
+ if(root.confirm&&!root.confirm('ยกเลิกเชื่อมต่อ AI แม่ '+p+' และลบ API Key ที่บันทึกบน AWS สำหรับผู้ให้บริการนี้หรือไม่?'))return;
+ busy=true;setNotice('กำลังยกเลิกเชื่อมต่อ '+p+' บน AWS');
+ try{
+  const result=await api('teacher.disconnect',{provider:p,confirmDisconnect:true});
+  if(!result?.disconnected)throw Error('AWS ไม่ยืนยันการยกเลิกเชื่อมต่อ');
+  statusData=await api('teacher.status');
+  if(modelOptions().some(x=>x.id===p&&x.ready))
+   throw Error('AWS ยังรายงานว่ามี API Key ของ '+p);
+  const available=modelOptions().find(x=>x.ready);
+  if(provider===p&&available)selectProvider(available.id);
+  setNotice('ลบ API Key ของ '+p+' จาก AWS สำเร็จ · ผู้ให้บริการอื่นไม่ถูกเปลี่ยน');
+ }catch(e){setNotice('ยกเลิกเชื่อมต่อไม่สำเร็จ: '+String(e.message||e),true)}
+ finally{busy=false;render()}
 }
 function connectPanel(){
  const content=el('div',{className:'teacher-content'});
@@ -320,7 +356,17 @@ function connectPanel(){
    button(busy?'กำลังบันทึก...':'เชื่อมต่อ AI ครู',saveConnection,'teacher-primary',busy||!session()),
    button('ตรวจสถานะ AWS',loadStatus,'',busy)),
   el('p',{className:'teacher-muted'},'ต้องใช้ API Key ของผู้ให้บริการด้วย (ลิงก์อย่างเดียวไม่ใช่สิทธิ์ใช้งาน AI) · คีย์จะส่งผ่าน HTTPS และเก็บใน SSM SecureString หรือ Secrets Manager ไม่บันทึกลงโปรเจกต์หรือ GitHub'));
- if(connected.length)content.append(el('p',{className:'teacher-muted'},'บันทึกคีย์ไว้แล้ว: '+connected.map(x=>x.id).join(', ')+' · ยังต้องทดลองส่งข้อความเพื่อยืนยันว่าโมเดลตอบได้จริง'));
+ if(connected.length){
+  content.append(el('h4',{},'AI แม่ที่บันทึกไว้ถาวรบน AWS'));
+  for(const p of connected){
+   content.append(el('div',{className:'teacher-row teacher-saved-provider'},
+    el('span',{},p.id+' · '+p.model+' · เชื่อมแล้ว'),
+    button('เลือกใช้งาน',()=>{selectProvider(p.id);tab='chat';render()},'',busy),
+    button('ยกเลิกเชื่อมต่อ',()=>disconnectProvider(p.id),'teacher-disconnect',busy)));
+  }
+  content.append(el('p',{className:'teacher-muted'},
+    'API Key เก็บใน AWS SSM SecureString/Secrets Manager แม้ปิดหรือรีเฟรชเว็บ · ไม่ต้องกรอกใหม่ · กด “ยกเลิกเชื่อมต่อ” เท่านั้นจึงลบคีย์'));
+ }
  if(!statusData?.settingsReady)content.append(el('p',{className:'teacher-warning'},'ยังไม่ได้ตรวจพบสถานะที่เก็บคีย์บน AWS กรุณาเข้าสู่ระบบและกดตรวจสถานะ'));
  return content;
 }
