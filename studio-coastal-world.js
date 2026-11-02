@@ -99,6 +99,16 @@
      foam+=C(xx,76+j*.23,Math.max(.22,.55-j*.04),'#d9f4eb',.36);
     }
    }
+   if(flood){
+    // Animated street-level ripples are part of the foreground, but NEVER
+    // paint any tall rect over the market/people. The foreground waterline is
+    // always below the stall counters.
+    const waterTop=87.5-5*t;
+    foam+=Array.from({length:10},(_,i)=>{
+     const xx=x(.627+i*.029),y=waterTop+1.5+(i%3)*1.1;
+     return L(xx,y,xx+2.5,y,'#c7e7e8',.33,.6);
+    }).join('');
+   }
    return foam;
   }
   const floodArt=flood?(()=>{
@@ -124,6 +134,15 @@
    R(x(.421),63,2.2,19,'#d4d0be',.3)+
    Array.from({length:5},(_,i)=>L(x(.421),66+i*3.2,x(.421)+1.5,66+i*3.2,'#324a5a',.5)).join('')+
    tri([x(.422),surface],[x(.417),surface-1.25],[x(.417),surface+1.25],'#f7cb78')+'</g>'+
+   // A SECOND gauge beside the market establishes the rising tide at the
+   // actual opening camera position; the old single gauge was off-screen.
+   (waterRise?'<g data-world-object="market-tide-gauge">'+
+    R(x(.697),66,2.8,19,'#e2dac5',.3)+
+    Array.from({length:5},(_,i)=>L(x(.697),69+i*3,x(.697)+2.3,69+i*3,
+     i>=3?'#bc8d69':'#4d6368',.53)).join('')+
+    tri([x(.700),80-t*9],[x(.713),78.5-t*9],[x(.713),81.5-t*9],'#e5ae69')+
+    L(x(.696),80-t*9,x(.74),79-t*9,'#92cbd5',.85,.9)+
+    '</g>':'')+
    // Upstream water RISES visibly against the concrete and gate-left threshold.
    '<g data-world-object="upstream-water">'+
    P('M'+f(x(.365))+' '+f(surface)+'Q'+f(x(.39))+' '+f(surface-1.2)+' '+f(x(.417))+' '+f(surface)+
@@ -136,6 +155,12 @@
    R(x(.45),40,x(.163),5.4,'#b4b0a4',.6)+
    P('M'+f(x(.454))+' 43L'+f(x(.454)+5)+' 43L'+f(x(.454)+5)+' 83L'+f(x(.454))+' 86Z','#5f7277')+
    R(x(.459),48,x(.14),31,'#334a55')+
+   // Exposed gate channels and concrete buttresses show a real hydraulic
+   // structure rather than a generic warehouse shutter.
+   '<g data-world-object="sluice-buttresses">'+
+   P('M'+f(x(.448))+' 43L'+f(x(.47))+' 43L'+f(x(.464))+' 78L'+f(x(.441))+' 84Z','#a6a6a0')+
+   P('M'+f(x(.599))+' 43L'+f(x(.619))+' 44L'+f(x(.625))+' 83L'+f(x(.6))+' 79Z','#828f90')+
+   R(x(.473),45,x(.114),2.5,'#c3b5a0')+'</g>'+
    // Nested vertical steel rails and corrugated water-stopping SLIDE panel.
    R(x(.471),49,x(.112),28,'#697982')+
    Array.from({length:9},(_,i)=>L(x(.472),51+i*2.85,x(.581),51+i*2.85,i%2?'#bf7966':'#3b5765',.66)).join('')+
@@ -152,8 +177,13 @@
    P('M'+f(x(.579))+' 78L'+f(x(.61))+' 80L'+f(x(.675))+' 87L'+f(x(.685))+' 90L'+f(x(.595))+' 90L'+f(x(.576))+' 80Z','#2b667c',.95)+
    L(x(.602),80,x(.665),87,'#b4dbdf',.55,.85)+
    Array.from({length:5},(_,i)=>L(x(.614+i*.012),82+i*.5,x(.632+i*.012),83.1+i*.75,'#b7e4e8',.4,.55)).join('')+'</g>'+
-   // The lowland market is elevated above the shoreline with a street in front.
-   P('M'+f(x(.605))+' 63L'+f(x(.72))+' 57L'+f(x(.85))+' 61L'+f(W)+' 57L'+f(W)+' 82L'+f(x(.60))+' 82Z','#465763')+
+   // Behind the market only a low roofline should be filled. The previous
+   // enormous 63→82 filled polygon looked like a translucent blue wall over
+   // the shops in the final shot, even though the flood itself was bounded.
+   // Keep individual buildings, not a 20-unit-high block spanning the set.
+   '<g data-world-object="market-roofline">'+
+   P('M'+f(x(.605))+' 66L'+f(x(.72))+' 61L'+f(x(.85))+' 64L'+f(W)+' 61L'+f(W)+' 68L'+f(x(.60))+' 68Z','#465763')+
+   '</g>'+
    [0.65,0.76,0.89].map((v,i)=>tinyHouse(x(v),66,.55+i*.08,['#5a6770','#746b6c','#566c70'][i])).join('')+
    P('M'+f(x(.595))+' 81L'+f(x(.88))+' 81L'+f(x(.95))+' 69L'+f(W)+' 65L'+f(W)+' 90L'+f(x(.595))+' 90Z','#73746d')+
    L(x(.61),83,x(.89),83,'#b9b1a0',.5,.7)+
