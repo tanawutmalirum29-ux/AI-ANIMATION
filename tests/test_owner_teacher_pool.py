@@ -60,6 +60,7 @@ class OwnerVaultTests(unittest.TestCase):
         self.db = VaultTable()
         self.env = mock.patch.dict(os.environ, {
             "TEACHER_FEEDBACK_TABLE": "test-teacher-table",
+            "TEACHER_OWNER_VAULT_V2": "1",
             "SESSION_SECRET": "the-stable-lambda-session-secret-is-long-enough-0123456789"})
         self.env.start()
         self.table_patch = mock.patch.object(vault, "_table", return_value=self.db)
