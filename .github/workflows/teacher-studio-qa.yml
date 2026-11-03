@@ -22,6 +22,7 @@ on:
       - 'autodub/cloud_upload.py'
       - 'tests/test_cloud_upload.py'
       - 'tests/test_cloud_jobs.py'
+      - 'tests/test_teacher_memory_fastpath.py'
       - 'tests/cloud-jobs-ui.test.cjs'
       - 'studio-story-only.js'
       - 'studio-story-only-ui.js'
@@ -85,6 +86,7 @@ on:
       - 'autodub/cloud_upload.py'
       - 'tests/test_cloud_upload.py'
       - 'tests/test_cloud_jobs.py'
+      - 'tests/test_teacher_memory_fastpath.py'
       - 'tests/cloud-jobs-ui.test.cjs'
       - 'studio-story-only.js'
       - 'studio-story-only-ui.js'
@@ -166,6 +168,7 @@ jobs:
           python3 tests/test_student_memory_browser.py
           python3 tests/test_story_continuity.py
           python3 tests/test_cloud_upload.py
+          python3 tests/test_teacher_memory_fastpath.py
           python3 tests/test_cloud_jobs.py
           python3 tests/test_teacher_auto_teach.py
           python3 tests/test_teacher_model_probe.py
