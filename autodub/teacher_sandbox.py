@@ -70,12 +70,18 @@ def _run(body):
     request = ("Review these Thai narration scenes for editorial quality. "
                "Return one teachingLessons record per scene in the required JSON format. "
                "This is a DRY RUN: do not claim to save, train or approve anything.")
-    response = teacher._chat({"provider": provider, "connectionId": connection,
-                              "message": request, "context": context,
-                              "history": [], "_internalMaxOutput": 1800},
-                             teach_mode=True)
-    status = response["statusCode"]
-    payload = json.loads(response.get("body") or "{}")
+    try:
+        response = teacher._chat({"provider": provider, "connectionId": connection,
+                                  "message": request, "context": context,
+                                  "history": [], "_internalMaxOutput": 1800},
+                                 teach_mode=True)
+        status = int(response["statusCode"])
+        payload = json.loads(response.get("body") or "{}")
+    except Exception as exc:
+        # Never expose provider payloads, sensitive URLs or credentials.
+        status = 503
+        payload = {"reasonCode": "SANDBOX_UPSTREAM_ERROR",
+                   "error": "ทดลอง AI แม่ไม่สำเร็จ: " + type(exc).__name__}
     accepted_ids = {x["id"] for x in scenes}
     proposed = []
     if status == 200:
