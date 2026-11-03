@@ -269,7 +269,9 @@ def _connection_in_use(owner, connection_id):
             if (row and row.get("ownerId") == str(owner)
                     and row.get("state") not in ("completed", "cancelled")
                     and (row.get("connectionId") == connection_id
-                         or (row.get("poolMode") and row.get("lastConnectionId") == connection_id))):
+                         or row.get("poolMode"))):
+                # Any active pooled job may select this credential in its next
+                # batch; do not revoke vault keys mid-run or mid-retry.
                 return True
         cursor = page.get("LastEvaluatedKey")
         if not cursor:
