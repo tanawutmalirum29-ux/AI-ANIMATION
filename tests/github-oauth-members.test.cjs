@@ -14,14 +14,15 @@ test('GitHub sign-in uses PKCE S256 and role-aware access; never trust user-sele
  assert.match(client,/user:\(\)=>profile/);
  assert.doesNotMatch(client,/setAuth\(\{role:'admin'/);
 });
-test('Member has six unique roles and separate BYOK keys but no admin tabs',()=>{
+test('Member has six unique hosted web AI roles with no admin tabs',()=>{
  const portal=get('member-portal.js');
  for(const id of ['composition','assets','motion','voice','structure','qa'])
   assert.match(portal,new RegExp("'"+id+"'"));
  assert.match(portal,/member\.ai\.run/);
  assert.match(portal,/role:selected|role:id/);
  assert.match(portal,/storyMember\.tasks/);
- assert.match(portal,/apiKey=''|apiKey=''/);
+ assert.match(portal,/member\.ai\.run/);
+ assert.doesNotMatch(portal,/member\.keys\./);
  assert.match(portal,/JSON\.parse\(raw\)/);
  assert.doesNotMatch(portal,/localStorage\.setItem\([^)]*apiKey/);
  assert.doesNotMatch(portal,/student\.storyAutoTrain|teacher\.configure|teacher\.autoTeach/);
