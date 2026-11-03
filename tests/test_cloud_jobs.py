@@ -73,18 +73,24 @@ class CloudJobTests(unittest.TestCase):
                     "original": x["text"], "revised": x["text"],
                     "teacherReason": "บทสอดคล้องกับบริบทไม่ควรแก้ไข"}
                    for x in scenes]
-        import teacher
+        import teacher, story_auto_train
         reply = teacher._response(200, {"saved": 2, "reused": 0, "failed": 0,
                                         "lessons": lessons})
+        cpu_result = {"body": json.dumps({"status": "collecting-diverse-teacher-lessons",
+                                         "activated": False, "counts": {"projects": 1}})}
         with mock.patch.object(cloud_jobs, "_table", return_value=table), \
-             mock.patch.object(teacher, "_auto_teach", return_value=reply) as called:
+             mock.patch.object(teacher, "_auto_teach", return_value=reply) as called, \
+             mock.patch.object(story_auto_train, "train", return_value=cpu_result) as trained:
             result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
         self.assertEqual(result["state"], "completed")
         self.assertFalse(result["next"])
         self.assertEqual(called.call_count, 1)
+        trained.assert_called_once()
         row = table.rows[("teacher-job#" + jobid, "meta")]
         self.assertEqual(row["completedIndices"], [0, 1])
         self.assertEqual(row["saved"], 2)
+        self.assertEqual(row["trainingStatus"]["status"],
+                         "collecting-diverse-teacher-lessons")
         self.assertEqual(table.rows[("teacher-job#" + jobid, "result#00001")]["lesson"]["sceneId"], "s2")
 
     def test_paused_job_does_not_call_provider(self):
