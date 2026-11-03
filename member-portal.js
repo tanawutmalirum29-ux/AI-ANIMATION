@@ -13,7 +13,7 @@ const roles=[
  ['qa','AI-6 ตรวจบทและ QA','ใช้ AI ลูกภาษาไทยและโมเดลตรวจเรื่องที่เปิดใช้']
 ];
 let host=null,account=null,access=null,role='qa',prompt='',context='',
- contextName='',busy=false,error='',catalog=null,history={};
+ contextName='',busy=false,error='',catalog=null,history={},productionBusy=false,productionError='';
 const node=(tag,cls,txt)=>{
  const el=root.document.createElement(tag);
  if(cls)el.className=cls;
@@ -50,7 +50,7 @@ function mount({profile,request,logout}){
  if(!profile||!['member','guest'].includes(profile.role))return;
  const changed=!account||account.id!==profile.id;
  account=profile;access={request,logout};
- if(changed){prompt='';context='';contextName='';error='';catalog=null;role='qa';restore()}
+ if(changed){prompt='';context='';contextName='';error='';catalog=null;role='qa';productionBusy=false;productionError='';restore()}
  if(!host){host=node('div');host.id='storyMemberPortal'}
  // Dock inside the AI tool of the NORMAL video editor, never above it.
  const dock=root.document.querySelector('#aiWorkspacePanel');
@@ -61,7 +61,7 @@ function mount({profile,request,logout}){
 function hide(){
  if(host)host.hidden=true;
  account=null;access=null;prompt='';context='';contextName='';
- error='';catalog=null;history={};
+ error='';catalog=null;history={};productionBusy=false;productionError='';
 }
 function open(){
  if(!account||!access)return;
@@ -87,6 +87,53 @@ function extractNarrations(raw){
  }
  walk(raw);return scenes;
 }
+function fillProductionProgress(target){
+ if(!target)return;
+ target.replaceChildren();
+ const output=root.StoryAIWorkspace?.getProductionSteps?.();
+ const steps=output?.steps||root.StoryProductionRoles?.roles?.map(r=>({id:r.id,name:r.name,status:'pending'}))||[];
+ const names={pending:'รอประมวลผล',running:'กำลังทำ',done:'ตรวจ/ทำแล้ว',
+  skipped:'ข้ามเพราะมีงานเดิม',warning:'ตรวจเพิ่มเติม',unavailable:'ยังไม่มี worker',failed:'ล้มเหลว'};
+ for(const [i,step] of steps.entries()){
+  const item=node('div','member-production-step');
+  item.dataset.state=step.status||'pending';
+  item.append(node('strong',null,(i+1)+'. '+step.name),
+   node('span','member-production-state',names[step.status]||step.status||'รอประมวลผล'));
+  if(step.summary)item.append(node('small',null,step.summary));
+  target.append(item);
+ }
+ if(output?.summary)target.append(node('pre','member-result',output.summary));
+}
+function productionPanel(){
+ const p=node('section','member-card member-production');
+ const state=root.StoryStudioBridge?.get?.();
+ const episodes=state?.episodes||[];
+ const scenes=episodes.reduce((n,ep)=>n+(ep.scenes?.length||0),0);
+ p.append(node('h2',null,'ผลิต/ตรวจทั้ง 12 ตำแหน่ง · ปุ่มเดียว'),
+  node('p','subtle','สำหรับสมาชิกและผู้เยี่ยมชม ใช้โปรเจกต์ที่เปิดในตัวตัดต่อเดียวกับแอดมิน เรียกโมดูลที่เว็บไซต์รองรับจริงทีละขั้นและแสดงขั้นที่ยังไม่มี worker ตรง ๆ ไม่ใช้ API AI ภายนอก'),
+  node('p','subtle','โปรเจกต์ปัจจุบัน: '+episodes.length+' ตอน · '+scenes+' ฉาก · เสียงและภาพใช้ระบบที่เปิดให้บัญชีนี้เข้าถึงได้'));
+ const actions=node('div','member-production-actions');
+ const upload=button('เปิด JSON สำหรับผลิต',()=>root.document.querySelector('#file')?.click());
+ upload.disabled=productionBusy||busy;
+ actions.append(upload);
+ const start=button(productionBusy?'กำลังทำ 12 ขั้น…':'เริ่มประมวลผล 12 ขั้น · ครั้งเดียว',runProduction,'member-primary');
+ start.disabled=productionBusy||busy||!scenes;
+ actions.append(start);
+ p.append(actions,node('p','subtle','ไฟล์ JSON ในช่องตรวจบทด้านล่างใช้ตรวจข้อความเท่านั้น หากต้องการผลิตวิดีโอให้เปิด JSON ผ่านปุ่มด้านบนก่อน'));
+ if(productionError)p.append(node('p','member-error',productionError));
+ const progress=node('div','member-production-steps');
+ fillProductionProgress(progress);p.append(progress);
+ return p;
+}
+async function runProduction(){
+ if(productionBusy||busy)return;
+ if(!root.StoryAIWorkspace?.runProduction12){productionError='ระบบผลิต 12 ขั้นยังโหลดไม่ครบ กรุณารีเฟรช';render();return}
+ productionBusy=true;productionError='';render();
+ const ticker=root.setInterval?.(()=>fillProductionProgress(host?.querySelector('.member-production-steps')),800);
+ try{await root.StoryAIWorkspace.runProduction12();}
+ catch(e){productionError='เริ่มผลิตไม่สำเร็จ: '+String(e.message||e)}
+ finally{if(ticker!==undefined)root.clearInterval?.(ticker);productionBusy=false;render()}
+}
 function render(){
  if(!host||!account||!access)return;
  host.replaceChildren();
@@ -96,7 +143,7 @@ function render(){
   button('ออกจากระบบ',access.logout));
  host.append(header);
  const main=node('main','member-content');
- main.append(node('h1',null,'AI ลูกที่กำลังฝึก · 6 ตำแหน่ง'),
+ main.append(node('h1',null,'ทีม AI ผลิต 12 ตำแหน่ง'),
   node('p','subtle',
    'ไม่มีการเชื่อม Gemini / OpenAI / OpenRouter และไม่มี API Key ของสมาชิก · ยังไม่จำกัดโควตาทดลอง · ไม่ใช่โมเดลเขียนบทแบบ LLM'),
   node('p','subtle',guest()?'บัญชีทดลองอายุ 2 ชั่วโมง ประวัติไม่เก็บข้ามเซสชัน':
@@ -104,8 +151,9 @@ function render(){
  if(catalog){
   const models=(catalog.trainedModels||[]).map(m=>m.id+' '+m.status).join(' · ');
   main.append(node('p','subtle','โมเดล CPU ที่ตรวจพบ: '+(models||'ยังไม่มี')+
-   ' · มีตำแหน่งทั้งหมด '+catalog.moduleCount));
+   ' · โมดูล CPU ตรวจบทเดิม '+catalog.moduleCount+' งาน (ไม่ใช่ 12 โมเดลที่ฝึกแยกกัน)'));
  }
+ main.append(productionPanel(),node('h2',null,'โมเดลตรวจบทเดิม · 6 งานเฉพาะทาง'));
  const nav=node('nav','member-roles');
  for(const [id,title,desc] of roles){
   const info=readiness(id),ready=info?.ready===true;
