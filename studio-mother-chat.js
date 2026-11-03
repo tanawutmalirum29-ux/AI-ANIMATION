@@ -175,7 +175,7 @@ function evidence(){
    String(g.reason||'ยังเข้าถึงไม่ได้'))));
   checked.append(el('p',null,'GitHub Actions: '+(actions.available?
    (actions.runs||[]).map(j=>j.name+' '+j.conclusion).join(' · '):
-   String(actions.reason||'ไม่ได้ตรวจ')));
+   String(actions.reason||'ไม่ได้ตรวจ'))));
   for(const type of ['lambda','amplify','database']){
    const entry=aws[type]||{};
    checked.append(el('p',null,'AWS '+type+': '+(entry.available?
