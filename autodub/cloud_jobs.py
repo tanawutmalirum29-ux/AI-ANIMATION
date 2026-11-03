@@ -17,7 +17,6 @@ MAX_TRANSIENT_RETRIES = 6
 # Only opt-in pool jobs use the following key-specific failure fallback.
 # It does not broaden existing provider retry or legacy job semantics.
 MAX_POOL_BAD_KEYS_PER_JOB = 128
-POOL_PROVIDER_PARALLEL_LIMIT = 2  # Bounded shared provider requests despite many keys.
 POOL_KEY_FAILURES = frozenset(("TEACHER_PROVIDER_AUTH", "TEACHER_MODEL_UNAVAILABLE"))
 TRANSIENT_PROVIDER_CODES = frozenset((
     "TEACHER_PROVIDER_TIMEOUT", "TEACHER_PROVIDER_NETWORK",
@@ -515,19 +514,13 @@ def _release_provider_lock(table, provider, job_id, cooldown=12):
             raise
 
 
-def _pool_provider_slot_name(provider, index):
-    # Separate from both legacy provider locks and individual API key locks.
-    return "pool-provider-slot#" + provider + "#" + str(index)
-
-
 def _borrow_idle_connection(table, item, now, excluded=()):
-    """Reserve one idle key AND one bounded provider-concurrency slot.
+    """Borrow the next free owner key; only 429 triggers provider-wide waiting.
 
-    A hundred keys connected to one service are NOT permission to fire a
-    hundred concurrent paid requests. Two provider slots are shared by all
-    opted-in cloud jobs; old non-pool jobs remain on their original lock path.
-    Claim a slot first, then a key. If a key claim loses a race, release its
-    slot with no cooldown. All slots expire after 110 seconds.
+    Every individual key is protected by an atomic DynamoDB lease. There is no
+    arbitrary two-requests-per-provider cap. When a provider reports HTTP 429,
+    a durable shared cooldown suspends new calls from *this pool* until it is
+    reasonable to retry; other providers may continue immediately.
     """
     import teacher_connections
     connections = [c for c in teacher_connections.listing()
@@ -535,7 +528,7 @@ def _borrow_idle_connection(table, item, now, excluded=()):
     excluded = set(excluded)
     if not connections or all(c["id"] in excluded for c in connections):
         return None, None
-    candidates, provider_wait, provider_slots, slot_wait = [], {}, {}, {}
+    candidates, provider_wait = [], {}
     shortest_wait = None
     for conn in connections:
         if conn["id"] in excluded:
@@ -543,56 +536,35 @@ def _borrow_idle_connection(table, item, now, excluded=()):
         provider = conn["provider"]
         if provider not in provider_wait:
             provider_wait[provider] = _provider_quota_wait(table, provider, now)
-        quota_wait = provider_wait[provider]
-        if provider not in provider_slots and not quota_wait:
-            free, slot_delays = [], []
-            for slot_index in range(POOL_PROVIDER_PARALLEL_LIMIT):
-                slot_name = _pool_provider_slot_name(provider, slot_index)
-                record = table.get_item(Key=_provider_lock_key(slot_name),
-                                        ConsistentRead=True).get("Item", {})
-                occupied_slot = max(0, int(record.get("leaseUntil", 0)) - now)
-                if occupied_slot:
-                    slot_delays.append(occupied_slot)
-                else:
-                    free.append(slot_name)
-            provider_slots[provider] = free
-            slot_wait[provider] = min(slot_delays) if slot_delays else 20
-        # When all provider slots are occupied (or quota is blocked), avoid
-        # doing one DynamoDB key-read for every connected credential.
-        if quota_wait or not provider_slots.get(provider):
-            delay = max(quota_wait, slot_wait.get(provider, 20))
-            shortest_wait = delay if shortest_wait is None else min(shortest_wait, delay)
+        wait = provider_wait[provider]
+        if wait:
+            shortest_wait = wait if shortest_wait is None else min(shortest_wait, wait)
             continue
         lock = table.get_item(Key=_provider_lock_key(conn["id"]),
                               ConsistentRead=True).get("Item", {})
         occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
-        if occupied or quota_wait or not provider_slots.get(provider):
-            delay = max(occupied, quota_wait,
-                        slot_wait.get(provider, 20) if not provider_slots.get(provider) else 0)
-            shortest_wait = delay if shortest_wait is None else min(shortest_wait, delay)
+        if occupied:
+            shortest_wait = occupied if shortest_wait is None else min(shortest_wait, occupied)
             continue
         candidates.append((int(lock.get("updatedAt", 0)), conn["id"], conn))
+    # Least recently used first; every claim remains atomic even across Lambdas.
     candidates.sort(key=lambda x: (x[0], x[1]))
     lock_owner = item.get("leaseOwner") or item["jobId"]
-    raced_slots = set()
     for _, _, conn in candidates:
-        for slot in provider_slots.get(conn["provider"], ()):
-            if slot in raced_slots:
-                continue
-            if not _try_provider_lock(table, slot, lock_owner, now):
-                raced_slots.add(slot)
-                shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
-                continue
-            key_acquired = False
-            try:
-                key_acquired = _try_provider_lock(table, conn["id"], lock_owner, now)
-            finally:
-                if not key_acquired:
-                    _release_provider_lock(table, slot, lock_owner, cooldown=0)
-            if key_acquired:
-                return {**conn, "_providerSlot": slot}, None
-            shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
+        if _try_provider_lock(table, conn["id"], lock_owner, now):
+            return conn, None
+        shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
     return None, min(900, max(20, shortest_wait or 20))
+
+
+def _retry_delay(job_id, attempt, base=60, ceiling=3600):
+    """Bounded exponential delay with stable jitter; no hot retry loops."""
+    exponent = min(16, max(0, int(attempt) - 1))
+    seconds = min(ceiling, base * (2 ** exponent))
+    # Stable jitter prevents jobs for the same provider waking up at once.
+    seed = hashlib.sha256((str(job_id) + ":" + str(attempt)).encode()).digest()
+    return max(20, min(ceiling, seconds + int.from_bytes(seed[:2], "big") % 17))
+
 
 def _worker(payload):
     """One bounded worker: up to 16 cache hits and at most 2 fresh AI scenes."""
@@ -694,7 +666,6 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
-        provider_slot = None
         teaching_provider = item["provider"]
         teaching_connection = item.get("connectionId")
         credential_id = teaching_connection or teaching_provider
@@ -720,7 +691,6 @@ def _worker(payload):
             teaching_provider = choice["provider"]
             teaching_connection = choice["id"]
             credential_id = teaching_connection
-            provider_slot = choice["_providerSlot"]
         else:
             quota_wait = _provider_quota_wait(table, teaching_provider, int(time.time()))
             if quota_wait:
@@ -755,18 +725,15 @@ def _worker(payload):
                                     "error": "AI provider ตอบช้า กำลังลองใหม่"})
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
-                cooldown = 70
+                cooldown = (_retry_delay(job_id, int(item.get("throttles", 0)) + 1)
+                            if item.get("poolMode") and pool_enabled() else 70)
                 _provider_quota_block(table, teaching_provider, cooldown)
             elif (item.get("poolMode") and pool_enabled()
                   and data.get("reasonCode") in POOL_KEY_FAILURES):
                 # Do not burn the same invalid key across other jobs.
                 cooldown = 3600 if data["reasonCode"] == "TEACHER_PROVIDER_AUTH" else 1800
         finally:
-            try:
-                _release_provider_lock(table, credential_id, provider_lock_owner, cooldown)
-            finally:
-                if provider_slot:
-                    _release_provider_lock(table, provider_slot, provider_lock_owner, cooldown)
+            _release_provider_lock(table, credential_id, provider_lock_owner, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if (fresh and item.get("poolMode") and pool_enabled()
@@ -795,7 +762,7 @@ def _worker(payload):
         return {"next": True, "state": "pool-key-fallback", "waitSeconds": 20}
     if code == 429:
         throttles = int(item.get("throttles", 0)) + 1
-        if throttles >= 6:
+        if not (item.get("poolMode") and pool_enabled()) and throttles >= 6:
             committed = _save_progress(table, item, state="needs-attention", throttles=throttles,
                            lastError="Provider จำกัดโควตาหลายครั้ง โปรดตรวจบัญชีและกดทำต่อ",
                            updatedAt=int(time.time()), leaseUntil=0)
@@ -808,13 +775,15 @@ def _worker(payload):
         if not committed:
             return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "rate-limited",
-                "waitSeconds": min(900, 60 * (2 ** (throttles - 1)))}
+                "waitSeconds": (_retry_delay(job_id, throttles)
+                                if item.get("poolMode") and pool_enabled()
+                                else min(900, 60 * (2 ** (throttles - 1))))}
     # Provider timeouts and transient 5xx are NOT corrupted lessons.
     # Keep the exact position and checkpoint; delay using Step Functions
     # rather than repeatedly calling the model in the same Lambda invocation.
     if code in (502, 503, 504) and data.get("reasonCode") in TRANSIENT_PROVIDER_CODES:
         failures = int(item.get("transientFailures", 0)) + 1
-        if failures >= MAX_TRANSIENT_RETRIES:
+        if not (item.get("poolMode") and pool_enabled()) and failures >= MAX_TRANSIENT_RETRIES:
             committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                            transientFailures=failures,
                            lastError="AI provider ขัดข้องชั่วคราวซ้ำหลายครั้ง; กดทำต่อเมื่อบริการกลับมา",
@@ -822,7 +791,9 @@ def _worker(payload):
             if not committed:
                 return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
-        delay = min(600, 25 * (2 ** (failures - 1)))
+        delay = (_retry_delay(job_id, failures, base=30, ceiling=1800)
+                 if item.get("poolMode") and pool_enabled()
+                 else min(600, 25 * (2 ** (failures - 1))))
         committed = _save_progress(table, item, state="queued", leaseUntil=0,
                        transientFailures=failures,
                        lastError="AI provider ตอบช้า/ไม่พร้อม กำลังรอลองใหม่โดยไม่ข้ามฉาก",
