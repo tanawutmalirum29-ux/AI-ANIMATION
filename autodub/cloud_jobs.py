@@ -325,7 +325,8 @@ def _worker(payload):
         if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             return {"next": True, "waitSeconds": 30, "state": "busy"}
         raise
-    work, position = item["work"], int(item["position"])
+    # boto3 reads every DynamoDB number as Decimal; list indices must be int.
+    work, position = [int(x) for x in item["work"]], int(item["position"])
     selected = work[position:position + 2]
     if not selected:
         _save_progress(table, item, state="completed", leaseUntil=0,
