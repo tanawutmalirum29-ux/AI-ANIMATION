@@ -4858,7 +4858,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&THEATER_ACTIVE){e.s
 let STUDIO_WORKSPACE_READY=false,STUDIO_CURRENT_TOOL='scene',STUDIO_DUB_AUTOPLAY=true,STUDIO_DUB_STATUS='';
 const STUDIO_TOOLS=[
  ['scene','ฉาก','แก้เนื้อหา กล้อง และการแสดง'],
-  ['ai','AI สั่งงาน','คุยงานกับ AI ในเครื่อง · คิวงาน · สมุดเรื่อง · ประวัติโปรเจกต์'],
+  ['ai','AI ลูก / งาน','สมาชิก: โมเดล CPU ที่ฝึกแล้ว · แอดมิน: AI แม่และการสอน'],
  ['characters','ตัวละคร','แก้ตัวละครที่เพิ่มแล้ว'],
  ['library','ไลบรารี','เลือกคน สัตว์ และฉาก'],
  ['record','พากย์ทันที','อัดเสียงและฟังคลิปโดยไม่ออกจากหน้าตัดต่อ'],
@@ -4890,7 +4890,11 @@ function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_T
   }
  }
  if(id==='record')renderDubDesk();
- if(id==='ai')window.StoryAIWorkspace?.render();
+ if(id==='ai'){
+  if(window.StoryStudioAccess?.enabled&&!window.StoryStudioAccess.isAdmin()){
+   window.StoryMemberPortal?.open?.();
+  }else window.StoryAIWorkspace?.render();
+ }
  const title=STUDIO_TOOLS.find(x=>x[0]===id);$('#studioToolTitle').textContent=title?title[2]:'';
  [...$('#studioToolNav').children].forEach(b=>{const on=b.dataset.tool===id;b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false')});
  if(id==='export'){window.scrollTo({top:0,behavior:'instant'});$('#studioToolBody').scrollTop=0;}
@@ -5227,7 +5231,11 @@ function fit(){
  w.style.width=side?(sw+pad)+'px':'';
  w.style.height=cinema?'':mob?(sh+(phone?pad:24))+'px':'';
 }
-function render(){const savedScroll=window.scrollY;pauseAudioPlayers();hydrateAudioDurations();resetTransitionCache();renderTop();lib();inspector();timeline();ctl();renderMotionBar();showWelcome();const p=$('#previewContext');if(p)p.textContent=`ฉาก ${sel+1}/${ep().scenes.length} · ${S.project.aspect}`;fit();draw();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='record')renderDubDesk();if(innerWidth<=820&&!THEATER_ACTIVE&&Math.abs(window.scrollY-savedScroll)>4)requestAnimationFrame(()=>window.scrollTo({top:savedScroll,behavior:'instant'}));if(THEATER_ACTIVE)updateTheaterTitle();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='ai')window.StoryAIWorkspace?.render()}
+function render(){const savedScroll=window.scrollY;pauseAudioPlayers();hydrateAudioDurations();resetTransitionCache();renderTop();lib();inspector();timeline();ctl();renderMotionBar();showWelcome();const p=$('#previewContext');if(p)p.textContent=`ฉาก ${sel+1}/${ep().scenes.length} · ${S.project.aspect}`;fit();draw();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='record')renderDubDesk();if(innerWidth<=820&&!THEATER_ACTIVE&&Math.abs(window.scrollY-savedScroll)>4)requestAnimationFrame(()=>window.scrollTo({top:savedScroll,behavior:'instant'}));if(THEATER_ACTIVE)updateTheaterTitle();if(STUDIO_WORKSPACE_READY&&STUDIO_CURRENT_TOOL==='ai'){
+ if(window.StoryStudioAccess?.enabled&&!window.StoryStudioAccess.isAdmin())
+  window.StoryMemberPortal?.open?.();
+ else window.StoryAIWorkspace?.render();
+}}
 document.body.append(h('input',{type:'file',id:'file',accept:'.json',style:'display:none',onchange:e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(x){alert('ไฟล์ JSON ไม่ถูกต้อง');return}try{d=window.StoryOnlyJSON?.convertIfNeeded(d)||d}catch(err){alert('ไฟล์เนื้อเรื่องล้วนไม่ถูกต้อง: '+err.message);return}
  const importedSmart=d?.project?.smartDirector?.mode||smartMode();const repairs=d?.project?.mode==='story-only'?{data:d,changes:[]}:importedSmart==='auto'&&smartEnabled('import')?smartRepairProject(d):{data:d,changes:[]};d=repairs.data;const er=diagnose(d).filter(i=>i.level==='error');if(er.length&&!(Array.isArray(d.episodes)&&d.episodes.length&&d.episodes.every(E=>E&&Array.isArray(E.scenes)&&E.scenes.length))){alert('เปิดไฟล์ไม่ได้: '+er[0].path+' — '+er[0].msg);return}if(er.length&&!confirm('พบ error '+er.length+' รายการ (เช่น '+er[0].path+': '+er[0].msg+') เปิดต่อไหม?'))return;commit(()=>{S=normalize(d);selEp=0;sel=0;T=0});if(repairs.changes.length){openSmartDirector();smartSetStatus(`ปรับข้อมูลที่ขาดอัตโนมัติ ${repairs.changes.length} รายการ · Undo ได้`)} })}}));
 $('#smartImportApply').checked=smartMode()==='auto';$('#bChk').onclick=()=>{const r=plan();showIssues(r.issues,r.log,r.note)};$('#bCtx').onclick=copyCtx;$('#bImp').onclick=importIt;$('#bClose').onclick=()=>$('#dlg').close();

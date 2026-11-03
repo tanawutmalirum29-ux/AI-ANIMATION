@@ -90,7 +90,7 @@ class MemberCPUGuestTests(unittest.TestCase):
                 code,data=unpack(handler.handler(evt("member.ai.catalog",token),None))
                 self.assertEqual(code,200);cat.assert_called_once()
             for action in ("teacher.connection.list","teacher.advisorInspect","teacher.job.list",
-                           "student.model","editor.status","export.prepare","synthesize"):
+                           "student.model","editor.status","proposeAsset"):
                 code,_=unpack(handler.handler(evt(action,token),None))
                 self.assertEqual(code,403,action)
     def test_member_v1_not_bound_to_daily_or_minute_quota(self):

@@ -51,7 +51,10 @@ function mount({profile,request,logout}){
  const changed=!account||account.id!==profile.id;
  account=profile;access={request,logout};
  if(changed){prompt='';context='';contextName='';error='';catalog=null;role='qa';restore()}
- if(!host){host=node('div');host.id='storyMemberPortal';root.document.body.append(host)}
+ if(!host){host=node('div');host.id='storyMemberPortal'}
+ // Dock inside the AI tool of the NORMAL video editor, never above it.
+ const dock=root.document.querySelector('#aiWorkspacePanel');
+ if(dock&&host.parentNode!==dock)dock.append(host);
  host.hidden=false;render();
  if(changed)loadCatalog().catch(()=>{});
 }
@@ -59,6 +62,13 @@ function hide(){
  if(host)host.hidden=true;
  account=null;access=null;prompt='';context='';contextName='';
  error='';catalog=null;history={};
+}
+function open(){
+ if(!account||!access)return;
+ const dock=root.document.querySelector('#aiWorkspacePanel');
+ if(!dock)return;
+ if(host?.parentNode!==dock)dock.append(host);
+ host.hidden=false;render();
 }
 function readiness(id){
  return catalog?.modules?.find(m=>m.id===id)||null;
@@ -174,5 +184,5 @@ async function run(){
  }catch(e){error=String(e.message||e)}
  finally{busy=false;render()}
 }
-root.StoryMemberPortal=Object.freeze({mount,hide});
+root.StoryMemberPortal=Object.freeze({mount,hide,open});
 })(window);

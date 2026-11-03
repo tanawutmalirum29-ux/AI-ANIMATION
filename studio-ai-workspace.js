@@ -1086,6 +1086,12 @@ window.visualViewport?.addEventListener('scroll',syncMotherViewport);
 window.addEventListener?.('orientationchange',syncMotherViewport);
 function render(){
  if(!rootElement||!bridge)return;
+ // Admin-only mentoring UI cannot appear in the member editor.
+ // The member CPU assistant is rendered by StoryMemberPortal.
+ if(root.StoryStudioAccess?.enabled&&!root.StoryStudioAccess.isAdmin()){
+  document.body.classList.remove('mother-focus');
+  return;
+ }
  // Give conversational AI its own usable viewport; other tools keep the editor.
  document.body.classList.toggle('mother-focus',view==='mother');
  rootElement.dataset.activeAiTab=view;

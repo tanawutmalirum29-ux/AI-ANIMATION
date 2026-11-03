@@ -131,7 +131,8 @@ function augmentFullMenu(){
  if(!menu||aiOn())return;
  const group=[...menu.querySelectorAll('.menu-group')].find(n=>n.querySelector('h3')?.textContent==='ทำงานกับ AI');
  const grid=group?.querySelector('.menu-grid');
- if(grid&&!grid.querySelector('[data-ai-mode-entry]')){
+ if(grid&&!(root.StoryStudioAccess?.enabled&&!root.StoryStudioAccess.isAdmin())
+     &&!grid.querySelector('[data-ai-mode-entry]')){
   const entry=menuButton('เปิดสตูดิโอ AI พร้อมพรีวิว',()=>setMode('ai'),'✦');
   entry.dataset.aiModeEntry='1';grid.prepend(entry);
  }
@@ -147,6 +148,10 @@ root.switchStudioTool=function(id){
 };
 function remember(mode){try{localStorage.setItem(KEY,mode)}catch(_){}}
 function setMode(mode){
+ // Ordinary editing accounts always use the full video studio.
+ // The experimental admin AI-only layout is not a member product.
+ if(mode==='ai'&&root.StoryStudioAccess?.enabled&&!root.StoryStudioAccess.isAdmin())
+  mode='full';
  remember(mode);
  if(mode==='ai'){
   html.classList.add('ai-only');
@@ -174,12 +179,18 @@ if(dlg)dlg.addEventListener('close',()=>{
  say('นำเข้า JSON แล้ว · ตรวจพรีวิวและผลในพื้นที่ AI · ย้อนกลับได้ด้วยปุ่ม ↶');
 });
 buildHub();
-if(aiOn()){
+if(aiOn()&&!(root.StoryStudioAccess?.enabled&&!root.StoryStudioAccess.isAdmin())){
  html.dataset.aiPage='workspace';
  embedImport();
  origSwitch.call(root,'ai');
 }
 root.renderTop();
+root.addEventListener?.('story-studio-access-change',()=>{
+ if(root.StoryStudioAccess?.enabled&&!root.StoryStudioAccess.isAdmin()){
+  if(aiOn())setMode('full');
+  const entry=q('#menu [data-ai-mode-entry]');entry?.remove();
+ }
+});
 const top=q('#top');
 if(top&&typeof MutationObserver!=='undefined'){
  const observer=new MutationObserver(()=>{
