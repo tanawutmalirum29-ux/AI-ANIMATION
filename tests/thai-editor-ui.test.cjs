@@ -18,8 +18,8 @@ test('editor is separate from frozen member release v1, admin-only at Lambda',()
 test('editor review and owner confirmation never write to original project',()=>{
  const js=content('studio-thai-editor.js');
  assert.doesNotThrow(()=>new Function(js));
- assert.match(js,/action:'editor.review'/);
- assert.match(js,/action:'editor.feedback'/);
+ assert.match(js,/api\('editor\.review'/);
+ assert.match(js,/api\('editor\.feedback'/);
  assert.match(js,/reviewedByOwner:true/);
  assert.match(js,/runStamp!==sourceStamp\(project\(\)\)/);
  assert.match(js,/originalProjectUnchanged:true/);
