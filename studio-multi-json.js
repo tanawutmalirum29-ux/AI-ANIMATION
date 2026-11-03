@@ -217,6 +217,11 @@ async function addConnection(){
   await loadSettings();
  }finally{adding=false;render()}
 }
+async function testConnection(conn){
+ const result=await api('teacher.connection.test',{connectionId:conn.id});
+ notice=result?.ready?'ทดสอบสำเร็จ: '+conn.name:'ยังไม่ยืนยันโมเดลของ '+conn.name;
+ render();
+}
 async function removeConnection(conn){
  if(conn.legacy)throw Error('คีย์หลักจัดการได้จากแท็บ AI ครู / API');
  if(!root.confirm?.('ลบ '+conn.name+'? ถ้ามีงานกำลังใช้คีย์นี้ จะไม่อนุญาตให้ลบ'))return;
