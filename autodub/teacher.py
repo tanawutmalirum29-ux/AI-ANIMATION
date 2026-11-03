@@ -431,16 +431,30 @@ def _cached_scene_records(table, project, scenes, dynamodb=None):
         return {}
     keys = [{"pk": pk, "sk": key} for key in requested]
     rows = []
-    # The boto3 DynamoDB service resource accepts ordinary Python key values.
-    # Mocks and older test stubs may provide only the Table interface.
-    if dynamodb is None and getattr(table, "name", None):
+    # IAM from setup-cloud-jobs.sh grants GetItem, NOT BatchGetItem. Default
+    # to the already-authorized read path so Lambda works without a CloudShell
+    # IAM policy change. BatchGet can be explicitly enabled once that separate
+    # permission is provisioned; a denied call still safely falls back.
+    if (dynamodb is None and os.environ.get("TEACHER_MEMORY_BATCH_GET") == "1"
+            and getattr(table, "name", None)):
         import boto3
         dynamodb = boto3.resource("dynamodb")
     if dynamodb is not None and hasattr(dynamodb, "batch_get_item"):
         table_name = table.name
         pending = {table_name: {"Keys": keys, "ConsistentRead": True}}
+        denied = False
         for attempt in range(4):
-            reply = dynamodb.batch_get_item(RequestItems=pending)
+            try:
+                reply = dynamodb.batch_get_item(RequestItems=pending)
+            except Exception as exc:
+                code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+                if code not in ("AccessDeniedException", "AccessDenied"):
+                    raise
+                # Preserve any memory already read on earlier pages; re-read
+                # ALL requested keys with the permitted consistent GetItem.
+                # Never treat a permission denial as an empty memory cache.
+                denied = True
+                break
             rows.extend(reply.get("Responses", {}).get(table_name, []))
             pending = reply.get("UnprocessedKeys", {})
             if not pending or not pending.get(table_name, {}).get("Keys"):
@@ -448,7 +462,8 @@ def _cached_scene_records(table, project, scenes, dynamodb=None):
                 break
             if attempt < 3:
                 time.sleep(0.05 * (2 ** attempt))
-        for key in pending.get(table_name, {}).get("Keys", []):
+        fallback_keys = keys if denied else pending.get(table_name, {}).get("Keys", [])
+        for key in fallback_keys:
             item = table.get_item(Key=key, ConsistentRead=True).get("Item")
             if item:
                 rows.append(item)
@@ -525,7 +540,9 @@ def _auto_teach(body):
     for x in clean:
         x["key"] = _scene_key(project, x)
     # One strongly consistent batch read; skip all provider calls on exact hits.
-    cached = _cached_scene_records(table, project, clean, dynamodb=dynamodb)
+    cached = _cached_scene_records(
+        table, project, clean,
+        dynamodb=dynamodb if os.environ.get("TEACHER_MEMORY_BATCH_GET") == "1" else None)
     fresh = [x for x in clean if x["id"] not in cached]
     if not fresh:
         return _response(200, {"saved": 0, "reused": len(cached), "failed": 0,
@@ -657,7 +674,9 @@ def _auto_teach(body):
                 raise
             # Concurrent retry: retrieve the actual committed record, never
             # claim that a rejected/pending item is eligible for learning.
-            check = _cached_scene_records(table, project, [x], dynamodb=dynamodb)
+            check = _cached_scene_records(
+                table, project, [x],
+                dynamodb=dynamodb if os.environ.get("TEACHER_MEMORY_BATCH_GET") == "1" else None)
             if sid in check:
                 cached[sid] = check[sid]
                 continue
