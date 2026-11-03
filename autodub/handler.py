@@ -234,13 +234,19 @@ def handler(event, context):
     import github_oauth
     if action == "auth.config":
         return github_oauth.config()
+    if action == "auth.guest.start":
+        import guest_access
+        return guest_access.start(event)
     oauth_mode = github_oauth.enabled()
     secured = oauth_mode or bool(PASSWORD_HASH or PASSWORD_SALT or SESSION_SECRET)
     if oauth_mode:
         if action == "auth.github.exchange":
             return github_oauth.exchange(body)
         bearer = str(headers.get("authorization") or "")
-        user = github_oauth.verify(bearer[7:]) if bearer.startswith("Bearer ") else None
+        import guest_access
+        user = ((github_oauth.verify(bearer[7:]) or
+                 guest_access.verify(bearer[7:]))
+                if bearer.startswith("Bearer ") else None)
         if not user:
             return _resp(401, {"error": "กรุณาเข้าสู่ระบบผ่าน GitHub"})
         if action == "verify":
@@ -252,9 +258,9 @@ def handler(event, context):
             if action == "member.ai.catalog":
                 import member_ai
                 return member_ai.catalog()
+            # Legacy member keys are never exposed or used for hosted inference.
             if action.startswith("member.keys."):
-                import member_keys
-                return member_keys.handle(action, body, user)
+                return _resp(403, {"error": "บัญชีทั่วไปใช้เฉพาะ AI ของเว็บไซต์ ไม่รองรับ API Key ส่วนตัว"})
             if action == "member.ai.run":
                 import member_ai
                 return member_ai.run(body,user)
