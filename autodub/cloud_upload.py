@@ -58,9 +58,14 @@ def _prepare(body, owner):
         return cloud_jobs._resp(400, {"error": "เลือก AI Provider ไม่ถูกต้อง"})
     if type(total) is not int or not 1 <= total <= cloud_jobs.MAX_SCENES:
         return cloud_jobs._resp(400, {"error": "จำนวนฉากเกินขอบเขต 1–350"})
+    import teacher
     import teacher_connections
-    if (not cloud_jobs.os.getenv("TEACHER_FEEDBACK_TABLE")
-            or not teacher_connections.available(provider, connection_id)):
+    if connection_id == "default-" + provider:
+        status = json.loads(teacher._status()["body"])
+        ready = any(p["id"] == provider and p["ready"] for p in status.get("providers", []))
+    else:
+        ready = teacher_connections.available(provider, connection_id)
+    if not cloud_jobs.os.getenv("TEACHER_FEEDBACK_TABLE") or not ready:
         return cloud_jobs._resp(409, {"error": "ยังไม่ได้เชื่อม API Key นี้หรือฐานข้อมูลบทเรียน"})
     count = (total + cloud_jobs.CHUNK_SIZE - 1) // cloud_jobs.CHUNK_SIZE
     table = cloud_jobs._table()
