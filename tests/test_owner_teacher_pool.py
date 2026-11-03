@@ -293,6 +293,58 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(wait)
         quota.assert_called_once()
 
+    def test_stale_worker_token_cannot_overwrite_newer_checkpoint(self):
+        table, jobid, _ = fixture()
+        row = table.rows[("teacher-job#" + jobid, "meta")]
+        row.update({"poolMode": True, "state": "running",
+                    "leaseOwner": "newer-lease", "leaseUntil": int(time.time()) + 100})
+        old = {**row, "leaseOwner": "expired-older-lease"}
+        self.assertFalse(cloud_jobs._save_progress(
+            table, old, position=1, leaseUntil=0, state="queued"))
+        self.assertEqual(row["position"], 0)
+        self.assertEqual(row["leaseOwner"], "newer-lease")
+        current = dict(row)
+        self.assertTrue(cloud_jobs._save_progress(
+            table, current, position=1, state="queued", leaseUntil=0))
+        self.assertEqual(row["position"], 1)
+
+    def test_superseded_pool_worker_cannot_publish_old_scene_result(self):
+        table, jobid, scenes = fixture()
+        row = table.rows[("teacher-job#" + jobid, "meta")]
+        row["poolMode"] = True
+        lessons = [{"sceneId": x["id"], "episodeId": "ep1", "issue": "keep",
+                    "original": x["text"], "revised": x["text"],
+                    "teacherReason": "ตรวจแล้วไม่พบปัญหา"} for x in scenes]
+        def supersede(_body):
+            row["leaseOwner"] = "replacement-worker-token"
+            return teacher._response(200, {"lessons": lessons,
+                                           "saved": 2, "reused": 0})
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=self.connections()), \
+             mock.patch.object(teacher, "_auto_teach", side_effect=supersede):
+            result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(result["state"], "superseded-worker")
+        self.assertEqual(row["completedIndices"], [])
+        self.assertEqual(row["position"], 0)
+        self.assertNotIn(("teacher-job#" + jobid, "result#00000"), table.rows)
+
+    def test_stale_worker_exception_cannot_reset_new_worker_lease(self):
+        table, jobid, scenes = fixture()
+        row = table.rows[("teacher-job#" + jobid, "meta")]
+        row["poolMode"] = True
+        def supersede_then_fail(_body):
+            row["leaseOwner"] = "replacement-worker-token"
+            raise TimeoutError("simulated network timeout")
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=self.connections()), \
+             mock.patch.object(teacher, "_auto_teach", side_effect=supersede_then_fail):
+            result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(result["state"], "worker-claim-lost")
+        self.assertEqual(row["leaseOwner"], "replacement-worker-token")
+        self.assertEqual(row["state"], "running")
+        self.assertEqual(row.get("transientFailures", 0), 0)
+        self.assertEqual(row["position"], 0)
+
     def test_all_busy_does_not_call_teacher_or_advance_progress(self):
         table, jobid, scenes = fixture()
         table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
