@@ -291,6 +291,14 @@ def handler(event, context):
         if not KEY or not hmac.compare_digest(sent, KEY.encode("utf-8")):
             return _resp(401, {"error": "รหัสลับไม่ถูกต้อง"})
 
+    # The Thai editorial child is experimental and owner-only. Even in a
+    # legacy password setup it fails closed until GitHub owner OAuth is used.
+    if action.startswith("editor."):
+        if not oauth_mode or not user or user.get("role") != "admin":
+            return _resp(403, {"error": "AI ลูกเกลาบทรุ่นทดลองใช้ได้เฉพาะ GitHub แอดมิน"})
+        import thai_editor
+        return thai_editor.handle(action, body)
+
     if action.startswith("student."):
         if not secured:
             return _resp(401, {"error": "ต้องเข้าสู่ระบบสตูดิโอก่อนฝึก AI ลูก"})
