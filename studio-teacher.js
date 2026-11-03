@@ -822,7 +822,7 @@ function memoryPanel(){
  const content=el('div',{className:'teacher-content teacher-memory-dashboard'},
   el('strong',{},'ประวัติการสอนและความจำ AI ลูก จาก AWS'),
   el('p',{className:'teacher-muted'},
-   'ประวัติ AI แม่ และความจำคำซ้ำ แยกคนละชุดข้อมูลใน AWS · การบันทึกบทเรียนไม่ได้แปลว่าฝึกโมเดลรุ่นใหม่สำเร็จ'),
+   'ประวัติ AI แม่ และความจำคำซ้ำ แยกคนละชุดข้อมูลใน AWS · ค้นหาได้เฉพาะหน้าที่โหลดมาแล้ว · การบันทึกบทเรียนไม่ได้แปลว่าฝึกโมเดลรุ่นใหม่สำเร็จ'),
   el('div',{className:'teacher-row'},
    button(lessonBrowser.loading?'กำลังโหลด...':'รีเฟรชข้อมูล AWS',
     refreshAllHistory,'teacher-primary',lessonBrowser.loading||teacherHistory.loading),
