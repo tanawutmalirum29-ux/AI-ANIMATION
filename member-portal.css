@@ -6,7 +6,7 @@
 #storyMemberPortal h1{font-size:24px;color:#eed29c}#storyMemberPortal h2{font-size:17px;margin:0 0 12px}
 #storyMemberPortal button{background:#24354c;color:#eef3fb;border:1px solid #596c82;border-radius:9px;padding:10px 13px;min-height:42px;font:inherit;cursor:pointer}
 #storyMemberPortal button:disabled{opacity:.5;cursor:not-allowed}
-#storyMemberPortal button.member-primary,#storyMemberPortal .member-role.active{background:#e8c68b;color:#19263a;font-weight:750}
+#storyMemberPortal button.member-primary,#storyMemberPortal button.member-production-primary,#storyMemberPortal .member-role.active{background:#e8c68b;color:#19263a;font-weight:750}
 #storyMemberPortal .member-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}
 #storyMemberPortal .member-role{display:flex;flex-direction:column;align-items:flex-start;text-align:left}
 #storyMemberPortal small,#storyMemberPortal .subtle{color:#aebdd0;font-size:13px}
