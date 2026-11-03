@@ -9,7 +9,7 @@
  const SESSION_KEY='storyStudio.githubSession.v2',LEGACY_KEY='storyStudio.session.v1';
  const PKCE_KEY='storyStudio.githubPKCE.v1';
  let token='',authorized=false,profile=null,mode='loading',config=null;
- let gate=null,notice=null,authButton=null,busy=false;
+ let gate=null,notice=null,authButton=null,guestButton=null,busy=false;
  function clear(){
   token='';profile=null;authorized=false;
   try{sessionStorage.removeItem(SESSION_KEY);localStorage.removeItem(LEGACY_KEY)}catch(_){}
@@ -26,10 +26,10 @@
  function setAuth(p){
   profile=p||null;authorized=!!p;
   document.body.classList.toggle('access-admin',authorized&&profile.role==='admin');
-  document.body.classList.toggle('access-member',authorized&&profile.role==='member');
+  document.body.classList.toggle('access-member',authorized&&['member','guest'].includes(profile.role));
   document.body.classList.toggle('access-locked',enabled&&!authorized);
   if(gate)gate.hidden=authorized;
-  if(authorized&&profile.role==='member')root.StoryMemberPortal?.mount({
+  if(authorized&&['member','guest'].includes(profile.role))root.StoryMemberPortal?.mount({
    profile,request,logout
   });
   else root.StoryMemberPortal?.hide?.();
@@ -77,8 +77,11 @@
   authButton=document.createElement('button');authButton.type='button';
   authButton.textContent='กำลังตรวจระบบเข้าสู่ระบบ...';
   authButton.disabled=true;
+  guestButton=document.createElement('button');guestButton.type='button';
+  guestButton.textContent='เข้าใช้ชั่วคราว (ไม่ต้องมี GitHub)';
+  guestButton.hidden=true;guestButton.disabled=true;
   notice=document.createElement('p');notice.className='access-message';notice.setAttribute('role','status');
-  card.append(title,intro,authButton,notice);gate.append(card);document.body.append(gate);
+  card.append(title,intro,authButton,guestButton,notice);gate.append(card);document.body.append(gate);
  }
  function status(text){if(notice)notice.textContent=text}
  function legacyGate(){
@@ -121,6 +124,19 @@
   uri.searchParams.set('code_challenge_method','S256');
   root.location.assign(uri.toString());
  }
+ async function guestLogin(){
+  if(busy)return;
+  busy=true;guestButton.disabled=true;status('กำลังสร้างเซสชันชั่วคราว...');
+  try{
+   const info=await call({action:'auth.guest.start'});
+   if(!info?.token||info.user?.role!=='guest')throw Error('AWS ไม่ยืนยันผู้เยี่ยมชม');
+   token=info.token;
+   sessionStorage.setItem(SESSION_KEY,JSON.stringify({
+    token,expiresAt:info.expiresAt*1000}));
+   setAuth(info.user);status('');
+  }catch(e){status(e.message)}
+  finally{busy=false;guestButton.disabled=false}
+ }
  async function handleCallback(){
   const url=new URL(root.location.href);
   const code=url.searchParams.get('code'),state=url.searchParams.get('state');
@@ -153,6 +169,9 @@
     authButton.textContent='เข้าสู่ระบบด้วย GitHub';
     authButton.disabled=false;
     authButton.onclick=()=>githubLogin().catch(e=>status(e.message));
+    guestButton.hidden=config.guestEnabled!==true;
+    guestButton.disabled=!config.guestEnabled;
+    guestButton.onclick=()=>guestLogin().catch(e=>status(e.message));
     try{if(await handleCallback())return}catch(e){status(e.message)}
     restore();
     if(token){
@@ -177,7 +196,7 @@
   if(!authorized||!token)throw Error('กรุณาเข้าสู่ระบบก่อน');
   try{return await call(Object.assign({action:'synthesize'},payload),token)}
   catch(e){
-   if(e.status===401){clear();setAuth(null);throw Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบ GitHub ใหม่')}
+   if(e.status===401){clear();setAuth(null);throw Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่')}
    throw e;
   }
  }
