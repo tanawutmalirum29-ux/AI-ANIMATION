@@ -612,10 +612,12 @@ def _worker(payload):
                     return {"next": bool(committed),
                             "state": "training-wait" if committed else "stopped",
                             "waitSeconds": min(180, 25 * attempts)}
-                _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                                trainingAttempts=attempts,
                                lastError="บทเรียนครบแล้ว แต่ขั้นฝึก AI ลูกไม่พร้อม กดทำต่อภายหลัง",
                                updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
                 return {"next": False, "state": "needs-attention"}
             summary = {"status": str(trained.get("status", ""))[:90],
                        "activated": bool(trained.get("activated")),
@@ -626,8 +628,10 @@ def _worker(payload):
                 trainingStatus=summary, lastError="", updatedAt=int(time.time()))
             return {"next": False,
                     "state": "completed" if committed else "stopped"}
-        _save_progress(table, item, state="completed", leaseUntil=0,
+        committed = _save_progress(table, item, state="completed", leaseUntil=0,
                        updatedAt=int(time.time()), lastError="")
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": False, "state": "completed"}
     chunk_cache = {}
     lookahead_scenes = []
@@ -661,12 +665,16 @@ def _worker(payload):
                 table, item, int(time.time()), item.get("unusableConnections", ()))
             if not choice:
                 if wait is None:
-                    _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                    committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                                    lastError="ไม่มี API แม่ที่พร้อมและไม่เคยล้มเหลวในงานนี้ กรุณาตรวจคีย์",
                                    updatedAt=int(time.time()))
+                    if not committed:
+                        return {"next": False, "state": "worker-claim-lost"}
                     return {"next": False, "state": "needs-attention"}
-                _save_progress(table, item, state="queued", leaseUntil=0,
+                committed = _save_progress(table, item, state="queued", leaseUntil=0,
                                updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
                 return {"next": True, "state": "pool-busy",
                         "waitSeconds": wait}
             teaching_provider = choice["provider"]
@@ -675,13 +683,17 @@ def _worker(payload):
         else:
             quota_wait = _provider_quota_wait(table, teaching_provider, int(time.time()))
             if quota_wait:
-                _save_progress(table, item, state="queued", leaseUntil=0,
+                committed = _save_progress(table, item, state="queued", leaseUntil=0,
                                updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
                 return {"next": True, "state": "provider-quota-wait",
                         "waitSeconds": min(900, max(20, quota_wait))}
             if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
-                _save_progress(table, item, state="queued", leaseUntil=0,
+                committed = _save_progress(table, item, state="queued", leaseUntil=0,
                                updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
                 return {"next": True, "state": "provider-busy", "waitSeconds": 20}
         cooldown = 12
         try:
@@ -720,26 +732,34 @@ def _worker(payload):
                     if c.get("ready") and str(c.get("id", "")).startswith("key-")]
         if (len(unusable) >= MAX_POOL_BAD_KEYS_PER_JOB
                 or not any(cid not in unusable for cid in possible)):
-            _save_progress(table, item, state="needs-attention", leaseUntil=0,
+            committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                            unusableConnections=unusable,
                            lastError="AI แม่ที่พร้อมทุกตัวใช้คีย์หรือโมเดลไม่ได้ กรุณาตรวจการเชื่อมต่อ",
                            updatedAt=int(time.time()))
+            if not committed:
+                return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
-        _save_progress(table, item, state="queued", leaseUntil=0,
+        committed = _save_progress(table, item, state="queued", leaseUntil=0,
                        unusableConnections=unusable,
                        lastError="ข้ามคีย์/โมเดลที่ใช้ไม่ได้ และรอ AI แม่ตัวอื่น",
                        updatedAt=int(time.time()))
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "pool-key-fallback", "waitSeconds": 20}
     if code == 429:
         throttles = int(item.get("throttles", 0)) + 1
         if throttles >= 6:
-            _save_progress(table, item, state="needs-attention", throttles=throttles,
+            committed = _save_progress(table, item, state="needs-attention", throttles=throttles,
                            lastError="Provider จำกัดโควตาหลายครั้ง โปรดตรวจบัญชีและกดทำต่อ",
                            updatedAt=int(time.time()), leaseUntil=0)
+            if not committed:
+                return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
-        _save_progress(table, item, state="queued", throttles=throttles,
+        committed = _save_progress(table, item, state="queued", throttles=throttles,
                        lastError="Provider จำกัดโควตา กำลังรอทำต่อ",
                        updatedAt=int(time.time()), leaseUntil=0)
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "rate-limited",
                 "waitSeconds": min(900, 60 * (2 ** (throttles - 1)))}
     # Provider timeouts and transient 5xx are NOT corrupted lessons.
@@ -748,22 +768,28 @@ def _worker(payload):
     if code in (502, 503, 504) and data.get("reasonCode") in TRANSIENT_PROVIDER_CODES:
         failures = int(item.get("transientFailures", 0)) + 1
         if failures >= MAX_TRANSIENT_RETRIES:
-            _save_progress(table, item, state="needs-attention", leaseUntil=0,
+            committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                            transientFailures=failures,
                            lastError="AI provider ขัดข้องชั่วคราวซ้ำหลายครั้ง; กดทำต่อเมื่อบริการกลับมา",
                            updatedAt=int(time.time()))
+            if not committed:
+                return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
         delay = min(600, 25 * (2 ** (failures - 1)))
-        _save_progress(table, item, state="queued", leaseUntil=0,
+        committed = _save_progress(table, item, state="queued", leaseUntil=0,
                        transientFailures=failures,
                        lastError="AI provider ตอบช้า/ไม่พร้อม กำลังรอลองใหม่โดยไม่ข้ามฉาก",
                        updatedAt=int(time.time()))
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "provider-retry",
                 "waitSeconds": delay}
     if code not in (200, 422):
-        _save_progress(table, item, state="needs-attention", leaseUntil=0,
+        committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                        lastError=str(data.get("error") or "AI provider ไม่พร้อม")[:200],
                        updatedAt=int(time.time()))
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": False, "state": "needs-attention"}
     lessons = data.get("lessons", []) if code == 200 else []
     accepted = {
