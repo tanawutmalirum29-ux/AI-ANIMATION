@@ -17,6 +17,7 @@ STATES = ("queued", "running", "paused", "needs-attention", "completed", "cancel
 JOB_PREFIX = "teacher-job#"
 INDEX_PREFIX = "teacher-job-index#"
 PROVIDER_LOCK_PREFIX = "teacher-provider-lease#"
+PROVIDER_QUOTA_PREFIX = "teacher-provider-quota#"
 
 
 def _json_number(value):
@@ -57,6 +58,7 @@ def _public(item):
     completed = len(item.get("completedIndices", []))
     total = int(item.get("total", 0))
     return {"jobId": item["jobId"], "projectId": item["projectId"],
+            "storyName": str(item.get("storyName") or "")[:100],
             "state": item["state"], "total": total, "completed": completed,
             "remaining": max(0, total - completed),
             "pass": int(item.get("pass", 0)) + 1,
@@ -65,6 +67,7 @@ def _public(item):
             "updatedAt": int(item["updatedAt"]),
             "error": str(item.get("lastError", ""))[:240],
             "provider": item["provider"],
+            "connectionId": item.get("connectionId") or ("default-" + item["provider"]),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -124,6 +127,7 @@ def _start(body, owner):
         return _resp(503, {"error": "Background Jobs ยังไม่ได้ติดตั้งบน AWS"})
     project_id = body.get("projectId")
     provider = body.get("provider")
+    story_name = re.sub(r"[\x00-\x1f\x7f]", " ", str(body.get("storyName") or "")).strip()[:100]
     if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
         return _resp(400, {"error": "รหัสโปรเจกต์ไม่ถูกต้อง"})
     if provider not in ("gemini", "openrouter", "compatible"):
@@ -133,12 +137,21 @@ def _start(body, owner):
     except ValueError as exc:
         return _resp(400, {"error": str(exc)})
     import teacher
-    status = json.loads(teacher._status()["body"])
-    if not status.get("feedbackReady") or not any(
-            p["id"] == provider and p["ready"] for p in status["providers"]):
-        return _resp(409, {"error": "ยังไม่ได้เชื่อม API แม่หรือฐานข้อมูลบทเรียน"})
+    import teacher_connections
+    connection_id = body.get("connectionId") or ("default-" + provider)
+    if connection_id == "default-" + provider:
+        status = json.loads(teacher._status()["body"])
+        ready = any(p["id"] == provider and p["ready"] for p in status["providers"])
+    else:
+        ready = teacher_connections.available(provider, connection_id)
+    if not os.getenv("TEACHER_FEEDBACK_TABLE") or not ready:
+        return _resp(409, {"error": "AI Key ที่เลือกไม่พร้อม กรุณาตรวจการเชื่อมต่อ"})
+    # Preserve legacy job IDs and checkpoints for the original provider key.
+    fingerprint = [str(owner), project_id, provider, scenes]
+    if connection_id != "default-" + provider:
+        fingerprint.append(connection_id)
     digest = hashlib.sha256(json.dumps(
-        [str(owner), project_id, provider, scenes],
+        fingerprint,
         ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode()).hexdigest()[:32]
     table = _table()
     existing = _read(table, digest)
@@ -159,6 +172,7 @@ def _start(body, owner):
                              "scenes": scenes[start:start + CHUNK_SIZE]})
     item = {"pk": pk, "sk": "meta", "jobId": digest,
             "ownerId": str(owner), "projectId": project_id, "provider": provider,
+            "connectionId": connection_id, "storyName": story_name,
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
@@ -334,6 +348,23 @@ def _save_progress(table, old, **updates):
     return True
 
 
+def _provider_quota_wait(table, provider, now):
+    """429 from any key may reflect a provider-wide account quota."""
+    result = table.get_item(
+        Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
+        ConsistentRead=True).get("Item", {})
+    return max(0, int(result.get("until", 0)) - now)
+
+
+def _provider_quota_block(table, provider, seconds=70):
+    table.update_item(
+        Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
+        UpdateExpression="SET #u=:until, updatedAt=:now",
+        ExpressionAttributeNames={"#u": "until"},
+        ExpressionAttributeValues={":until": int(time.time()) + seconds,
+                                   ":now": int(time.time())})
+
+
 def _provider_lock_key(provider):
     return {"pk": PROVIDER_LOCK_PREFIX + provider, "sk": "lease"}
 
@@ -422,7 +453,14 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
-        if not _try_provider_lock(table, item["provider"], job_id, int(time.time())):
+        quota_wait = _provider_quota_wait(table, item["provider"], int(time.time()))
+        if quota_wait:
+            _save_progress(table, item, state="queued", leaseUntil=0,
+                           updatedAt=int(time.time()))
+            return {"next": True, "state": "provider-quota-wait",
+                    "waitSeconds": min(900, max(20, quota_wait))}
+        credential_id = item.get("connectionId") or item["provider"]
+        if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
             _save_progress(table, item, state="queued", leaseUntil=0,
                            updatedAt=int(time.time()))
             return {"next": True, "state": "provider-busy", "waitSeconds": 20}
@@ -430,12 +468,15 @@ def _worker(payload):
         try:
             reply = teacher._auto_teach({
                 "projectId": item["projectId"],
-                "provider": item["provider"], "scenes": fresh})
+                "provider": item["provider"],
+                "connectionId": item.get("connectionId"),
+                "scenes": fresh})
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
                 cooldown = 70
+                _provider_quota_block(table, item["provider"], cooldown)
         finally:
-            _release_provider_lock(table, item["provider"], job_id, cooldown)
+            _release_provider_lock(table, credential_id, job_id, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if code == 429:

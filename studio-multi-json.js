@@ -5,8 +5,9 @@
  */
 (function(root){
 'use strict';
-let host=null,items=[],jobs=[],providers=[],provider='',loading=false,
- uploading=false,checking=false,error='',notice='',timer=null;
+let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
+ uploading=false,checking=false,adding=false,error='',notice='',timer=null;
+let keyDraft={provider:'gemini',model:'',baseUrl:''};
 const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
 function dom(tag,text,cls){
  const e=root.document.createElement(tag);
@@ -62,10 +63,12 @@ async function prepare(files){
     const serialized=JSON.stringify(entry.scenes);
     if(new root.TextEncoder().encode(serialized).length>4_000_000)
      throw Error('ข้อมูลบทพากย์รวมเกิน 4 MB');
-    const hash=await digest(serialized);
+    const hash=await digest(JSON.stringify([
+     input.project?.title||file.name,entry.scenes]));
     entry.projectId='multi-'+hash.slice(0,24);
     if(seen.has(entry.projectId))throw Error('ไฟล์นี้มีบทพากย์ซ้ำกับไฟล์ที่เลือกแล้ว');
     seen.add(entry.projectId);
+    entry.storyName=String(input.project?.title||file.name.replace(/\.json$/i,'')).slice(0,100);
     entry.count=entry.scenes.length;entry.state='ready';
    }catch(e){entry.state='invalid';entry.error=String(e.message||e);entry.scenes=null}
    render();
@@ -77,13 +80,13 @@ async function loadSettings(){
  if(loading)return;
  loading=true;error='';render();
  try{
-  const [status,config]=await Promise.all([
-   api('teacher.status'),api('teacher.job.config')]);
+  const [keys,config]=await Promise.all([
+   api('teacher.connection.list'),api('teacher.job.config')]);
   if(!config.enabled)throw Error('AWS Background Jobs ยังไม่เปิดใช้งาน');
-  providers=(status.providers||[]).filter(x=>x.ready&&
-    ['gemini','openrouter','compatible'].includes(x.id));
-  if(!providers.length)throw Error('ยังไม่มี AI Provider ที่เชื่อมคีย์สำเร็จ');
-  if(!providers.some(p=>p.id===provider))provider=providers[0].id;
+  connections=(keys.connections||[]).filter(x=>x.ready);
+  if(selection!=='auto'&&!connections.some(p=>p.id===selection))
+   selection='auto';
+  if(!connections.length)notice='ยังไม่มี API Key · เพิ่มคีย์ด้านล่างได้เลย';
   await refresh(true);
  }catch(e){error=String(e.message||e)}
  finally{loading=false;render()}
@@ -104,19 +107,81 @@ async function refresh(silent=false){
  }catch(e){if(!silent){error='อ่านสถานะ AWS ไม่สำเร็จ: '+String(e.message||e);render()}}
  finally{schedule()}
 }
+// LPT scheduling: assign each entire story to the least loaded connection.
+ // Context remains coherent within one story; existing AWS workers split its
+ // scenes in small batches and reuse approved lessons before API calls.
+function planAssignments(batch){
+ const active=new Map(connections.map(k=>[k.id,0]));
+ for(const job of jobs){
+  if(['queued','running'].includes(job.state)&&active.has(job.connectionId))
+   active.set(job.connectionId,active.get(job.connectionId)+Number(job.remaining||0));
+ }
+ const chosen=new Map();
+ for(const item of [...batch].sort((a,b)=>b.count-a.count)){
+  let conn;
+  if(item.connectionId&&connections.some(k=>k.id===item.connectionId))
+   conn=connections.find(k=>k.id===item.connectionId);
+  else if(selection!=='auto')
+   conn=connections.find(k=>k.id===selection);
+  else conn=[...connections].sort((a,b)=>
+    (active.get(a.id)||0)-(active.get(b.id)||0)||a.id.localeCompare(b.id))[0];
+  if(!conn)throw Error('ไม่พบการเชื่อมต่อ API ที่พร้อมใช้งาน');
+  chosen.set(item,conn);
+  active.set(conn.id,(active.get(conn.id)||0)+item.count);
+ }
+ return chosen;
+}
 async function start(){
  if(uploading||checking)return;
  const valid=items.filter(x=>x.state==='ready'||x.state==='failed');
  if(!valid.length){error='กรุณาเลือกไฟล์ JSON ที่ผ่านการตรวจ';render();return}
- if(!provider){error='ยังไม่มี AI Provider พร้อมใช้งาน';render();return}
- uploading=true;error='';notice='กำลังส่งงานเข้า AWS ทีละไฟล์…';render();
+ if(!connections.length){error='กรุณาเพิ่ม API Key ก่อน';render();return}
+ uploading=true;error='';notice='กำลังตรวจงานและอัปโหลดค้างบน AWS…';render();
  let accepted=0,failed=0;
  try{
+  await refresh(true);
+  const pending=[];
   for(const item of valid){
+   const prior=jobs.find(j=>j.projectId===item.projectId);
+   if(prior){
+    if(prior.state==='cancelled'){
+     item.state='failed';
+     item.error='งานเวอร์ชันนี้เคยถูกยกเลิกแล้ว กรุณาแก้ไข JSON เป็นเวอร์ชันใหม่';
+     failed++;
+    }else{
+     item.state='accepted';item.jobId=prior.jobId;item.scenes=null;
+     item.connectionId=prior.connectionId;
+     item.connectionName=connections.find(k=>k.id===prior.connectionId)?.name||prior.provider;
+     accepted++;
+    }
+    render();
+    continue;
+   }
+   // Restore the exact server-selected connection after a browser restart.
+   // It avoids creating a second partial upload when job loads change.
+   try{
+    const found=await api('teacher.job.upload.find',{projectId:item.projectId});
+    if(found.upload){
+     const existing=connections.find(c=>c.id===found.upload.connectionId);
+     if(!existing)throw Error('API Key ของอัปโหลดเดิมถูกถอดออก กรุณาเชื่อมใหม่');
+     item.connectionId=existing.id;item.connectionName=existing.name;
+    }
+    pending.push(item);
+   }catch(e){
+    item.state='failed';item.error=String(e.message||e);failed++;
+   }
+  }
+  const assignments=planAssignments(pending);
+  for(const item of pending){
+   const conn=assignments.get(item);
+   // Lock assignment on first attempt; a reconnect must use the same API key.
+   item.connectionId=conn.id;
+   item.connectionName=conn.name;
    item.state='uploading';item.error='';render();
    try{
     const out=await root.StoryCloudTeach.startBatchProject({
-     projectId:item.projectId,scenes:item.scenes,provider,
+     projectId:item.projectId,scenes:item.scenes,storyName:item.storyName,
+     provider:conn.provider,connectionId:conn.id,
      onProgress:(done,total)=>{item.done=done;item.total=total;render()}});
     if(!out?.job?.jobId)throw Error('AWS ยังไม่ยืนยันหมายเลขงาน');
     item.state='accepted';item.done=item.total;
@@ -133,6 +198,38 @@ async function start(){
    ' เรื่อง · ไม่ต้องเปิดเว็บค้างหลัง AWS รับงานครบ';
  }finally{uploading=false;render()}
 }
+async function addConnection(){
+ if(adding||uploading)return;
+ const panel=host;
+ const selected=keyDraft.provider;
+ const model=(panel.querySelector('#multiKeyModel')?.value||'').trim();
+ const baseUrl=(panel.querySelector('#multiKeyBase')?.value||'').trim();
+ const keyNode=panel.querySelector('#multiKeyValue');
+ const apiKey=keyNode?.value.trim()||'';
+ if(keyNode)keyNode.value='';
+ if(!apiKey)throw Error('กรุณาใส่ API Key');
+ adding=true;error='';render();
+ try{
+  const result=await api('teacher.connection.add',{
+   provider:selected,model,baseUrl,apiKey});
+  if(!result?.connection?.id)throw Error('AWS ยังไม่ยืนยันการเชื่อม API');
+  notice='เพิ่ม '+result.connection.name+' แล้ว · ระบบตั้งชื่อให้อัตโนมัติ';
+  await loadSettings();
+ }finally{adding=false;render()}
+}
+async function testConnection(conn){
+ const result=await api('teacher.connection.test',{connectionId:conn.id});
+ notice=result?.ready?'ทดสอบสำเร็จ: '+conn.name:'ยังไม่ยืนยันโมเดลของ '+conn.name;
+ render();
+}
+async function removeConnection(conn){
+ if(conn.legacy)throw Error('คีย์หลักจัดการได้จากแท็บ AI ครู / API');
+ if(!root.confirm?.('ลบ '+conn.name+'? ถ้ามีงานกำลังใช้คีย์นี้ จะไม่อนุญาตให้ลบ'))return;
+ await api('teacher.connection.remove',{
+  connectionId:conn.id,confirmRemove:true});
+ notice='ลบการเชื่อมต่อ '+conn.name+' แล้ว';
+ await loadSettings();
+}
 async function control(job,action){
  if(action==='cancel'&&root.confirm&&!root.confirm(
    'ยกเลิกงานนี้? บทเรียนที่ AWS บันทึกแล้วจะยังอยู่'))return;
@@ -141,11 +238,12 @@ async function control(job,action){
 }
 function itemRow(item){
  const row=dom('div',null,'multi-json-item');
- const title=dom('strong',item.name);row.append(title);
+ const title=dom('strong',(item.storyName||item.name)+' · '+item.name);row.append(title);
  const label={checking:'กำลังตรวจ',ready:'ตรวจผ่าน',
   invalid:'ตรวจไม่ผ่าน',uploading:'กำลังส่ง AWS',accepted:'AWS รับงานแล้ว',
   failed:'ส่งไม่สำเร็จ'}[item.state]||item.state;
  row.append(dom('small',label+' · '+item.count+' ฉาก'+
+  (item.connectionName?' · '+item.connectionName:'')+
   (item.total?' · '+item.done+'/'+item.total+' ชุด':'')+
   (item.error?' · '+item.error:'')));
  if(item.total){
@@ -155,9 +253,10 @@ function itemRow(item){
 }
 function jobRow(job){
  const row=dom('div',null,'multi-json-item');
- row.append(dom('strong','งาน '+(job.projectId||'').slice(0,35)),
+ row.append(dom('strong','เรื่อง '+(job.storyName||job.projectId||'').slice(0,100)),
   dom('small',job.state+' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
-    job.saved+' · ใช้ความจำ '+job.reused+' · '+job.provider));
+    job.saved+' · ใช้ความจำ '+job.reused+' · '+
+    (connections.find(k=>k.id===job.connectionId)?.name||job.provider)));
  const meter=dom('progress');meter.max=job.total||1;meter.value=job.completed||0;row.append(meter);
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
  const controls=dom('div',null,'multi-json-actions');
@@ -170,12 +269,51 @@ function jobRow(job){
  row.append(controls);
  return row;
 }
+function connectionPanel(){
+ const box=dom('section',null,'multi-json-connections');
+ box.append(dom('h4','เชื่อม API เพิ่ม · ตั้งชื่อให้อัตโนมัติ'),
+  dom('p','ใส่คีย์หลายอันได้ (เพิ่มได้สูงสุด 6 คีย์นอกเหนือจากคีย์หลัก) · เก็บเข้ารหัสบน AWS · ไม่บันทึกคีย์ในเบราว์เซอร์','multi-json-muted'));
+ for(const conn of connections){
+  const line=dom('div',null,'multi-json-key');
+  line.append(dom('span',conn.name+' · '+conn.provider));
+  line.append(button('ทดสอบ',()=>testConnection(conn),uploading||adding));
+  if(!conn.legacy)line.append(button('ลบ',()=>removeConnection(conn),uploading||adding));
+  box.append(line);
+ }
+ const form=dom('div',null,'multi-json-key-form');
+ const prov=dom('select');prov.setAttribute('aria-label','บริการ API เพิ่ม');
+ for(const p of ['gemini','openrouter','compatible']){
+  const op=dom('option',p==='gemini'?'Google Gemini':p==='openrouter'?'OpenRouter':'OpenAI-compatible');
+  op.value=p;op.selected=p===keyDraft.provider;prov.append(op);
+ }
+ prov.addEventListener('change',()=>{
+  keyDraft.provider=prov.value;keyDraft.model='';keyDraft.baseUrl='';
+  render();
+ });
+ const model=dom('input');model.id='multiKeyModel';
+ model.placeholder=keyDraft.provider==='gemini'?'gemini-3.5-flash-lite':
+  keyDraft.provider==='openrouter'?'openrouter/free':'Model ID (จำเป็น)';
+ model.value=keyDraft.model;model.setAttribute('aria-label','Model ID (เว้นว่างใช้ค่าเริ่มต้น)');
+ model.addEventListener('input',()=>{keyDraft.model=model.value});
+ const base=dom('input');base.id='multiKeyBase';
+ base.placeholder='https://api.example.com/v1';
+ base.value=keyDraft.baseUrl;base.setAttribute('aria-label','API Base URL ที่ AWS อนุญาต');
+ base.hidden=keyDraft.provider!=='compatible';
+ base.addEventListener('input',()=>{keyDraft.baseUrl=base.value});
+ const key=dom('input');key.id='multiKeyValue';key.type='password';
+ key.placeholder='วาง API Key ใหม่';key.autocomplete='off';
+ key.setAttribute('aria-label','API Key ใหม่');
+ form.append(prov,model,base,key,button(adding?'กำลังเชื่อม…':'เพิ่ม API Key',addConnection,adding||uploading));
+ box.append(form);
+ box.append(dom('p','หมายเหตุ: หลายคีย์จากบัญชีผู้ให้บริการเดียวกันอาจใช้โควตาร่วมกัน ไม่ได้เพิ่มโควตาจริง','multi-json-muted'));
+ return box;
+}
 function render(){
  if(!host)return;
  host.replaceChildren();
  const panel=dom('section',null,'multi-json');
  panel.append(dom('h3','สอน AI ลูกจากหลาย JSON'),
-  dom('p','เลือกได้สูงสุด 8 เรื่องต่อรอบ · ตรวจบทบนเครื่อง แล้วส่งให้ AWS สอนต่อแยกตามเรื่อง · ใช้ API Key เดิมร่วมกัน','multi-json-muted'));
+  dom('p','เลือกได้ 8 เรื่องต่อรอบ · กระจายแต่ละเรื่องตามภาระงานของ API แต่ละคีย์ · เก็บบทเรียนร่วมบน AWS','multi-json-muted'));
  const picker=dom('input');picker.type='file';picker.accept='.json,application/json';
  picker.multiple=true;picker.disabled=uploading||checking;
  picker.setAttribute('aria-label','เลือก JSON หลายไฟล์');
@@ -189,17 +327,20 @@ function render(){
  }
  const actions=dom('div',null,'multi-json-actions');
  const select=dom('select');select.disabled=uploading||loading;
- select.setAttribute('aria-label','เลือก AI Provider');
- for(const p of providers){
-  const op=dom('option',p.id+' · '+(p.model||''));op.value=p.id;
-  op.selected=p.id===provider;select.append(op);
+ select.setAttribute('aria-label','วิธีกระจายงาน AI');
+ const auto=dom('option','อัตโนมัติ · แบ่งเรื่องตามคิวแต่ละ API');
+ auto.value='auto';auto.selected=selection==='auto';select.append(auto);
+ for(const p of connections){
+  const op=dom('option',p.name+' · '+p.model);op.value=p.id;
+  op.selected=p.id===selection;select.append(op);
  }
- select.addEventListener('change',()=>{provider=select.value});
+ select.addEventListener('change',()=>{selection=select.value});
  actions.append(select,
   button(uploading?'กำลังส่งงาน…':'ส่งและเริ่มสอนทุกเรื่อง',start,
-    uploading||checking||!items.some(x=>x.state==='ready'||x.state==='failed')||!provider),
+    uploading||checking||!items.some(x=>x.state==='ready'||x.state==='failed')||!connections.length),
   button('รีเฟรช AWS',()=>refresh(),loading||uploading));
  panel.append(actions);
+ panel.append(connectionPanel());
  if(notice)panel.append(dom('p',notice,'multi-json-muted'));
  if(error)panel.append(dom('p',error,'multi-json-error'));
  panel.append(dom('p','หลัง AWS รับงานครบ สามารถปิดเว็บได้ · หากเน็ตหลุดตอนอัปโหลดให้เลือกไฟล์เดิมอีกครั้งเพื่อส่งเฉพาะชุดที่ขาด · สถานะงานบันทึกอยู่บน AWS','multi-json-muted'));
@@ -212,7 +353,7 @@ function render(){
 }
 function mount(target){
  host=target;render();
- if(!loading&&!providers.length)loadSettings().catch(()=>{});
+ if(!loading&&!connections.length)loadSettings().catch(()=>{});
  else refresh(true).catch(()=>{});
 }
 root.StoryMultiJSON=Object.freeze({mount});

@@ -10,6 +10,8 @@ on:
       - 'studio-teacher.css'
       - 'studio-ai-workspace.js'
       - 'autodub/teacher.py'
+      - 'autodub/teacher_connections.py'
+      - 'tests/test_teacher_multi_connections.py'
       - 'autodub/teacher_advisor.py'
       - 'tests/test_teacher_advisor.py'
       - 'autodub/student_learning.py'
@@ -23,6 +25,7 @@ on:
       - 'tests/test_multi_json_queue.py'
       - 'autodub/cloud_jobs.py'
       - 'autodub/cloud_upload.py'
+      - 'tests/test_teacher_multi_connections.py'
       - 'tests/test_cloud_upload.py'
       - 'tests/test_cloud_jobs.py'
       - 'tests/test_teacher_memory_fastpath.py'
@@ -78,6 +81,8 @@ on:
       - 'studio-teacher.css'
       - 'studio-ai-workspace.js'
       - 'autodub/teacher.py'
+      - 'autodub/teacher_connections.py'
+      - 'tests/test_teacher_multi_connections.py'
       - 'autodub/teacher_advisor.py'
       - 'tests/test_teacher_advisor.py'
       - 'autodub/student_learning.py'
@@ -91,6 +96,7 @@ on:
       - 'tests/test_multi_json_queue.py'
       - 'autodub/cloud_jobs.py'
       - 'autodub/cloud_upload.py'
+      - 'tests/test_teacher_multi_connections.py'
       - 'tests/test_cloud_upload.py'
       - 'tests/test_cloud_jobs.py'
       - 'tests/test_teacher_memory_fastpath.py'
@@ -163,7 +169,7 @@ jobs:
           node --check studio-auto-teach.js
           node --check studio-cloud-teach.js
           node --check studio-multi-json.js
-          python3 -m py_compile autodub/story_auto_train.py autodub/teacher.py autodub/teacher_advisor.py autodub/cloud_jobs.py autodub/cloud_upload.py autodub/student_learning.py
+          python3 -m py_compile autodub/story_auto_train.py autodub/teacher.py autodub/teacher_connections.py autodub/teacher_advisor.py autodub/cloud_jobs.py autodub/cloud_upload.py autodub/student_learning.py
           node --check studio-story-only.js
           node --check studio-story-only-ui.js
           node --check studio-script-ml.js
@@ -184,6 +190,7 @@ jobs:
           python3 tests/test_teacher_auto_teach.py
           python3 tests/test_teacher_model_probe.py
           python3 tests/test_teacher_connections.py
+          python3 tests/test_teacher_multi_connections.py
           python3 tests/test_story_auto_train.py
           python3 tests/test_teacher_history.py
           python3 tests/test_github_oauth_roles.py

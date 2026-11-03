@@ -42,9 +42,71 @@ test('provider-wide lock avoids unmanaged parallel API inference and uses existi
  assert.match(backend,/PROVIDER_LOCK_PREFIX/);
  assert.match(backend,/def _try_provider_lock/);
  assert.match(backend,/def _release_provider_lock/);
- assert.match(backend,/if not _try_provider_lock\(table, item\["provider"\]/);
+ assert.match(backend,/if not _try_provider_lock\(table, credential_id/);
  assert.match(backend,/state": "provider-busy"/);
  assert.match(backend,/def _list_jobs/);
  assert.match(backend,/INDEX_PREFIX \+ str\(owner\)/);
  assert.match(backend,/str\(item\.get\("ownerId"\)\) == str\(owner\)/);
+});
+
+test('user can add many named encrypted connections and distribute complete stories by pending-scene load',()=>{
+ const browser=source('studio-multi-json.js');
+ const manager=source('autodub/teacher_connections.py');
+ const worker=source('autodub/cloud_jobs.py');
+ const handler=source('autodub/handler.py');
+ const deploy=source('.github/workflows/deploy-aws-studio.yml');
+ assert.match(browser,/teacher\.connection\.list/);
+ assert.match(browser,/teacher\.connection\.add/);
+ assert.match(browser,/teacher\.connection\.remove/);
+ assert.match(browser,/function planAssignments\(batch\)/);
+ assert.match(browser,/sort\(\(a,b\)=>b\.count-a\.count\)/);
+ assert.match(browser,/connectionId:conn\.id/);
+ assert.match(browser,/type='password'/);
+ assert.match(manager,/MAX_EXTRA_KEYS = 6/);
+ assert.match(manager,/extraConnections/);
+ assert.match(manager,/uuid\.uuid4\(\)/);
+ assert.match(manager,/teacher\._save_settings\(settings\)/);
+ assert.match(worker,/credential_id = item\.get\("connectionId"\) or item\["provider"\]/);
+ assert.match(handler,/action\.startswith\("teacher\.connection\."\)/);
+ assert.match(deploy,/autodub\/teacher_connections\.py/);
+});
+
+test('auto scheduler sends whole largest stories to least-loaded connections and pins retries',()=>{
+ const js=source('studio-multi-json.js');
+ const begin=js.indexOf('function planAssignments(batch){');
+ const end=js.indexOf('async function start(){',begin);
+ assert.ok(begin>0&&end>begin);
+ const isolated=js.slice(begin,end);
+ const connections=[
+  {id:'key-a',name:'Gemini A',provider:'gemini'},
+  {id:'key-b',name:'Gemini B',provider:'gemini'}];
+ const jobs=[{connectionId:'key-b',remaining:120,state:'running'}];
+ const files=[
+  {count:60,name:'small'},
+  {count:200,name:'big'},
+  {count:100,name:'middle'}];
+ const fn=new Function('connections','jobs','selection',
+   isolated+';return planAssignments;');
+ const plan=fn(connections,jobs,'auto')(files);
+ assert.equal(plan.get(files[1]).id,'key-a'); // 200 vs 120
+ assert.equal(plan.get(files[2]).id,'key-b'); // 200 vs 120
+ assert.equal(plan.get(files[0]).id,'key-a'); // 200 vs 220
+ files[2].connectionId='key-a';
+ const pinned=fn(connections,jobs,'auto')(files);
+ assert.equal(pinned.get(files[2]).id,'key-a','retry cannot change its API credential');
+ assert.equal(plan.size,3,'a story is assigned as one immutable unit');
+});
+test('multiple credentials are encrypted server-side, admin-scoped and resumable',()=>{
+ const backend=source('autodub/cloud_upload.py');
+ const server=source('autodub/teacher.py');
+ const handler=source('autodub/handler.py');
+ const deploy=source('.github/workflows/deploy-aws-studio.yml');
+ assert.match(server,/teacher_connections\.resolve\(settings, provider, body\.get\("connectionId"\)\)/);
+ assert.match(backend,/teacher\.job\.upload\.find/);
+ assert.match(backend,/teacher-upload-index#/);
+ assert.match(backend,/item\.get\("connectionId"\)/);
+ assert.match(handler,/teacher\.connection\./);
+ assert.match(handler,/user\.get\("role"\) != "admin"/);
+ assert.match(deploy,/teacher_connections\.py/);
+ assert.doesNotMatch(source('studio-multi-json.js'),/localStorage\.setItem|sessionStorage\.setItem/);
 });
