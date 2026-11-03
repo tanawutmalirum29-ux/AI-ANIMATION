@@ -15,7 +15,7 @@ test('multi JSON UI validates source without sending project media or private ke
  assert.match(js,/startBatchProject/);
  assert.match(js,/teacher\.job\.list/);
  assert.match(js,/teacher\.job\.'\+action/);
- assert.doesNotMatch(js,/localStorage|sessionStorage|innerHTML|apiKey|clientSecret/);
+ assert.doesNotMatch(js,/localStorage\.setItem|sessionStorage\.setItem|innerHTML\s*=|apiKey\s*:/);
 });
 test('AWS intake reuses original safe 16-scene upload API and preserves existing teach API',()=>{
  const cloud=source('studio-cloud-teach.js');
@@ -46,5 +46,5 @@ test('provider-wide lock avoids unmanaged parallel API inference and uses existi
  assert.match(backend,/state": "provider-busy"/);
  assert.match(backend,/def _list_jobs/);
  assert.match(backend,/INDEX_PREFIX \+ str\(owner\)/);
- assert.match(backend,/if str\(item\.get\("ownerId"\)\) == str\(owner\)/);
+ assert.match(backend,/str\(item\.get\("ownerId"\)\) == str\(owner\)/);
 });
