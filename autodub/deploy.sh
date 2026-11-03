@@ -77,10 +77,10 @@ echo "[3/6] ติดตั้ง Lambda ..."
 if aws lambda get-function --function-name "$FN" >/dev/null 2>&1;then
  aws lambda update-function-code --function-name "$FN" --zip-file "fileb://$HERE/autodub.zip" >/dev/null
  aws lambda wait function-updated --function-name "$FN"
- aws lambda update-function-configuration --function-name "$FN" --runtime python3.12 --timeout 30 --memory-size 256 --environment "file://$NEW_ENV" >/dev/null
+ aws lambda update-function-configuration --function-name "$FN" --runtime python3.12 --timeout 90 --memory-size 256 --environment "file://$NEW_ENV" >/dev/null
  aws lambda wait function-updated --function-name "$FN"
 else
- aws lambda create-function --function-name "$FN" --runtime python3.12 --architectures x86_64 --handler handler.handler --role "$ROLE_ARN" --timeout 30 --memory-size 256 --zip-file "fileb://$HERE/autodub.zip" --environment "file://$NEW_ENV" >/dev/null
+ aws lambda create-function --function-name "$FN" --runtime python3.12 --architectures x86_64 --handler handler.handler --role "$ROLE_ARN" --timeout 90 --memory-size 256 --zip-file "fileb://$HERE/autodub.zip" --environment "file://$NEW_ENV" >/dev/null
  aws lambda wait function-active-v2 --function-name "$FN"
 fi
 echo "[4/6] ตั้ง Function URL + CORS ..."
