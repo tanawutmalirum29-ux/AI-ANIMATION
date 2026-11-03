@@ -110,7 +110,7 @@ class UploadTests(unittest.TestCase):
             self.assertFalse(first[1]["alreadyUploaded"])
             self.assertTrue(again[1]["alreadyUploaded"])
             self.assertEqual(len(table.rows), 2)  # manifest + first chunk
-            modified = [{**x, "text": x["text"] + "เปลี่ยน"} for x in scenes[:16]]
+            modified = [{**x, "text": "ใหม่" + x["text"][4:]} for x in scenes[:16]]
             code, _ = decoded(cloud_upload.handle("teacher.job.upload.chunk",
                 {**payload, "scenes": modified}, "225819900"))
             self.assertEqual(code, 409)
