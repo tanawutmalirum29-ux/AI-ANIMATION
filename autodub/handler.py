@@ -249,6 +249,12 @@ def handler(event, context):
         # Enforce role on the Lambda endpoint. Hiding front-end tabs alone
         # cannot protect admin secrets, project exports, training or asset PRs.
         if user["role"] != "admin":
+            if action == "member.ai.catalog":
+                import member_ai
+                return member_ai.catalog()
+            if action.startswith("member.keys."):
+                import member_keys
+                return member_keys.handle(action, body, user)
             if action == "member.ai.run":
                 import member_ai
                 return member_ai.run(body,user)

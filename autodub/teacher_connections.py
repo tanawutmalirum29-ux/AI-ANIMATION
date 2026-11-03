@@ -9,6 +9,7 @@ import uuid
 import time
 
 MAX_EXTRA_KEYS = 6
+ADMIN_ID = "225819900"  # Immutable verified GitHub numeric ID, not login text.
 MAX_SETTINGS_BYTES = 3700
 ID_RE = re.compile(r"key-[a-f0-9]{16}\Z")
 
@@ -43,7 +44,9 @@ def _public(item_id, record):
     return {"id": item_id, "provider": record["provider"],
             "model": record.get("model", ""),
             "name": record.get("name", ""),
-            "ready": bool(record.get("key")), "legacy": False}
+            "ready": bool(record.get("key")), "legacy": False,
+            "createdAt": int(record.get("createdAt", 0)),
+            "ownerGitHubId": str(record.get("ownerGitHubId") or ADMIN_ID)}
 
 
 def listing(settings=None):
@@ -57,11 +60,14 @@ def listing(settings=None):
             result.append({"id": _default_id(provider), "provider": provider,
                            "model": str(config.get("model") or teacher.MODELS[provider]),
                            "name": provider.upper() + " · หลัก",
-                           "ready": True, "legacy": True})
+                           "ready": True, "legacy": True,
+                           "ownerGitHubId": ADMIN_ID, "createdAt": 0})
     for key, config in _entries(settings).items():
         if (ID_RE.fullmatch(str(key)) and isinstance(config, dict)
                 and config.get("provider") in teacher.PROVIDERS):
             result.append(_public(key, config))
+    result.sort(key=lambda item: (0 if item.get("legacy") else 1,
+                                  item.get("createdAt", 0), item["name"]))
     return result
 
 
@@ -75,7 +81,8 @@ def resolve(settings, provider, connection_id=None):
     if not isinstance(connection_id, str) or not ID_RE.fullmatch(connection_id):
         return {}
     entry = _entries(settings).get(connection_id)
-    if not isinstance(entry, dict) or entry.get("provider") != provider:
+    if (not isinstance(entry, dict) or entry.get("provider") != provider
+            or str(entry.get("ownerGitHubId") or ADMIN_ID) != ADMIN_ID):
         return {}
     return entry
 
@@ -85,8 +92,10 @@ def available(provider, connection_id=None):
     return bool(resolve(teacher._settings(), provider, connection_id).get("key"))
 
 
-def add(body):
+def add(body, owner=None):
     import teacher
+    if str(owner or ADMIN_ID) != ADMIN_ID:
+        return teacher._response(403, {"error": "เพิ่ม API Key ได้เฉพาะบัญชี GitHub แอดมิน"})
     if not (teacher._secret_id() or teacher.os.getenv("TEACHER_SETTINGS_PARAMETER")):
         return teacher._response(503, {"error": "AWS ยังไม่พร้อมบันทึก API Key"})
     provider = str(body.get("provider") or "").lower()
@@ -112,7 +121,8 @@ def add(body):
     model_short = model.rsplit("/", 1)[-1]
     name = provider.upper() + " · " + model_short[:36] + " · #" + str(count)
     record = {"provider": provider, "model": model, "baseUrl": base,
-              "key": key, "name": name, "createdAt": int(time.time())}
+              "key": key, "name": name, "createdAt": int(time.time()),
+              "ownerGitHubId": ADMIN_ID}
     settings["extraConnections"] = {**entries, connection_id: record}
     settings["extraConnectionSequence"] = count
     size = len(json.dumps(settings, ensure_ascii=False).encode("utf-8"))
@@ -149,12 +159,15 @@ def remove(body, owner):
 
 def handle(action, body, owner):
     import teacher
+    if str(owner) != ADMIN_ID:
+        return teacher._response(403, {"error": "บัญชีนี้ไม่มีสิทธิ์จัดการ API แม่"})
     if action == "teacher.connection.list":
-        return teacher._response(200, {"connections": listing(),
+        return teacher._response(200, {"ownerGitHubId": ADMIN_ID,
+                                       "connections": listing(),
                                        "maxExtra": MAX_EXTRA_KEYS,
                                        "distribution": "balanced-by-pending-scenes"})
     if action == "teacher.connection.add":
-        return add(body)
+        return add(body, owner)
     if action == "teacher.connection.remove":
         return remove(body, owner)
     if action == "teacher.connection.test":

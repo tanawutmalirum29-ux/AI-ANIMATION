@@ -51,9 +51,9 @@ PY
 unset SITE_PASSWORD
 echo "[1/6] แพ็ก Lambda ..."
 rm -rf "$HERE/build" "$HERE/autodub.zip";mkdir -p "$HERE/build"
-python3 -m pip install --quiet --upgrade --target "$HERE/build" --platform manylinux2014_x86_64 --python-version 3.12 --implementation cp --only-binary=:all: edge-tts
+python3 -m pip install --quiet --upgrade --target "$HERE/build" --platform manylinux2014_x86_64 --python-version 3.12 --implementation cp --only-binary=:all: edge-tts cryptography
 cp "$HERE/handler.py" "$HERE/build/"
-cp "$HERE/github_oauth.py" "$HERE/member_ai.py" "$HERE/build/"
+cp "$HERE/github_oauth.py" "$HERE/member_ai.py" "$HERE/member_keys.py" "$HERE/build/"
 cp "$HERE/github_assets.py" "$HERE/build/"
 cp "$HERE/teacher.py" "$HERE/teacher_connections.py" "$HERE/teacher_advisor.py" "$HERE/cloud_jobs.py" "$HERE/cloud_upload.py" "$HERE/build/"
 cp "$HERE/student_learning.py" "$HERE/build/"

@@ -5,7 +5,7 @@
  */
 (function(root){
 'use strict';
-let host=null,bridge=null,provider='',snapshot=null,repoInfo=null,loading=false,busy=false;
+let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,loading=false,busy=false;
 let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
@@ -41,11 +41,16 @@ function projectOverview(){
  }catch(_){return null}
 }
 function readyProviders(){
- return (snapshot?.providers||[]).filter(p=>p?.ready===true);
+ const all=snapshot?.aiCatalog?.ownerConnections;
+ if(Array.isArray(all)&&all.length)
+  return all.filter(c=>c?.ready===true && c.id && c.provider);
+ return (snapshot?.providers||[]).filter(c=>c?.ready===true).map(c=>({
+  ...c,id:'default-'+c.id,provider:c.id,name:c.id.toUpperCase()+' · หลัก'}));
 }
 function syncProvider(){
  const options=readyProviders();
- if(!options.some(p=>p.id===provider))provider=options[0]?.id||'';
+ const chosen=options.find(p=>p.id===connectionId)||options[0];
+ connectionId=chosen?.id||'';provider=chosen?.provider||'';
 }
 function dateLabel(seconds){
  if(!Number.isFinite(Number(seconds)))return 'ไม่ทราบ';
@@ -100,7 +105,7 @@ function evidence(){
  box.addEventListener('toggle',()=>{if(box.isConnected)infoOpen=box.open});
  const n=snapshot?.narrativeChild;
  const summary=el('summary','mother-section-title',
-  'ข้อมูล AI ลูกจาก AWS · '+(n?.available?(n.savedLessons??'?')+' บทเรียน':'ยังตรวจไม่ได้')+' · แตะดูรายละเอียด');
+  'ศูนย์ข้อมูล AI · 6 ผู้ช่วยรุ่น 1 + AI แม่ + 2 โมดูล AI ลูก · '+(n?.available?(n.savedLessons??'?')+' บทเรียน':'AWS ยังตรวจไม่ได้'));
  box.append(summary);
  const info=el('div','mother-stats');
  const rep=snapshot?.repetitionChild;
@@ -115,6 +120,18 @@ function evidence(){
   el('strong',null,rep?.available?(rep.activeVersion||'ยังไม่มีโมเดลที่เปิดใช้'):'ยังไม่ได้ตรวจสอบ'),
   el('small',null,'โมเดลจำแนกประเภท ไม่ใช่ AI เขียนบทอิสระ'));
  info.append(a,b);box.append(info);
+ const catalog=snapshot?.aiCatalog;
+ if(catalog){
+  box.append(el('strong',null,'แผนผัง AI ที่ใช้งานในระบบ'));
+  box.append(el('p','mother-fine','6 ผู้ช่วยสมาชิก: รุ่น 1 · เป็นบทบาทเฉพาะทางจาก API ภายนอก ไม่ใช่ 6 โมเดลฝึกน้ำหนัก'));
+  for(const item of catalog.memberRoles||[]){
+   box.append(el('p','mother-fine',String(item.role||item.id)+
+    ' · '+String(item.capability||'')));
+  }
+  box.append(el('p','mother-fine','AI แม่: ให้คำปรึกษาและเรียกสอนผ่าน API ที่แอดมินเชื่อมไว้; AI ลูก: จำแนกคำซ้ำและตรวจบทด้วยโมเดล CPU ที่ต้องดูสถานะเวอร์ชัน AWS'));
+  box.append(el('p','mother-fine','API แม่ที่เชื่อม '+(catalog.ownerConnections?.length??0)+
+   ' รายการ · ใช้จัดคิวสอน JSON ได้ผ่านแท็บสอนหลาย JSON'));
+ }
  const foot=el('p','mother-fine',
    'ตรวจสถานะ AWS: '+dateLabel(snapshot?.measuredAt)+
    ' · ความรู้ฟีเจอร์อัปเดต '+(snapshot?.knowledgeVersion||'ไม่ทราบ')+
@@ -136,12 +153,19 @@ function evidence(){
  }
  box.append(btn(loading?'กำลังตรวจ…':'อัปเดต GitHub / AWS',()=>refresh().catch(()=>{}),
   'mother-refresh',loading));
+ box.append(btn('เปิดหน้าสอนหลาย JSON',()=>{
+  for(const node of root.document.querySelectorAll('.ai-tabs button')){
+   if(node.textContent.includes('สอนหลาย JSON')){node.click();break}
+  }
+ },'mother-config'));
  box.append(featuresPanel(),el('p','mother-fine',
   'การถาม AI แม่ใช้โควตา API ที่เลือก · การดูสถานะไม่เรียก LLM · ประวัติแชทเก็บเฉพาะแท็บนี้'));
  return box;
 }
 function quickPrompts(){
- const choices=['ตอนนี้ AI ลูกเรียนรู้อะไรแล้ว และยังขาดอะไร?',
+ const choices=['AI ทั้งระบบมีกี่ตัว รุ่น 1 ทำอะไรได้บ้าง และใครฝึกน้ำหนักแล้ว?',
+  'AI แม่ช่วยสอนและแบ่งงานให้ AI ลูกกับผู้ช่วยทั้ง 6 อย่างไร?',
+  'ตอนนี้ AI ลูกเรียนรู้อะไรแล้ว และยังขาดอะไร?',
   'โมเดล API ที่เชื่อมอยู่รู้จักเว็บเราจริงแค่ไหน?',
   'การบันทึกบทเรียนกับฝึกน้ำหนักต่างกันอย่างไร?',
   'ควรสอน AI ลูกเรื่องไหนต่อจากข้อมูล AWS ที่มี?'];
@@ -179,14 +203,15 @@ function render(){
   'ยังไม่มีข้อมูลยืนยันจาก AWS · กดตรวจสถานะก่อนถาม'));
  const providerLabel=el('label','mother-provider','โมเดล AI แม่ที่ใช้ตอบ');
  const select=el('select');
- for(const item of snapshot?.providers||[]){
-  const option=el('option',null,item.id+' · '+(item.model||'ไม่ทราบรุ่น')+
-   (item.ready?'':' (ยังไม่เชื่อม)'));
-  option.value=item.id;option.disabled=!item.ready;option.selected=provider===item.id;
-  select.append(option);
+ for(const item of readyProviders()){
+  const option=el('option',null,(item.name||item.provider)+' · '+(item.model||'ไม่ทราบรุ่น'));
+  option.value=item.id;option.selected=connectionId===item.id;select.append(option);
  }
  select.disabled=loading||!readyProviders().length||busy;
- select.addEventListener('change',e=>{provider=e.target.value});
+ select.addEventListener('change',e=>{
+  connectionId=e.target.value;
+  provider=readyProviders().find(p=>p.id===connectionId)?.provider||'';
+ });
  providerLabel.append(select);wrap.append(providerLabel);
  if(!readyProviders().length)wrap.append(
   btn('ไปเชื่อม API ของ AI แม่',openConfig,'mother-config',busy));
@@ -252,7 +277,7 @@ async function send(){
  thread=thread.slice(-MAX_HISTORY);
  render();
  try{
-  const out=await api({action:'teacher.advisorChat',provider,message,
+  const out=await api({action:'teacher.advisorChat',provider,connectionId,message,
    history,project:projectOverview()});
   if(typeof out?.reply!=='string'||!out.reply.trim())
    throw Error('AI แม่ไม่ส่งข้อความที่อ่านได้');

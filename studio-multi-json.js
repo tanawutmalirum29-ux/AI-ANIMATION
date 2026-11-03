@@ -84,6 +84,8 @@ async function loadSettings(){
    api('teacher.connection.list'),api('teacher.job.config')]);
   if(!config.enabled)throw Error('AWS Background Jobs ยังไม่เปิดใช้งาน');
   connections=(keys.connections||[]).filter(x=>x.ready);
+  connections.sort((a,b)=>(a.legacy===b.legacy?0:a.legacy?-1:1)||
+   (a.createdAt||0)-(b.createdAt||0)||a.name.localeCompare(b.name));
   if(selection!=='auto'&&!connections.some(p=>p.id===selection))
    selection='auto';
   if(!connections.length)notice='ยังไม่มี API Key · เพิ่มคีย์ด้านล่างได้เลย';
@@ -271,8 +273,10 @@ function jobRow(job){
 }
 function connectionPanel(){
  const box=dom('section',null,'multi-json-connections');
- box.append(dom('h4','เชื่อม API เพิ่ม · ตั้งชื่อให้อัตโนมัติ'),
-  dom('p','ใส่คีย์หลายอันได้ (เพิ่มได้สูงสุด 6 คีย์นอกเหนือจากคีย์หลัก) · เก็บเข้ารหัสบน AWS · ไม่บันทึกคีย์ในเบราว์เซอร์','multi-json-muted'));
+ const github=root.StoryStudioAccess?.user?.();
+ box.append(dom('h4','API แม่ของแอดมิน · ตั้งชื่อและเรียงอัตโนมัติ'),
+  dom('p','ผูกกับบัญชี GitHub: '+(github?.login||'แอดมินที่เข้าสู่ระบบ')+
+   ' · เก็บใน AWS ข้ามเครื่องได้จนกว่าจะลบ · สูงสุด 6 คีย์เพิ่มเติม · ไม่บันทึกคีย์ในเบราว์เซอร์','multi-json-muted'));
  for(const conn of connections){
   const line=dom('div',null,'multi-json-key');
   line.append(dom('span',conn.name+' · '+conn.provider));
