@@ -55,7 +55,7 @@ python3 -m pip install --quiet --upgrade --target "$HERE/build" --platform manyl
 cp "$HERE/handler.py" "$HERE/build/"
 cp "$HERE/github_oauth.py" "$HERE/member_ai.py" "$HERE/build/"
 cp "$HERE/github_assets.py" "$HERE/build/"
-cp "$HERE/teacher.py" "$HERE/build/"
+cp "$HERE/teacher.py" "$HERE/cloud_jobs.py" "$HERE/build/"
 cp "$HERE/student_learning.py" "$HERE/build/"
 cp "$HERE/story_auto_train.py" "$HERE/build/"
 python3 - "$HERE" <<'PY'

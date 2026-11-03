@@ -151,6 +151,7 @@ function render(){
   'คุณมอบสิทธิ์ให้ AI แม่สอนเอง · บทเรียนผ่าน QA เข้าชุดฝึกได้ · โมเดล CPU เปิดใช้เมื่อทดสอบข้ามเรื่องผ่าน · ยังไม่ใช่การฝึกโมเดลเขียนบทภาษาอิสระ',
   'teacher-muted'));
  host.replaceChildren(rootPanel);
+ root.StoryCloudTeach?.decorate?.(host);
 }
 async function scan(){
  if(running)return getState();
@@ -181,6 +182,7 @@ async function scan(){
   scanned={...report,stamp};
   results=[];loadedMemory=false;
   progress='AI ลูกตรวจครบ '+report.rows.length+' ฉาก · กด AI แม่สอนเพื่อบันทึก AWS';
+  root.StoryCloudTeach?.afterScan?.();
   return getState();
  }catch(e){scanned=null;error=String(e.message||e);progress='AI ลูกตรวจไม่สำเร็จ';throw e}
  finally{running=false;render()}
@@ -309,7 +311,7 @@ async function autoTrainCPU(){
   failReasons.push('ยังฝึก CPU ไม่ได้ แต่บทเรียน AWS ยังอยู่: '+trainingStatus.error);
  }
 }
-async function teach(){
+async function teachLocal(){
  if(running)return getState();
  if(!root?.StoryStudioAccess?.isReady?.()){
   error='กรุณาเข้าสู่ระบบ AWS Studio ก่อนใช้ AI แม่';render();throw Error(error);
@@ -444,6 +446,9 @@ async function teach(){
   throw e;
  }finally{running=false;render()}
 }
+async function teach(){
+ return root.StoryCloudTeach?.teach?root.StoryCloudTeach.teach(()=>teachLocal()):teachLocal();
+}
 function examples(bundle,limit=1){
  if(!root?.StoryContinuityCoach?.examples)return [];
  return root.StoryContinuityCoach.examples(bundle,memory,limit)
@@ -454,6 +459,14 @@ function configure(source,selectedProvider){
 }
 function mount(node,source,selectedProvider){
  host=node;bridge=source;provider=selectedProvider||provider;
+ root.StoryCloudTeach?.mount?.({bridge:source,provider,scan,
+   getScan:()=>scanned,sourceProject,getState,render,
+   applyLessons:map=>{
+    completedLessons=map;
+    readyExport=!!scanned&&map.size===scanned.rows.length&&scanned.skipped.length===0;
+    if(readyExport){error='';failReasons=[];progress='AWS ยืนยันบทเรียนครบ '+map.size+' ฉาก · ดาวน์โหลด JSON ได้';}
+    render();
+   }});
  render();
 }
 return Object.freeze({mount,configure,scan,teach,repair404Model,getState,loadMemory,examples,childScan,downloadableProject});

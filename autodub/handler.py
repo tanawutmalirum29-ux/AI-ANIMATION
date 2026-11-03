@@ -222,6 +222,10 @@ async def _synth(text, voice, rate, pitch):
 
 
 def handler(event, context):
+    # Step Functions direct invocation, never a Function URL JSON request.
+    if event.get("cloudJobWorker") is True and "requestContext" not in event:
+        import cloud_jobs
+        return cloud_jobs.worker(event)
     headers = {str(k).lower(): v for k, v in (event.get("headers") or {}).items()}
     body = _parse(event)
     if body is None:
@@ -286,6 +290,12 @@ def handler(event, context):
             return _resp(401, {"error": "ต้องเข้าสู่ระบบสตูดิโอก่อนฝึก AI ลูก"})
         import student_learning
         return student_learning.handle(action, body)
+
+    if action.startswith("teacher.job."):
+        if not oauth_mode or not user or user.get("role") != "admin":
+            return _resp(403, {"error": "Cloud Jobs เฉพาะ GitHub แอดมิน"})
+        import cloud_jobs
+        return cloud_jobs.handle(action, body, str(user["sub"]))
 
     if action.startswith("teacher."):
         if not secured:
