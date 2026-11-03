@@ -35,7 +35,7 @@ def _github(question):
                 isinstance(sha,str) and re.fullmatch(r"[a-f0-9]{40}",sha)
                 and 0<=int(item.get("size") or 0)<=180000):
                 entries[path]=sha
-        explicit=re.findall(r"[A-Za-z0-9_./-]+\\.(?:py|js|cjs|css|html|md|json|yml|yaml|sh)",question)
+        explicit=re.findall(r"[A-Za-z0-9_./-]+\.(?:py|js|cjs|css|html|md|json|yml|yaml|sh)",question)
         selected=[p for p in explicit if p in entries][:4]
         lower=question.lower()
         topics=[
