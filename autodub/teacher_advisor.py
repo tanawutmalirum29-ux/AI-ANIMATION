@@ -22,7 +22,7 @@ FEATURES = [
     {"name": "Six production helpers", "detail": "จัดองค์ประกอบ, SVG, motion, voice, timing, QA; เป็นขั้นตอนงาน/บทบาท ไม่ใช่โมเดล LLM 6 ตัวที่ฝึกแยก"},
     {"name": "Cloud Background Jobs", "detail": "มีโค้ดสำหรับ Step Functions และ Checkpoint; ต้องติดตั้งบริการ AWS ครั้งแรกก่อนจึงใช้จริงได้"},
     {"name": "Export", "detail": "ส่งออกวิดีโอและ JSON ผ่านสตูดิโอ; เสียง/วิดีโอต้องทดสอบจากผลงานจริงก่อนยืนยันว่าไม่มีปัญหา"},
-    {"name": "Member access", "detail": "GitHub OAuth แยกแอดมินออกจากสมาชิก; สมาชิกเรียกผู้ช่วย 6 บทบาทด้วย API Key ของตนเอง"},
+    {"name": "Member access", "detail": "สมาชิกและผู้เยี่ยมชมใช้ได้เฉพาะโมเดล AI ลูก CPU ที่ฝึกไว้ ไม่เชื่อม API ภายนอก; ตำแหน่งที่ยังไม่มีโมเดลจะแสดงว่ารอฝึก"},
 ]
 BOUNDARIES = [
     "โมเดลที่ดึง API มายังไม่ถูกฝึกด้วยโค้ด AI-ANIMATION โดยอัตโนมัติ",
@@ -30,7 +30,7 @@ BOUNDARIES = [
     "ห้ามส่ง AWS Secrets, GitHub Token, API Key หรืออีเมลส่วนตัวให้ผู้ให้บริการโมเดลภายนอก",
     "CloudWatch ต้องมี IAM read-only เพิ่ม จึงอาจยังตรวจไม่ได้; ไม่เปิดเผยข้อความ Logs ดิบ",
     "วิดีโอและไฟล์ที่ไม่ถูกแนบโดยเจ้าของยังไม่ได้ถูกวิเคราะห์จริง",
-    "รายการฟีเจอร์เป็นสรุปที่ดูแลไว้ ส่วนหลักฐานโค้ดอ่านจาก main ได้สูงสุด 2 ไฟล์ต่อคำถาม; ไม่ใช่การตรวจทั้ง repo",
+    "แอดมินสามารถเรียกเครื่องมืออ่าน GitHub public main, Actions และสถานะ AWS แบบตรวจสดได้ผ่านเซิร์ฟเวอร์; IAM อาจไม่อนุญาตบางรายการ",
     "สถานะฝึกมาจากการอ่าน AWS จริง ณ เวลาขอ หากอ่านไม่สำเร็จต้องบอกว่ายังตรวจไม่ได้",
     "บทเรียนบันทึกแล้วไม่เท่ากับฝึกน้ำหนักเสร็จ; โมเดล CPU จำแนกประเภทไม่ใช่โมเดลเขียนบทอิสระ",
     "คำตอบในห้องนี้เป็นคำแนะนำเท่านั้น ไม่แก้ JSON ไม่ Deploy ไม่สั่งฝึก และไม่รับรองว่าแอปทำงานสำเร็จ",
@@ -350,6 +350,12 @@ def _cloudwatch_summary(question):
 def handle(action, body, owner_id=None):
     if action == "teacher.advisorRepoStatus":
         return _response(200, {"repository": _github_evidence("", include_code=False)})
+    if action == "teacher.advisorInspect":
+        query=body.get("question") or body.get("path") or "AWS GitHub project"
+        if not isinstance(query,str) or not 1<=len(query)<=200:
+            return _response(400, {"error":"คำขอตรวจ GitHub/AWS ต้องมี 1–200 ตัวอักษร"})
+        import owner_inspection
+        return _response(200, {"inspection":owner_inspection.inspect(query)})
     if action == "teacher.advisorStatus":
         snapshot = _snapshot()
         snapshot["projectJob"] = _job_snapshot(body.get("project"), owner_id)
@@ -372,7 +378,14 @@ def handle(action, body, owner_id=None):
          "deploy", "ฟังก์ชัน", "source", "สคริปต์"))
     github = _github_evidence(message, include_code=code_question)
     logs = _cloudwatch_summary(message)
-    evidence = {"liveGitHub": github, "cloudWatch": logs,
+    tools_requested=any(x in message.lower() for x in
+        ("aws","github","repo","deploy","lambda","amplify","โค้ด","สถานะเว็บ","ไฟล์"))
+    owner_tools={"requested":False}
+    if tools_requested:
+        import owner_inspection
+        owner_tools=owner_inspection.inspect(message[:200])
+    evidence = {"liveGitHub": github, "ownerTools":owner_tools,
+                "cloudWatch": logs,
                 "ownerCloudJob": snapshot["projectJob"], "verifiedAWS": {
         "narrativeChild": snapshot["narrativeChild"],
         "repetitionChild": snapshot["repetitionChild"],
@@ -412,9 +425,15 @@ def handle(action, body, owner_id=None):
         evidence["reviewedAppManifest"]["limitations"] = []
         context = as_json()
     if len(context.encode("utf-8")) > 5500:
+        if isinstance(owner_tools.get("github"),dict):
+            owner_tools["github"]["snippets"]=[]
+        context = as_json()
+    if len(context.encode("utf-8")) > 5500:
         evidence = {
             "liveGitHub": {k: github.get(k) for k in
                 ("available", "source", "treeSha", "selectedFiles", "checkedAt")},
+            "ownerTools":{k:owner_tools.get(k) for k in
+                ("checkedAt","githubActions","aws","limitations")},
             "verifiedAWS": evidence["verifiedAWS"],
             "ownerCloudJob": evidence["ownerCloudJob"],
             "clientReportedProject": evidence["clientReportedProject"],
@@ -443,6 +462,7 @@ def handle(action, body, owner_id=None):
                                         "githubTreeSha": github.get("treeSha"),
                                         "githubFiles": github.get("selectedFiles", []),
                                         "cloudWatchAvailable": logs.get("available", False),
+                                        "ownerToolsAvailable":owner_tools.get("github",{}).get("available",False),
                                         "projectJobAvailable": snapshot["projectJob"]["available"],
                                         "narrativeAWS": snapshot["narrativeChild"]["available"],
                                         "repetitionAWS": snapshot["repetitionChild"]["available"],
