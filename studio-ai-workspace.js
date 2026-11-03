@@ -319,8 +319,7 @@ async function runTask(taskId){
 /* One-button stages use a shared, persistent JSON project. These are bounded
  * local rule modules, not six neural models conversing or trained in secret. */
 function productionSteps(){
- const names=root.StoryProductionPlanner?.stages||[];
- return names.map(x=>({id:x.id,name:x.name,mode:x.mode,status:'pending',summary:''}));
+ return (root.StoryProductionRoles?.roles||[]).map(x=>({id:x.id,name:x.name,mode:x.support,status:'pending',summary:''}));
 }
 function patchProductionStep(taskId,id,update){
  persist(state=>{
@@ -368,11 +367,9 @@ function countVoiceCoverage(state){
 async function runCoordinatedProduction(){
  if(busy){status('มีงานผลิตกำลังทำงานอยู่',true);return}
  const planner=root.StoryProductionPlanner,stages=productionSteps();
- if(!planner?.plan||stages.length!==6){
-  status('ไม่พบโมดูลผู้ช่วยผลิตทั้ง 6 ขั้น รีเฟรชเว็บไซต์ก่อน',true);return;
- }
+ if(!planner?.plan||stages.length!==12){status('ไม่มีทะเบียน 12 ตำแหน่ง กรุณารีเฟรช',true);return;}
  const job={id:core.id(),role:'production',scope:'all',
-  prompt:'ผลิตจาก JSON เดิม: จัดองค์ประกอบ → SVG → Motion → พากย์ → จัดเวลา → QA',
+  prompt:'เดินแผน 12 ตำแหน่ง ใช้โมดูลเดิมที่รองรับจริง',
   status:'running',createdAt:now(),updatedAt:now(),steps:stages,response:'',ops:[]};
  try{persist(w=>{w.tasks.push(job);if(w.tasks.length>MAX_TASKS)w.tasks.splice(0,w.tasks.length-MAX_TASKS)});}
  catch(err){status('บันทึกงานผลิตไม่ได้: '+err.message,true);return}
@@ -383,7 +380,7 @@ async function runCoordinatedProduction(){
  async function step(id,fn){
   const index=stages.findIndex(x=>x.id===id),name=stages[index].name;
   patchProductionStep(job.id,id,{status:'running',summary:'กำลังดำเนินการ'});
-  status('ขั้นที่ '+(index+1)+'/6 · '+name);
+  status('ขั้นที่ '+(index+1)+'/12 · '+name);
   try{
    const outcome=await fn();
    const summary=String(outcome?.summary||'เสร็จ').slice(0,350);
@@ -403,22 +400,45 @@ async function runCoordinatedProduction(){
   }
  }
  try{
-  await step('composition',async()=>{
-   const r=await applyProductionPlan('composition',ensureBackup);
-   return {summary:r.applied?'จัดตำแหน่ง '+r.applied+' ฉาก':'ไม่มีจุดซ้อนที่แก้ได้อย่างปลอดภัย',
-    status:r.applied?'done':'skipped',warnings:r.warnings};
-  });
-  await step('assets',async()=>{
+     await step('story-analyst',async()=>{
+    const eps=bridge.get().episodes||[],scenes=eps.flatMap(ep=>ep.scenes||[]);
+    const missing=scenes.filter(sc=>!String(sc.voiceover||sc.text||'').trim()).length;
+    return {status:missing?'warning':'done',summary:'อ่านบท '+eps.length+' ตอน '+scenes.length+' ฉาก (ไม่แก้บทเดิม)',warnings:missing?['ไม่มีบท '+missing+' ฉาก']:[]};
+   });
+   await step('continuity-keeper',async()=>{
+    const scenes=(bridge.get().episodes||[]).flatMap(ep=>ep.scenes||[]),ids=new Set(),dup=[];
+    for(const sc of scenes){if(!sc.id||ids.has(sc.id))dup.push(String(sc.id||'?'));ids.add(sc.id);}
+    return {status:dup.length?'warning':'done',summary:'ตรวจ ID และลำดับ '+scenes.length+' ฉากด้วยกฎพื้นฐาน; AI จัดบทเดิมไม่เปลี่ยน',warnings:dup.length?['ID ซ้ำหรือว่าง: '+dup.slice(0,8).join(', ')]:[]};
+   });
+   await step('scene-director',async()=>{
+    const eps=bridge.get().episodes||[],over=eps.filter(ep=>(ep.scenes||[]).reduce((sum,sc)=>sum+(Number(sc.duration)||0),0)>65.01);
+    return {status:over.length?'warning':'done',summary:'ประเมินรอยต่อ '+eps.length+' ตอน ไม่ตัดบทเดิม',warnings:over.length?['มี '+over.length+' ตอนเกิน 65 วินาที']:[]};
+   });
+   await step('storyboard-director',async()=>{
+    const scenes=(bridge.get().episodes||[]).flatMap(ep=>ep.scenes||[]),camera=scenes.filter(sc=>sc.camera).length;
+    return {status:camera?'done':'unavailable',summary:camera?'อ่านกล้องที่มี '+camera+'/'+scenes.length+' ฉาก; ไม่ได้สร้าง Storyboard ใหม่':'ยังไม่มี worker วาด Storyboard ใหม่'};
+   });
+   await step('environment-artist',async()=>{
    const r=await applyProductionPlan('assets',ensureBackup);
    return {summary:r.applied?'เพิ่มภาพร่างเวกเตอร์ '+r.applied+' ฉาก':'ไม่พบวัตถุที่สร้างจากแม่แบบได้',
     status:r.applied?'done':'skipped',warnings:r.warnings};
   });
-  await step('motion',async()=>{
+     await step('character-artist',async()=>{
+    const scenes=(bridge.get().episodes||[]).flatMap(ep=>ep.scenes||[]);
+    return {status:'unavailable',summary:'พบตัวละครใน '+scenes.filter(sc=>(sc.actors||[]).length).length+' ฉาก; ยังไม่มี worker สร้าง rig SVG อิสระ'};
+   });
+   await step('prop-artist',async()=>({status:'unavailable',summary:'ใช้วัตถุแม่แบบจากขั้นฉาก; ยังไม่มี worker วาด prop ใหม่อิสระ'}));
+await step('layout-director',async()=>{
+   const r=await applyProductionPlan('composition',ensureBackup);
+   return {summary:r.applied?'จัดตำแหน่ง '+r.applied+' ฉาก':'ไม่มีจุดซ้อนที่แก้ได้อย่างปลอดภัย',
+    status:r.applied?'done':'skipped',warnings:r.warnings};
+  });
+   await step('motion-director',async()=>{
    const r=await applyProductionPlan('motion',ensureBackup);
    return {summary:r.applied?'เพิ่ม keyframe ตัวละคร '+r.applied+' ฉาก; วัตถุจาก AI-2 มีคีย์เฟรมของตัวเอง':'รักษา motion เดิม; แอนิเมชันวัตถุใหม่พร้อมใช้งาน',
     status:r.applied?'done':'skipped',warnings:r.warnings};
   });
-  await step('voice',async()=>{
+  await step('audio-director',async()=>{
    const before=countVoiceCoverage(bridge.get());
    if(before.expected===0)return {summary:'ไม่มีเนื้อหาพากย์',status:'skipped'};
    if(before.missing===0)return {summary:'เสียงพากย์ครบ '+before.voiced+'/'+before.expected+' ฉาก ไม่พากย์ทับ',status:'skipped'};
@@ -433,7 +453,7 @@ async function runCoordinatedProduction(){
     summary:'สร้างเสียงเพิ่ม '+(result?.made||0)+' คลิป · มีเสียง '+after.voiced+'/'+after.expected+' ฉาก',
     warnings:incomplete?['พากย์บางฉากยังไม่ครบ: '+after.missing+' ฉาก; '+String(result?.error||'ตรวจบริการ TTS')]:[]};
   });
-  await step('timing',async()=>{
+  await step('timeline-editor',async()=>{
    const before=countVoiceCoverage(bridge.get());
    if(before.voiced===0)return {status:'skipped',summary:'ยังไม่มีคลิปเสียงจริง; ไม่เดาเวลาพากย์',
      warnings:before.missing?['ต้องเชื่อม Edge TTS หรือเพิ่มเสียงจริงก่อนจัดจังหวะ']:[]};
@@ -457,7 +477,7 @@ async function runCoordinatedProduction(){
     status:result.changes||addedAmbience?'done':soundWarnings.length?'warning':'skipped',
     warnings:[...(result.split?.warnings||[]),...soundWarnings]};
   });
-  await step('qa',async()=>{
+  await step('quality-inspector',async()=>{
    const state=bridge.get(),v=root.StoryVisualQA?.inspect(state,{scope:'all'}),
      timing=evaluate('all',1),voice=countVoiceCoverage(state);
    const diag=root.StudioAPI?.validate?.();
@@ -472,15 +492,16 @@ async function runCoordinatedProduction(){
      ...over.map(x=>'ตอน '+x.episode+' เกิน 65 วินาที'),
      ...errors.slice(0,4).map(x=>'JSON: '+x.msg)]};
   });
-  const voice=countVoiceCoverage(bridge.get()),last=results.qa;
-  const ready=failures.length===0&&voice.missing===0&&last?.status==='done';
-  const report='ประมวลผล 6 ขั้นครบแล้ว · '+(ready?'พร้อมส่งออกเพื่อตรวจภาพ/เสียงจริง':
-   'ยังมีข้อจำกัดที่ต้องตรวจเพิ่มเติม')+'\n'+messages.join('\n')+
+  const voice=countVoiceCoverage(bridge.get()),last=results['quality-inspector'];
+  const unavailable=w().tasks.find(t=>t.id===job.id)?.steps?.filter(x=>x.status==='unavailable'||x.status==='failed').map(x=>x.id)||[];
+   const ready=failures.length===0&&unavailable.length===0&&voice.missing===0&&last?.status==='done';
+  const report='เดินแผนผลิต 12 ขั้นแล้ว · '+(ready?'พร้อมส่งออกเพื่อตรวจภาพ/เสียงจริง':
+   'บางตำแหน่งยังไม่มี worker ที่ผลิตจริงได้')+'\n'+messages.join('\n')+
    (warnings.length?'\nคำเตือน: '+warnings.slice(0,12).join(' · '):'')+
-   '\nระบบยังไม่ตรวจ pixel ของวิดีโอหรือฝึกน้ำหนักโมเดล AI';
+   '\nขั้นที่ขาด worker: '+(unavailable.join(', ')||'ไม่มี')+' · ระบบยังไม่ตรวจ pixel ของวิดีโอหรือฝึกน้ำหนักโมเดล AI';
   recordHandoff('production',ready?'ready':'needs_attention',report,{pendingDub:voice.missing>0});
   setJob(job.id,{status:'done',response:report,
-   planSummary:{ready,failures,warnings:warnings.slice(0,50),steps:stages.length}});
+   planSummary:{ready,failures,unavailable,warnings:warnings.slice(0,50),steps:stages.length}});
   persist(w=>core.historyPush(w,{speaker:'assistant',role:'production',text:report,taskId:job.id}));
   status(report,!ready);
  }catch(err){
@@ -779,13 +800,13 @@ function commandDesk(){
 }
 function renderChat(container){
  const pane=e('section',{className:'ai-chat-panel'});
- pane.append(e('h3',{},'6 ผู้ช่วย · ผลิตจาก JSON โดยไม่เขียนบทใหม่'),
+ pane.append(e('h3',{},'12 ขั้นการผลิต · ทำตามความสามารถจริง'),
   e('p',{className:'ai-help'},'บท ฉาก ภาพ ตัวละคร และเหตุการณ์มาจาก JSON ที่นำเข้าแล้ว ผู้ช่วยตรวจงานจริง ไม่ให้วางบทใหม่ และไม่สร้างเนื้อเรื่องแทน'));
  const production=w().production;
  pane.append(e('section',{className:'ai-audio-agent'},
-  e('h4',{},'ผลิตอัตโนมัติ 6 ขั้น · กดครั้งเดียว'),
-  e('p',{},'จัดองค์ประกอบ → ร่าง SVG → Keyframe → พากย์เสียง → จัดเวลา → QA ตามลำดับ ระบบทำงานตามความสามารถจริงและข้ามขั้นที่ยังไม่พร้อม ไม่ใช่โมเดล AI 6 ตัวที่สนทนากัน'),
-  button(busy?'กำลังผลิตทั้งโปรเจกต์…':'เริ่มผลิตด้วย 6 ผู้ช่วย · ปุ่มเดียว',
+  e('h4',{},'เริ่มผลิต 12 ขั้น · กดครั้งเดียว'),
+  e('p',{},'บท → ความต่อเนื่อง → ฉาก → storyboard → SVG ฉาก → ตัวละคร → props → layout → motion → เสียง → เวลา → QA · ขั้นที่ยังไม่มี worker จะแจ้งตรง ๆ ไม่อ้างว่าผลิตแล้ว'),
+  button(busy?'กำลังผลิตทั้งโปรเจกต์…':'เริ่มประมวลผล 12 ขั้น · ปุ่มเดียว',
    runCoordinatedProduction,{disabled:busy,className:'ai-primary'}),
   e('small',{},'สำรองก่อนแก้ • ใช้เสียงเดิมถ้ามี • รักษาบทและ Keyframe • ถ้า TTS ไม่พร้อมจะข้ามและแจ้งเตือน • ต้องตรวจวิดีโอจริงก่อนเผยแพร่'),
   ...(production?.lastSummary?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
@@ -891,14 +912,14 @@ function renderChat(container){
  ));
  const latest=w().tasks.slice().reverse().find(x=>x.role==='production');
  const steps=latest?.steps?.length?latest.steps:productionSteps();
- const progressBox=e('section',{className:'ai-production-progress','aria-label':'สถานะผู้ช่วยทั้ง 6 ขั้น'},
+ const progressBox=e('section',{className:'ai-production-progress','aria-label':'สถานะ 12 ตำแหน่ง'},
   e('h4',{},'ลำดับการทำงานและสถานะ'));
  for(const [index,phase] of steps.entries())
   progressBox.append(e('div',{className:'ai-production-step','data-step':phase.id,
     'data-state':phase.status},e('strong',{},(index+1)+'. '+phase.name),
     e('span',{className:'ai-production-step-state'},
       ({pending:'รอทำงาน',running:'กำลังทำ',done:'เสร็จ',skipped:'ข้าม/ไม่ต้องแก้',
-        warning:'มีข้อจำกัด',failed:'ล้มเหลว'})[phase.status]||phase.status),
+        warning:'มีข้อจำกัด',unavailable:'ยังไม่มี worker',failed:'ล้มเหลว'})[phase.status]||phase.status),
     ...(phase.summary?[e('small',{},phase.summary)]:[])));
  pane.append(progressBox);
  const cards=e('div',{className:'ai-audio-agents'});
@@ -1099,13 +1120,13 @@ function render(){
  // Keep the chat composer inside its actual visible height.
  syncMotherViewport();
  rootElement.replaceChildren(
-  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 6 ผู้ช่วย'),
-   e('p',{},'จัดองค์ประกอบ · SVG · Motion · เสียง · เวลา · QA'))),
+  e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 12 ตำแหน่ง'),
+   e('p',{},'บท · ฉาก · SVG · Motion · เสียง · QA'))),
   e('p',{id:'aiWorkspaceStatus',className:'ai-status','data-error':String(!!lastError),role:'status','aria-live':'polite'},
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
   commandDesk(),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['story-only','เนื้อเรื่องล้วน'],['mother','คุยกับ AI แม่'],['editor','AI ลูกเกลาบท'],['batch','สอนหลาย JSON'],['teacher','AI ครู / API'],['chat','6 ผู้ช่วย AI'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['story-only','เนื้อเรื่องล้วน'],['mother','คุยกับ AI แม่'],['editor','AI ลูกเกลาบท'],['batch','สอนหลาย JSON'],['teacher','AI ครู / API'],['chat','12 ขั้นการผลิต'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );
