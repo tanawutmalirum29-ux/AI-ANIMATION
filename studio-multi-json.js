@@ -7,7 +7,7 @@
 'use strict';
 let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,error='',notice='',timer=null;
-let poolAvailable=false,poolWanted=false,scalableVault=false;
+let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
 const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
 function dom(tag,text,cls){
@@ -303,12 +303,19 @@ function connectionPanel(){
    ' · เก็บใน AWS ข้ามเครื่องได้จนกว่าจะลบ · '+
    (scalableVault?'ไม่มีเพดาน 6 คีย์ในระบบ (ยังขึ้นกับโควตา AWS)':'โหมดเดิมสูงสุด 6 คีย์เพิ่มเติม')+
    ' · ไม่บันทึกคีย์ในเบราว์เซอร์','multi-json-muted'));
- for(const conn of connections){
+ const shown=expandKeys?connections:connections.slice(0,20);
+ box.append(dom('p','เชื่อมต่อพร้อมใช้งาน '+connections.length+
+   ' คีย์ · แสดง '+shown.length+' คีย์','multi-json-muted'));
+ for(const conn of shown){
   const line=dom('div',null,'multi-json-key');
   line.append(dom('span',conn.name+' · '+conn.provider));
   line.append(button('ทดสอบ',()=>testConnection(conn),uploading||adding));
   if(!conn.legacy)line.append(button('ลบ',()=>removeConnection(conn),uploading||adding));
   box.append(line);
+ }
+ if(connections.length>20){
+  box.append(button(expandKeys?'แสดง 20 คีย์แรก':'แสดงคีย์ทั้งหมด ('+connections.length+')',
+   async()=>{expandKeys=!expandKeys;render()}));
  }
  const form=dom('div',null,'multi-json-key-form');
  const prov=dom('select');prov.setAttribute('aria-label','บริการ API เพิ่ม');
