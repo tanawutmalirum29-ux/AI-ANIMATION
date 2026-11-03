@@ -185,9 +185,20 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(third)
         self.assertGreaterEqual(wait, 20)
 
+    def test_story_anchors_cover_beginning_middle_and_end_without_fake_summary(self):
+        scenes = [{"id": "sc%03d" % i, "text": "ตัวละครเติบโตขึ้นตามเวลา-" +
+                   ("ทดสอบ" * 200)} for i in range(120)]
+        anchors = cloud_jobs._story_anchors(scenes)
+        self.assertEqual(len(anchors), 7)
+        self.assertEqual(anchors[0]["sceneId"], "sc000")
+        self.assertEqual(anchors[-1]["sceneId"], "sc119")
+        self.assertTrue(all(len(a["text"]) <= 110 for a in anchors))
+        self.assertEqual(cloud_jobs._story_anchors([]), [])
+
     def test_invalid_key_fails_over_to_another_mother_without_skipping_scenes(self):
         table, jobid, scenes = fixture()
         table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
+        table.rows[("teacher-job#" + jobid, "meta")]["storyAnchors"] = cloud_jobs._story_anchors(scenes)
         unavailable = teacher._response(502, {
             "reasonCode": "TEACHER_PROVIDER_AUTH",
             "error": "provider authorization failed"})
@@ -215,6 +226,8 @@ class IdlePoolTests(unittest.TestCase):
             second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
         self.assertEqual(second["state"], "completed")
         self.assertEqual(teach_call.call_count, 2)
+        self.assertEqual(teach_call.call_args.args[0]["storyAnchors"],
+                         cloud_jobs._story_anchors(scenes))
         self.assertEqual(teach_call.call_args.args[0]["connectionId"],
                          "key-" + "c"*16)
         meta = table.rows[("teacher-job#" + jobid, "meta")]
