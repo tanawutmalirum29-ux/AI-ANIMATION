@@ -198,8 +198,12 @@ class IdlePoolTests(unittest.TestCase):
                 table, {"jobId": "a"*32, "leaseOwner": "a-token"}, now)
             b, _ = cloud_jobs._borrow_idle_connection(
                 table, {"jobId": "b"*32, "leaseOwner": "b-token"}, now)
-            c, wait = cloud_jobs._borrow_idle_connection(
-                table, {"jobId": "c"*32, "leaseOwner": "c-token"}, now)
+            with mock.patch.object(table, "get_item", wraps=table.get_item) as reads:
+                c, wait = cloud_jobs._borrow_idle_connection(
+                    table, {"jobId": "c"*32, "leaseOwner": "c-token"}, now)
+                # One provider quota read plus two slot reads; no O(100)
+                # per-key reads when provider capacity is fully saturated.
+                self.assertLessEqual(reads.call_count, 3)
             self.assertIsNotNone(a)
             self.assertIsNotNone(b)
             self.assertNotEqual(a["_providerSlot"], b["_providerSlot"])
