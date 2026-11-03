@@ -79,18 +79,18 @@ test('friendly AI Mother names remain editable and mobile controls do not expose
  const manager=source('autodub/teacher_connections.py');
  const vault=source('autodub/owner_key_vault.py');
  const css=source('studio-teacher.css');
- assert.match(browser,/teacher\\.connection\\.rename/);
- assert.match(browser,/connectionId:conn\\.id,name/);
- assert.match(browser,/conn\\.customName/);
- assert.match(browser,/multi-json-key-info/);
- assert.match(browser,/multi-json-rename/);
- assert.match(browser,/conn\\.provider\\.toUpperCase\\(\\)/);
- assert.match(manager,/AI แม่ /);
- assert.match(manager,/def rename\\(body, owner\\):/);
- assert.match(vault,/def set_alias\\(connection_id, alias\\):/);
- assert.match(css,/\\.multi-json-key-actions/);
- assert.match(css,/\\.multi-json-rename input/);
- assert.doesNotMatch(browser,/localStorage\\.setItem|sessionStorage\\.setItem/);
+ assert.ok(browser.includes('teacher.connection.rename'));
+ assert.ok(browser.includes('connectionId:conn.id,name'));
+ assert.ok(browser.includes('conn.customName'));
+ assert.ok(browser.includes('multi-json-key-info'));
+ assert.ok(browser.includes('multi-json-rename'));
+ assert.ok(browser.includes('conn.provider.toUpperCase()'));
+ assert.ok(manager.includes('AI แม่ '));
+ assert.ok(manager.includes('def rename(body, owner):'));
+ assert.ok(vault.includes('def set_alias(connection_id, alias):'));
+ assert.ok(css.includes('.multi-json-key-actions'));
+ assert.ok(css.includes('.multi-json-rename input'));
+ assert.doesNotMatch(browser,/localStorage|sessionStorage/);
 });
 
 test('auto scheduler sends whole largest stories to least-loaded connections and pins retries',()=>{
