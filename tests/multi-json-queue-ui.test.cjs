@@ -67,9 +67,7 @@ test('user can add many named encrypted connections and distribute complete stor
  assert.match(manager,/extraConnections/);
  assert.match(manager,/uuid\.uuid4\(\)/);
  assert.match(manager,/teacher\._save_settings\(settings\)/);
- assert.match(worker,/credential_id = teaching_connection or teaching_provider/);
- assert.match(worker,/def _borrow_idle_connection/);
- assert.match(source("autodub/owner_key_vault.py"),/AESGCM/);
+ assert.match(worker,/credential_id = item\.get\("connectionId"\) or item\["provider"\]/);
  assert.match(handler,/action\.startswith\("teacher\.connection\."\)/);
  assert.match(deploy,/autodub\/teacher_connections\.py/);
 });

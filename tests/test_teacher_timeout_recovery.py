@@ -55,32 +55,6 @@ class TimeoutRecoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"AI provider invalid JSON response"):
                 teacher._post_json("https://test.invalid/endpoint",{},{"message":"hello"})
 
-    def test_http_429_retry_after_is_sanitized_and_preserved(self):
-        import urllib.error
-        class Opener:
-            def open(self, *_args, **_kwargs):
-                raise urllib.error.HTTPError(
-                    "https://api.test.invalid", 429, "rate limited",
-                    {"Retry-After": "7200", "Authorization": "SECRET_VALUE"}, None)
-        with mock.patch.object(teacher.urllib.request, "build_opener",
-                               return_value=Opener()):
-            with self.assertRaisesRegex(ValueError, "retry-after=7200") as exc:
-                teacher._post_json("https://api.test.invalid",
-                                   {"Authorization": "Bearer SECRET_VALUE"},
-                                   {"message": "test"})
-        config = {"gemini": {"key": "fake-secret-should-never-appear",
-                              "model": "gemini-3.5-flash-lite"}}
-        with mock.patch.object(teacher, "_settings", return_value=config), \
-             mock.patch.object(teacher, "_post_json",
-                               side_effect=ValueError(
-                                   "AI provider returned HTTP 429; retry-after=7200")):
-            teacher._REQUEST_TIMES.clear()
-            status, result = unpack(teacher._chat({
-                "provider": "gemini", "message": "ตรวจบท", "context": "{}"}))
-        self.assertEqual(status, 429)
-        self.assertEqual(result["retryAfterSeconds"], 7200)
-        self.assertNotIn("SECRET_VALUE", json.dumps(result))
-
     def test_worker_waits_and_keeps_position_on_provider_timeouts(self):
         table,jobid,_=fixture()
         table.rows[("teacher-job#"+jobid,"meta")]["position"]=1

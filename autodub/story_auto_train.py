@@ -6,7 +6,6 @@ human fact checking. Train/test are split by project. Promotion is gated.
 """
 import hashlib
 import json
-import os
 import math
 import re
 import time
@@ -44,7 +43,6 @@ def _rows(table):
         kwargs = {"KeyConditionExpression": Key("pk").eq(PK)
                   & Key("sk").begins_with("teach#"),
                   "Limit": min(100, MAX_ROWS - scanned),
-                  "ConsistentRead": True,
                   "ScanIndexForward": False}
         if cursor:
             kwargs["ExclusiveStartKey"] = cursor
@@ -160,50 +158,12 @@ def _predict(model, row):
 def _read(table, key):
     from boto3.dynamodb.conditions import Key
     rows = table.query(KeyConditionExpression=Key("pk").eq(PK)
-                       & Key("sk").eq(key), Limit=1,
-                       ConsistentRead=True).get("Items", [])
+                       & Key("sk").eq(key), Limit=1).get("Items", [])
     return rows[0].get("model") if rows else None
 
 
 def train():
-    """Exactly one model promotion when the experimental AI Mother pool is on.
-
-    Legacy training is unchanged when the pool flag is off. The bounded
-    DynamoDB lease is longer than the Lambda's configured 90-second timeout.
-    All entry points (cloud + explicit student training) share this lock.
-    """
     table = _table()
-    if os.getenv("TEACHER_ENABLE_IDLE_POOL") != "1":
-        return _train_impl(table)
-    now, token = int(time.time()), uuid.uuid4().hex
-    key = {"pk": PK, "sk": "training-lock"}
-    try:
-        table.update_item(
-            Key=key,
-            UpdateExpression="SET ownerToken=:token, leaseUntil=:until, updatedAt=:now",
-            ConditionExpression="attribute_not_exists(pk) OR leaseUntil < :now",
-            ExpressionAttributeValues={":token": token, ":until": now + 150,
-                                       ":now": now})
-    except Exception as exc:
-        if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-            return _resp(200, {"trained": False, "activated": False,
-                               "status": "training-busy"})
-        raise
-    try:
-        return _train_impl(table)
-    finally:
-        # A stale owner must never clear a newer training lease.
-        try:
-            table.update_item(
-                Key=key, UpdateExpression="SET leaseUntil=:until",
-                ConditionExpression="ownerToken=:token",
-                ExpressionAttributeValues={":token": token, ":until": 0})
-        except Exception as exc:
-            if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
-                raise
-
-
-def _train_impl(table):
     rows = _rows(table)
     groups = sorted(set(r["projectId"] for r in rows))
     labels = Counter(x["issue"] for x in rows)

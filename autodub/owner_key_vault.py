@@ -19,9 +19,9 @@ ID_RE = re.compile(r"key-[a-f0-9]{16}\Z")
 
 
 def enabled():
-    # Explicit activation prevents a routine Lambda code deployment from
-    # breaking legacy SSM when the extra DynamoDB IAM grants are not yet ready.
-    return bool(os.getenv("TEACHER_OWNER_VAULT_V2") == "1"
+    # Use the expanded vault whenever AWS storage and a stable server secret
+    # exist; an explicit 0 remains a safe emergency opt-out.
+    return bool(os.getenv("TEACHER_OWNER_VAULT_V2") != "0"
                 and os.getenv("TEACHER_FEEDBACK_TABLE")
                 and len(os.getenv("SESSION_SECRET", "")) >= 32)
 

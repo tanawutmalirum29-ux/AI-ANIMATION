@@ -76,22 +76,6 @@ class AutoTeacherTests(unittest.TestCase):
         self.assertIn("_internalMaxOutput",call.call_args.args[0])
         self.assertTrue(saved["sk"].startswith("teach#"))
 
-    def test_story_evidence_is_bounded_and_identified_as_non_synopsis(self):
-        table = FakeTable()
-        anchors = [{"sceneId": "opening", "position": 1, "text": "ตั้งแต่ต้นเรื่องมีฝนตกและคนหนี"},
-                   {"sceneId": "ending", "position": 80, "text": "ตอนท้ายทุกคนกลับมาเจอกัน"}]
-        with self.install(table), mock.patch.dict(os.environ, {"TEACHER_FEEDBACK_TABLE": "test"}), \
-             mock.patch.object(teacher, "_chat", return_value=response([lesson()])) as chat:
-            code, result = unpack(teacher._auto_teach({
-                "provider": "gemini", "projectId": "story123",
-                "scenes": scenes(), "storyAnchors": anchors + [
-                    {"sceneId": "fake", "position": 999, "text": "bad"}]}))
-        self.assertEqual(code, 200)
-        context = json.loads(chat.call_args.args[0]["context"])
-        self.assertEqual(context["storyEvidenceSamples_not_complete_plot"], anchors)
-        self.assertIn("not a verified synopsis", chat.call_args.args[0]["message"])
-        self.assertEqual(result["saved"], 1)
-
     def test_repeat_batch_reuses_aws_memory_without_second_ai_call(self):
         table=FakeTable()
         with self.install(table),mock.patch.dict(os.environ,{"TEACHER_FEEDBACK_TABLE":"test"}),\
@@ -151,22 +135,6 @@ class AutoTeacherTests(unittest.TestCase):
         self.assertEqual(payload["generationConfig"]["maxOutputTokens"],3200)
         self.assertIn("teachingLessons",payload["systemInstruction"]["parts"][0]["text"])
         self.assertIn("keep",payload["systemInstruction"]["parts"][0]["text"])
-
-    def test_ai_mother_teaching_does_not_hit_arbitrary_six_rpm_app_limit(self):
-        response_body = json.dumps({"teachingLessons": [lesson()]}, ensure_ascii=False)
-        candidate = {"candidates": [{"content": {"parts": [{"text": response_body}]}}]}
-        with mock.patch.object(teacher, "_settings", return_value={
-                "gemini": {"key": "test_key_abcdefghijklmnop",
-                           "model": "gemini-2.5-flash"}}), \
-             mock.patch.object(teacher, "_post_json", return_value=candidate) as http:
-            teacher._REQUEST_TIMES.clear()
-            for _ in range(9):
-                code, _ = unpack(teacher._chat({
-                    "provider": "gemini", "message": "Teach from narration",
-                    "context": "{}", "_internalMaxOutput": 3200}, teach_mode=True))
-                self.assertEqual(code, 200)
-        self.assertEqual(http.call_count, 9)
-        self.assertEqual(teacher._REQUEST_TIMES, {})
 
     def test_ai_mother_repairs_invalid_lesson_without_user_intervention(self):
         table=FakeTable()

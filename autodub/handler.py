@@ -337,13 +337,6 @@ def handler(event, context):
         import teacher_advisor
         return teacher_advisor.handle(action, body, owner_id=user["sub"])
 
-    # Rehearsal is owner-only and has no route into production lesson writes.
-    if action.startswith("teacher.sandbox."):
-        if not oauth_mode or not user or user.get("role") != "admin":
-            return _resp(403, {"error": "พื้นที่ทดสอบ AI แม่สำหรับ GitHub แอดมินเท่านั้น"})
-        import teacher_sandbox
-        return teacher_sandbox.handle(action, body, str(user["sub"]))
-
     if action.startswith("teacher.connection."):
         if not oauth_mode or not user or user.get("role") != "admin":
             return _resp(403, {"error": "จัดการหลาย API Key ได้เฉพาะ GitHub แอดมิน"})

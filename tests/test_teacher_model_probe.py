@@ -1,5 +1,4 @@
 """Provider HTTP 404 diagnostics and free-only model repair contract tests."""
-import copy
 import json
 import os
 import sys
@@ -34,26 +33,23 @@ class ModelRepairTests(unittest.TestCase):
         self.assertEqual(result["suggestedModel"],"openrouter/free")
         self.assertNotIn("private-DO-NOT-LOG",json.dumps(result))
 
-    def test_owner_selected_openrouter_model_reuses_key_without_price_tier_gate(self):
+    def test_model_switch_reuses_existing_key_and_still_blocks_paid_openrouter(self):
         saved=[]
         with mock.patch.object(teacher,"_settings",return_value={"openrouter":{
              "model":"google/gemma-3-27b-it:free","key":"old-private-key"}}),\
-             mock.patch.object(teacher,"_save_settings",
-                               side_effect=lambda value: saved.append(copy.deepcopy(value))),\
+             mock.patch.object(teacher,"_save_settings",side_effect=saved.append),\
              mock.patch.dict(os.environ,{"TEACHER_SETTINGS_PARAMETER":"/test/teacher-key",
                                       "TEACHER_ALLOW_PAID_MODELS":"0"}):
             status,result=unpack(teacher._configure({"provider":"openrouter",
                                                      "model":"openrouter/free","apiKey":""}))
-            selected,_=unpack(teacher._configure({"provider":"openrouter",
-                                                 "model":"openai/gpt-4o","apiKey":""}))
+            blocked,_=unpack(teacher._configure({"provider":"openrouter",
+                                                "model":"openai/gpt-4o","apiKey":""}))
         self.assertEqual(status,200)
         self.assertTrue(result["ok"])
         self.assertEqual(saved[0]["openrouter"]["key"],"old-private-key")
         self.assertEqual(saved[0]["openrouter"]["model"],"openrouter/free")
-        self.assertEqual(selected,200)
-        self.assertEqual(len(saved),2)
-        self.assertEqual(saved[1]["openrouter"]["key"],"old-private-key")
-        self.assertEqual(saved[1]["openrouter"]["model"],"openai/gpt-4o")
+        self.assertEqual(blocked,400)
+        self.assertEqual(len(saved),1)
 
     def test_429_does_not_look_like_an_unavailable_model(self):
         with mock.patch.object(teacher,"_settings",return_value={

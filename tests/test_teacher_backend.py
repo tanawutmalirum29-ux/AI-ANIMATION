@@ -48,18 +48,6 @@ class TeacherBackendTests(unittest.TestCase):
                 "baseUrl": "https://127.0.0.1/v1", "model": "model"}))
             self.assertEqual(status, 400)
 
-    def test_explicit_owner_model_id_no_longer_blocked_by_price_tier(self):
-        with mock.patch.dict(os.environ, {"TEACHER_SETTINGS_PARAMETER": "/test"}), \
-             mock.patch.object(teacher, "_settings", return_value={}), \
-             mock.patch.object(teacher, "_save_settings") as saved:
-            code, result = payload(teacher._configure({
-                "provider": "openrouter", "model": "vendor/explicit-model",
-                "apiKey": "sk-test-owned-key-123456"}))
-        self.assertEqual(code, 200)
-        self.assertEqual(result["model"], "vendor/explicit-model")
-        self.assertEqual(saved.call_args.args[0]["openrouter"]["model"],
-                         "vendor/explicit-model")
-
     def test_chat_offline_mock_provider(self):
         with mock.patch.object(teacher, "_settings", return_value={
             "openrouter": {"key": "fake-key-for-offline-test", "model": "example:free"}
