@@ -14,6 +14,10 @@ MAX_SCENES = 350
 CHUNK_SIZE = 16
 MAX_PASSES = 3
 MAX_TRANSIENT_RETRIES = 6
+# Only opt-in pool jobs use the following key-specific failure fallback.
+# It does not broaden existing provider retry or legacy job semantics.
+MAX_POOL_BAD_KEYS_PER_JOB = 128
+POOL_KEY_FAILURES = frozenset(("TEACHER_PROVIDER_AUTH", "TEACHER_MODEL_UNAVAILABLE"))
 TRANSIENT_PROVIDER_CODES = frozenset((
     "TEACHER_PROVIDER_TIMEOUT", "TEACHER_PROVIDER_NETWORK",
     "TEACHER_PROVIDER_UPSTREAM", "TEACHER_PROVIDER_BAD_RESPONSE"))
@@ -79,6 +83,7 @@ def _public(item):
             "connectionId": item.get("connectionId") or ("default-" + item["provider"]),
             "poolMode": bool(item.get("poolMode", False)),
             "lastConnectionId": item.get("lastConnectionId", ""),
+            "unusableKeys": len(item.get("unusableConnections", [])),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -456,35 +461,46 @@ def _release_provider_lock(table, provider, job_id, cooldown=12):
             raise
 
 
-def _borrow_idle_connection(table, item, now):
-    """Reserve an idle *extra* owner key for the next bounded batch.
+def _borrow_idle_connection(table, item, now, excluded=()):
+    """Claim an idle extra key without giving away already-running scenes.
 
-    Return (selection, None) on success or (None, wait_seconds) on failure.
-    Do not touch default keys: legacy jobs may use a different lock name.
-    Conditional DynamoDB leases resolve simultaneous claims across stories.
+    Iterate the entire owner pool, so a free key is not ignored just because
+    it is beyond an arbitrary first-N window. Read provider cooldown once per
+    provider, not once per key (important when 50+ keys share one provider).
+    A failed conditional claim simply tries the next available credential.
     """
     import teacher_connections
     connections = [c for c in teacher_connections.listing()
                    if c.get("ready") and str(c.get("id", "")).startswith("key-")]
-    candidates = []
-    next_wait = 20
+    excluded = set(excluded)
+    if not connections or all(c["id"] in excluded for c in connections):
+        return None, None
+    candidates, provider_wait = [], {}
+    shortest_wait = None
     for conn in connections:
+        if conn["id"] in excluded:
+            continue
         lock = table.get_item(Key=_provider_lock_key(conn["id"]),
                               ConsistentRead=True).get("Item", {})
         occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
-        quota_wait = _provider_quota_wait(table, conn["provider"], now)
+        provider = conn["provider"]
+        if provider not in provider_wait:
+            provider_wait[provider] = _provider_quota_wait(table, provider, now)
+        quota_wait = provider_wait[provider]
         if occupied or quota_wait:
-            next_wait = min(60, max(20, min(occupied or 9999, quota_wait or 9999)))
+            # A credential is usable only after *both* waits expire.
+            delay = max(occupied, quota_wait)
+            shortest_wait = delay if shortest_wait is None else min(shortest_wait, delay)
             continue
         candidates.append((int(lock.get("updatedAt", 0)), conn["id"], conn))
-    if not connections:
-        return None, None  # No eligible extra keys: fail closed, not infinite polling.
+    # Least recently used first, for fairer sharing across stories.
     candidates.sort(key=lambda x: (x[0], x[1]))
     for _, _, conn in candidates:
         if _try_provider_lock(table, conn["id"], item["jobId"], now):
             return conn, None
-    return None, next_wait
-
+        # Another worker won the claim while we checked availability.
+        shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
+    return None, min(900, max(20, shortest_wait or 20))
 
 def _worker(payload):
     """One bounded worker: up to 16 cache hits and at most 2 fresh AI scenes."""
@@ -544,11 +560,12 @@ def _worker(payload):
         # Keep the old execution path untouched unless an opted-in job is
         # running with the server-side pool feature enabled.
         if item.get("poolMode") and pool_enabled():
-            choice, wait = _borrow_idle_connection(table, item, int(time.time()))
+            choice, wait = _borrow_idle_connection(
+                table, item, int(time.time()), item.get("unusableConnections", ()))
             if not choice:
                 if wait is None:
                     _save_progress(table, item, state="needs-attention", leaseUntil=0,
-                                   lastError="ไม่พบ API แม่เพิ่มเติมที่พร้อมช่วยงาน",
+                                   lastError="ไม่มี API แม่ที่พร้อมและไม่เคยล้มเหลวในงานนี้ กรุณาตรวจคีย์",
                                    updatedAt=int(time.time()))
                     return {"next": False, "state": "needs-attention"}
                 _save_progress(table, item, state="queued", leaseUntil=0,
@@ -586,10 +603,34 @@ def _worker(payload):
             if code == 429:
                 cooldown = 70
                 _provider_quota_block(table, teaching_provider, cooldown)
+            elif (item.get("poolMode") and pool_enabled()
+                  and data.get("reasonCode") in POOL_KEY_FAILURES):
+                # Do not burn the same invalid key across other jobs.
+                cooldown = 3600 if data["reasonCode"] == "TEACHER_PROVIDER_AUTH" else 1800
         finally:
             _release_provider_lock(table, credential_id, job_id, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
+    if (fresh and item.get("poolMode") and pool_enabled()
+            and data.get("reasonCode") in POOL_KEY_FAILURES):
+        # This failure is about a credential/model, not the script.
+        # Keep the exact scene index and try an independent key next.
+        unusable = sorted(set(item.get("unusableConnections", [])) | {teaching_connection})
+        import teacher_connections
+        possible = [c["id"] for c in teacher_connections.listing()
+                    if c.get("ready") and str(c.get("id", "")).startswith("key-")]
+        if (len(unusable) >= MAX_POOL_BAD_KEYS_PER_JOB
+                or not any(cid not in unusable for cid in possible)):
+            _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                           unusableConnections=unusable,
+                           lastError="AI แม่ที่พร้อมทุกตัวใช้คีย์หรือโมเดลไม่ได้ กรุณาตรวจการเชื่อมต่อ",
+                           updatedAt=int(time.time()))
+            return {"next": False, "state": "needs-attention"}
+        _save_progress(table, item, state="queued", leaseUntil=0,
+                       unusableConnections=unusable,
+                       lastError="ข้ามคีย์/โมเดลที่ใช้ไม่ได้ และรอ AI แม่ตัวอื่น",
+                       updatedAt=int(time.time()))
+        return {"next": True, "state": "pool-key-fallback", "waitSeconds": 20}
     if code == 429:
         throttles = int(item.get("throttles", 0)) + 1
         if throttles >= 6:
@@ -665,6 +706,7 @@ def _worker(payload):
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
+                   unusableConnections=[],
                    lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
                    lastError="" if state != "needs-attention"
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
