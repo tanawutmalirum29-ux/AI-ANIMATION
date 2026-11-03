@@ -80,6 +80,9 @@
   if(!rows.length)history.append(node('p','subtle','ยังไม่มีประวัติ'));
   for(const item of rows.slice(-30).reverse()){
    const details=node('details'),sum=node('summary',null,item.date+' · '+item.question.slice(0,90));
+   // Newly completed work must be visible immediately rather than buried
+   // inside a collapsed history accordion.
+   if(item===rows[rows.length-1])details.open=true;
    details.append(sum,node('p','subtle',item.question),node('pre','member-result',item.reply),
     button('คัดลอกคำตอบ',()=>navigator.clipboard?.writeText(item.reply).catch(()=>{})));
    history.append(details)}
