@@ -246,11 +246,14 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
         return _response(413, {"error": "บริบทโปรเจกต์ใหญ่เกินไป"})
     # Best-effort warm-container throttle; configure WAF/usage limits in production.
     now = time.time()
-    recent = [x for x in _REQUEST_TIMES.get("chat", []) if now - x < 60]
+    # Separate keys have independent quotas; the existing legacy default
+    # continues on its own bucket. DynamoDB controls parallel cloud calls.
+    throttle_key = body.get("connectionId") or ("default-" + provider)
+    recent = [x for x in _REQUEST_TIMES.get(throttle_key, []) if now - x < 60]
     if len(recent) >= 6:
-        return _response(429, {"error": "เกิน 6 คำขอต่อนาที"})
+        return _response(429, {"error": "คีย์นี้ใช้เกิน 6 คำขอต่อนาที"})
     recent.append(now)
-    _REQUEST_TIMES["chat"] = recent
+    _REQUEST_TIMES[throttle_key] = recent
     history = body.get("history")
     if not isinstance(history, list):
         history = []
