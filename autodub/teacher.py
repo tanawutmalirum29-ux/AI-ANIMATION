@@ -259,16 +259,18 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
         return _response(400, {"error": "คำสั่งต้องมีความยาว 1–4500 ตัวอักษร"})
     if not isinstance(context, str) or len(context) > _MAX_CONTEXT:
         return _response(413, {"error": "บริบทโปรเจกต์ใหญ่เกินไป"})
-    # Best-effort warm-container throttle; configure WAF/usage limits in production.
-    now = time.time()
-    # Separate keys have independent quotas; the existing legacy default
-    # continues on its own bucket. DynamoDB controls parallel cloud calls.
-    throttle_key = body.get("connectionId") or ("default-" + provider)
-    recent = [x for x in _REQUEST_TIMES.get(throttle_key, []) if now - x < 60]
-    if len(recent) >= 6:
-        return _response(429, {"error": "คีย์นี้ใช้เกิน 6 คำขอต่อนาที"})
-    recent.append(now)
-    _REQUEST_TIMES[throttle_key] = recent
+    # Interactive chat retains its existing best-effort flood guard.
+    # Autonomous teaching is already protected by DynamoDB worker/key leases
+    # and provider HTTP 429 recovery; never throttle AI Mothers at an
+    # arbitrary six calls/minute inside a warm Lambda container.
+    if not teach_mode:
+        now = time.time()
+        throttle_key = body.get("connectionId") or ("default-" + provider)
+        recent = [x for x in _REQUEST_TIMES.get(throttle_key, []) if now - x < 60]
+        if len(recent) >= 6:
+            return _response(429, {"error": "แชตเรียกถี่เกินไป กรุณาลองใหม่"})
+        recent.append(now)
+        _REQUEST_TIMES[throttle_key] = recent
     history = body.get("history")
     if not isinstance(history, list):
         history = []
