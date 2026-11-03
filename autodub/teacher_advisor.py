@@ -278,8 +278,9 @@ def _job_snapshot(project, owner_id):
 
 def _cloudwatch_summary(question):
     # No raw messages, credentials or free-form log text cross to the provider.
-    words = ("cloudwatch", "logs", "log", "บันทึกข้อผิดพลาด", "บันทึกระบบ")
-    if not any(w in question.lower() for w in words):
+    words = ("cloudwatch", "บันทึกข้อผิดพลาด", "บันทึกระบบ")
+    if not (any(w in question.lower() for w in words)
+            or re.search(r"\blogs?\b", question.lower())):
         return {"requested": False}
     try:
         import boto3
