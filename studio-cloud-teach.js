@@ -171,13 +171,10 @@ function decorate(host){
   if(['queued','running'].includes(job.state))add('พักงาน','pause');
   if(['paused','needs-attention'].includes(job.state))add('ทำต่อจากฉากที่ค้าง','resume');
   if(!['completed','cancelled'].includes(job.state))add('ยกเลิกงาน','cancel');
-  add('ตรวจสถานะล่าสุด','status');
-  // The refresh operation has no mutation; keep it separate from job control.
-  const last=buttons.lastElementChild;
-  if(last){last.replaceWith(last.cloneNode(true));const refreshBtn=doc.createElement('button');
-   refreshBtn.type='button';refreshBtn.textContent='รีเฟรชสถานะ AWS';
-   refreshBtn.addEventListener('click',()=>refresh().catch(()=>{}));
-   buttons.replaceChild(refreshBtn,buttons.lastElementChild);}
+  const refreshBtn=doc.createElement('button');
+  refreshBtn.type='button';refreshBtn.textContent='รีเฟรชสถานะ AWS';
+  refreshBtn.addEventListener('click',()=>refresh().catch(()=>{}));
+  buttons.append(refreshBtn);
   box.append(buttons);
   if(job.error){const warning=doc.createElement('p');
    warning.textContent=job.error;box.append(warning)}
