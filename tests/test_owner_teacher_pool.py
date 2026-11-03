@@ -188,6 +188,33 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(third)
         self.assertGreaterEqual(wait, 20)
 
+    def test_hundred_same_provider_keys_still_allow_only_two_concurrent_calls(self):
+        table, jobid, _ = fixture()
+        many = [{"id": "key-" + format(i, "016x"),
+                 "provider": "gemini", "ready": True} for i in range(100)]
+        now = int(time.time())
+        with mock.patch.object(connections, "listing", return_value=many):
+            a, _ = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": "a"*32, "leaseOwner": "a-token"}, now)
+            b, _ = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": "b"*32, "leaseOwner": "b-token"}, now)
+            c, wait = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": "c"*32, "leaseOwner": "c-token"}, now)
+            self.assertIsNotNone(a)
+            self.assertIsNotNone(b)
+            self.assertNotEqual(a["_providerSlot"], b["_providerSlot"])
+            self.assertIsNone(c)
+            self.assertGreaterEqual(wait, 20)
+            # After a slot and key are released, a third job can progress.
+            cloud_jobs._release_provider_lock(
+                table, a["id"], "a-token", cooldown=0)
+            cloud_jobs._release_provider_lock(
+                table, a["_providerSlot"], "a-token", cooldown=0)
+            c, _ = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": "c"*32, "leaseOwner": "c-token"}, now + 1)
+        self.assertIsNotNone(c)
+        self.assertIn(c["_providerSlot"], (a["_providerSlot"], b["_providerSlot"]))
+
     def test_story_anchors_cover_beginning_middle_and_end_without_fake_summary(self):
         scenes = [{"id": "sc%03d" % i, "text": "ตัวละครเติบโตขึ้นตามเวลา-" +
                    ("ทดสอบ" * 200)} for i in range(120)]
