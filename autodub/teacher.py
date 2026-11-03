@@ -249,6 +249,91 @@ def _extract_json(answer):
     return {"reply": str(result.get("reply") or "")[:4000], "ops": ops,
             "lessonDecision": advice, "teachingLessons": teaching}
 
+def _provider_output(result, provider):
+    """Return visible text and a safe reason for an empty HTTP 200 response.
+
+    Upstream payloads are untrusted. Never send thought traces, raw provider
+    error bodies, URLs or credentials to the frontend or training dataset.
+    """
+    if not isinstance(result, dict):
+        return "", "empty"
+    if provider == "gemini":
+        candidates = result.get("candidates")
+        if not isinstance(candidates, list):
+            candidates = []
+        visible = []
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            content = candidate.get("content")
+            parts = content.get("parts", []) if isinstance(content, dict) else []
+            for part in parts if isinstance(parts, list) else []:
+                if isinstance(part, dict) and not part.get("thought") and isinstance(part.get("text"), str):
+                    visible.append(part["text"])
+        text = "".join(visible).strip()
+        if text:
+            return text, None
+        finish = next((str(c.get("finishReason", "")) for c in candidates
+                       if isinstance(c, dict) and c.get("finishReason")), "")
+        if finish == "MAX_TOKENS":
+            return "", "output_limit"
+        if finish in ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST",
+                      "SPII", "RECITATION", "MODEL_ARMOR", "IMAGE_SAFETY"):
+            return "", "blocked"
+        feedback = result.get("promptFeedback")
+        if isinstance(feedback, dict) and feedback.get("blockReason"):
+            return "", "blocked"
+        return "", "empty"
+
+    choices = result.get("choices")
+    if not isinstance(choices, list):
+        choices = []
+    choice = next((c for c in choices if isinstance(c, dict)), {})
+    message = choice.get("message")
+    message = message if isinstance(message, dict) else {}
+    content = message.get("content")
+    if isinstance(content, str):
+        visible = content.strip()
+    elif isinstance(content, list):
+        # Some compatible APIs return OpenAI-style content parts rather than
+        # a single string. Ignore reasoning and tool-call-only parts.
+        visible = "".join(part.get("text", "")
+                          for part in content if isinstance(part, dict)
+                          and part.get("type") in ("text", "output_text")
+                          and isinstance(part.get("text"), str)).strip()
+    else:
+        visible = ""
+    if visible:
+        return visible, None
+    finish = str(choice.get("finish_reason") or "")
+    if finish in ("length", "max_tokens"):
+        return "", "output_limit"
+    if finish in ("content_filter",):
+        return "", "blocked"
+    return "", "empty"
+
+
+def _empty_provider_response(provider, model, reason):
+    """Actionable diagnostic only; do not log raw upstream body or API key."""
+    if reason == "output_limit":
+        return _response(502, {
+            "error": "AI provider ใช้โทเค็นคำตอบหมดก่อนสร้างข้อความที่อ่านได้ "
+                     "(Output limit); ลองลดความยาวคำถามหรือเลือกโมเดลที่ตอบสั้นกว่า",
+            "reasonCode": "TEACHER_PROVIDER_OUTPUT_LIMIT",
+            "provider": provider, "model": model})
+    if reason == "blocked":
+        return _response(422, {
+            "error": "AI provider กรองคำตอบหรือเนื้อหา จึงไม่มีข้อความให้แสดง "
+                     "กรุณาปรับคำถามหรือเนื้อหาที่ส่ง",
+            "reasonCode": "TEACHER_PROVIDER_BLOCKED",
+            "provider": provider, "model": model})
+    return _response(502, {
+        "error": "AI provider ตอบกลับสำเร็จแต่ไม่มีข้อความ (HTTP 200 / empty content) "
+                 "ลองอีกครั้งหรือเปลี่ยนโมเดล หากเกิดซ้ำ",
+        "reasonCode": "TEACHER_PROVIDER_EMPTY_RESPONSE",
+        "provider": provider, "model": model})
+
+
 def _chat(body, *, teach_mode=False, advisor_mode=False):
     settings = _settings()
     provider = str(body.get("provider") or "openrouter")
@@ -376,25 +461,33 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
             contents = [{"role": "model" if h["role"] == "assistant" else "user",
                          "parts": [{"text": h["content"]}]} for h in safe_history]
             contents.append({"role": "user", "parts": [{"text": prompt}]})
+            # Gemini thinking tokens count toward maxOutputTokens. For a
+            # short AI Mother reply, use light thinking and leave room for the
+            # visible JSON. Do not change the editorial training budget.
+            generation = {"maxOutputTokens": (max(2400, output_limit) if advisor_mode
+                                                  else output_limit),
+                          "temperature": 0.2,
+                          "responseMimeType": "application/json"}
+            if advisor_mode and model.startswith("gemini-3"):
+                generation["thinkingConfig"] = {
+                    "thinkingLevel": "minimal" if "flash-lite" in model else "low"}
             result = _post_json(endpoint, {"x-goog-api-key": cfg["key"]}, {
                 "systemInstruction": {"parts": [{"text": system}]},
                 "contents": contents,
-                "generationConfig": {"maxOutputTokens": output_limit, "temperature": 0.2,
-                                     "responseMimeType": "application/json"}},
+                "generationConfig": generation},
                 **({"timeout": 32} if teach_mode else {}))
-            content = "".join(p.get("text", "") for c in result.get("candidates", [])
-                              for p in c.get("content", {}).get("parts", []))
+            content, empty_reason = _provider_output(result, provider)
         else:
             endpoint = "https://openrouter.ai/api/v1/chat/completions" if provider == "openrouter" else cfg.get("baseUrl", "").rstrip("/") + "/chat/completions"
             if provider == "compatible" and not _host_allowed(cfg.get("baseUrl", "")):
                 return _response(400, {"error": "API host not allowed"})
             result = _post_json(endpoint, {"Authorization": "Bearer " + cfg["key"]}, {
-                "model": model, "temperature": 0.2, "max_tokens": output_limit,
+                "model": model, "temperature": 0.2,
+                "max_tokens": max(2400, output_limit) if advisor_mode else output_limit,
                 "messages": [{"role": "system", "content": system}, *safe_history,
                              {"role": "user", "content": prompt}]},
                 **({"timeout": 32} if teach_mode else {}))
-            choices = result.get("choices") or []
-            content = choices[0].get("message", {}).get("content", "") if choices else ""
+            content, empty_reason = _provider_output(result, provider)
     except ValueError as exc:
         # Only bounded, self-authored error categories cross to clients.
         # Never return a provider response, destination URL or credential.
@@ -441,9 +534,11 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
                                     " (ตรวจ API Key/สิทธิ์/โควตาบัญชี)",
                                    "reasonCode": "TEACHER_PROVIDER_AUTH"})
         raise
+    if not content:
+        return _empty_provider_response(provider, model, empty_reason)
     parsed = _extract_json(content)
     if not parsed["reply"] and not parsed["ops"] and not parsed.get("teachingLessons"):
-        return _response(502, {"error": "AI provider ไม่ส่งคำตอบที่อ่านได้"})
+        return _empty_provider_response(provider, model, "empty")
     return _response(200, {**parsed, "provider": provider, "model": model,
                            "applied": False, "trained": False})
 
