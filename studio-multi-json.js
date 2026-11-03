@@ -68,6 +68,7 @@ async function prepare(files){
     entry.projectId='multi-'+hash.slice(0,24);
     if(seen.has(entry.projectId))throw Error('ไฟล์นี้มีบทพากย์ซ้ำกับไฟล์ที่เลือกแล้ว');
     seen.add(entry.projectId);
+    entry.storyName=String(input.project?.title||file.name.replace(/\.json$/i,'')).slice(0,100);
     entry.count=entry.scenes.length;entry.state='ready';
    }catch(e){entry.state='invalid';entry.error=String(e.message||e);entry.scenes=null}
    render();
@@ -147,8 +148,8 @@ async function start(){
    item.state='uploading';item.error='';render();
    try{
     const out=await root.StoryCloudTeach.startBatchProject({
-     projectId:item.projectId,scenes:item.scenes,provider:conn.provider,
-     connectionId:conn.id,
+     projectId:item.projectId,scenes:item.scenes,storyName:item.storyName,
+     provider:conn.provider,connectionId:conn.id,
      onProgress:(done,total)=>{item.done=done;item.total=total;render()}});
     if(!out?.job?.jobId)throw Error('AWS ยังไม่ยืนยันหมายเลขงาน');
     item.state='accepted';item.done=item.total;
@@ -200,7 +201,7 @@ async function control(job,action){
 }
 function itemRow(item){
  const row=dom('div',null,'multi-json-item');
- const title=dom('strong',item.name);row.append(title);
+ const title=dom('strong',(item.storyName||item.name)+' · '+item.name);row.append(title);
  const label={checking:'กำลังตรวจ',ready:'ตรวจผ่าน',
   invalid:'ตรวจไม่ผ่าน',uploading:'กำลังส่ง AWS',accepted:'AWS รับงานแล้ว',
   failed:'ส่งไม่สำเร็จ'}[item.state]||item.state;
@@ -215,7 +216,7 @@ function itemRow(item){
 }
 function jobRow(job){
  const row=dom('div',null,'multi-json-item');
- row.append(dom('strong','งาน '+(job.projectId||'').slice(0,35)),
+ row.append(dom('strong','เรื่อง '+(job.storyName||job.projectId||'').slice(0,100)),
   dom('small',job.state+' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
     job.saved+' · ใช้ความจำ '+job.reused+' · '+
     (connections.find(k=>k.id===job.connectionId)?.name||job.provider)));
