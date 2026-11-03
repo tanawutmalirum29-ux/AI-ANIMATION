@@ -160,6 +160,9 @@ def _start(body, owner):
         ready = teacher_connections.available(provider, connection_id)
     if not os.getenv("TEACHER_FEEDBACK_TABLE") or not ready:
         return _resp(409, {"error": "AI Key ที่เลือกไม่พร้อม กรุณาตรวจการเชื่อมต่อ"})
+    if use_pool and not any(x.get("ready") and str(x.get("id", "")).startswith("key-")
+                            for x in teacher_connections.listing()):
+        return _resp(409, {"error": "โหมดช่วยงานต้องมี API แม่ที่เชื่อมเพิ่มเติมอย่างน้อย 1 คีย์"})
     # Preserve legacy job IDs and checkpoints for the original provider key.
     fingerprint = [str(owner), project_id, provider, scenes]
     if connection_id != "default-" + provider:
@@ -474,6 +477,8 @@ def _borrow_idle_connection(table, item, now):
             next_wait = min(60, max(20, min(occupied or 9999, quota_wait or 9999)))
             continue
         candidates.append((int(lock.get("updatedAt", 0)), conn["id"], conn))
+    if not connections:
+        return None, None  # No eligible extra keys: fail closed, not infinite polling.
     candidates.sort(key=lambda x: (x[0], x[1]))
     for _, _, conn in candidates:
         if _try_provider_lock(table, conn["id"], item["jobId"], now):
@@ -541,10 +546,15 @@ def _worker(payload):
         if item.get("poolMode") and pool_enabled():
             choice, wait = _borrow_idle_connection(table, item, int(time.time()))
             if not choice:
+                if wait is None:
+                    _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                                   lastError="ไม่พบ API แม่เพิ่มเติมที่พร้อมช่วยงาน",
+                                   updatedAt=int(time.time()))
+                    return {"next": False, "state": "needs-attention"}
                 _save_progress(table, item, state="queued", leaseUntil=0,
                                updatedAt=int(time.time()))
                 return {"next": True, "state": "pool-busy",
-                        "waitSeconds": wait or 20}
+                        "waitSeconds": wait}
             teaching_provider = choice["provider"]
             teaching_connection = choice["id"]
             credential_id = teaching_connection
