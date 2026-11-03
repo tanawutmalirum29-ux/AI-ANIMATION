@@ -349,17 +349,33 @@ def _control(action, body, owner):
         return _resp(200, {"items": result, "nextCursor": next_cursor})
     if action == "teacher.job.pause":
         if state in ("queued", "running"):
-            table.update_item(Key=_key(job_id),
-                              UpdateExpression="SET #s=:s, updatedAt=:now",
-                              ExpressionAttributeNames={"#s": "state"},
-                              ExpressionAttributeValues={":s": "paused", ":now": int(time.time())})
+            try:
+                table.update_item(Key=_key(job_id),
+                    UpdateExpression="SET #s=:s, updatedAt=:now",
+                    ConditionExpression="#s=:expected AND generation=:expectedGen",
+                    ExpressionAttributeNames={"#s": "state"},
+                    ExpressionAttributeValues={":s": "paused", ":expected": state,
+                                               ":expectedGen": int(item["generation"]),
+                                               ":now": int(time.time())})
+            except Exception as exc:
+                if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                    raise
+                return _resp(409, {"error": "งานเปลี่ยนสถานะระหว่างสั่งพัก กรุณารีเฟรช"})
         return _resp(200, {"job": _public(_read(table, job_id))})
     if action == "teacher.job.cancel":
         if state not in ("completed", "cancelled"):
-            table.update_item(Key=_key(job_id),
-                              UpdateExpression="SET #s=:s, updatedAt=:now",
-                              ExpressionAttributeNames={"#s": "state"},
-                              ExpressionAttributeValues={":s": "cancelled", ":now": int(time.time())})
+            try:
+                table.update_item(Key=_key(job_id),
+                    UpdateExpression="SET #s=:s, updatedAt=:now",
+                    ConditionExpression="#s=:expected AND generation=:expectedGen",
+                    ExpressionAttributeNames={"#s": "state"},
+                    ExpressionAttributeValues={":s": "cancelled", ":expected": state,
+                                               ":expectedGen": int(item["generation"]),
+                                               ":now": int(time.time())})
+            except Exception as exc:
+                if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                    raise
+                return _resp(409, {"error": "งานเปลี่ยนสถานะระหว่างสั่งยกเลิก กรุณารีเฟรช"})
             if item.get("executionArn"):
                 try:
                     import boto3
@@ -374,13 +390,20 @@ def _control(action, body, owner):
         if state == "queued" and item.get("executionArn"):
             return _resp(200, {"job": _public(item)})
         generation = int(item["generation"]) + (0 if state == "queued" else 1)
-        table.update_item(Key=_key(job_id),
-                          UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, trainingAttempts=:a, updatedAt=:now REMOVE executionArn",
-                          ExpressionAttributeNames={"#s": "state", "#p": "pass"},
-                          ExpressionAttributeValues={":s": "queued", ":g": generation,
-                                                     ":p": 0, ":z": 0, ":f": 0,
-                                                     ":e": "", ":a": 0,
-                                                     ":now": int(time.time())})
+        try:
+            table.update_item(Key=_key(job_id),
+                UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, trainingAttempts=:a, updatedAt=:now REMOVE executionArn",
+                ConditionExpression="#s=:expected AND generation=:expectedGen",
+                ExpressionAttributeNames={"#s": "state", "#p": "pass"},
+                ExpressionAttributeValues={":s": "queued", ":g": generation,
+                                           ":p": 0, ":z": 0, ":f": 0,
+                                           ":e": "", ":a": 0, ":expected": state,
+                                           ":expectedGen": int(item["generation"]),
+                                           ":now": int(time.time())})
+        except Exception as exc:
+            if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                raise
+            return _resp(409, {"error": "งานเปลี่ยนสถานะระหว่างสั่งทำต่อ กรุณารีเฟรช"})
         current = _read(table, job_id)
         try:
             _launch(table, current)
