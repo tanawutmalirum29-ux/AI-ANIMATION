@@ -185,6 +185,73 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(third)
         self.assertGreaterEqual(wait, 20)
 
+    def test_invalid_key_fails_over_to_another_mother_without_skipping_scenes(self):
+        table, jobid, scenes = fixture()
+        table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
+        unavailable = teacher._response(502, {
+            "reasonCode": "TEACHER_PROVIDER_AUTH",
+            "error": "provider authorization failed"})
+        lessons = [{"sceneId": sc["id"], "episodeId": sc["episodeId"],
+                    "original": sc["text"], "revised": sc["text"],
+                    "issue": "keep", "teacherReason": "บทสอดคล้องกับเหตุการณ์เดิม"}
+                   for sc in scenes]
+        success = teacher._response(200, {"lessons": lessons, "saved": 2, "reused": 0})
+        import story_auto_train
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \\
+             mock.patch.object(connections, "listing", return_value=self.connections()), \\
+             mock.patch.object(teacher, "_auto_teach", side_effect=[
+                 unavailable, success]) as teach_call, \\
+             mock.patch.object(story_auto_train, "train", return_value={
+                 "body": '{"status":"collecting","activated":false}'}):
+            first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+            meta = table.rows[("teacher-job#" + jobid, "meta")]
+            self.assertEqual(first["state"], "pool-key-fallback")
+            self.assertEqual(meta["position"], 0)
+            self.assertEqual(meta["completedIndices"], [])
+            self.assertEqual(meta["unusableConnections"], ["key-" + "b"*16])
+            blocked_key = table.rows[(cloud_jobs.PROVIDER_LOCK_PREFIX +
+                                      "key-" + "b"*16, "lease")]
+            self.assertGreater(blocked_key["leaseUntil"], int(time.time()) + 3000)
+            second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(second["state"], "completed")
+        self.assertEqual(teach_call.call_count, 2)
+        self.assertEqual(teach_call.call_args.args[0]["connectionId"],
+                         "key-" + "c"*16)
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        self.assertEqual(meta["position"], 2)
+        self.assertEqual(meta["completedIndices"], [0, 1])
+        self.assertEqual(meta["unusableConnections"], [])
+
+    def test_all_invalid_mothers_stop_and_preserve_checkpoint(self):
+        table, jobid, _ = fixture()
+        table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
+        unavailable = teacher._response(404, {
+            "reasonCode": "TEACHER_MODEL_UNAVAILABLE", "error": "model not found"})
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \\
+             mock.patch.object(connections, "listing", return_value=self.connections()), \\
+             mock.patch.object(teacher, "_auto_teach", return_value=unavailable) as work:
+            first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+            second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(first["state"], "pool-key-fallback")
+        self.assertEqual(second["state"], "needs-attention")
+        self.assertEqual(work.call_count, 2)
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        self.assertEqual(meta["position"], 0)
+        self.assertEqual(meta["completedIndices"], [])
+        self.assertEqual(len(meta["unusableConnections"]), 2)
+
+    def test_provider_quota_checked_once_per_provider(self):
+        table, jobid, _ = fixture()
+        two_same = [{"id": "key-" + "b"*16, "provider": "gemini", "ready": True},
+                    {"id": "key-" + "c"*16, "provider": "gemini", "ready": True}]
+        with mock.patch.object(connections, "listing", return_value=two_same), \\
+             mock.patch.object(cloud_jobs, "_provider_quota_wait", return_value=0) as quota:
+            choice, wait = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": jobid}, int(time.time()))
+        self.assertIsNotNone(choice)
+        self.assertIsNone(wait)
+        quota.assert_called_once()
+
     def test_all_busy_does_not_call_teacher_or_advance_progress(self):
         table, jobid, scenes = fixture()
         table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
