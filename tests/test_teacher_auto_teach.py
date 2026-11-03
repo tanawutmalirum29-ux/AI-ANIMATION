@@ -76,6 +76,22 @@ class AutoTeacherTests(unittest.TestCase):
         self.assertIn("_internalMaxOutput",call.call_args.args[0])
         self.assertTrue(saved["sk"].startswith("teach#"))
 
+    def test_story_evidence_is_bounded_and_identified_as_non_synopsis(self):
+        table = FakeTable()
+        anchors = [{"sceneId": "opening", "position": 1, "text": "ตั้งแต่ต้นเรื่องมีฝนตกและคนหนี"},
+                   {"sceneId": "ending", "position": 80, "text": "ตอนท้ายทุกคนกลับมาเจอกัน"}]
+        with self.install(table), mock.patch.dict(os.environ, {"TEACHER_FEEDBACK_TABLE": "test"}), \
+             mock.patch.object(teacher, "_chat", return_value=response([lesson()])) as chat:
+            code, result = unpack(teacher._auto_teach({
+                "provider": "gemini", "projectId": "story123",
+                "scenes": scenes(), "storyAnchors": anchors + [
+                    {"sceneId": "fake", "position": 999, "text": "bad"}]}))
+        self.assertEqual(code, 200)
+        context = json.loads(chat.call_args.args[0]["context"])
+        self.assertEqual(context["storyEvidenceSamples_not_complete_plot"], anchors)
+        self.assertIn("not a verified synopsis", chat.call_args.args[0]["message"])
+        self.assertEqual(result["saved"], 1)
+
     def test_repeat_batch_reuses_aws_memory_without_second_ai_call(self):
         table=FakeTable()
         with self.install(table),mock.patch.dict(os.environ,{"TEACHER_FEEDBACK_TABLE":"test"}),\
