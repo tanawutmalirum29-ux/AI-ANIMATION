@@ -1,7 +1,7 @@
 #storyMemberPortal[hidden]{display:none!important}
-#storyMemberPortal{position:fixed;inset:0;z-index:2147483644;background:#0d1522;color:#e9eef6;overflow-y:auto;font:14px/1.5 system-ui,"Noto Sans Thai",sans-serif}
+#storyMemberPortal{position:relative;inset:auto;z-index:auto;background:#0d1522;color:#e9eef6;overflow:visible;width:100%;min-width:0;font:14px/1.5 system-ui,"Noto Sans Thai",sans-serif}
 #storyMemberPortal *{box-sizing:border-box}
-#storyMemberPortal header{position:sticky;top:0;z-index:3;background:#142133;border-bottom:1px solid #3b5066;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#storyMemberPortal header{position:relative;top:auto;z-index:auto;background:#142133;border-bottom:1px solid #3b5066;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 #storyMemberPortal .member-content{max-width:1020px;padding:18px;margin:auto}
 #storyMemberPortal h1{font-size:24px;color:#eed29c}#storyMemberPortal h2{font-size:17px;margin:0 0 12px}
 #storyMemberPortal button{background:#24354c;color:#eef3fb;border:1px solid #596c82;border-radius:9px;padding:10px 13px;min-height:42px;font:inherit;cursor:pointer}
