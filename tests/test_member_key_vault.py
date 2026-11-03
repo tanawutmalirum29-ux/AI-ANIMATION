@@ -74,7 +74,7 @@ class MemberKeyTests(unittest.TestCase):
     def test_relogin_same_github_id_recovers_own_key_but_other_member_cannot(self):
         raw = "member-a-api-token-very-secret"
         saved = self.save(self.a, raw)
-        self.assertNotIn(raw, json.dumps(self.table.rows))
+        self.assertNotIn(raw, json.dumps(list(self.table.rows.values())))
         self.assertNotIn(raw, json.dumps(saved))
         first = member_keys.resolve(self.a, saved["id"])
         self.assertEqual(first["apiKey"], raw)
