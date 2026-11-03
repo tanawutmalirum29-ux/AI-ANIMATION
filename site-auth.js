@@ -85,7 +85,7 @@
   if(!gate)return;
   const card=gate.firstChild;
   const label=document.createElement('label');label.textContent='รหัสผ่านเว็บไซต์เดิม (รอเปิด GitHub OAuth)';
-  const field=document.createElement('input');field.type='password';field.autocomplete='current-password';
+  const field=document.createElement('input');field.id='siteAccessPassword';field.type='password';field.autocomplete='current-password';
   field.placeholder='รหัสผ่านเว็บไซต์';
   card.insertBefore(label,authButton);card.insertBefore(field,authButton);
   authButton.textContent='เข้าสู่ระบบด้วยรหัสผ่านเดิม';
