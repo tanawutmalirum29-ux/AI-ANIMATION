@@ -39,7 +39,7 @@ class Table:
                 raise AssertionError("stale generation")
         if "#s=:running" in (ConditionExpression or "") and row["state"] != "running":
             raise AssertionError("worker modified a paused job")
-        if "leaseUntil < :now" in (ConditionExpression or "") and row["leaseUntil"] >= values[":now"]:
+        if "leaseUntil < :now" in (ConditionExpression or "") and row.get("leaseUntil", -1) >= values[":now"]:
             raise AssertionError("lease not released")
         clause = UpdateExpression.split(" REMOVE ")[0].removeprefix("SET ")
         for part in clause.split(","):
