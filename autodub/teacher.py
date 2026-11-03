@@ -234,9 +234,10 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
     provider = str(body.get("provider") or "openrouter")
     if provider not in PROVIDERS:
         return _response(400, {"error": "Provider not supported"})
-    cfg = _config(settings, provider)
+    import teacher_connections
+    cfg = teacher_connections.resolve(settings, provider, body.get("connectionId"))
     if not cfg.get("key"):
-        return _response(503, {"error": "ยังไม่ได้เชื่อม API key ของ AI ครู"})
+        return _response(503, {"error": "คีย์ของงานนี้ไม่มีหรือถูกถอดออกแล้ว กรุณาตรวจการเชื่อมต่อ"})
     message = body.get("message")
     context = body.get("context") or ""
     if not isinstance(message, str) or not 1 <= len(message.strip()) <= _MAX_PROMPT:
@@ -399,7 +400,7 @@ def _model_test(body):
     provider = body.get("provider", "openrouter")
     if provider not in PROVIDERS:
         return _response(400, {"error": "AI ครูที่เลือกไม่ถูกต้อง"})
-    tested = _chat({"provider": provider,
+    tested = _chat({"provider": provider, "connectionId": body.get("connectionId"),
                     "message": "Return a concise JSON object with reply: 'OK' and ops: [].",
                     "context": "", "history": [], "_internalMaxOutput": 300})
     if tested["statusCode"] != 200:
@@ -615,7 +616,8 @@ def _auto_teach(body):
                                "Give a concrete Thai reason >=12 characters. Do not invent any events."},
                 ensure_ascii=False)
             request_message = "Retry only rejected lessons. Correct formatting and evidence; return teachingLessons JSON."
-        called = _chat({"provider": provider, "message": request_message,
+        called = _chat({"provider": provider, "connectionId": body.get("connectionId"),
+                        "message": request_message,
                         "context": request_context, "history": [],
                         "_internalMaxOutput": 3200}, teach_mode=True)
         if called["statusCode"] != 200:
