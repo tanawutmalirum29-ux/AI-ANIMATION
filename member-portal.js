@@ -116,7 +116,7 @@ function productionPanel(){
  const upload=button('เปิด JSON สำหรับผลิต',()=>root.document.querySelector('#file')?.click());
  upload.disabled=productionBusy||busy;
  actions.append(upload);
- const start=button(productionBusy?'กำลังทำ 12 ขั้น…':'เริ่มประมวลผล 12 ขั้น · ครั้งเดียว',runProduction,'member-primary');
+ const start=button(productionBusy?'กำลังทำ 12 ขั้น…':'เริ่มประมวลผล 12 ขั้น · ครั้งเดียว',runProduction,'member-production-primary');
  start.disabled=productionBusy||busy||!scenes;
  actions.append(start);
  p.append(actions,node('p','subtle','ไฟล์ JSON ในช่องตรวจบทด้านล่างใช้ตรวจข้อความเท่านั้น หากต้องการผลิตวิดีโอให้เปิด JSON ผ่านปุ่มด้านบนก่อน'));
