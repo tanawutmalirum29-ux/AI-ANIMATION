@@ -1,42 +1,45 @@
-# AI Mother Pool v1 — staging-only rollout
+# AI Mother Pool V1 — รุ่นทดลองก่อนใช้งานจริง
 
-This change is intentionally **not enabled on existing AWS jobs** until reviewed and deployed.
+สถานะ: โค้ดอยู่ใน Draft PR #117 และ **ยังไม่ใช้งานบน AWS** จนกว่าเจ้าของจะทดสอบและอนุมัติ เปิดใช้ด้วยสวิตช์แยกสองตัว การ Deploy โค้ดอย่างเดียวไม่ทำให้งานเดิมเปลี่ยนวิธีทำงาน
 
-## What is implemented
+## ทำอะไรได้แล้ว
 
-- Owner-only additional AI connections are encrypted per credential using AES-256-GCM in the existing teacher DynamoDB table. No six-key application cap in the new vault; AWS account limits, DynamoDB throughput and provider quotas still apply.
-- Legacy SSM-based API keys stay untouched. New keys use DynamoDB only when `TEACHER_OWNER_VAULT_V2=1` is explicitly enabled, `TEACHER_FEEDBACK_TABLE` is configured, and `SESSION_SECRET` is stable. Otherwise the old bounded SSM path continues.
-- A new **opt-in** "idle mother" mode can borrow an unused *additional key* (connection IDs beginning `key-`) for the **next** 1–2-scene batch. All jobs still use the same immutable input and checkpoint/lesson cache.
-- Key borrowing uses DynamoDB conditional leases, provider-level quota cooldown and an unchanged one-worker-per-job lease. A running scene is never transferred.
-- Removing an owner-vault key while an unfinished pool job exists is blocked conservatively.
-- Existing jobs without `poolMode` continue using their originally assigned provider and key, with unchanged ID/fingerprint.
+- **เพิ่ม AI แม่เกิน 6 คีย์**: แยก API Key ของแอดมินแต่ละตัวเป็นรายการเข้ารหัส AES-256-GCM ใน DynamoDB ตารางครูที่มีอยู่แล้ว ไม่มีเพดาน 6 คีย์ในโค้ดคลังใหม่ และไม่เปิดเผยคีย์สู่เว็บหรือผล API
+- **ไม่แตะ SSM เดิม**: คีย์หลักและคีย์รุ่นเก่ายังคงอยู่ ช่วยให้ย้อนกลับได้
+- **ช่วยงานระหว่างเรื่อง**: AI แม่ที่ว่างสามารถรับชุดสอน 1–2 ฉากถัดไปของเรื่องอื่นที่กำลังรอ โดยใช้คิว/Checkpoint เดิมของเรื่องนั้น จองคีย์ด้วย DynamoDB Conditional Update เพื่อป้องกันถูกใช้พร้อมกัน
+- **ปรับสมดุลอัตโนมัติ**: เลือกคีย์ที่ไม่ได้ถูกใช้นานก่อน ลดการแย่งคีย์และไม่ตรวจโควตา Provider เดียวซ้ำทุกรายการ
+- **API เสียแล้วข้าม**: โหมดทดลองจะพักคีย์ที่ได้รับ HTTP 401/403 นาน 1 ชั่วโมง หรือโมเดล 404 นาน 30 นาที แล้วให้ตัวอื่นลองสอนฉากเดิม งานไม่ข้ามฉากและไม่เริ่มใหม่ หากไม่มีคีย์ที่พร้อมจะเปลี่ยนเป็น needs-attention แทนการวนไม่จบ
+- **บริบทของเรื่อง**: บันทึกข้อความจริงจากต้น กลาง ท้ายเรื่องอย่างมาก 7 จุด (จุดละไม่เกิน 110 ตัวอักษร) ให้ AI แม่ตัวที่เข้ามาช่วยอ่านเป็นหลักฐานเพิ่มเติม พร้อมฉากข้างเคียงเดิม ไม่สร้างสรุปเรื่องปลอม
+- **ป้องกันการฝึกโมเดลชนกัน**: งาน Pool บันทึกบทเรียนให้ครบก่อนแยกเข้าคิวฝึกโมเดล ใช้ DynamoDB Training Lease ร่วมกัน หากมีอีกงานกำลังฝึกจะรอและลองใหม่ได้ไม่เกิน 7 รอบ หากยังไม่พร้อมให้แจ้ง needs-attention โดยไม่ทิ้งบทเรียน
+- **หน้าจอสำหรับคีย์จำนวนมาก**: แสดง 20 คีย์แรกก่อนแล้วกดขยายได้ หน้าเว็บแสดงจำนวนคีย์และสถานะการรอฝึก/คีย์มีปัญหา
 
-## Critical limitations (do not oversell)
+## ข้อจำกัดจริงที่ยังมี
 
-1. **This is cooperative sequential borrowing, not six workers editing one long story in parallel.** Within one story the old single job lease still serializes each training batch. No active scene is reassigned.
-2. The context currently sent to a model is the scene's limited previous/next text (maximum 350 characters each) plus the teacher prompt and existing lesson memory. It is **not** full-book shared memory. Long-range continuity requires a separate, validated story memory design.
-3. The model retraining/promotion flow is a separate legacy workflow. The pool does not add distributed training locks or guarantee concurrent promotions will not race. Do not launch large simultaneous rollouts until training promotion has been audited.
-4. For safety the pool excludes `default-gemini`, `default-openrouter`, and `default-compatible` from borrowing. Those default keys retain legacy behavior. Pool mode only works when at least one **extra** key is connected.
-5. Provider limits, AWS costs, API latency, Lambda/Step Functions quotas, and encrypted vault limits (DynamoDB and key rotation) remain. A second key on the same provider account may not increase capacity.
-6. The existing browser picker accepts eight JSON files at a time and the worker accepts up to 350 scenes per job. These limits are **not** removed by this change.
-7. Initial connection assignment is recorded for compatibility. When pooling is on, `lastConnectionId` reports the latest worker, not a permanent owner.
+1. **หนึ่งเรื่องยังใช้ Worker เพียงตัวเดียวต่อชุด**: ไม่ใช่การให้แม่ 6 ตัวสอนคนละช่วงของเรื่องเดียวกันพร้อมกัน งานจะสลับผู้สอนที่รอยต่อของ Batch เท่านั้น จึงรักษา Checkpoint รุ่นเก่าไว้ได้
+2. **เรื่องยาวยังไม่เข้าใจครบทุกเหตุการณ์**: ตัวอย่างข้อความ 7 จุดไม่ใช่ Shared Story Memory ที่ยืนยันความสัมพันธ์ของตัวละครหรือความต่อเนื่องทั้งหมด ไม่มีการรับรองว่าตรวจรอยต่อได้ครบ
+3. **ฐานข้อมูลฝึกตัวแยกแยะประเด็น** ยังจำกัดตัวอย่างล่าสุดที่อ่านได้ 600 รายการต่อครั้ง และไม่ใช่โมเดลเขียนบทภาษาไทยแบบ Generative; เรื่องนี้ต้องออกแบบการฝึกต่อภายหลัง
+4. 1 API Key ไม่เท่ากับ 1 โควตาอิสระ คีย์หลายตัวในบัญชีเดียวอาจแชร์ขีดจำกัด ผู้ให้บริการอาจจำกัดจำนวนการเชื่อมต่อหรือราคาเพิ่มเติม
+5. การอัปโหลดหน้าเว็บยังเลือกได้ 8 JSON ต่อรอบ และงานหนึ่งรับได้มากสุด 350 ฉาก ระบบใหม่นี้ไม่ได้ยกเลิกสองข้อจำกัดนี้
+6. คลังคีย์ใหม่ต้องใช้ SESSION_SECRET ที่คงเดิม ถ้าเปลี่ยนค่าโดยไม่ย้ายการเข้ารหัส จะถอดรหัส API Key ที่บันทึกไว้ไม่ได้
+7. ค่าใช้จ่าย AWS (Lambda, DynamoDB, Step Functions) และ API Provider เกิดขึ้นได้ ต้องติดตั้ง Budget Alert และควบคุมโควตาจริง
+8. Worker/Model Training Lease ถูกกำหนดเผื่อ Lambda timeout 90 วินาที: หากมีการปรับ timeout หรือฟังก์ชันให้รันนานขึ้น ต้องทบทวน Lease ก่อนเปิดจริง
 
-## Deployment checklist (manual approval required)
+## แผนเปิดใช้อย่างปลอดภัย
 
-1. Merge only after `AI Teacher Studio QA` passes and AWS smoke tests are reviewed. Never change active production Lambda configuration from an unreviewed PR.
-2. Verify the existing owner GitHub OAuth permission boundary and stable `SESSION_SECRET` in the configured AWS region. **Do not print secret values**. Rotating `SESSION_SECRET` without re-encrypting the vault makes those stored keys unreadable.
-3. Deploy Lambda with the new `autodub/owner_key_vault.py` bundled, and apply the updated `autodub/setup-teacher.sh` IAM permissions to the existing table; it must allow GetItem, PutItem, UpdateItem and Query.
-4. After IAM is confirmed, explicitly set Lambda `TEACHER_OWNER_VAULT_V2=1` while preserving existing environment variables. Test adding seven **test credentials** and verify listing, key resolution, removal, and isolation from member credentials. Do not publish genuine API keys to GitHub, log events or JSON.
-5. Confirm `teacher.job.config.poolEnabled` is false by default. Existing jobs must continue normally.
-6. After the owner explicitly approves the feature, enable `TEACHER_ENABLE_IDLE_POOL=1` in **Lambda environment variables** while preserving all existing variables. Use a controlled trial with two short stories and two extra keys. Disable with value `0` to revert to the legacy pinned-key path for subsequent batches.
-7. Verify an idle connection takes the next unfinished batch, an occupied connection is not used concurrently, a paused job remains paused, and failure/retry retains original scene indices. Observe CloudWatch logs and DynamoDB checkpoints.
-8. Test provider HTTP 429, timeouts, AWS worker retries, and deleting a connection while queued/running/paused work exists. Stop rollout if any checkpoint skips/duplicates or provider-billing anomalies appear.
+1. ตรวจ PR/CI และสำรองค่าการตั้งค่า AWS ที่ใช้งานอยู่ โดย **ไม่พิมพ์หรือเก็บค่า Secret ใน log**
+2. ยืนยัน GitHub OAuth แอดมินและ IAM ฝั่ง Lambda: ตาราง `TEACHER_FEEDBACK_TABLE` ต้องให้ GetItem, PutItem, UpdateItem, Query ตามสิทธิ์ขั้นต่ำที่ระบุในสคริปต์ตั้งค่า
+3. Deploy Lambda ที่รวม `autodub/owner_key_vault.py` แล้ว และรันสคริปต์ตั้งค่า IAM โดยไม่ทับข้อมูลเก่า
+4. เปิด `TEACHER_OWNER_VAULT_V2=1` ใน Lambda Environment เมื่อ IAM พร้อม แล้วเพิ่มคีย์ทดสอบอย่างน้อย 7 ตัว ตรวจการแยกสิทธิ์/ดูรายการ/ถอนคีย์
+5. เริ่มต้นต้องตรวจว่า `teacher.job.config.poolEnabled` ยังเป็น false งานเดิมยังคงผูกคีย์ของตัวเอง
+6. ทดลองเปิด `TEACHER_ENABLE_IDLE_POOL=1` ใน AWS และเลือกเปิด Pool ที่หน้า **สอนหลาย JSON** เฉพาะเรื่องทดสอบ 2 เรื่องสั้น + คีย์เพิ่มเติมอย่างน้อย 2 ตัว
+7. ทดสอบ Scenario: สองงานได้คีย์คนละตัว, เรื่องสั้นเสร็จก่อนแล้วตัวที่ว่างช่วยอีกเรื่อง, คีย์ 401/403/404, 429, timeout, ยกเลิก/พัก/ทำต่อ, และฝึกโมเดลเสร็จพร้อมกัน
+8. ตรวจผลบทเรียนต่อฉากและ Checkpoint ก่อนตัดสินใจเปิดกับเรื่องยาวจริง ตรวจค่าใช้จ่าย AWS ด้วย
 
-## Rollback
+## ปิดระบบทดลอง / Rollback
 
-- Switch Lambda `TEACHER_ENABLE_IDLE_POOL` to `0`: opted-in jobs use the original key on subsequent batches, maintaining the same job checkpoint and id.
-- Old SSM credentials remain unchanged, so legacy connections can still be used.
-- Do **not** delete the new vault table records; they are encrypted and can be retained safely for migration.
-- Do not flip the toggle while requests are in flight; wait for Lambda invocations to finish before testing rollback.
+- ปิด `TEACHER_ENABLE_IDLE_POOL=0` **หลังรอให้ Lambda ที่กำลังทำงานอยู่จบ**; Batch ถัดไปใช้คีย์ที่ผูกกับงานไว้ และไม่ลบผลที่บันทึกแล้ว
+- ปิด `TEACHER_OWNER_VAULT_V2=0` **เมื่อไม่มีงาน Pool ค้าง**; คีย์ใหม่ยังอยู่ใน DynamoDB ไม่ถูกลบ แต่ UI รุ่นเก่าจะไม่แสดง/ใช้คีย์เหล่านั้น
+- ห้ามลบตาราง DynamoDB, คีย์ SSM หรือเปลี่ยน SESSION_SECRET เพื่อทำ Rollback
+- หากการทดสอบจริงพบข้ามฉาก บันทึกซ้ำ หรือฝึกโมเดลผิดเวอร์ชัน ต้องหยุดการเปิด Pool และตรวจ Checkpoint ก่อนทำงานต่อ
 
-The code and the GitHub PR alone do **not** provision or activate AWS resources.
+**ยังไม่ได้ทดสอบ AWS กับ API Provider จริง**: GitHub Actions ที่ผ่านเป็น Unit/Contract tests ไม่ใช่หลักฐานว่ารองรับคีย์ 100 ตัวหรือเรื่องยาวพร้อมกันบน Production
