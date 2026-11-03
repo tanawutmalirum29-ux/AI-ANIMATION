@@ -23,6 +23,7 @@ on:
       - 'studio-multi-json.js'
       - 'tests/multi-json-queue-ui.test.cjs'
       - 'tests/test_multi_json_queue.py'
+      - 'tests/test_teacher_timeout_recovery.py'
       - 'autodub/cloud_jobs.py'
       - 'autodub/cloud_upload.py'
       - 'tests/test_teacher_multi_connections.py'
@@ -102,6 +103,7 @@ on:
       - 'studio-multi-json.js'
       - 'tests/multi-json-queue-ui.test.cjs'
       - 'tests/test_multi_json_queue.py'
+      - 'tests/test_teacher_timeout_recovery.py'
       - 'autodub/cloud_jobs.py'
       - 'autodub/cloud_upload.py'
       - 'tests/test_teacher_multi_connections.py'
@@ -204,6 +206,7 @@ jobs:
           python3 tests/test_teacher_memory_fastpath.py
           python3 tests/test_cloud_memory_permissions.py
           python3 tests/test_multi_json_queue.py
+          python3 tests/test_teacher_timeout_recovery.py
           python3 tests/test_cloud_jobs.py
           python3 tests/test_teacher_auto_teach.py
           python3 tests/test_teacher_model_probe.py
