@@ -71,6 +71,7 @@ on:
       - 'autodub/guest_access.py'
       - 'autodub/owner_inspection.py'
       - 'tests/test_member_cpu_guest.py'
+      - 'tests/test_owner_inspection.py'
       - 'tests/member-cpu-only-ui.test.cjs'
       - 'autodub/member_keys.py'
       - 'tests/test_member_key_vault.py'
@@ -155,6 +156,7 @@ on:
       - 'autodub/guest_access.py'
       - 'autodub/owner_inspection.py'
       - 'tests/test_member_cpu_guest.py'
+      - 'tests/test_owner_inspection.py'
       - 'tests/member-cpu-only-ui.test.cjs'
       - 'autodub/member_keys.py'
       - 'tests/test_member_key_vault.py'
@@ -225,5 +227,6 @@ jobs:
           python3 tests/test_story_auto_train.py
           python3 tests/test_teacher_history.py
           python3 tests/test_member_cpu_guest.py
+          python3 tests/test_owner_inspection.py
           python3 tests/test_github_oauth_roles.py
           python3 tests/test_member_key_vault.py
