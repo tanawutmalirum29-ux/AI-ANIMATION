@@ -1071,11 +1071,27 @@ function renderProjects(container){
  );
  container.append(pane);renderLibrary();
 }
+function syncMotherViewport(){
+ const el=document.documentElement;
+ if(!el.classList.contains('ai-only')||!document.body.classList.contains('mother-focus')){
+  el.style.removeProperty('--mother-visible-height');return;
+ }
+ const vv=window.visualViewport;
+ const height=vv?.height||window.innerHeight;
+ if(Number.isFinite(height)&&height>220)
+  el.style.setProperty('--mother-visible-height',Math.round(height)+'px');
+}
+window.visualViewport?.addEventListener('resize',syncMotherViewport);
+window.visualViewport?.addEventListener('scroll',syncMotherViewport);
+window.addEventListener('orientationchange',syncMotherViewport);
 function render(){
  if(!rootElement||!bridge)return;
  // Give conversational AI its own usable viewport; other tools keep the editor.
  document.body.classList.toggle('mother-focus',view==='mother');
  rootElement.dataset.activeAiTab=view;
+ // iOS Safari uses a separate visual viewport while the keyboard is open.
+ // Keep the chat composer inside its actual visible height.
+ syncMotherViewport();
  rootElement.replaceChildren(
   e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 6 ผู้ช่วย'),
    e('p',{},'จัดองค์ประกอบ · SVG · Motion · เสียง · เวลา · QA'))),
