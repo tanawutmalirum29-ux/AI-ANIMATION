@@ -5,7 +5,7 @@
  */
 (function(root){
 'use strict';
-let host=null,bridge=null,provider='',snapshot=null,repoInfo=null,loading=false,busy=false;
+let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,loading=false,busy=false;
 let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
@@ -41,11 +41,16 @@ function projectOverview(){
  }catch(_){return null}
 }
 function readyProviders(){
- return (snapshot?.providers||[]).filter(p=>p?.ready===true);
+ const all=snapshot?.aiCatalog?.ownerConnections;
+ if(Array.isArray(all)&&all.length)
+  return all.filter(c=>c?.ready===true && c.id && c.provider);
+ return (snapshot?.providers||[]).filter(c=>c?.ready===true).map(c=>({
+  ...c,id:'default-'+c.id,provider:c.id,name:c.id.toUpperCase()+' · หลัก'}));
 }
 function syncProvider(){
  const options=readyProviders();
- if(!options.some(p=>p.id===provider))provider=options[0]?.id||'';
+ const chosen=options.find(p=>p.id===connectionId)||options[0];
+ connectionId=chosen?.id||'';provider=chosen?.provider||'';
 }
 function dateLabel(seconds){
  if(!Number.isFinite(Number(seconds)))return 'ไม่ทราบ';
@@ -198,14 +203,15 @@ function render(){
   'ยังไม่มีข้อมูลยืนยันจาก AWS · กดตรวจสถานะก่อนถาม'));
  const providerLabel=el('label','mother-provider','โมเดล AI แม่ที่ใช้ตอบ');
  const select=el('select');
- for(const item of snapshot?.providers||[]){
-  const option=el('option',null,item.id+' · '+(item.model||'ไม่ทราบรุ่น')+
-   (item.ready?'':' (ยังไม่เชื่อม)'));
-  option.value=item.id;option.disabled=!item.ready;option.selected=provider===item.id;
-  select.append(option);
+ for(const item of readyProviders()){
+  const option=el('option',null,(item.name||item.provider)+' · '+(item.model||'ไม่ทราบรุ่น'));
+  option.value=item.id;option.selected=connectionId===item.id;select.append(option);
  }
  select.disabled=loading||!readyProviders().length||busy;
- select.addEventListener('change',e=>{provider=e.target.value});
+ select.addEventListener('change',e=>{
+  connectionId=e.target.value;
+  provider=readyProviders().find(p=>p.id===connectionId)?.provider||'';
+ });
  providerLabel.append(select);wrap.append(providerLabel);
  if(!readyProviders().length)wrap.append(
   btn('ไปเชื่อม API ของ AI แม่',openConfig,'mother-config',busy));
@@ -271,7 +277,7 @@ async function send(){
  thread=thread.slice(-MAX_HISTORY);
  render();
  try{
-  const out=await api({action:'teacher.advisorChat',provider,message,
+  const out=await api({action:'teacher.advisorChat',provider,connectionId,message,
    history,project:projectOverview()});
   if(typeof out?.reply!=='string'||!out.reply.trim())
    throw Error('AI แม่ไม่ส่งข้อความที่อ่านได้');
