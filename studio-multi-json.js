@@ -370,13 +370,16 @@ function render(){
  const poolLabel=dom('label',null,'multi-json-muted');
  const poolToggle=dom('input');poolToggle.type='checkbox';
  poolToggle.checked=poolWanted&&poolAvailable;
- poolToggle.disabled=!poolAvailable||uploading||checking;
+ poolToggle.disabled=!poolAvailable||uploading||checking||
+  !connections.some(c=>String(c.id).startsWith('key-'));
  poolToggle.setAttribute('aria-label','แบ่งงานให้ AI แม่ที่ว่างช่วยสอนระหว่างเรื่อง');
  poolToggle.addEventListener('change',()=>{poolWanted=poolToggle.checked;render()});
  poolLabel.append(poolToggle,root.document.createTextNode(
   ' ให้ AI แม่ที่ว่างช่วยงานชุดถัดไปจากเรื่องอื่น (ทดลอง · ไม่ย้ายฉากที่กำลังสอน)'));
  panel.append(poolLabel);
  if(!poolAvailable)panel.append(dom('p','โหมดแบ่งงานยังไม่เปิดที่ AWS; งานปัจจุบันใช้ API ที่ผูกไว้ตามเดิม','multi-json-muted'));
+ else if(!connections.some(c=>String(c.id).startsWith('key-')))
+  panel.append(dom('p','ต้องเชื่อม API แม่เพิ่มเติมอย่างน้อย 1 คีย์ก่อนเปิดการช่วยงาน','multi-json-muted'));
  panel.append(connectionPanel());
  if(notice)panel.append(dom('p',notice,'multi-json-muted'));
  if(error)panel.append(dom('p',error,'multi-json-error'));
