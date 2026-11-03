@@ -617,6 +617,77 @@ def _auto_lessons(body):
                            "trainedWeights": False, "nextCursorAvailable":
                            bool(response.get("LastEvaluatedKey"))})
 
+def _lesson_history(body):
+    """Paginated, read-only AWS lesson history (independent of old feedback).
+
+    The partition includes teacher-accepted and pending retry rows as well as
+    model metadata; restrict the query to teach# records so this endpoint
+    never mistakes model versions for story lessons.
+    """
+    import base64
+    import boto3
+    from boto3.dynamodb.conditions import Key
+    table_name = os.getenv("TEACHER_FEEDBACK_TABLE")
+    if not table_name:
+        return _response(503, {"error": "ยังไม่ได้ตั้งค่าฐานข้อมูลบทเรียน AI แม่"})
+    limit = body.get("limit", 40)
+    if type(limit) is not int or not 1 <= limit <= 60:
+        return _response(400, {"error": "limit ต้องเป็น 1–60"})
+    start_key = None
+    token = body.get("cursor")
+    if token is not None:
+        if not isinstance(token, str) or len(token) > 500:
+            return _response(400, {"error": "cursor ไม่ถูกต้อง"})
+        try:
+            decoded = json.loads(base64.urlsafe_b64decode(token + "=" *
+                                  (-len(token) % 4)).decode("utf-8"))
+            if (not isinstance(decoded, dict)
+                    or decoded.get("pk") != "learning#teacher-story-coherence"
+                    or not re.fullmatch(r"teach#[0-9a-f]{64}", str(decoded.get("sk") or ""))):
+                raise ValueError("invalid cursor")
+            start_key = {"pk": decoded["pk"], "sk": decoded["sk"]}
+        except (ValueError, UnicodeError, TypeError, KeyError):
+            return _response(400, {"error": "cursor ไม่ถูกต้อง"})
+    args = {"KeyConditionExpression":
+            Key("pk").eq("learning#teacher-story-coherence")
+            & Key("sk").begins_with("teach#"),
+            "Limit": limit, "ScanIndexForward": False}
+    if start_key:
+        args["ExclusiveStartKey"] = start_key
+    res = boto3.resource("dynamodb").Table(table_name).query(**args)
+    items = []
+    for row in res.get("Items", []):
+        record = row.get("record")
+        if not isinstance(record, dict):
+            continue
+        if row.get("status") not in ("teacher-qa-approved", "teacher-reviewed-unverified"):
+            continue
+        items.append({
+            "id": row.get("sk"), "createdAt": row.get("createdAt"),
+            "status": row.get("status"), "projectId": record.get("projectId"),
+            "episodeId": record.get("episodeId"), "sceneId": record.get("sceneId"),
+            "original": record.get("original", ""),
+            "revised": record.get("revised", ""),
+            "issue": record.get("issue", ""),
+            "reason": record.get("teacherReason", ""),
+            "source": record.get("source", ""),
+            "trainingEligible": bool(record.get("trainingEligible") is True
+                                     or record.get("ownerDelegatedTraining") is True),
+            "reviewedByOwner": bool(record.get("reviewedByOwner") is True),
+        })
+    # Hash-based DynamoDB sort keys don't imply chronological ordering;
+    # sort the returned page only and disclose pagination to the UI.
+    items.sort(key=lambda x: (int(x.get("createdAt") or 0), x["id"]), reverse=True)
+    last = res.get("LastEvaluatedKey")
+    cursor = None
+    if last and str(last.get("sk", "")).startswith("teach#"):
+        raw = json.dumps({"pk": last["pk"], "sk": last["sk"]}, separators=(",", ":"))
+        cursor = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
+    return _response(200, {"items": items, "nextCursor": cursor,
+                           "scope": "teacher-accepted-stories",
+                           "trainedWeights": False})
+
+
 def _feedback(body):
     table = os.getenv("TEACHER_FEEDBACK_TABLE")
     if not table:
@@ -674,6 +745,8 @@ def handle(action, body):
             return _auto_teach(body)
         if action == "teacher.autoLessons":
             return _auto_lessons(body)
+        if action == "teacher.lessonHistory":
+            return _lesson_history(body)
         if action == "teacher.feedback":
             return _feedback(body)
         if action == "teacher.history":
