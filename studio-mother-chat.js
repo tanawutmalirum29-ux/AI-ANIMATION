@@ -105,7 +105,7 @@ function evidence(){
  box.addEventListener('toggle',()=>{if(box.isConnected)infoOpen=box.open});
  const n=snapshot?.narrativeChild;
  const summary=el('summary','mother-section-title',
-  'ศูนย์ข้อมูล AI · 6 ผู้ช่วยรุ่น 1 + AI แม่ + 2 โมดูล AI ลูก · '+(n?.available?(n.savedLessons??'?')+' บทเรียน':'AWS ยังตรวจไม่ได้'));
+  'ศูนย์ข้อมูล AI · 6 ผู้ช่วยรุ่น 1 + AI แม่ + 3 โมดูล AI ลูก · '+(n?.available?(n.savedLessons??'?')+' บทเรียน':'AWS ยังตรวจไม่ได้'));
  box.append(summary);
  const info=el('div','mother-stats');
  const rep=snapshot?.repetitionChild;
@@ -119,7 +119,12 @@ function evidence(){
  b.append(el('small',null,'AI ลูก — ตรวจคำซ้ำ'),
   el('strong',null,rep?.available?(rep.activeVersion||'ยังไม่มีโมเดลที่เปิดใช้'):'ยังไม่ได้ตรวจสอบ'),
   el('small',null,'โมเดลจำแนกประเภท ไม่ใช่ AI เขียนบทอิสระ'));
- info.append(a,b);box.append(info);
+ const edit=snapshot?.editorChild;
+ const c=el('div','mother-fact');
+ c.append(el('small',null,'AI ลูก — เกลาบทภาษาไทย'),
+  el('strong',null,edit?.available?'CPU ทดลอง · รุ่น '+edit.version:'ยังตรวจรุ่นไม่ได้'),
+  el('small',null,'ฝึกตัวอย่างสังเคราะห์ · คำแก้ต้องให้แอดมินยืนยัน · ไม่เปลี่ยนบทเอง'));
+ info.append(a,b,c);box.append(info);
  const catalog=snapshot?.aiCatalog;
  if(catalog){
   box.append(el('strong',null,'แผนผัง AI ที่ใช้งานในระบบ'));
@@ -128,7 +133,7 @@ function evidence(){
    box.append(el('p','mother-fine',String(item.role||item.id)+
     ' · '+String(item.capability||'')));
   }
-  box.append(el('p','mother-fine','AI แม่: ให้คำปรึกษาและเรียกสอนผ่าน API ที่แอดมินเชื่อมไว้; AI ลูก: จำแนกคำซ้ำและตรวจบทด้วยโมเดล CPU ที่ต้องดูสถานะเวอร์ชัน AWS'));
+  box.append(el('p','mother-fine','AI แม่: ให้คำปรึกษาและเรียกสอนผ่าน API แอดมิน; AI ลูก: ตรวจบท คำซ้ำ และเกลาภาษาไทยด้วยโมเดล CPU โดยไม่แก้บทต้นฉบับอัตโนมัติ'));
   box.append(el('p','mother-fine','API แม่ที่เชื่อม '+(catalog.ownerConnections?.length??0)+
    ' รายการ · ใช้จัดคิวสอน JSON ได้ผ่านแท็บสอนหลาย JSON'));
  }
@@ -153,6 +158,11 @@ function evidence(){
  }
  box.append(btn(loading?'กำลังตรวจ…':'อัปเดต GitHub / AWS',()=>refresh().catch(()=>{}),
   'mother-refresh',loading));
+ box.append(btn('เปิด AI ลูกเกลาบท',()=>{
+  for(const node of root.document.querySelectorAll('.ai-tabs button')){
+   if(node.textContent.includes('AI ลูกเกลาบท')){node.click();break}
+  }
+ },'mother-config'));
  box.append(btn('เปิดหน้าสอนหลาย JSON',()=>{
   for(const node of root.document.querySelectorAll('.ai-tabs button')){
    if(node.textContent.includes('สอนหลาย JSON')){node.click();break}
