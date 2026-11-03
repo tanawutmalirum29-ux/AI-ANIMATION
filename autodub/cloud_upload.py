@@ -85,12 +85,12 @@ def _prepare(body, owner):
         return cloud_jobs._resp(400, {"error": "จำนวนฉากเกินขอบเขต 1–350"})
     import teacher
     import teacher_connections
+    status = json.loads(teacher._status()["body"])
     if connection_id == "default-" + provider:
-        status = json.loads(teacher._status()["body"])
         ready = any(p["id"] == provider and p["ready"] for p in status.get("providers", []))
     else:
         ready = teacher_connections.available(provider, connection_id)
-    if not cloud_jobs.os.getenv("TEACHER_FEEDBACK_TABLE") or not ready:
+    if not status.get("feedbackReady") or not ready:
         return cloud_jobs._resp(409, {"error": "ยังไม่ได้เชื่อม API Key นี้หรือฐานข้อมูลบทเรียน"})
     count = (total + cloud_jobs.CHUNK_SIZE - 1) // cloud_jobs.CHUNK_SIZE
     table = cloud_jobs._table()
