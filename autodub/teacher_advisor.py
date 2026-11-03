@@ -13,6 +13,7 @@ import time
 # Curated from the product code. This is not a live GitHub search, and must
 # be updated if the app changes. Treat missing features as unknown.
 KNOWLEDGE_VERSION = "2026-11-03"
+# Live repository evidence is opt-in and read-only for the authenticated owner.
 FEATURES = [
     {"name": "Story Studio", "detail": "นำเข้า JSON เรื่อง/ฉากแล้วพรีวิวและแก้ไขโปรเจกต์อนิเมชัน"},
     {"name": "AI Mother", "detail": "เชื่อมผู้ให้บริการ Gemini/OpenRouter หรือ compatible ด้วยคีย์เจ้าของที่เก็บใน AWS; ตรวจบทและเสนอคำแก้"},
