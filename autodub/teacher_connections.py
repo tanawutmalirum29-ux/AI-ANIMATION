@@ -67,8 +67,19 @@ def listing(settings=None):
     import owner_key_vault
     if owner_key_vault.enabled():
         result.extend(owner_key_vault.listing())
+    # Old records keep their opaque IDs and stored names. Friendly display
+    # labels are derived here, so reordering/renaming cannot change job IDs.
     result.sort(key=lambda item: (0 if item.get("legacy") else 1,
-                                  item.get("createdAt", 0), item["name"]))
+                                  item.get("createdAt", 0), item["id"]))
+    if owner_key_vault.enabled():
+        custom = owner_key_vault.aliases()
+    else:
+        custom = settings.get("connectionAliases") or {}
+    for position, item in enumerate(result, 1):
+        item["autoName"] = "AI แม่ " + str(position)
+        alias = custom.get(item["id"]) if isinstance(custom, dict) else None
+        item["customName"] = alias if isinstance(alias, str) else ""
+        item["name"] = item["customName"] or item["autoName"]
     return result
 
 
@@ -187,6 +198,47 @@ def remove(body, owner):
     return teacher._response(200, {"ok": True, "connectionId": connection_id, "deleted": True})
 
 
+def rename(body, owner):
+    """Update *display-only* name without touching API keys, IDs or jobs."""
+    import teacher
+    import owner_key_vault
+    if str(owner) != ADMIN_ID:
+        return teacher._response(403, {"error": "ตั้งชื่อ AI แม่ได้เฉพาะแอดมิน"})
+    connection_id = body.get("connectionId")
+    requested = body.get("name")
+    if not isinstance(connection_id, str) or not isinstance(requested, str):
+        return teacher._response(400, {"error": "ข้อมูลการเปลี่ยนชื่อไม่ถูกต้อง"})
+    name = requested.strip()
+    if (len(name) > 40 or len(name.encode("utf-8")) > 160
+            or any(ord(c) < 32 or ord(c) == 127 for c in name)):
+        return teacher._response(400, {"error": "ชื่อ AI แม่ต้องไม่เกิน 40 ตัวอักษร และไม่มีอักขระควบคุม"})
+    current = listing()
+    if not any(item["id"] == connection_id for item in current):
+        return teacher._response(404, {"error": "ไม่พบ AI แม่ที่เลือก"})
+    if name and any(item["id"] != connection_id
+                    and item["name"].casefold() == name.casefold()
+                    for item in current):
+        return teacher._response(409, {"error": "ชื่อ AI แม่ซ้ำกับตัวอื่น กรุณาเลือกชื่อใหม่"})
+    if owner_key_vault.enabled():
+        # Separate metadata item: legacy SSM and encrypted key rows unchanged.
+        owner_key_vault.set_alias(connection_id, name)
+    else:
+        # Compatibility path for installations without the scalable vault.
+        settings = teacher._settings()
+        aliases = settings.get("connectionAliases")
+        aliases = dict(aliases) if isinstance(aliases, dict) else {}
+        if name:
+            aliases[connection_id] = name
+        else:
+            aliases.pop(connection_id, None)
+        settings["connectionAliases"] = aliases
+        if len(json.dumps(settings, ensure_ascii=False).encode("utf-8")) > MAX_SETTINGS_BYTES:
+            return teacher._response(413, {"error": "พื้นที่ตั้งค่า AWS ไม่พอบันทึกชื่อใหม่"})
+        teacher._save_settings(settings)
+    updated = next(item for item in listing() if item["id"] == connection_id)
+    return teacher._response(200, {"ok": True, "connection": updated})
+
+
 def handle(action, body, owner):
     import teacher
     if str(owner) != ADMIN_ID:
@@ -200,6 +252,8 @@ def handle(action, body, owner):
         return add(body, owner)
     if action == "teacher.connection.remove":
         return remove(body, owner)
+    if action == "teacher.connection.rename":
+        return rename(body, owner)
     if action == "teacher.connection.test":
         conn_id = body.get("connectionId")
         matches = [x for x in listing() if x["id"] == conn_id]
