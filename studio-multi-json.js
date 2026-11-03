@@ -136,11 +136,43 @@ async function start(){
  const valid=items.filter(x=>x.state==='ready'||x.state==='failed');
  if(!valid.length){error='กรุณาเลือกไฟล์ JSON ที่ผ่านการตรวจ';render();return}
  if(!connections.length){error='กรุณาเพิ่ม API Key ก่อน';render();return}
- const assignments=planAssignments(valid);
- uploading=true;error='';notice='กำลังส่งงานเข้า AWS ทีละไฟล์…';render();
+ uploading=true;error='';notice='กำลังตรวจงานและอัปโหลดค้างบน AWS…';render();
  let accepted=0,failed=0;
  try{
+  await refresh(true);
+  const pending=[];
   for(const item of valid){
+   const prior=jobs.find(j=>j.projectId===item.projectId);
+   if(prior){
+    if(prior.state==='cancelled'){
+     item.state='failed';
+     item.error='งานเวอร์ชันนี้เคยถูกยกเลิกแล้ว กรุณาแก้ไข JSON เป็นเวอร์ชันใหม่';
+     failed++;
+    }else{
+     item.state='accepted';item.jobId=prior.jobId;item.scenes=null;
+     item.connectionId=prior.connectionId;
+     item.connectionName=connections.find(k=>k.id===prior.connectionId)?.name||prior.provider;
+     accepted++;
+    }
+    render();
+    continue;
+   }
+   // Restore the exact server-selected connection after a browser restart.
+   // It avoids creating a second partial upload when job loads change.
+   try{
+    const found=await api('teacher.job.upload.find',{projectId:item.projectId});
+    if(found.upload){
+     const existing=connections.find(c=>c.id===found.upload.connectionId);
+     if(!existing)throw Error('API Key ของอัปโหลดเดิมถูกถอดออก กรุณาเชื่อมใหม่');
+     item.connectionId=existing.id;item.connectionName=existing.name;
+    }
+    pending.push(item);
+   }catch(e){
+    item.state='failed';item.error=String(e.message||e);failed++;
+   }
+  }
+  const assignments=planAssignments(pending);
+  for(const item of pending){
    const conn=assignments.get(item);
    // Lock assignment on first attempt; a reconnect must use the same API key.
    item.connectionId=conn.id;
