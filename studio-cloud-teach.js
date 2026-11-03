@@ -5,7 +5,7 @@
 (function(root){
 'use strict';
 let adapter=null,job=null,enabled=false,known=false,busy=false,error='';
-let timer=null,restoreEpoch=0,loadingResults=false;
+let timer=null,restoreEpoch=0,loadingResults=false,uploadState=null;
 const completedStates=new Set(['completed','cancelled','paused','needs-attention']);
 function access(){return root.StoryStudioAccess}
 function request(data){return access().request(data)}
@@ -19,6 +19,8 @@ function projectId(){
  return String(project.aiWorkspace?.projectId||'');
 }
 function progressText(){
+ if(uploadState)return 'กำลังส่ง JSON ไป AWS '+uploadState.done+'/'+uploadState.total+
+  ' ชุด · '+uploadState.scenes+' ฉาก · หากเน็ตหลุดกดเริ่มใหม่ได้ โดยส่งเฉพาะชุดที่ยังขาด';
  if(!job)return known?(enabled?
    'Cloud Background Jobs พร้อม · สั่งสอนครั้งเดียวและปิดเว็บได้':
    'โหมดเบราว์เซอร์: ต้องเปิดหน้าเว็บค้างไว้จนงานเสร็จ'):
@@ -103,6 +105,33 @@ async function loadResults(){
   }
  }finally{loadingResults=false;repaint()}
 }
+// For large projects use resumable 16-scene requests, not a single long
+// multi-hundred-kilobyte upload. No API inference starts until commit.
+async function startUploaded(projectId,scenes){
+ const encoder=new root.TextEncoder();
+ const raw=encoder.encode(JSON.stringify([projectId,adapter.provider,scenes]));
+ if(!root.crypto?.subtle?.digest)throw Error('เบราว์เซอร์ไม่รองรับ SHA-256 สำหรับส่งงานอย่างปลอดภัย');
+ const digest=new Uint8Array(await root.crypto.subtle.digest('SHA-256',raw));
+ const uploadId=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('').slice(0,32);
+ const prepared=await request({action:'teacher.job.upload.prepare',
+  uploadId,projectId,provider:adapter.provider,totalScenes:scenes.length});
+ const size=Number(prepared.chunkSize)||16,parts=Math.ceil(scenes.length/size);
+ if(prepared.partCount!==parts||size!==16)
+  throw Error('จำนวนชุดที่ AWS ตอบกลับไม่ตรงกัน');
+ const done=new Set(prepared.uploadedParts||[]);
+ uploadState={done:done.size,total:parts,scenes:scenes.length};
+ repaint();
+ for(let partIndex=0;partIndex<parts;partIndex++){
+  if(done.has(partIndex))continue;
+  await request({action:'teacher.job.upload.chunk',uploadId,partIndex,
+   scenes:scenes.slice(partIndex*size,(partIndex+1)*size)});
+  done.add(partIndex);
+  uploadState={done:done.size,total:parts,scenes:scenes.length};
+  repaint();
+ }
+ const committed=await request({action:'teacher.job.upload.commit',uploadId});
+ return committed;
+}
 async function teach(fallback){
  if(busy)return adapter?.getState?.();
  if(!access()?.isReady?.())return fallback();
@@ -121,12 +150,17 @@ async function teach(fallback){
   if(!scanned||!scanned.rows?.length)throw Error('ยังไม่มีฉากให้สอน');
   const id=projectId();
   if(!id)throw Error('ไม่พบรหัสโปรเจกต์');
-  const out=await request({action:'teacher.job.start',projectId:id,
-   provider:adapter.provider,
-   scenes:scanned.rows.map(x=>({
-    id:x.id,episodeId:x.episodeId,text:x.text,previous:x.previous,
-    next:x.next,studentIssue:x.studentIssue}))});
+  const scenes=scanned.rows.map(x=>({
+   id:x.id,episodeId:x.episodeId,text:x.text,previous:x.previous,
+   next:x.next,studentIssue:x.studentIssue}));
+  const bytes=new root.TextEncoder().encode(JSON.stringify(scenes)).length;
+  // Small projects keep the existing one-call start API.
+  const out=bytes>160000
+   ? await startUploaded(id,scenes)
+   : await request({action:'teacher.job.start',projectId:id,
+      provider:adapter.provider,scenes});
   if(!out?.job)throw Error('AWS ยังไม่ยืนยันการสร้างงาน');
+  uploadState=null;
   setJob(out.job);
   return adapter.getState();
  }catch(e){
@@ -158,6 +192,14 @@ function decorate(host){
  text.textContent=progressText();
  text.style.cssText='margin:8px 0;font-size:13px;line-height:1.6';
  box.append(heading,text);
+ if(uploadState){
+  const meter=doc.createElement('progress');
+  meter.max=uploadState.total;meter.value=uploadState.done;
+  meter.style.cssText='width:100%;height:13px;accent-color:#4eae84';
+  meter.setAttribute('aria-label','ความคืบหน้าอัปโหลด JSON ไป AWS');
+  box.append(meter);
+  box.append(doc.createTextNode('ระหว่างส่งไฟล์ต้องเปิดหน้านี้ไว้ก่อน · หลัง AWS รับงานแล้วปิดเว็บได้'));
+ }
  if(job){
   const meter=doc.createElement('progress');
   meter.max=job.total||1;meter.value=job.completed||0;
@@ -193,7 +235,7 @@ function decorate(host){
  }
 }
 function mount(bridge){
- adapter=bridge;job=null;known=false;enabled=false;error='';
+ adapter=bridge;job=null;known=false;enabled=false;error='';uploadState=null;
  if(timer)clearTimeout(timer);
  restore().catch(()=>{});
 }

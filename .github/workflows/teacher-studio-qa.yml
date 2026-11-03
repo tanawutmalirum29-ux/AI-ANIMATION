@@ -19,6 +19,8 @@ on:
       - 'studio-auto-teach.js'
       - 'studio-cloud-teach.js'
       - 'autodub/cloud_jobs.py'
+      - 'autodub/cloud_upload.py'
+      - 'tests/test_cloud_upload.py'
       - 'tests/test_cloud_jobs.py'
       - 'tests/cloud-jobs-ui.test.cjs'
       - 'studio-story-only.js'
@@ -80,6 +82,8 @@ on:
       - 'studio-auto-teach.js'
       - 'studio-cloud-teach.js'
       - 'autodub/cloud_jobs.py'
+      - 'autodub/cloud_upload.py'
+      - 'tests/test_cloud_upload.py'
       - 'tests/test_cloud_jobs.py'
       - 'tests/cloud-jobs-ui.test.cjs'
       - 'studio-story-only.js'
@@ -148,7 +152,7 @@ jobs:
           node --check studio-story-coach-ui.js
           node --check studio-auto-teach.js
           node --check studio-cloud-teach.js
-          python3 -m py_compile autodub/story_auto_train.py autodub/teacher.py autodub/teacher_advisor.py autodub/cloud_jobs.py autodub/student_learning.py
+          python3 -m py_compile autodub/story_auto_train.py autodub/teacher.py autodub/teacher_advisor.py autodub/cloud_jobs.py autodub/cloud_upload.py autodub/student_learning.py
           node --check studio-story-only.js
           node --check studio-story-only-ui.js
           node --check studio-script-ml.js
@@ -161,6 +165,7 @@ jobs:
           python3 tests/test_student_learning.py
           python3 tests/test_student_memory_browser.py
           python3 tests/test_story_continuity.py
+          python3 tests/test_cloud_upload.py
           python3 tests/test_cloud_jobs.py
           python3 tests/test_teacher_auto_teach.py
           python3 tests/test_teacher_model_probe.py
