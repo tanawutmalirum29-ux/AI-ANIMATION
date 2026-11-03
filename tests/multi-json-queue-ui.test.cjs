@@ -70,3 +70,43 @@ test('user can add many named encrypted connections and distribute complete stor
  assert.match(handler,/action\.startswith\("teacher\.connection\."\)/);
  assert.match(deploy,/autodub\/teacher_connections\.py/);
 });
+
+test('auto scheduler sends whole largest stories to least-loaded connections and pins retries',()=>{
+ const js=source('studio-multi-json.js');
+ const begin=js.indexOf('function planAssignments(batch){');
+ const end=js.indexOf('async function start(){',begin);
+ assert.ok(begin>0&&end>begin);
+ const isolated=js.slice(begin,end);
+ const connections=[
+  {id:'key-a',name:'Gemini A',provider:'gemini'},
+  {id:'key-b',name:'Gemini B',provider:'gemini'}];
+ const jobs=[{connectionId:'key-b',remaining:120,state:'running'}];
+ const files=[
+  {count:60,name:'small'},
+  {count:200,name:'big'},
+  {count:100,name:'middle'}];
+ const fn=new Function('connections','jobs','selection',
+   isolated+';return planAssignments;');
+ const plan=fn(connections,jobs,'auto')(files);
+ assert.equal(plan.get(files[1]).id,'key-a'); // 200 vs 120
+ assert.equal(plan.get(files[2]).id,'key-b'); // 200 vs 120
+ assert.equal(plan.get(files[0]).id,'key-a'); // 200 vs 220
+ files[2].connectionId='key-a';
+ const pinned=fn(connections,jobs,'auto')(files);
+ assert.equal(pinned.get(files[2]).id,'key-a','retry cannot change its API credential');
+ assert.equal(plan.size,3,'a story is assigned as one immutable unit');
+});
+test('multiple credentials are encrypted server-side, admin-scoped and resumable',()=>{
+ const backend=source('autodub/cloud_upload.py');
+ const server=source('autodub/teacher.py');
+ const handler=source('autodub/handler.py');
+ const deploy=source('.github/workflows/deploy-aws-studio.yml');
+ assert.match(server,/teacher_connections\.resolve\(settings, provider, body\.get\("connectionId"\)\)/);
+ assert.match(backend,/teacher\.job\.upload\.find/);
+ assert.match(backend,/teacher-upload-index#/);
+ assert.match(backend,/item\.get\("connectionId"\)/);
+ assert.match(handler,/teacher\.connection\./);
+ assert.match(handler,/user\.get\("role"\) != "admin"/);
+ assert.match(deploy,/teacher_connections\.py/);
+ assert.doesNotMatch(source('studio-multi-json.js'),/localStorage\.setItem|sessionStorage\.setItem/);
+});
