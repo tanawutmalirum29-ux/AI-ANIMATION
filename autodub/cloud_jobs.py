@@ -470,12 +470,21 @@ def _provider_quota_wait(table, provider, now):
 
 
 def _provider_quota_block(table, provider, seconds=70):
-    table.update_item(
-        Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
-        UpdateExpression="SET #u=:until, updatedAt=:now",
-        ExpressionAttributeNames={"#u": "until"},
-        ExpressionAttributeValues={":until": int(time.time()) + seconds,
-                                   ":now": int(time.time())})
+    """Never shorten a backoff already set by another worker."""
+    now = int(time.time())
+    try:
+        table.update_item(
+            Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
+            UpdateExpression="SET #u=:until, updatedAt=:now",
+            ConditionExpression="attribute_not_exists(#u) OR #u < :until",
+            ExpressionAttributeNames={"#u": "until"},
+            ExpressionAttributeValues={":until": now + max(20, int(seconds)),
+                                       ":now": now})
+    except Exception as exc:
+        if (getattr(exc, "response", {}).get("Error", {}).get("Code")
+                != "ConditionalCheckFailedException"):
+            raise  # Never hide infrastructure or permission errors.
+        # Another worker already set a longer cooldown; honor it.
 
 
 def _provider_lock_key(provider):
