@@ -107,7 +107,7 @@ async function loadResults(){
 }
 // For large projects use resumable 16-scene requests, not a single long
 // multi-hundred-kilobyte upload. No API inference starts until commit.
-async function startUploaded(projectId,scenes,selectedProvider=adapter?.provider,onProgress=null,connectionId=null){
+async function startUploaded(projectId,scenes,selectedProvider=adapter?.provider,onProgress=null,connectionId=null,storyName=''){
  const encoder=new root.TextEncoder();
  const credential=connectionId||'default-'+selectedProvider;
  const fingerprint=[projectId,selectedProvider,scenes];
@@ -118,7 +118,7 @@ async function startUploaded(projectId,scenes,selectedProvider=adapter?.provider
  const uploadId=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('').slice(0,32);
  const prepared=await request({action:'teacher.job.upload.prepare',
   uploadId,projectId,provider:selectedProvider,connectionId:credential,
-  totalScenes:scenes.length});
+  storyName,totalScenes:scenes.length});
  const size=Number(prepared.chunkSize)||16,parts=Math.ceil(scenes.length/size);
  if(prepared.partCount!==parts||size!==16)
   throw Error('จำนวนชุดที่ AWS ตอบกลับไม่ตรงกัน');
@@ -136,7 +136,7 @@ async function startUploaded(projectId,scenes,selectedProvider=adapter?.provider
  const committed=await request({action:'teacher.job.upload.commit',uploadId});
  return committed;
 }
-async function startBatchProject({projectId:pid,scenes,provider:chosen,connectionId,onProgress}){
+async function startBatchProject({projectId:pid,scenes,provider:chosen,connectionId,storyName,onProgress}){
  if(!access()?.isReady?.())throw Error('กรุณาเข้าสู่ระบบ GitHub แอดมิน');
  if(!['gemini','openrouter','compatible'].includes(chosen))
   throw Error('กรุณาเลือก AI Provider ที่เชื่อมไว้');
@@ -146,7 +146,7 @@ async function startBatchProject({projectId:pid,scenes,provider:chosen,connectio
  if(!cfg?.enabled)throw Error('Cloud Background Jobs ยังไม่พร้อม');
  const bytes=new root.TextEncoder().encode(JSON.stringify(scenes)).length;
  if(bytes>4_000_000)throw Error('บทพากย์รวมใหญ่เกิน 4 MB');
- return startUploaded(pid,scenes,chosen,onProgress||(()=>{}),connectionId);
+ return startUploaded(pid,scenes,chosen,onProgress||(()=>{}),connectionId,storyName);
 }
 async function teach(fallback){
  if(busy)return adapter?.getState?.();
