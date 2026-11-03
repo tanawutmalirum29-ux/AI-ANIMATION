@@ -234,13 +234,19 @@ def handler(event, context):
     import github_oauth
     if action == "auth.config":
         return github_oauth.config()
+    if action == "auth.guest.start":
+        import guest_access
+        return guest_access.start()
     oauth_mode = github_oauth.enabled()
     secured = oauth_mode or bool(PASSWORD_HASH or PASSWORD_SALT or SESSION_SECRET)
     if oauth_mode:
         if action == "auth.github.exchange":
             return github_oauth.exchange(body)
         bearer = str(headers.get("authorization") or "")
-        user = github_oauth.verify(bearer[7:]) if bearer.startswith("Bearer ") else None
+        import guest_access
+        user = ((github_oauth.verify(bearer[7:]) or
+                 guest_access.verify(bearer[7:]))
+                if bearer.startswith("Bearer ") else None)
         if not user:
             return _resp(401, {"error": "กรุณาเข้าสู่ระบบผ่าน GitHub"})
         if action == "verify":
@@ -252,16 +258,17 @@ def handler(event, context):
             if action == "member.ai.catalog":
                 import member_ai
                 return member_ai.catalog()
+            # Old member credentials stay encrypted in AWS but cannot be
+            # listed, added or used for any external model invocation.
             if action.startswith("member.keys."):
-                import member_keys
-                return member_keys.handle(action, body, user)
+                return _resp(403, {"error": "บัญชีทั่วไปใช้เฉพาะโมเดล AI ลูกในเว็บ ไม่รองรับ API Key"})
             if action == "member.ai.run":
                 import member_ai
                 return member_ai.run(body,user)
             return _resp(403, {"error": "เฉพาะแอดมินเท่านั้นที่เรียกคำสั่งนี้ได้"})
-        if action == "member.ai.run":
+        if action in ("member.ai.run","member.ai.catalog"):
             import member_ai
-            return member_ai.run(body,user)
+            return member_ai.catalog() if action.endswith("catalog") else member_ai.run(body,user)
 
     if not oauth_mode and secured:
         # Never fall back to the old reusable x-dub-key once website login is enabled.
@@ -307,7 +314,7 @@ def handler(event, context):
 
     # Owner-only knowledge retrieval: signed GitHub identity, not UI-only tabs.
     if action in ("teacher.advisorStatus", "teacher.advisorChat",
-                  "teacher.advisorRepoStatus"):
+                  "teacher.advisorRepoStatus", "teacher.advisorInspect"):
         if not oauth_mode or not user or user.get("role") != "admin":
             return _resp(403, {"error": "AI แม่ตรวจข้อมูลโปรเจกต์ได้เฉพาะ GitHub แอดมิน"})
         import teacher_advisor
