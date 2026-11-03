@@ -74,6 +74,25 @@ test('user can add many named encrypted connections and distribute complete stor
  assert.match(deploy,/autodub\/teacher_connections\.py/);
 });
 
+test('friendly AI Mother names remain editable and mobile controls do not expose keys',()=>{
+ const browser=source('studio-multi-json.js');
+ const manager=source('autodub/teacher_connections.py');
+ const vault=source('autodub/owner_key_vault.py');
+ const css=source('studio-teacher.css');
+ assert.match(browser,/teacher\\.connection\\.rename/);
+ assert.match(browser,/connectionId:conn\\.id,name/);
+ assert.match(browser,/conn\\.customName/);
+ assert.match(browser,/multi-json-key-info/);
+ assert.match(browser,/multi-json-rename/);
+ assert.match(browser,/conn\\.provider\\.toUpperCase\\(\\)/);
+ assert.match(manager,/AI แม่ /);
+ assert.match(manager,/def rename\\(body, owner\\):/);
+ assert.match(vault,/def set_alias\\(connection_id, alias\\):/);
+ assert.match(css,/\\.multi-json-key-actions/);
+ assert.match(css,/\\.multi-json-rename input/);
+ assert.doesNotMatch(browser,/localStorage\\.setItem|sessionStorage\\.setItem/);
+});
+
 test('auto scheduler sends whole largest stories to least-loaded connections and pins retries',()=>{
  const js=source('studio-multi-json.js');
  const begin=js.indexOf('function planAssignments(batch){');
