@@ -373,11 +373,12 @@ def _control(action, body, owner):
             return _resp(200, {"job": _public(item)})
         generation = int(item["generation"]) + (0 if state == "queued" else 1)
         table.update_item(Key=_key(job_id),
-                          UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, updatedAt=:now REMOVE executionArn",
+                          UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, trainingAttempts=:a, updatedAt=:now REMOVE executionArn",
                           ExpressionAttributeNames={"#s": "state", "#p": "pass"},
                           ExpressionAttributeValues={":s": "queued", ":g": generation,
                                                      ":p": 0, ":z": 0, ":f": 0,
-                                                     ":e": "", ":now": int(time.time())})
+                                                     ":e": "", ":a": 0,
+                                                     ":now": int(time.time())})
         current = _read(table, job_id)
         try:
             _launch(table, current)
@@ -548,6 +549,38 @@ def _worker(payload):
     work, position = [int(x) for x in item["work"]], int(item["position"])
     lookahead = work[position:position + CHUNK_SIZE]
     if not lookahead:
+        if item.get("trainingPending"):
+            import story_auto_train
+            try:
+                trained = json.loads(story_auto_train.train()["body"])
+            except Exception as exc:
+                trained = {"status": "training-deferred",
+                           "error": type(exc).__name__}
+            attempts = int(item.get("trainingAttempts", 0)) + 1
+            if trained.get("status") in ("training-busy", "training-deferred"):
+                if attempts < 8:
+                    committed = _save_progress(
+                        table, item, state="queued", leaseUntil=0,
+                        trainingAttempts=attempts,
+                        lastError="รอคิวฝึกโมเดล AI ลูกโดยไม่สอนฉากซ้ำ",
+                        updatedAt=int(time.time()))
+                    return {"next": bool(committed),
+                            "state": "training-wait" if committed else "stopped",
+                            "waitSeconds": min(180, 25 * attempts)}
+                _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                               trainingAttempts=attempts,
+                               lastError="บทเรียนครบแล้ว แต่ขั้นฝึก AI ลูกไม่พร้อม กดทำต่อภายหลัง",
+                               updatedAt=int(time.time()))
+                return {"next": False, "state": "needs-attention"}
+            summary = {"status": str(trained.get("status", ""))[:90],
+                       "activated": bool(trained.get("activated")),
+                       "counts": trained.get("counts", {})}
+            committed = _save_progress(
+                table, item, state="completed", leaseUntil=0,
+                trainingPending=False, trainingAttempts=0,
+                trainingStatus=summary, lastError="", updatedAt=int(time.time()))
+            return {"next": False,
+                    "state": "completed" if committed else "stopped"}
         _save_progress(table, item, state="completed", leaseUntil=0,
                        updatedAt=int(time.time()), lastError="")
         return {"next": False, "state": "completed"}
@@ -721,6 +754,11 @@ def _worker(payload):
             state = "completed"
     else:
         state = "queued"
+    # Pool jobs use a separate durable training phase. Their completed
+    # scenes are checkpointed before contending for the global model lock.
+    training_pending = state == "completed" and item.get("poolMode") and pool_enabled()
+    if training_pending:
+        state = "queued"
     committed = _save_progress(table, item, state=state, work=work, position=pos,
                    failedIndices=missed, completedIndices=sorted(completed),
                    saved=int(item.get("saved", 0)) + int(data.get("saved", 0)),
@@ -728,6 +766,7 @@ def _worker(payload):
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
                    unusableConnections=[],
+                   trainingPending=bool(training_pending),
                    lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
                    lastError="" if state != "needs-attention"
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
@@ -735,6 +774,8 @@ def _worker(payload):
                    updatedAt=int(time.time()))
     if not committed:
         return {"next": False, "state": "interrupted-by-owner"}
+    if training_pending:
+        return {"next": True, "state": "training-queued", "waitSeconds": 1}
     if state == "completed":
         # Match the old browser workflow: CPU advisory model trains only after
         # all lessons are confirmed. Cross-story QA still gates promotion.
