@@ -236,7 +236,7 @@ def _snapshot():
     catalog = json.loads(member_ai.catalog()["body"])
     try:
         connections = teacher_connections.listing()
-        safe_connections = [{"name": x["name"], "model": x["model"],
+        safe_connections = [{"id": x["id"], "name": x["name"], "model": x["model"],
                              "provider": x["provider"], "ready": x["ready"]}
                             for x in connections]
     except Exception:
@@ -364,7 +364,9 @@ def handle(action, body, owner_id=None):
             "limitations": BOUNDARIES},
         "clientReportedProject": _context(body.get("project"))}
     context = json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
-    result = teacher._chat({"provider": provider, "message": message,
+    result = teacher._chat({"provider": provider,
+                            "connectionId": body.get("connectionId"),
+                            "message": message,
                             "context": context, "history": body.get("history", []),
                             "_internalMaxOutput": 1400}, advisor_mode=True)
     if result["statusCode"] != 200:
