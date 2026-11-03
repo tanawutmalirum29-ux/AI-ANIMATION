@@ -66,10 +66,17 @@ class OAuthRoleTests(unittest.TestCase):
         with mock.patch.dict(os.environ,ENV):
             token,_=github_oauth.issue_session({"id":1234,"login":"guest"})
             for action in ("student.storyAutoTrain","teacher.configure","teacher.autoLessons",
-                           "teacher.lessonHistory","export.prepare","proposeAsset",
-                           "synthesize","login"):
+                           "teacher.lessonHistory","proposeAsset",
+                           "teacher.advisorInspect","login"):
                 code,body=result(handler.handler(event(action,token),None))
                 self.assertEqual(code,403,action)
+            # Export and narration are ordinary VIDEO EDITOR functions, not
+            # model training; the signed member is authorized for them.
+            with mock.patch.object(handler,"_synth",return_value=b"fake-audio"):
+                code,reply=result(handler.handler(event("synthesize",token,
+                    text="ทดสอบการพากย์เสียง"),None))
+            self.assertEqual(code,200)
+            self.assertIn("audio",reply)
             status,body=result(handler.handler(event("verify",token),None))
             self.assertEqual(status,200)
             self.assertEqual(body["user"]["role"],"member")
