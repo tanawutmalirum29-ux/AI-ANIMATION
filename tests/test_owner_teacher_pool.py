@@ -313,6 +313,15 @@ class IdlePoolTests(unittest.TestCase):
         self.assertEqual(meta["completedIndices"], [])
         self.assertGreater(meta["nextRetryAt"], int(time.time()) + 7100)
 
+    def test_cloud_state_machine_requeues_throttled_lambda_invocations(self):
+        script = os.path.join(os.path.dirname(__file__), "..",
+                              "autodub", "setup-cloud-jobs.sh")
+        with open(script, encoding="utf-8") as handle:
+            source = handle.read()
+        self.assertIn('"Lambda.TooManyRequestsException"', source)
+        self.assertIn('"WaitForAwsCapacity"', source)
+        self.assertIn('"ResultPath":"$.awsThrottle"', source)
+
     def test_story_anchors_cover_beginning_middle_and_end_without_fake_summary(self):
         scenes = [{"id": "sc%03d" % i, "text": "ตัวละครเติบโตขึ้นตามเวลา-" +
                    ("ทดสอบ" * 200)} for i in range(120)]
