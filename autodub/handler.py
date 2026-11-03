@@ -313,7 +313,7 @@ def handler(event, context):
 
     # Owner-only knowledge retrieval: signed GitHub identity, not UI-only tabs.
     if action in ("teacher.advisorStatus", "teacher.advisorChat",
-                  "teacher.advisorRepoStatus"):
+                  "teacher.advisorRepoStatus", "teacher.advisorInspect"):
         if not oauth_mode or not user or user.get("role") != "admin":
             return _resp(403, {"error": "AI แม่ตรวจข้อมูลโปรเจกต์ได้เฉพาะ GitHub แอดมิน"})
         import teacher_advisor
