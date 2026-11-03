@@ -49,6 +49,7 @@ def _parts(table, upload_id, count):
 def _prepare(body, owner):
     upload_id = _upload_id(body)
     project_id, provider = body.get("projectId"), body.get("provider")
+    connection_id = body.get("connectionId") or ("default-" + str(provider))
     total = body.get("totalScenes")
     if not upload_id or not isinstance(project_id, str) or not re.fullmatch(
             r"[A-Za-z0-9_-]{5,90}", project_id):
@@ -57,24 +58,25 @@ def _prepare(body, owner):
         return cloud_jobs._resp(400, {"error": "เลือก AI Provider ไม่ถูกต้อง"})
     if type(total) is not int or not 1 <= total <= cloud_jobs.MAX_SCENES:
         return cloud_jobs._resp(400, {"error": "จำนวนฉากเกินขอบเขต 1–350"})
-    import teacher
-    status = json.loads(teacher._status()["body"])
-    if not status.get("feedbackReady") or not any(
-            p["id"] == provider and p["ready"] for p in status.get("providers", [])):
-        return cloud_jobs._resp(409, {"error": "ยังไม่ได้เชื่อม AI แม่หรือฐานข้อมูลบทเรียน"})
+    import teacher_connections
+    if (not cloud_jobs.os.getenv("TEACHER_FEEDBACK_TABLE")
+            or not teacher_connections.available(provider, connection_id)):
+        return cloud_jobs._resp(409, {"error": "ยังไม่ได้เชื่อม API Key นี้หรือฐานข้อมูลบทเรียน"})
     count = (total + cloud_jobs.CHUNK_SIZE - 1) // cloud_jobs.CHUNK_SIZE
     table = cloud_jobs._table()
     item = _get(table, _key(upload_id))
     if item:
         if (str(item.get("ownerId")) != str(owner)
                 or item.get("projectId") != project_id or item.get("provider") != provider
+                or (item.get("connectionId") or "default-" + provider) != connection_id
                 or int(item.get("totalScenes", -1)) != total
                 or int(item.get("partCount", -1)) != count):
             return cloud_jobs._resp(409, {"error": "พบรหัสอัปโหลดที่มีข้อมูลไม่ตรงกัน"})
     else:
         item = {"pk": UPLOAD_PREFIX + upload_id, "sk": "meta",
                 "ownerId": str(owner), "projectId": project_id,
-                "provider": provider, "totalScenes": total, "partCount": count,
+                "provider": provider, "connectionId": connection_id,
+                "totalScenes": total, "partCount": count,
                 "createdAt": int(time.time())}
         try:
             table.put_item(Item=item, ConditionExpression="attribute_not_exists(pk)")
@@ -162,7 +164,9 @@ def _commit(body, owner):
     # On a retry _start derives the same content digest and returns the existing
     # job. A duplicate upload cannot cause two simultaneous teacher executions.
     return cloud_jobs._start({"projectId": item["projectId"],
-                              "provider": item["provider"], "scenes": scenes}, owner)
+                              "provider": item["provider"],
+                              "connectionId": item.get("connectionId"),
+                              "scenes": scenes}, owner)
 
 
 def handle(action, body, owner):
