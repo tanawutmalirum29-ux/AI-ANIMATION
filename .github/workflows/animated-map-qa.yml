@@ -91,6 +91,11 @@ on:
       - tests/export-focus-layout-smoke.cjs
       - tests/auto-dub-smoke.cjs
       - tests/site-auth-smoke.cjs
+      - tests/github-oauth-browser-smoke.cjs
+      - member-portal.js
+      - member-portal.css
+      - autodub/github_oauth.py
+      - autodub/member_ai.py
       - tests/site-auth-handler-smoke.py
       - tests/voice-preview-smoke.cjs
       - tests/preview-audio-mobile-recovery.cjs
@@ -171,6 +176,11 @@ on:
       - amplify.yml
       - tests/site-auth-handler-smoke.py
       - tests/site-auth-smoke.cjs
+      - tests/github-oauth-browser-smoke.cjs
+      - member-portal.js
+      - member-portal.css
+      - autodub/github_oauth.py
+      - autodub/member_ai.py
       - tests/auto-dub-smoke.cjs
       - tests/narration-director-smoke.cjs
       - tests/mobile-scroll-smoke.cjs
@@ -290,6 +300,7 @@ jobs:
           node tests/turbo-export-smoke.cjs
           node tests/auto-dub-smoke.cjs
           node tests/site-auth-smoke.cjs
+          node tests/github-oauth-browser-smoke.cjs
           node tests/local-ai-workspace-smoke.cjs
           node tests/layout-ml-browser-smoke.cjs
           node tests/shot-ml-browser.test.cjs
