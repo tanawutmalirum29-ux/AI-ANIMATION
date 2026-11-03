@@ -397,6 +397,25 @@ class IdlePoolTests(unittest.TestCase):
         teach.assert_not_called()
         self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["trainingAttempts"], 0)
 
+    def test_training_lock_busy_ten_times_does_not_fail_the_story(self):
+        table, jobid, _ = fixture()
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        meta.update({"poolMode": True, "trainingPending": True,
+                     "position": 2, "completedIndices": [0, 1]})
+        import story_auto_train
+        busy = {"body": '{"status":"training-busy","trained":false}'}
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(story_auto_train, "train", return_value=busy), \
+             mock.patch.object(teacher, "_auto_teach",
+                               side_effect=AssertionError("must not teach again")):
+            for n in range(10):
+                result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+                self.assertTrue(result["next"])
+                self.assertEqual(result["state"], "training-wait")
+                self.assertEqual(meta["state"], "queued")
+                self.assertEqual(meta["completedIndices"], [0, 1])
+                self.assertEqual(meta["trainingAttempts"], n + 1)
+
     def test_all_invalid_mothers_stop_and_preserve_checkpoint(self):
         table, jobid, _ = fixture()
         table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
