@@ -6,7 +6,7 @@
 (function(root){
 'use strict';
 let host=null,bridge=null,provider='',snapshot=null,loading=false,busy=false;
-let error='',draft='',attached=true,thread=[],lastLoaded=0;
+let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
  const node=root.document.createElement(tag);
@@ -88,10 +88,15 @@ function featuresPanel(){
  return container;
 }
 function evidence(){
- const box=el('section','mother-evidence');
- box.append(el('div','mother-section-title','สถานะความรู้ของ AI แม่'));
- const info=el('div','mother-stats');
+ // Long AWS status belongs behind a disclosure, not above every reply.
+ const box=el('details','mother-evidence');
+ box.open=infoOpen;
+ box.addEventListener('toggle',()=>{if(box.isConnected)infoOpen=box.open});
  const n=snapshot?.narrativeChild;
+ const summary=el('summary','mother-section-title',
+  'ข้อมูล AI ลูกจาก AWS · '+(n?.available?(n.savedLessons??'?')+' บทเรียน':'ยังตรวจไม่ได้')+' · แตะดูรายละเอียด');
+ box.append(summary);
+ const info=el('div','mother-stats');
  const rep=snapshot?.repetitionChild;
  const a=el('div','mother-fact');
  a.append(el('small',null,'AI ลูก — การตรวจบท'),
@@ -110,7 +115,8 @@ function evidence(){
    ' · ค่าที่ไม่ทราบจะไม่ถูกเดา');
  box.append(foot,btn(loading?'กำลังตรวจ…':'อัปเดตข้อมูลจาก AWS',()=>refresh().catch(()=>{}),
   'mother-refresh',loading));
- box.append(featuresPanel());
+ box.append(featuresPanel(),el('p','mother-fine',
+  'การถาม AI แม่ใช้โควตา API ที่เลือก · การดูสถานะไม่เรียก LLM · ประวัติแชทเก็บเฉพาะแท็บนี้'));
  return box;
 }
 function quickPrompts(){
@@ -126,10 +132,25 @@ function quickPrompts(){
 }
 function render(){
  if(!host)return;
+ // Preserve manual position when reading old replies; follow the latest only
+ // when the user was already at the bottom of the conversation.
+ const oldLog=host.querySelector('.mother-chat-log');
+ const oldTop=oldLog?.scrollTop||0;
+ const atBottom=!oldLog||oldLog.scrollHeight-oldLog.clientHeight-oldTop<65;
  host.replaceChildren();
  const wrap=el('section','mother-chat');
- wrap.append(el('h3',null,'คุยกับ AI แม่'),
-  el('p','mother-subtitle','ถามเรื่อง AI ลูก ความสามารถของเว็บ หรือแนะนำแผนฝึก · คำตอบเป็นคำปรึกษา ไม่แก้โปรเจกต์หรือสั่งฝึกเอง'));
+ const title=el('div','mother-chat-heading');
+ title.append(el('h3',null,'คุยกับ AI แม่'));
+ const preview=btn(root.document.body.classList.contains('mother-preview')?
+  'ซ่อนพรีวิว':'ดูพรีวิว',()=>{
+   const showing=root.document.body.classList.toggle('mother-preview');
+   preview.textContent=showing?'ซ่อนพรีวิว':'ดูพรีวิว';
+   preview.setAttribute('aria-pressed',String(showing));
+  },'mother-preview-toggle');
+ preview.setAttribute('aria-pressed',String(root.document.body.classList.contains('mother-preview')));
+ title.append(preview);
+ wrap.append(title,
+  el('p','mother-subtitle','ถามเรื่อง AI ลูกและความรู้ของเว็บ · ไม่แก้โปรเจกต์อัตโนมัติ'));
  if(error)wrap.append(el('p','mother-error',error));
  if(snapshot)wrap.append(evidence());
  else wrap.append(el('p','mother-fine',loading?'กำลังอ่านความสามารถและสถานะ AI ลูกจาก AWS…':
@@ -149,8 +170,11 @@ function render(){
   btn('ไปเชื่อม API ของ AI แม่',openConfig,'mother-config',busy));
  const log=el('div','mother-chat-log');
  log.setAttribute('role','log');log.setAttribute('aria-live','polite');
- if(!thread.length)log.append(el('p','mother-empty',
-  'เริ่มถามได้เลย เช่น “AI ลูกตอนนี้เก่งอะไรแล้ว?” หรือ “ทำไมบทเรียนเยอะแต่ยังไม่มีโมเดลใหม่?”'));
+ if(!thread.length){
+  log.append(el('p','mother-empty',
+   'เริ่มถามได้เลย เช่น “AI ลูกตอนนี้เก่งอะไรแล้ว?” หรือ “ทำไมบทเรียนเยอะแต่ยังไม่มีโมเดลใหม่?”'));
+  log.append(quickPrompts());
+ }
  for(const msg of thread){
   const bubble=el('article','mother-bubble '+msg.role);
   bubble.append(el('strong',null,msg.role==='user'?'คุณ':'AI แม่'),
@@ -166,10 +190,9 @@ function render(){
  }
  if(busy)log.append(el('p','mother-fine','กำลังขอคำตอบจากผู้ให้บริการ AI…'));
  wrap.append(log);
- if(!thread.length)wrap.append(quickPrompts());
  const composer=el('div','mother-composer');
  const input=el('textarea');
- input.id='motherInput';input.rows=3;input.maxLength=2500;
+ input.id='motherInput';input.rows=2;input.maxLength=2500;
  input.placeholder='พิมพ์คำถามถึง AI แม่… (Ctrl/⌘ + Enter เพื่อส่ง)';
  input.value=draft;input.disabled=busy;
  input.addEventListener('input',e=>{draft=e.target.value});
@@ -178,18 +201,20 @@ function render(){
  const toggle=el('label','mother-context');
  const checkbox=el('input');checkbox.type='checkbox';checkbox.checked=attached;
  checkbox.disabled=busy;checkbox.addEventListener('change',e=>{attached=e.target.checked});
- toggle.append(checkbox,el('span',null,'แนบเฉพาะชื่อและจำนวนฉากของ JSON ปัจจุบัน (ไม่ส่งบททั้งหมด)'));
+ toggle.append(checkbox,el('span',null,'แนบข้อมูลย่อ JSON'));
+ toggle.title='ส่งเพียงชื่อโปรเจกต์และจำนวนฉาก ไม่ส่งบททั้งหมด';
  const actions=el('div','mother-actions');
  actions.append(btn(busy?'กำลังตอบ…':'ส่งข้อความ',()=>send().catch(()=>{}),'mother-primary',
   busy||!provider||!root.StoryStudioAccess?.isReady?.()));
  actions.append(btn('ล้างบทสนทนา',()=>{
   if(busy)return;thread=[];draft='';render();
  },'mother-secondary',busy||!thread.length));
- composer.append(input,toggle,actions);wrap.append(composer);
- wrap.append(el('p','mother-fine',
-  'ทุกคำถามที่ส่งจะใช้โควตาของ API ที่เลือก · ปุ่มตรวจสถานะ AWS ไม่เรียก LLM · ประวัติแชทอยู่เฉพาะหน้าเว็บที่เปิดนี้ ไม่ได้บันทึกใน AWS'));
+ const footer=el('div','mother-compose-footer');
+ footer.append(toggle,actions);
+ composer.append(input,footer);wrap.append(composer);
  host.append(wrap);
- if(thread.length||busy)log.scrollTop=log.scrollHeight;
+ if(atBottom)log.scrollTop=log.scrollHeight;
+ else log.scrollTop=oldTop;
 }
 async function send(){
  const message=draft.trim();
