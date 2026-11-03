@@ -11,32 +11,22 @@ test('Member version one exposes only the six released role prompts',()=>{
   assert.match(py,new RegExp('"'+id+'":'));
   assert.match(js,new RegExp("'"+id+"'"));
  }
- assert.match(py,/RELEASE_ID = "member-six-v1"/);
- assert.match(py,/trainedSeparateWeights": False/);
- assert.match(py,/autoUpgrades": False/);
+ assert.match(py,/RELEASE_ID="member-six-v1"/);
+ assert.match(py,/trainedSeparateWeights":False/);
+ assert.match(py,/autoUpgrades":False/);
  assert.match(js,/member\.ai\.catalog/);
  assert.match(js,/release:'member-six-v1'/);
  assert.match(js,/รุ่น 1/);
  assert.doesNotMatch(js,/teacher\.autoTeach|student\.train|student\.storyAutoTrain/);
 });
-test('member keys use signed GitHub identity, AWS AES-GCM, and never browser storage',()=>{
+test('old vault encryption exists but member user cannot access it or call providers',()=>{
  const py=read('autodub/member_keys.py');
  const js=read('member-portal.js');
  const handler=read('autodub/handler.py');
- assert.match(py,/member-api-vault#/);
  assert.match(py,/AESGCM/);
- assert.match(py,/user\.get\("sub"\)/);
- assert.match(py,/member\.keys\.list/);
- assert.match(py,/member\.keys\.add/);
- assert.match(py,/member\.keys\.remove/);
  assert.match(py,/REMOVE encrypted, nonce, fingerprint/);
- assert.match(js,/member\.keys\.list/);
- assert.match(js,/member\.keys\.add/);
- assert.match(js,/member\.keys\.remove/);
- assert.match(js,/connectionId:selectedKey/);
- assert.match(js,/payload\.connectionId=selectedKey/);
- assert.doesNotMatch(js,/localStorage\.setItem\([^)]*apiKey/);
- assert.match(handler,/user\["role"\] != "admin"/);
+ assert.doesNotMatch(js,/member\.keys\.|apiKey|connectionId/);
+ assert.match(js,/member\.ai\.run/);
  assert.match(handler,/action\.startswith\("member\.keys\."\)/);
 });
 test('admin AI Mother dashboard shows six roles, actual CPU model statuses and connection count',()=>{
@@ -54,7 +44,7 @@ test('admin AI Mother dashboard shows six roles, actual CPU model statuses and c
  assert.match(chat,/teacher\.advisorChat',provider,connectionId,message/);
  assert.match(adviser,/"connectionId": body\.get\("connectionId"\)/);
  assert.match(chat,/เปิดหน้าสอนหลาย JSON/);
- assert.match(chat,/6 ผู้ช่วยรุ่น 1/);
+ assert.match(chat,/6 ตำแหน่งสมาชิก รุ่น 1/);
  assert.match(adminKeys,/ownerGitHubId/);
  assert.match(adminKeys,/ADMIN_ID = "225819900"/);
 });

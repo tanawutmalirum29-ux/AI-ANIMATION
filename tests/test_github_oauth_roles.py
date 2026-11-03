@@ -101,6 +101,6 @@ class OAuthRoleTests(unittest.TestCase):
                        {"role":"qa","provider":"gemini","model":"unknown"}]:
             data={"apiKey":"long_private_key_123","message":"ตรวจบท",**values}
             code,_=result(member_ai.run(data,user))
-            self.assertEqual(code,400)
+            self.assertEqual(code,403)
 
 if __name__=="__main__":unittest.main()

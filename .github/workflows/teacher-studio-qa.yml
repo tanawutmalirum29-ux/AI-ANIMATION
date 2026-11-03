@@ -68,6 +68,11 @@ on:
       - 'autodub/handler.py'
       - 'autodub/github_oauth.py'
       - 'autodub/member_ai.py'
+      - 'autodub/guest_access.py'
+      - 'autodub/owner_inspection.py'
+      - 'tests/test_member_cpu_guest.py'
+      - 'tests/test_owner_inspection.py'
+      - 'tests/member-cpu-only-ui.test.cjs'
       - 'autodub/member_keys.py'
       - 'tests/test_member_key_vault.py'
       - 'tests/member-v1-ui.test.cjs'
@@ -148,6 +153,11 @@ on:
       - 'autodub/handler.py'
       - 'autodub/github_oauth.py'
       - 'autodub/member_ai.py'
+      - 'autodub/guest_access.py'
+      - 'autodub/owner_inspection.py'
+      - 'tests/test_member_cpu_guest.py'
+      - 'tests/test_owner_inspection.py'
+      - 'tests/member-cpu-only-ui.test.cjs'
       - 'autodub/member_keys.py'
       - 'tests/test_member_key_vault.py'
       - 'tests/member-v1-ui.test.cjs'
@@ -176,7 +186,7 @@ jobs:
           python3 -m pip install --quiet cryptography
           node --check site-auth.js
           node --check member-portal.js
-          python3 -m py_compile autodub/github_oauth.py autodub/member_ai.py autodub/member_keys.py autodub/handler.py
+          python3 -m py_compile autodub/github_oauth.py autodub/guest_access.py autodub/member_ai.py autodub/member_keys.py autodub/owner_inspection.py autodub/handler.py
           bash -n autodub/setup-github-oauth.sh
           node --check studio-teacher.js
           node --check studio-mother-chat.js
@@ -195,7 +205,7 @@ jobs:
           node --check studio-script-ml.js
           python3 -m py_compile autodub/teacher.py autodub/handler.py autodub/student_learning.py
           bash -n autodub/setup-github-deploy.sh
-          node --test tests/thai-editor-ui.test.cjs tests/member-v1-ui.test.cjs tests/multi-json-queue-ui.test.cjs tests/mother-chat-ui.test.cjs tests/cloud-jobs-ui.test.cjs tests/github-oauth-members.test.cjs tests/teacher-history-ui.test.cjs tests/aws-auto-deploy-contract.test.cjs tests/teacher-self-healing.test.cjs tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs tests/story-continuity-coach.test.cjs tests/story-foundation-cpu.test.cjs tests/teacher-auto-teach.test.cjs tests/teacher-auto-teach-failfast.test.cjs tests/story-only-json.test.cjs tests/teacher-model-probe.test.cjs
+          node --test tests/member-cpu-only-ui.test.cjs tests/thai-editor-ui.test.cjs tests/member-v1-ui.test.cjs tests/multi-json-queue-ui.test.cjs tests/mother-chat-ui.test.cjs tests/cloud-jobs-ui.test.cjs tests/github-oauth-members.test.cjs tests/teacher-history-ui.test.cjs tests/aws-auto-deploy-contract.test.cjs tests/teacher-self-healing.test.cjs tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs tests/story-continuity-coach.test.cjs tests/story-foundation-cpu.test.cjs tests/teacher-auto-teach.test.cjs tests/teacher-auto-teach-failfast.test.cjs tests/story-only-json.test.cjs tests/teacher-model-probe.test.cjs
           node training-lab/train-story-foundation.cjs
           python3 tests/test_teacher_advisor.py
           python3 tests/test_teacher_backend.py
@@ -216,5 +226,7 @@ jobs:
           python3 tests/test_thai_editor.py
           python3 tests/test_story_auto_train.py
           python3 tests/test_teacher_history.py
+          python3 tests/test_member_cpu_guest.py
+          python3 tests/test_owner_inspection.py
           python3 tests/test_github_oauth_roles.py
           python3 tests/test_member_key_vault.py

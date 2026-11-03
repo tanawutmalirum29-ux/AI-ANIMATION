@@ -5,7 +5,7 @@
  */
 (function(root){
 'use strict';
-let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,loading=false,busy=false;
+let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,inspection=null,loading=false,busy=false;
 let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
@@ -82,6 +82,17 @@ async function refresh(){
  }catch(e){error='ตรวจข้อมูล AWS ไม่สำเร็จ: '+String(e.message||e)}
  finally{loading=false;render()}
 }
+async function inspectLive(){
+ if(loading)return;
+ loading=true;error='';render();
+ try{
+  const value=await api({action:'teacher.advisorInspect',
+   question:'GitHub main Actions AWS Lambda Amplify DynamoDB'});
+  inspection=value.inspection||null;
+  if(!inspection)throw Error('AWS ไม่ส่งหลักฐานตรวจระบบ');
+ }catch(e){error=String(e.message||e)}
+ finally{loading=false;render()}
+}
 function featuresPanel(){
  const container=el('details','mother-knowledge');
  const heading=el('summary',null,'AI แม่รู้จักเว็บไซต์ส่วนไหนบ้าง');
@@ -128,7 +139,7 @@ function evidence(){
  const catalog=snapshot?.aiCatalog;
  if(catalog){
   box.append(el('strong',null,'แผนผัง AI ที่ใช้งานในระบบ'));
-  box.append(el('p','mother-fine','6 ผู้ช่วยสมาชิก: รุ่น 1 · เป็นบทบาทเฉพาะทางจาก API ภายนอก ไม่ใช่ 6 โมเดลฝึกน้ำหนัก'));
+  box.append(el('p','mother-fine','6 ตำแหน่งสมาชิก รุ่น 1 · ใช้เฉพาะ AI ลูก CPU ที่ฝึกและเปิดใช้จริง · ไม่เรียก Gemini/OpenAI/OpenRouter · ตำแหน่งที่ยังไม่มีโมเดลแสดงรอฝึก'));
   for(const item of catalog.memberRoles||[]){
    box.append(el('p','mother-fine',String(item.role||item.id)+
     ' · '+String(item.capability||'')));
@@ -156,6 +167,25 @@ function evidence(){
  }else if(currentJob){
   box.append(el('p','mother-fine','AWS Job: '+currentJob.reason));
  }
+ if(inspection){
+  const status=el('div','mother-fine');
+  const g=inspection.github||{},a=inspection.aws||{},act=inspection.githubActions||{};
+  status.append(el('p',null,'GitHub สด: '+(g.available?
+   (g.selectedFiles||[]).join(', ')+' · tree '+String(g.treeSha||'').slice(0,12):
+   String(g.reason||'ไม่พร้อม'))));
+  status.append(el('p',null,'Actions: '+(act.available?
+   (act.runs||[]).map(j=>j.name+' '+j.conclusion).join(' · '):
+   String(act.reason||'ยังไม่ตรวจ'))));
+  for(const name of ['lambda','amplify','database']){
+   const item=a[name]||{};
+   status.append(el('p',null,'AWS '+name+': '+(item.available?
+    (item.status||item.lastUpdateStatus||item.state||'เข้าถึงได้'):
+    (item.reason||'IAM ยังไม่อนุญาต'))));
+  }
+  box.append(status);
+ }
+ box.append(btn(loading?'กำลังตรวจ…':'ตรวจ GitHub/AWS สดแบบละเอียด',
+  ()=>inspectLive().catch(()=>{}),'mother-refresh',loading));
  box.append(btn(loading?'กำลังตรวจ…':'อัปเดต GitHub / AWS',()=>refresh().catch(()=>{}),
   'mother-refresh',loading));
  box.append(btn('เปิด AI ลูกเกลาบท',()=>{

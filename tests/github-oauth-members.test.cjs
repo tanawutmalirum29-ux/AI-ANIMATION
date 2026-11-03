@@ -14,15 +14,15 @@ test('GitHub sign-in uses PKCE S256 and role-aware access; never trust user-sele
  assert.match(client,/user:\(\)=>profile/);
  assert.doesNotMatch(client,/setAuth\(\{role:'admin'/);
 });
-test('Member has six unique roles and separate BYOK keys but no admin tabs',()=>{
+test('Member has six trained CPU slots with no external API inputs or admin tabs',()=>{
  const portal=get('member-portal.js');
  for(const id of ['composition','assets','motion','voice','structure','qa'])
   assert.match(portal,new RegExp("'"+id+"'"));
  assert.match(portal,/member\.ai\.run/);
  assert.match(portal,/role:selected|role:id/);
- assert.match(portal,/storyMember\.tasks/);
- assert.match(portal,/apiKey=''|apiKey=''/);
- assert.match(portal,/JSON\.parse\(raw\)/);
+ assert.match(portal,/storyMember\.cpu\.v1/);
+ assert.doesNotMatch(portal,/apiKey|connectionId|member\.keys\./);
+ assert.match(portal,/JSON\.parse/);
  assert.doesNotMatch(portal,/localStorage\.setItem\([^)]*apiKey/);
  assert.doesNotMatch(portal,/student\.storyAutoTrain|teacher\.configure|teacher\.autoTeach/);
 });
@@ -42,7 +42,7 @@ test('GitHub OAuth secret stays in SSM; deploy includes both server modules',()=
  assert.match(setup,/SecureString/);
  assert.match(setup,/ssm:GetParameter/);
  assert.match(setup,/GITHUB_OAUTH_CLIENT_ID/);
- assert.match(workflow,/github_oauth\.py autodub\/member_ai\.py/);
+ assert.match(workflow,/github_oauth\.py autodub\/guest_access\.py autodub\/member_ai\.py/);
  assert.match(get('amplify.yml'),/member-portal\.js member-portal\.css/);
  assert.match(get('index.html'),/member-portal\.js/);
 });

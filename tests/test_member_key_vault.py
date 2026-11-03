@@ -134,41 +134,25 @@ class MemberKeyTests(unittest.TestCase):
             "apiKey": "long-secret-for-provider-123"}, self.a))
         self.assertEqual(code, 200)
 
-    def test_six_specialist_roles_are_one_frozen_release_not_six_weight_models(self):
-        status, catalog = read(member_ai.catalog())
+    def test_six_positions_are_only_virtual_modules_of_actual_cpu_weights(self):
+        with mock.patch.object(member_ai, "_models", return_value={}):
+            status, catalog = read(member_ai.catalog())
         self.assertEqual(status, 200)
         self.assertEqual(catalog["release"], "member-six-v1")
         self.assertEqual(catalog["moduleCount"], 6)
-        self.assertEqual(len(catalog["modules"]), 6)
         self.assertFalse(catalog["trainedSeparateWeights"])
-        self.assertFalse(catalog["autoUpgrades"])
-        for item in catalog["modules"]:
-            self.assertFalse(item["trainedWeights"])
-            self.assertIn(item["id"], member_ai.ROLES)
+        self.assertFalse(catalog["externalAPIAllowed"])
+        self.assertFalse(catalog["quotasEnabled"])
+        self.assertTrue(all(not item["ready"] for item in catalog["modules"]))
 
-    def test_member_inference_only_uses_its_own_stored_key(self):
-        from io import BytesIO
+    def test_legacy_vault_keys_cannot_be_submitted_to_member_model(self):
         saved = self.save(self.a, "alpha-provider-key-secure")
-        class Response:
-            def __enter__(self): return self
-            def __exit__(self, *args): pass
-            def read(self, n): return b'{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}'
-        member_ai._ATTEMPTS.clear()
-        with mock.patch.object(member_ai.urllib.request, "urlopen", return_value=Response()) as call:
-            code, output = read(member_ai.run({
-                "release": "member-six-v1",
-                "role": "voice", "connectionId": saved["id"],
-                "message": "วรรคตอนที่เหมาะสมคืออะไร", "context": ""}, self.a))
-        self.assertEqual(code, 200, output)
-        self.assertEqual(output["release"], "member-six-v1")
-        self.assertTrue(output["keyStored"])
-        self.assertNotIn("alpha-provider-key", json.dumps(output))
-        self.assertEqual(call.call_args.kwargs["timeout"], 21)
-        code, result = read(member_ai.run({
-            "role": "voice", "connectionId": saved["id"],
-            "message": "ลองดู", "context": ""}, self.b))
-        self.assertEqual(code, 404, result)
-        member_ai._ATTEMPTS.clear()
+        for user in (self.a, self.b):
+            code, result = read(member_ai.run({
+                "role": "qa", "connectionId": saved["id"],
+                "message": "ตรวจบท"}, user))
+            self.assertEqual(code, 403, result)
+            self.assertNotIn("alpha-provider-key", json.dumps(result))
 
 
 if __name__ == "__main__":
