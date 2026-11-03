@@ -9,7 +9,7 @@ let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,error='',notice='',timer=null;
 let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
-let sandboxInput='',sandboxResult=null,sandboxReports=[],sandboxBusy=false;
+let sandboxInput='',sandboxResult=null,sandboxReports=[],sandboxBusy=false,sandboxOpen=false;
 let sandboxSelected='',sandboxNotice='';
 const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
 function dom(tag,text,cls){
@@ -362,7 +362,7 @@ async function sandboxLoad(){
 }
 async function sandboxRun(){
  if(sandboxBusy||uploading)return;
- const lines=sandboxInput.split(/\\n\\s*\\n/).map(x=>x.trim()).filter(Boolean);
+ const lines=sandboxInput.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
  if(!lines.length||lines.length>3||lines.some(x=>x.length<4||x.length>1200))
   throw Error('พื้นที่ทดลองรับบทพากย์ 1–3 ฉาก ฉากละ 4–1200 ตัวอักษร คั่นด้วยบรรทัดว่าง');
  const connection=connections.find(x=>x.id===sandboxSelected)||connections[0];
@@ -393,6 +393,7 @@ function sandboxDownload(){
 function sandboxPanel(){
  const box=dom('details',null,'multi-json-sandbox');
  const title=dom('summary','พื้นที่ทดลอง AI แม่ (ข้อมูลแยก · รายงาน AWS)');box.append(title);
+ box.open=sandboxOpen;box.addEventListener('toggle',()=>{sandboxOpen=box.open;});
  const wrap=dom('div',null,'dbody');
  wrap.append(dom('p','ทดลองกับ API แม่ที่เชื่อมไว้ได้เลย ระบบนี้ไม่เขียนบทเรียนจริง ไม่ฝึกหรือเปิดใช้โมเดล AI ลูก ผลทดสอบถูกเก็บแยกเพื่อดาวน์โหลดส่งตรวจ','multi-json-muted'));
  const sel=dom('select');sel.setAttribute('aria-label','เลือก AI แม่สำหรับพื้นที่ทดสอบ');
