@@ -6,8 +6,9 @@
 (function(root){
 'use strict';
 let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
- uploading=false,checking=false,adding=false,error='',notice='',timer=null;
+ uploading=false,checking=false,adding=false,renaming=false,error='',notice='',timer=null;
 let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
+let editingConnectionId='';
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
 const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
 function dom(tag,text,cls){
@@ -235,7 +236,7 @@ async function addConnection(){
   const result=await api('teacher.connection.add',{
    provider:selected,model,baseUrl,apiKey});
   if(!result?.connection?.id)throw Error('AWS ยังไม่ยืนยันการเชื่อม API');
-  notice='เพิ่ม '+result.connection.name+' แล้ว · ระบบตั้งชื่อให้อัตโนมัติ';
+  notice='เพิ่ม API แม่แล้ว · แสดงชื่อ AI แม่ตามลำดับในรายการ';
   await loadSettings();
  }finally{adding=false;render()}
 }
@@ -243,6 +244,20 @@ async function testConnection(conn){
  const result=await api('teacher.connection.test',{connectionId:conn.id});
  notice=result?.ready?'ทดสอบสำเร็จ: '+conn.name:'ยังไม่ยืนยันโมเดลของ '+conn.name;
  render();
+}
+async function renameConnection(conn){
+ if(renaming)return;
+ const input=host?.querySelector('#multiRenameValue');
+ const name=input?.value.trim()||'';
+ renaming=true;error='';
+ try{
+  const result=await api('teacher.connection.rename',{
+   connectionId:conn.id,name});
+  if(!result?.connection?.id)throw Error('AWS ยังไม่ยืนยันการเปลี่ยนชื่อ');
+  editingConnectionId='';
+  await loadSettings();
+  notice='บันทึกชื่อ '+result.connection.name+' บน AWS แล้ว';
+ }finally{renaming=false;render()}
 }
 async function removeConnection(conn){
  if(conn.legacy)throw Error('คีย์หลักจัดการได้จากแท็บ AI ครู / API');
@@ -305,7 +320,7 @@ function jobRow(job){
 function connectionPanel(){
  const box=dom('section',null,'multi-json-connections');
  const github=root.StoryStudioAccess?.user?.();
- box.append(dom('h4','API แม่ของแอดมิน · ตั้งชื่อและเรียงอัตโนมัติ'),
+ box.append(dom('h4','AI แม่ที่เชื่อมต่อ · เปลี่ยนชื่อได้'),
   dom('p','ผูกกับบัญชี GitHub: '+(github?.login||'แอดมินที่เข้าสู่ระบบ')+
    ' · เก็บใน AWS ข้ามเครื่องได้จนกว่าจะลบ · '+
    (scalableVault?'คลังคีย์รุ่นใหม่ไม่จำกัด 6 คีย์':'โหมดเดิมสูงสุด 6 คีย์เพิ่มเติม')+
@@ -315,9 +330,38 @@ function connectionPanel(){
    ' คีย์ · แสดง '+shown.length+' คีย์','multi-json-muted'));
  for(const conn of shown){
   const line=dom('div',null,'multi-json-key');
-  line.append(dom('span',conn.name+' · '+conn.provider));
-  line.append(button('ทดสอบ',()=>testConnection(conn),uploading||adding));
-  if(!conn.legacy)line.append(button('ลบ',()=>removeConnection(conn),uploading||adding));
+  const info=dom('div',null,'multi-json-key-info');
+  info.append(dom('strong',conn.name),
+   dom('small',conn.provider.toUpperCase()+' · '+conn.model+
+     (conn.legacy?' · คีย์หลัก':'')));
+  const actions=dom('div',null,'multi-json-key-actions');
+  actions.append(button('เปลี่ยนชื่อ',async()=>{
+   editingConnectionId=editingConnectionId===conn.id?'':conn.id;
+   render();
+   host?.querySelector('#multiRenameValue')?.focus();
+  },uploading||adding||renaming),
+   button('ทดสอบ',()=>testConnection(conn),uploading||adding||renaming));
+  if(!conn.legacy)actions.append(button('ลบ',()=>removeConnection(conn),
+   uploading||adding||renaming));
+  line.append(info,actions);
+  if(editingConnectionId===conn.id){
+   const editor=dom('div',null,'multi-json-rename');
+   const value=dom('input');value.id='multiRenameValue';value.type='text';
+   value.maxLength=40;value.value=conn.customName||'';
+   value.placeholder='ชื่อใหม่ (เว้นว่าง = ใช้ AI แม่ตามลำดับ)';
+   value.setAttribute('aria-label','ชื่อ AI แม่ใหม่');
+   value.addEventListener('keydown',event=>{
+    if(event.key==='Enter'){
+     event.preventDefault();
+     renameConnection(conn).catch(e=>{error=String(e.message||e);render()});
+    }
+    if(event.key==='Escape'){editingConnectionId='';render()}
+   });
+   editor.append(value,
+    button(renaming?'กำลังบันทึก…':'บันทึกชื่อ',()=>renameConnection(conn),renaming),
+    button('ยกเลิก',async()=>{editingConnectionId='';render()},renaming));
+   line.append(editor);
+  }
   box.append(line);
  }
  if(connections.length>20){
