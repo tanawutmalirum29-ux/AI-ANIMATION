@@ -5,7 +5,7 @@
  */
 (function(root){
 'use strict';
-let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,loading=false,busy=false;
+let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,inspection=null,loading=false,busy=false;
 let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
@@ -82,6 +82,17 @@ async function refresh(){
  }catch(e){error='ตรวจข้อมูล AWS ไม่สำเร็จ: '+String(e.message||e)}
  finally{loading=false;render()}
 }
+async function inspectLive(){
+ if(loading)return;
+ loading=true;error='';render();
+ try{
+  const out=await api({action:'teacher.advisorInspect',
+   question:'ตรวจสถานะ GitHub main Actions และ AWS Lambda Amplify DynamoDB'});
+  if(!out?.inspection)throw Error('เซิร์ฟเวอร์ไม่ส่งผลตรวจระบบ');
+  inspection=out.inspection;
+ }catch(e){error='ตรวจสดไม่สำเร็จ: '+String(e.message||e)}
+ finally{loading=false;render()}
+}
 function featuresPanel(){
  const container=el('details','mother-knowledge');
  const heading=el('summary',null,'AI แม่รู้จักเว็บไซต์ส่วนไหนบ้าง');
@@ -156,7 +167,26 @@ function evidence(){
  }else if(currentJob){
   box.append(el('p','mother-fine','AWS Job: '+currentJob.reason));
  }
+ if(inspection){
+  const checked=el('div','mother-fine');
+  const g=inspection.github||{},aws=inspection.aws||{},actions=inspection.githubActions||{};
+  checked.append(el('p',null,'GitHub main: '+(g.available?
+   'ตรวจไฟล์ '+(g.selectedFiles||[]).join(', ')+' · Tree '+String(g.treeSha||'').slice(0,12):
+   String(g.reason||'ยังเข้าถึงไม่ได้'))));
+  checked.append(el('p',null,'GitHub Actions: '+(actions.available?
+   (actions.runs||[]).map(j=>j.name+' '+j.conclusion).join(' · '):
+   String(actions.reason||'ไม่ได้ตรวจ')));
+  for(const type of ['lambda','amplify','database']){
+   const entry=aws[type]||{};
+   checked.append(el('p',null,'AWS '+type+': '+(entry.available?
+    (entry.status||entry.lastUpdateStatus||entry.state||'อ่านได้'):
+    (entry.reason||'IAM ยังไม่อนุญาต'))));
+  }
+  box.append(checked);
+ }
  box.append(btn(loading?'กำลังตรวจ…':'อัปเดต GitHub / AWS',()=>refresh().catch(()=>{}),
+  'mother-refresh',loading));
+ box.append(btn(loading?'กำลังตรวจ…':'ตรวจ GitHub / AWS สดแบบละเอียด',()=>inspectLive().catch(()=>{}),
   'mother-refresh',loading));
  box.append(btn('เปิด AI ลูกเกลาบท',()=>{
   for(const node of root.document.querySelectorAll('.ai-tabs button')){
