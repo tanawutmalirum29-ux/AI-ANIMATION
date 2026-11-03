@@ -9,7 +9,8 @@ test('multi JSON UI validates source without sending project media or private ke
  assert.match(js,/picker\.multiple=true/);
  assert.match(js,/MAX_FILES=8/);
  assert.match(js,/MAX_FILE_BYTES=8\*1024\*1024/);
- assert.match(js,/StoryAutoTeach\.childScan\(input,null,root\.StoryContinuityCoach\)/);
+ assert.match(js,/StoryAutoTeach\.childScan\(project,null,root\.StoryContinuityCoach\)/);
+ assert.match(js,/normalizeForTraining\(input\)/);
  assert.match(js,/check\.skipped\.length/);
  assert.match(js,/root\.crypto\.subtle\.digest/);
  assert.match(js,/startBatchProject/);
@@ -109,4 +110,35 @@ test('multiple credentials are encrypted server-side, admin-scoped and resumable
  assert.match(handler,/user\.get\("role"\) != "admin"/);
  assert.match(deploy,/teacher_connections\.py/);
  assert.doesNotMatch(source('studio-multi-json.js'),/localStorage\.setItem|sessionStorage\.setItem/);
+});
+
+test('batch intake converts story-only chapters, paragraphs and scenes without altering animation projects',()=>{
+ const story=require('../studio-story-only.js');
+ const teacher=require('../studio-auto-teach.js');
+ const browser={StoryOnlyJSON:story};
+ vm.runInNewContext(source('studio-multi-json.js'),{window:browser});
+ const normalize=browser.StoryMultiJSON.normalizeForTraining;
+ const samples=[
+  {type:'story-only',title:'บทผจญภัย',chapters:[{id:'ep01',title:'บทหนึ่ง',
+    paragraphs:['รถไฟเข้าสู่อุโมงค์มืด','มีผู้โดยสารลึกลับรออยู่']}]},
+  {type:'story-only',title:'เรื่องสืบสวน',chapters:[{id:'ep01',
+    scenes:[{id:'ep01-s01',text:'ผู้ตรวจสอบพบหลักฐานที่ผิดปกติ'},
+      {id:'ep01-s02',text:'เธอจึงตรวจสอบวันเวลาอีกครั้ง'}]}]},
+  {type:'story-only',title:'ละครครอบครัว',episodes:[{id:'ep01',
+    scenes:[{id:'ep01-s01',text:'ลูกสาวกลับมาเยี่ยมแม่ที่บ้าน'}]}]},
+  {title:'บทที่ไม่มีป้ายชนิด',episodes:[{id:'ep01',
+    scenes:[{id:'ep01-s01',text:'ตัวละครเดินเข้าสู่ห้องประชุม'}]}]}
+ ];
+ for(const sample of samples){
+  const project=normalize(sample);
+  assert.equal(project.project.title,sample.title);
+  const scanned=teacher.childScan(project,null,null);
+  assert.equal(scanned.skipped.length,0);
+  assert.ok(scanned.rows.length>0);
+  assert.ok(scanned.rows.every(r=>r.text.length>3));
+ }
+ const full={version:1,project:{title:'โปรเจกต์วิดีโอ'},episodes:[
+  {id:'ep01',scenes:[{id:'ep01-s01',voiceover:'เสียงบรรยายของวิดีโอ',imagePrompt:'moonlight'}]}]};
+ assert.strictEqual(normalize(full),full,'visual project should not be rewritten');
+ assert.throws(()=>normalize({type:'story-only',chapters:[{title:'ว่าง',text:''}]}),/ไม่มี|ว่าง/);
 });

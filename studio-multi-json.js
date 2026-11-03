@@ -31,6 +31,18 @@ async function digest(text){
  const raw=new Uint8Array(await root.crypto.subtle.digest('SHA-256',bytes));
  return Array.from(raw,b=>b.toString(16).padStart(2,'0')).join('');
 }
+// The batch teacher accepts the same narration-only formats as Story Only.
+// Convert in memory; never upload original JSON, media or provider credentials.
+function normalizeForTraining(input){
+ const story=root.StoryOnlyJSON;
+ if(story?.appearsTextOnly?.(input)){
+  if(typeof story.convert!=='function')throw Error('ตัวแปลง JSON เนื้อเรื่องล้วนยังไม่พร้อม');
+  return story.convert(input);
+ }
+ if(input?.type==='story-only'||Array.isArray(input?.chapters))
+  throw Error('ตัวแปลง JSON เนื้อเรื่องล้วนยังไม่พร้อม กรุณาโหลดหน้าเว็บใหม่');
+ return input;
+}
 async function prepare(files){
  if(uploading||checking)return;
  if(!files.length)return;
@@ -48,11 +60,12 @@ async function prepare(files){
    try{
     if(!file.name.toLowerCase().endsWith('.json'))throw Error('รองรับเฉพาะไฟล์ .json');
     if(file.size>MAX_FILE_BYTES)throw Error('ขนาด JSON เกิน 8 MB');
-    const input=JSON.parse(await file.text());
-    if(!Array.isArray(input?.episodes)||!input.episodes.length)
+    const input=JSON.parse((await file.text()).replace(/^\uFEFF/,''));
+    const project=normalizeForTraining(input);
+    if(!Array.isArray(project?.episodes)||!project.episodes.length)
      throw Error('ไม่พบ episodes ใน JSON');
     if(!root.StoryAutoTeach?.childScan)throw Error('โมดูล AI ลูกยังไม่พร้อม');
-    const check=root.StoryAutoTeach.childScan(input,null,root.StoryContinuityCoach);
+    const check=root.StoryAutoTeach.childScan(project,null,root.StoryContinuityCoach);
     if(!check.rows.length)throw Error('ไม่มีฉากที่มีบทพากย์ถูกต้อง');
     if(check.rows.length>350)throw Error('ไฟล์นี้เกิน 350 ฉากต่อหนึ่งงาน');
     if(check.skipped.length)throw Error('ตรวจพบ '+check.skipped.length+
@@ -64,11 +77,11 @@ async function prepare(files){
     if(new root.TextEncoder().encode(serialized).length>4_000_000)
      throw Error('ข้อมูลบทพากย์รวมเกิน 4 MB');
     const hash=await digest(JSON.stringify([
-     input.project?.title||file.name,entry.scenes]));
+     project.project?.title||input.title||file.name,entry.scenes]));
     entry.projectId='multi-'+hash.slice(0,24);
     if(seen.has(entry.projectId))throw Error('ไฟล์นี้มีบทพากย์ซ้ำกับไฟล์ที่เลือกแล้ว');
     seen.add(entry.projectId);
-    entry.storyName=String(input.project?.title||file.name.replace(/\.json$/i,'')).slice(0,100);
+    entry.storyName=String(project.project?.title||input.title||file.name.replace(/\.json$/i,'')).slice(0,100);
     entry.count=entry.scenes.length;entry.state='ready';
    }catch(e){entry.state='invalid';entry.error=String(e.message||e);entry.scenes=null}
    render();
@@ -360,5 +373,5 @@ function mount(target){
  if(!loading&&!connections.length)loadSettings().catch(()=>{});
  else refresh(true).catch(()=>{});
 }
-root.StoryMultiJSON=Object.freeze({mount});
+root.StoryMultiJSON=Object.freeze({mount,normalizeForTraining});
 })(window);
