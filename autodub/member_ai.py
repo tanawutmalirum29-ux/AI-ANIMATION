@@ -73,7 +73,10 @@ def _models():
     return available
 
 def _capability(role, available):
-    if role in ("voice","qa"):
+    if role=="qa":
+        return [k for k in ("thai-editor","narrative","repetition")
+                if k in available]
+    if role=="voice":
         return ["thai-editor"] if "thai-editor" in available else []
     if role=="structure":
         return ["narrative"] if "narrative" in available else []
@@ -184,6 +187,16 @@ def run(body,user):
                 "reason":"โมเดล CPU จำแนกประเภทปัญหาบท ไม่สามารถเขียนบทใหม่เอง",
                 "requiresReview":True})
             report["sourceModels"].append("narrative")
+        if role=="qa" and "repetition" in available:
+            import student_learning
+            repeat=student_learning._predict(
+                available["repetition"]["model"],text,{})
+            report["suggestions"].append({
+                "issue":repeat,"name":ISSUE_NAMES.get(repeat,repeat),
+                "suggested":None,
+                "reason":"โมเดล CPU ตรวจคำซ้ำจากบทที่ได้รับการยืนยัน ไม่เปลี่ยนบทต้นฉบับ",
+                "requiresReview":True})
+            report["sourceModels"].append("repetition")
         findings.append(report)
     descriptions=[]
     for item in findings:
