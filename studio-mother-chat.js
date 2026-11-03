@@ -5,7 +5,7 @@
  */
 (function(root){
 'use strict';
-let host=null,bridge=null,provider='',snapshot=null,loading=false,busy=false;
+let host=null,bridge=null,provider='',snapshot=null,repoInfo=null,loading=false,busy=false;
 let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
@@ -30,7 +30,8 @@ function projectOverview(){
   const episodes=Array.isArray(project.episodes)?project.episodes:[];
   const selected=bridge.scene?.();
   const selectedEpisode=episodes.find(e=>Array.isArray(e?.scenes)&&e.scenes.some(s=>s?.id===selected?.id));
-  return {title:String(project.project?.title||'').slice(0,160),
+  return {projectId:String(project.project?.aiWorkspace?.projectId||'').slice(0,90),
+   title:String(project.project?.title||'').slice(0,160),
    aspect:String(project.project?.aspect||'').slice(0,32),
    mode:String(project.project?.mode||'').slice(0,40),
    episodeCount:episodes.length,
@@ -65,9 +66,14 @@ async function refresh(){
  if(loading)return;
  loading=true;error='';render();
  try{
-  const data=await api({action:'teacher.advisorStatus'});
+  const data=await api({action:'teacher.advisorStatus',project:projectOverview()});
   if(!data?.snapshot)throw Error('AWS ไม่ส่งข้อมูลภาพรวม AI แม่');
   snapshot=data.snapshot;lastLoaded=Date.now();syncProvider();
+  // Repository check is read-only, no provider token spent and no secrets.
+  try {
+   const live=await api({action:'teacher.advisorRepoStatus'});
+   repoInfo=live.repository||null;
+  }catch(_){repoInfo={available:false}}
  }catch(e){error='ตรวจข้อมูล AWS ไม่สำเร็จ: '+String(e.message||e)}
  finally{loading=false;render()}
 }
@@ -75,7 +81,7 @@ function featuresPanel(){
  const container=el('details','mother-knowledge');
  const heading=el('summary',null,'AI แม่รู้จักเว็บไซต์ส่วนไหนบ้าง');
  container.append(heading);
- const intro=el('p',null,'ข้อมูลนี้มาจากแผนผังฟีเจอร์ที่บันทึกไว้ในเซิร์ฟเวอร์ ไม่ใช่การให้โมเดลอ่าน GitHub ล่าสุดด้วยตัวเอง');
+ const intro=el('p',null,'ฟีเจอร์ด้านล่างเป็นสรุปที่ดูแลในเซิร์ฟเวอร์ ส่วนคำถามที่ส่งจะดึงโค้ด GitHub main สาธารณะล่าสุดเฉพาะไฟล์ที่เกี่ยวข้อง (ถ้า GitHub พร้อมใช้งาน)');
  container.append(intro);
  for(const feature of (snapshot?.features||[])){
   const p=el('p');p.append(el('strong',null,feature.name+' — '),
@@ -113,7 +119,22 @@ function evidence(){
    'ตรวจสถานะ AWS: '+dateLabel(snapshot?.measuredAt)+
    ' · ความรู้ฟีเจอร์อัปเดต '+(snapshot?.knowledgeVersion||'ไม่ทราบ')+
    ' · ค่าที่ไม่ทราบจะไม่ถูกเดา');
- box.append(foot,btn(loading?'กำลังตรวจ…':'อัปเดตข้อมูลจาก AWS',()=>refresh().catch(()=>{}),
+ box.append(foot);
+ const repoLabel=repoInfo?.available
+  ? 'GitHub main อ่านได้ · Tree '+String(repoInfo.treeSha||'').slice(0,12)+
+    ' · เลือกไฟล์ตามคำถาม'
+  : 'GitHub main: '+(repoInfo?'ตรวจสดไม่ได้':'ยังไม่ตรวจ');
+ box.append(el('p','mother-fine',repoLabel));
+ const currentJob=snapshot?.projectJob;
+ if(currentJob?.available){
+  const j=currentJob.job;
+  box.append(el('p','mother-fine',j?
+   'AWS Job: '+j.state+' · '+j.completed+'/'+j.total+' ฉาก · รหัสงาน '+j.jobId:
+   'AWS Job: ไม่พบงานในโปรเจกต์ที่เปิด'));
+ }else if(currentJob){
+  box.append(el('p','mother-fine','AWS Job: '+currentJob.reason));
+ }
+ box.append(btn(loading?'กำลังตรวจ…':'อัปเดต GitHub / AWS',()=>refresh().catch(()=>{}),
   'mother-refresh',loading));
  box.append(featuresPanel(),el('p','mother-fine',
   'การถาม AI แม่ใช้โควตา API ที่เลือก · การดูสถานะไม่เรียก LLM · ประวัติแชทเก็บเฉพาะแท็บนี้'));
@@ -182,9 +203,13 @@ function render(){
     el('p',null,msg.text));
   if(msg.evidence){
    const ev=msg.evidence;
-   bubble.append(el('small',null,'แหล่งข้อมูล: เอกสารระบบ '+ev.manifestVersion+
+   bubble.append(el('small',null,'แหล่งข้อมูล: '+(ev.githubLive?
+    'GitHub main '+String(ev.githubTreeSha||'').slice(0,12)+
+    ' ('+(ev.githubFiles||[]).join(', ')+')':'GitHub สดยังตรวจไม่ได้')+
+    ' · สรุปฟีเจอร์ '+ev.manifestVersion+
     ' · AWS ลูกตรวจบท '+(ev.narrativeAWS?'ตรวจแล้ว':'ตรวจไม่ได้')+
     ' · AWS ลูกคำซ้ำ '+(ev.repetitionAWS?'ตรวจแล้ว':'ตรวจไม่ได้')+
+    (ev.projectJobAvailable?' · AWS Job':'')+
     (ev.projectContext?' · ภาพรวม JSON ปัจจุบัน':'') ));
   }
   log.append(bubble);

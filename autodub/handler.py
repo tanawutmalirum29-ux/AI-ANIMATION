@@ -291,6 +291,14 @@ def handler(event, context):
         import student_learning
         return student_learning.handle(action, body)
 
+    # Owner-only knowledge retrieval: signed GitHub identity, not UI-only tabs.
+    if action in ("teacher.advisorStatus", "teacher.advisorChat",
+                  "teacher.advisorRepoStatus"):
+        if not oauth_mode or not user or user.get("role") != "admin":
+            return _resp(403, {"error": "AI แม่ตรวจข้อมูลโปรเจกต์ได้เฉพาะ GitHub แอดมิน"})
+        import teacher_advisor
+        return teacher_advisor.handle(action, body, owner_id=user["sub"])
+
     if action.startswith("teacher.job."):
         if not oauth_mode or not user or user.get("role") != "admin":
             return _resp(403, {"error": "Cloud Jobs เฉพาะ GitHub แอดมิน"})
