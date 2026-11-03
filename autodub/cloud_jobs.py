@@ -87,8 +87,11 @@ def _validated_scenes(items):
                     "text": text.strip(), "previous": previous[:350],
                     "next": next_[:350], "studentIssue":
                     str(x.get("studentIssue") or "review")[:40]})
-    if len(json.dumps(out, ensure_ascii=False).encode("utf-8")) > 320000:
-        raise ValueError("โปรเจกต์ใหญ่เกิน 320 KB กรุณาแบ่งงานตามตอน")
+    # An entire project is NOT one DynamoDB item. Each input item holds 16
+    # scenes, safely below DynamoDB's 400 KB per-item limit. Keep a bounded
+    # aggregate cap beneath the synchronous Lambda request ceiling instead.
+    if len(json.dumps(out, ensure_ascii=False).encode("utf-8")) > 4_000_000:
+        raise ValueError("โปรเจกต์เกินขนาดรวม 4 MB กรุณาแบ่งเป็นหลายงาน")
     return out
 
 
@@ -274,6 +277,9 @@ def handle(action, body, owner):
                            "maxScenes": MAX_SCENES})
     if not enabled():
         return _resp(503, {"error": "ระบบ Background Jobs ยังไม่เปิดใช้งานบน AWS"})
+    if action.startswith("teacher.job.upload."):
+        import cloud_upload
+        return cloud_upload.handle(action, body, owner)
     if action == "teacher.job.start":
         return _start(body, owner)
     if action == "teacher.job.find":
