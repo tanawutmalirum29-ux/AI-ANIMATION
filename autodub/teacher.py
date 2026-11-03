@@ -404,6 +404,85 @@ def _model_test(body):
                            "note": "ทดสอบโมเดลแล้ว แต่ยังไม่ใช่การยืนยันว่าเขียนบทได้ถูกต้อง"})
 
 
+def _scene_key(project, scene):
+    """Same project, exact scene and surrounding text -> same immutable lesson."""
+    fingerprint = json.dumps(
+        {"project": project, "scene": scene["id"],
+         "episode": str(scene.get("episodeId") or "")[:90],
+         "text": scene["text"].strip(),
+         "previous": scene.get("previous", ""),
+         "next": scene.get("next", "")},
+        ensure_ascii=False, sort_keys=True)
+    return "teach#" + hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
+
+
+def _cached_scene_records(table, project, scenes, dynamodb=None):
+    """Strongly consistent DynamoDB BatchGet, never approximate memory matching.
+
+    All returned records must match the exact hashed project / episode / narration
+    and context. A missing or unprocessed key is NOT an approved memory. On a
+    throttled batch, retry and then use strongly consistent single reads rather
+    than calling the AI unnecessarily.
+    """
+    from boto3.dynamodb.conditions import Key
+    pk = "learning#teacher-story-coherence"
+    requested = {_scene_key(project, x): x for x in scenes}
+    if not requested:
+        return {}
+    keys = [{"pk": pk, "sk": key} for key in requested]
+    rows = []
+    # The boto3 DynamoDB service resource accepts ordinary Python key values.
+    # Mocks and older test stubs may provide only the Table interface.
+    if dynamodb is None and getattr(table, "name", None):
+        import boto3
+        dynamodb = boto3.resource("dynamodb")
+    if dynamodb is not None and hasattr(dynamodb, "batch_get_item"):
+        table_name = table.name
+        pending = {table_name: {"Keys": keys, "ConsistentRead": True}}
+        for attempt in range(4):
+            reply = dynamodb.batch_get_item(RequestItems=pending)
+            rows.extend(reply.get("Responses", {}).get(table_name, []))
+            pending = reply.get("UnprocessedKeys", {})
+            if not pending or not pending.get(table_name, {}).get("Keys"):
+                pending = {}
+                break
+            if attempt < 3:
+                time.sleep(0.05 * (2 ** attempt))
+        for key in pending.get(table_name, {}).get("Keys", []):
+            item = table.get_item(Key=key, ConsistentRead=True).get("Item")
+            if item:
+                rows.append(item)
+    else:
+        for key in keys:
+            if hasattr(table, "get_item"):
+                item = table.get_item(Key=key, ConsistentRead=True).get("Item")
+                if item:
+                    rows.append(item)
+            else:
+                # Lightweight test fixtures implement query() only.
+                rows.extend(table.query(KeyConditionExpression=Key("pk").eq(pk)
+                            & Key("sk").eq(key["sk"]), Limit=1).get("Items", []))
+    found = {}
+    for item in rows:
+        if not isinstance(item, dict) or item.get("pk") != pk:
+            continue
+        original = requested.get(item.get("sk"))
+        if not original or item.get("status") not in (
+                "teacher-qa-approved", "teacher-reviewed-unverified"):
+            continue
+        record = item.get("record")
+        if not isinstance(record, dict) or any((
+                record.get("projectId") != project,
+                record.get("sceneId") != original["id"],
+                record.get("episodeId", "") != str(original.get("episodeId") or "")[:90],
+                record.get("original") != original["text"].strip(),
+                record.get("previous", "") != original.get("previous", ""),
+                record.get("next", "") != original.get("next", ""))):
+            continue
+        found[original["id"]] = record
+    return found
+
+
 def _auto_teach(body):
     """AI teacher runs fully delegated curriculum with QA and bounded self-repair.
 
@@ -440,25 +519,14 @@ def _auto_teach(body):
     table_name = os.environ.get("TEACHER_FEEDBACK_TABLE")
     if not table_name:
         return _response(503, {"error": "ยังไม่ได้ติดตั้งฐานข้อมูลบทเรียนบน AWS"})
-    table = boto3.resource("dynamodb").Table(table_name)
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(table_name)
     pk = "learning#teacher-story-coherence"
     for x in clean:
-        fingerprint = json.dumps({"project": project, "scene": x["id"],
-                                  "episode": x["episodeId"], "text": x["text"],
-                                  "previous": x["previous"], "next": x["next"]},
-                                 ensure_ascii=False, sort_keys=True)
-        x["key"] = "teach#" + hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
-    # Reuse saved work: no additional teacher tokens for identical scenes.
-    cached = {}
-    fresh = []
-    for x in clean:
-        response = table.query(KeyConditionExpression=Key("pk").eq(pk) & Key("sk").eq(x["key"]),
-                               Limit=1)
-        items = response.get("Items", [])
-        if items and items[0].get("status") in ("teacher-qa-approved", "teacher-reviewed-unverified"):
-            cached[x["id"]] = items[0]["record"]
-        else:
-            fresh.append(x)
+        x["key"] = _scene_key(project, x)
+    # One strongly consistent batch read; skip all provider calls on exact hits.
+    cached = _cached_scene_records(table, project, clean, dynamodb=dynamodb)
+    fresh = [x for x in clean if x["id"] not in cached]
     if not fresh:
         return _response(200, {"saved": 0, "reused": len(cached), "failed": 0,
                                "trainedWeights": False, "lessons": list(cached.values()),
@@ -589,11 +657,9 @@ def _auto_teach(body):
                 raise
             # Concurrent retry: retrieve the actual committed record, never
             # claim that a rejected/pending item is eligible for learning.
-            from boto3.dynamodb.conditions import Key
-            check = table.query(KeyConditionExpression=Key("pk").eq(pk)
-                                & Key("sk").eq(x["key"]), Limit=1).get("Items", [])
-            if check and check[0].get("status") in ("teacher-qa-approved", "teacher-reviewed-unverified"):
-                cached[sid] = check[0]["record"]
+            check = _cached_scene_records(table, project, [x], dynamodb=dynamodb)
+            if sid in check:
+                cached[sid] = check[sid]
                 continue
             rejected[sid] = "concurrent_pending_conflict"
             continue
