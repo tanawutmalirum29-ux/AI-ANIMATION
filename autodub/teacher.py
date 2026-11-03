@@ -172,8 +172,15 @@ def _post_json(url, headers, payload):
             return json.loads(blob)
     except urllib.error.HTTPError as exc:
         raise ValueError("AI provider returned HTTP " + str(exc.code)) from None
-    except urllib.error.URLError:
-        raise ValueError("เชื่อม AI provider ไม่สำเร็จ") from None
+    except TimeoutError:
+        # socket.timeout inherits TimeoutError; it is a recoverable upstream
+        # failure, not a corrupt lesson or a non-resumable AWS worker error.
+        raise ValueError("AI provider timed out") from None
+    except (urllib.error.URLError, ConnectionError):
+        raise ValueError("AI provider network unavailable") from None
+    except (ValueError, UnicodeError):
+        # Invalid JSON from the provider is recoverable; never echo the body.
+        raise ValueError("AI provider invalid JSON response") from None
 
 def _extract_json(answer):
     text = str(answer or "")[:12000].strip()
@@ -257,9 +264,14 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
     history = body.get("history")
     if not isinstance(history, list):
         history = []
+    # Advisor requests include real AWS/GitHub evidence. Reserve a bounded
+    # byte budget for that evidence instead of letting past Thai replies push
+    # the outbound HTTP body above the gateway's 24 KB limit.
+    history_limit = 3 if advisor_mode else 6
+    history_chars = 350 if advisor_mode else 900
     safe_history = [
-        {"role": x["role"], "content": x["content"][:900]}
-        for x in history[-6:] if isinstance(x, dict) and
+        {"role": x["role"], "content": x["content"][:history_chars]}
+        for x in history[-history_limit:] if isinstance(x, dict) and
         x.get("role") in ("user", "assistant") and isinstance(x.get("content"), str)
     ]
     output_limit = body.get("_internalMaxOutput", 900)
@@ -362,9 +374,26 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
             choices = result.get("choices") or []
             content = choices[0].get("message", {}).get("content", "") if choices else ""
     except ValueError as exc:
+        # Only bounded, self-authored error categories cross to clients.
+        # Never return a provider response, destination URL or credential.
+        message = str(exc)
+        if "AI provider timed out" in message:
+            return _response(503, {"error": "AI provider ตอบช้าเกินกำหนด (Timeout) ระบบสามารถลองใหม่ได้",
+                                   "reasonCode": "TEACHER_PROVIDER_TIMEOUT"})
+        if "AI provider network unavailable" in message:
+            return _response(503, {"error": "เชื่อมต่อ AI provider ไม่สำเร็จชั่วคราว",
+                                   "reasonCode": "TEACHER_PROVIDER_NETWORK"})
+        if "AI provider invalid JSON response" in message:
+            return _response(502, {"error": "AI provider ส่ง JSON ที่อ่านไม่ได้ ลองใหม่ได้",
+                                   "reasonCode": "TEACHER_PROVIDER_BAD_RESPONSE"})
+        if "คำขอมีขนาดใหญ่เกินไป" in message:
+            return _response(413, {"error": "บริบทที่ส่งให้ AI มากเกิน 24 KB กรุณาลดข้อมูลประกอบ",
+                                   "reasonCode": "TEACHER_REQUEST_TOO_LARGE"})
+        if any("HTTP " + str(n) in message for n in (408, 500, 502, 503, 504)):
+            return _response(503, {"error": "AI provider ไม่พร้อมชั่วคราว (HTTP 5xx/408)",
+                                   "reasonCode": "TEACHER_PROVIDER_UPSTREAM"})
         # 404 is frequently a model/account availability issue (not DynamoDB).
         # Show the configured model ID only, never the URL, API key or provider body.
-        message = str(exc)
         if "HTTP 404" in message:
             suggested = ("openrouter/free" if provider == "openrouter" else
                          "gemini-3.5-flash-lite" if provider == "gemini" else "")
