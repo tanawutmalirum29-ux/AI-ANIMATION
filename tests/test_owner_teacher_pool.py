@@ -293,6 +293,26 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(wait)
         quota.assert_called_once()
 
+    def test_stale_same_job_invocation_cannot_release_successor_api_lease(self):
+        table, jobid, _ = fixture()
+        only_one = [self.connections()[0]]
+        now = int(time.time())
+        with mock.patch.object(connections, "listing", return_value=only_one):
+            first, _ = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": jobid, "leaseOwner": "old-invocation"}, now)
+            self.assertIsNotNone(first)
+            lock_key = cloud_jobs._provider_lock_key(first["id"])
+            lock = table.rows[(lock_key["pk"], lock_key["sk"])]
+            lock["leaseUntil"] = now - 1
+            second, _ = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": jobid, "leaseOwner": "new-invocation"}, now)
+            self.assertIsNotNone(second)
+            self.assertEqual(lock["ownerJob"], "new-invocation")
+            cloud_jobs._release_provider_lock(
+                table, first["id"], "old-invocation", cooldown=12)
+            self.assertEqual(lock["ownerJob"], "new-invocation")
+            self.assertEqual(lock["leaseUntil"], now + 110)
+
     def test_stale_worker_token_cannot_overwrite_newer_checkpoint(self):
         table, jobid, _ = fixture()
         row = table.rows[("teacher-job#" + jobid, "meta")]
