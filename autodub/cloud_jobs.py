@@ -17,6 +17,7 @@ MAX_TRANSIENT_RETRIES = 6
 # Only opt-in pool jobs use the following key-specific failure fallback.
 # It does not broaden existing provider retry or legacy job semantics.
 MAX_POOL_BAD_KEYS_PER_JOB = 128
+POOL_PROVIDER_PARALLEL_LIMIT = 2  # Bounded shared provider requests despite many keys.
 POOL_KEY_FAILURES = frozenset(("TEACHER_PROVIDER_AUTH", "TEACHER_MODEL_UNAVAILABLE"))
 TRANSIENT_PROVIDER_CODES = frozenset((
     "TEACHER_PROVIDER_TIMEOUT", "TEACHER_PROVIDER_NETWORK",
@@ -514,13 +515,19 @@ def _release_provider_lock(table, provider, job_id, cooldown=12):
             raise
 
 
-def _borrow_idle_connection(table, item, now, excluded=()):
-    """Claim an idle extra key without giving away already-running scenes.
+def _pool_provider_slot_name(provider, index):
+    # Separate from both legacy provider locks and individual API key locks.
+    return "pool-provider-slot#" + provider + "#" + str(index)
 
-    Iterate the entire owner pool, so a free key is not ignored just because
-    it is beyond an arbitrary first-N window. Read provider cooldown once per
-    provider, not once per key (important when 50+ keys share one provider).
-    A failed conditional claim simply tries the next available credential.
+
+def _borrow_idle_connection(table, item, now, excluded=()):
+    """Reserve one idle key AND one bounded provider-concurrency slot.
+
+    A hundred keys connected to one service are NOT permission to fire a
+    hundred concurrent paid requests. Two provider slots are shared by all
+    opted-in cloud jobs; old non-pool jobs remain on their original lock path.
+    Claim a slot first, then a key. If a key claim loses a race, release its
+    slot with no cooldown. All slots expire after 110 seconds.
     """
     import teacher_connections
     connections = [c for c in teacher_connections.listing()
@@ -528,34 +535,57 @@ def _borrow_idle_connection(table, item, now, excluded=()):
     excluded = set(excluded)
     if not connections or all(c["id"] in excluded for c in connections):
         return None, None
-    candidates, provider_wait = [], {}
+    candidates, provider_wait, provider_slots, slot_wait = [], {}, {}, {}
     shortest_wait = None
     for conn in connections:
         if conn["id"] in excluded:
             continue
-        lock = table.get_item(Key=_provider_lock_key(conn["id"]),
-                              ConsistentRead=True).get("Item", {})
-        occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
         provider = conn["provider"]
         if provider not in provider_wait:
             provider_wait[provider] = _provider_quota_wait(table, provider, now)
         quota_wait = provider_wait[provider]
-        if occupied or quota_wait:
-            # A credential is usable only after *both* waits expire.
-            delay = max(occupied, quota_wait)
+        if provider not in provider_slots and not quota_wait:
+            free, slot_delays = [], []
+            for slot_index in range(POOL_PROVIDER_PARALLEL_LIMIT):
+                slot_name = _pool_provider_slot_name(provider, slot_index)
+                record = table.get_item(Key=_provider_lock_key(slot_name),
+                                        ConsistentRead=True).get("Item", {})
+                occupied_slot = max(0, int(record.get("leaseUntil", 0)) - now)
+                if occupied_slot:
+                    slot_delays.append(occupied_slot)
+                else:
+                    free.append(slot_name)
+            provider_slots[provider] = free
+            slot_wait[provider] = min(slot_delays) if slot_delays else 20
+        lock = table.get_item(Key=_provider_lock_key(conn["id"]),
+                              ConsistentRead=True).get("Item", {})
+        occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
+        if occupied or quota_wait or not provider_slots.get(provider):
+            delay = max(occupied, quota_wait,
+                        slot_wait.get(provider, 20) if not provider_slots.get(provider) else 0)
             shortest_wait = delay if shortest_wait is None else min(shortest_wait, delay)
             continue
         candidates.append((int(lock.get("updatedAt", 0)), conn["id"], conn))
-    # Least recently used first, for fairer sharing across stories.
     candidates.sort(key=lambda x: (x[0], x[1]))
+    lock_owner = item.get("leaseOwner") or item["jobId"]
+    raced_slots = set()
     for _, _, conn in candidates:
-        # Pool invocations use the unique job-lease token, not a reusable
-        # job ID, so an old Lambda cannot release its successor's API lock.
-        lock_owner = item.get("leaseOwner") or item["jobId"]
-        if _try_provider_lock(table, conn["id"], lock_owner, now):
-            return conn, None
-        # Another worker won the claim while we checked availability.
-        shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
+        for slot in provider_slots.get(conn["provider"], ()):
+            if slot in raced_slots:
+                continue
+            if not _try_provider_lock(table, slot, lock_owner, now):
+                raced_slots.add(slot)
+                shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
+                continue
+            key_acquired = False
+            try:
+                key_acquired = _try_provider_lock(table, conn["id"], lock_owner, now)
+            finally:
+                if not key_acquired:
+                    _release_provider_lock(table, slot, lock_owner, cooldown=0)
+            if key_acquired:
+                return {**conn, "_providerSlot": slot}, None
+            shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
     return None, min(900, max(20, shortest_wait or 20))
 
 def _worker(payload):
@@ -658,6 +688,7 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
+        provider_slot = None
         teaching_provider = item["provider"]
         teaching_connection = item.get("connectionId")
         credential_id = teaching_connection or teaching_provider
@@ -683,6 +714,7 @@ def _worker(payload):
             teaching_provider = choice["provider"]
             teaching_connection = choice["id"]
             credential_id = teaching_connection
+            provider_slot = choice["_providerSlot"]
         else:
             quota_wait = _provider_quota_wait(table, teaching_provider, int(time.time()))
             if quota_wait:
@@ -724,7 +756,11 @@ def _worker(payload):
                 # Do not burn the same invalid key across other jobs.
                 cooldown = 3600 if data["reasonCode"] == "TEACHER_PROVIDER_AUTH" else 1800
         finally:
-            _release_provider_lock(table, credential_id, provider_lock_owner, cooldown)
+            try:
+                _release_provider_lock(table, credential_id, provider_lock_owner, cooldown)
+            finally:
+                if provider_slot:
+                    _release_provider_lock(table, provider_slot, provider_lock_owner, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if (fresh and item.get("poolMode") and pool_enabled()
