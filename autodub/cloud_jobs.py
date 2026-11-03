@@ -310,7 +310,7 @@ def _save_progress(table, old, **updates):
 
 
 def _worker(payload):
-    """Single Step Functions Task invocation, at most two scenes per call."""
+    """One bounded worker: up to 16 cache hits and at most 2 fresh AI scenes."""
     job_id, generation = payload.get("jobId"), payload.get("generation")
     if not isinstance(job_id, str) or not re.fullmatch(r"[a-f0-9]{32}", job_id):
         return {"next": False, "state": "invalid"}
@@ -334,24 +334,38 @@ def _worker(payload):
         raise
     # boto3 reads every DynamoDB number as Decimal; list indices must be int.
     work, position = [int(x) for x in item["work"]], int(item["position"])
-    selected = work[position:position + 2]
-    if not selected:
+    lookahead = work[position:position + CHUNK_SIZE]
+    if not lookahead:
         _save_progress(table, item, state="completed", leaseUntil=0,
                        updatedAt=int(time.time()), lastError="")
         return {"next": False, "state": "completed"}
     chunk_cache = {}
-    scenes = []
-    for index in selected:
+    lookahead_scenes = []
+    for index in lookahead:
         part = index // CHUNK_SIZE
         if part not in chunk_cache:
             record = table.get_item(Key={"pk": JOB_PREFIX + job_id,
                    "sk": "input#%05d" % part}, ConsistentRead=True)["Item"]
             chunk_cache[part] = record["scenes"]
-        scenes.append(chunk_cache[part][index % CHUNK_SIZE])
+        lookahead_scenes.append(chunk_cache[part][index % CHUNK_SIZE])
     import teacher
-    reply = teacher._auto_teach({"projectId": item["projectId"],
-                                 "provider": item["provider"], "scenes": scenes})
-    code, data = reply["statusCode"], json.loads(reply["body"])
+    # A single strong read finds all reusable lessons in the lookahead.
+    # Only the first two misses need paid/rate-limited AI inference.
+    remembered = teacher._cached_scene_records(table, item["projectId"], lookahead_scenes)
+    selected, scenes, fresh = [], [], []
+    for index, scene in zip(lookahead, lookahead_scenes):
+        if scene["id"] not in remembered and len(fresh) >= 2:
+            break
+        selected.append(index)
+        scenes.append(scene)
+        if scene["id"] not in remembered:
+            fresh.append(scene)
+    if fresh:
+        reply = teacher._auto_teach({"projectId": item["projectId"],
+                                     "provider": item["provider"], "scenes": fresh})
+        code, data = reply["statusCode"], json.loads(reply["body"])
+    else:
+        code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if code == 429:
         throttles = int(item.get("throttles", 0)) + 1
         if throttles >= 6:
@@ -370,7 +384,10 @@ def _worker(payload):
                        updatedAt=int(time.time()))
         return {"next": False, "state": "needs-attention"}
     lessons = data.get("lessons", []) if code == 200 else []
-    accepted = {}
+    accepted = {
+        index: remembered[scene["id"]]
+        for index, scene in zip(selected, scenes) if scene["id"] in remembered
+    }
     for lesson in lessons:
         if not isinstance(lesson, dict):
             continue
@@ -403,7 +420,8 @@ def _worker(payload):
     committed = _save_progress(table, item, state=state, work=work, position=pos,
                    failedIndices=missed, completedIndices=sorted(completed),
                    saved=int(item.get("saved", 0)) + int(data.get("saved", 0)),
-                   reused=int(item.get("reused", 0)) + int(data.get("reused", 0)),
+                   reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
+                          + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, leaseUntil=0,
                    lastError="" if state != "needs-attention"
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
@@ -426,7 +444,8 @@ def _worker(payload):
         table.update_item(Key=_key(job_id),
                           UpdateExpression="SET trainingStatus=:t",
                           ExpressionAttributeValues={":t": summary})
-    return {"next": state == "queued", "state": state, "waitSeconds": 12}
+    return {"next": state == "queued", "state": state,
+            "waitSeconds": 1 if not fresh else 12}
 
 
 def worker(payload):
