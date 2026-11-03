@@ -16,6 +16,7 @@ MAX_PASSES = 3
 STATES = ("queued", "running", "paused", "needs-attention", "completed", "cancelled")
 JOB_PREFIX = "teacher-job#"
 INDEX_PREFIX = "teacher-job-index#"
+PROVIDER_LOCK_PREFIX = "teacher-provider-lease#"
 
 
 def _json_number(value):
@@ -190,6 +191,28 @@ def _authorized_job(body, owner):
     return table, item
 
 
+def _list_jobs(body, owner):
+    """Owner-indexed recent jobs, no scan or cross-owner exposure."""
+    from boto3.dynamodb.conditions import Key
+    table = _table()
+    rows = table.query(
+        KeyConditionExpression=Key("pk").eq(INDEX_PREFIX + str(owner)),
+        ScanIndexForward=False, Limit=80).get("Items", [])
+    seen, jobs = set(), []
+    for row in rows:
+        job_id = row.get("jobId")
+        if job_id in seen or not isinstance(job_id, str):
+            continue
+        seen.add(job_id)
+        item = _read(table, job_id)
+        if item and str(item.get("ownerId")) == str(owner):
+            jobs.append(_public(item))
+        if len(jobs) >= 40:
+            break
+    return _resp(200, {"jobs": jobs, "source": "aws-dynamodb-owner-index",
+                       "limit": 40})
+
+
 def _find(body, owner):
     project_id = body.get("projectId")
     if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
@@ -284,6 +307,8 @@ def handle(action, body, owner):
         return _start(body, owner)
     if action == "teacher.job.find":
         return _find(body, owner)
+    if action == "teacher.job.list":
+        return _list_jobs(body, owner)
     return _control(action, body, owner)
 
 
@@ -307,6 +332,42 @@ def _save_progress(table, old, **updates):
             raise
         return False
     return True
+
+
+def _provider_lock_key(provider):
+    return {"pk": PROVIDER_LOCK_PREFIX + provider, "sk": "lease"}
+
+
+def _try_provider_lock(table, provider, job_id, now):
+    """Serialize AI inference across concurrent cloud jobs using existing IAM."""
+    try:
+        table.update_item(
+            Key=_provider_lock_key(provider),
+            UpdateExpression="SET ownerJob=:job, leaseUntil=:until, updatedAt=:now",
+            ConditionExpression="attribute_not_exists(pk) OR leaseUntil < :now",
+            ExpressionAttributeValues={
+                ":job": job_id, ":until": now + 110, ":now": now})
+        return True
+    except Exception as exc:
+        if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return False
+        raise
+
+
+def _release_provider_lock(table, provider, job_id, cooldown=12):
+    # No DeleteItem IAM permission needed. Enforce a small shared cooldown.
+    try:
+        table.update_item(
+            Key=_provider_lock_key(provider),
+            UpdateExpression="SET leaseUntil=:until, updatedAt=:now",
+            ConditionExpression="ownerJob=:job",
+            ExpressionAttributeValues={
+                ":job": job_id, ":until": int(time.time()) + cooldown,
+                ":now": int(time.time())})
+    except Exception as exc:
+        # A stale worker must never clear a successor's lease.
+        if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+            raise
 
 
 def _worker(payload):
@@ -361,9 +422,20 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
-        reply = teacher._auto_teach({"projectId": item["projectId"],
-                                     "provider": item["provider"], "scenes": fresh})
-        code, data = reply["statusCode"], json.loads(reply["body"])
+        if not _try_provider_lock(table, item["provider"], job_id, int(time.time())):
+            _save_progress(table, item, state="queued", leaseUntil=0,
+                           updatedAt=int(time.time()))
+            return {"next": True, "state": "provider-busy", "waitSeconds": 20}
+        cooldown = 12
+        try:
+            reply = teacher._auto_teach({
+                "projectId": item["projectId"],
+                "provider": item["provider"], "scenes": fresh})
+            code, data = reply["statusCode"], json.loads(reply["body"])
+            if code == 429:
+                cooldown = 70
+        finally:
+            _release_provider_lock(table, item["provider"], job_id, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if code == 429:

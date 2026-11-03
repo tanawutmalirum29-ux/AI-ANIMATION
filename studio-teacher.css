@@ -205,3 +205,24 @@ html:not(.ai-only) .mother-preview-toggle{display:none!important}
  .mother-compose-footer .mother-actions{flex:1 1 190px}
  .mother-compose-footer .mother-actions button{flex:1 1 auto}
 }
+
+
+/* Multi-JSON Cloud teacher queue, compact mobile / iPad workspace. */
+.multi-json{display:grid;gap:12px;max-width:100%;min-width:0;padding:12px 8px 25px}
+.multi-json h3,.multi-json h4{margin:0;font-size:1.12rem;color:#f4dfa9}
+.multi-json p{line-height:1.55;margin:0}
+.multi-json-muted{font-size:12px;color:#bfced9;overflow-wrap:anywhere}
+.multi-json-error{font-size:12px;color:#ffd2a1;overflow-wrap:anywhere}
+.multi-json input[type=file]{width:100%;max-width:100%;box-sizing:border-box;background:#192e47;border:1px solid #7891ad;border-radius:10px;padding:13px;color:#eef3f9}
+.multi-json select{min-width:140px;max-width:100%;padding:10px;background:#132439;color:#fafcff;border:1px solid #6e8aa4;border-radius:8px}
+.multi-json button{min-height:39px;min-width:70px;padding:8px 12px;background:#27445c;color:#fff;border:1px solid #7891aa;border-radius:9px;font:inherit;cursor:pointer}
+.multi-json button:disabled{opacity:.5;cursor:default}
+.multi-json-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.multi-json-list{display:grid;gap:9px;min-width:0}
+.multi-json-item{display:grid;gap:7px;min-width:0;padding:12px;border:1px solid #657f9a;border-radius:11px;background:#162940;overflow-wrap:anywhere}
+.multi-json-item strong{font-size:13px}.multi-json-item small{font-size:12px;line-height:1.5;color:#bfd0df}
+.multi-json-item progress{width:100%;height:11px;accent-color:#4bb28c}
+@media(max-width:530px){
+ .multi-json-actions select{flex:1 1 160px}
+ .multi-json-actions button{flex:1 1 120px}
+}
