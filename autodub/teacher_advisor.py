@@ -365,7 +365,12 @@ def handle(action, body, owner_id=None):
         return _response(400, {"error": "กรุณาเลือก AI Provider ที่รองรับ"})
     snapshot = _snapshot()
     snapshot["projectJob"] = _job_snapshot(body.get("project"), owner_id)
-    github = _github_evidence(message, include_code=True)
+    # A question about saved lessons does not need multiple 6-second GitHub
+    # source downloads. Save the Lambda's response budget for Gemini.
+    code_question = any(word in message.lower() for word in
+        ("github", "repo", "โค้ด", "ไฟล์", "แก้บั๊ก", "บั๊ก",
+         "deploy", "ฟังก์ชัน", "source", "สคริปต์"))
+    github = _github_evidence(message, include_code=code_question)
     logs = _cloudwatch_summary(message)
     evidence = {"liveGitHub": github, "cloudWatch": logs,
                 "ownerCloudJob": snapshot["projectJob"], "verifiedAWS": {
@@ -380,12 +385,53 @@ def handle(action, body, owner_id=None):
             "features": FEATURES,
             "limitations": BOUNDARIES},
         "clientReportedProject": _context(body.get("project"))}
-    context = json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
-    result = teacher._chat({"provider": provider,
-                            "connectionId": body.get("connectionId"),
-                            "message": message,
-                            "context": context, "history": body.get("history", []),
-                            "_internalMaxOutput": 1400}, advisor_mode=True)
+    # LLM HTTP bodies are limited to 24 KB (UTF-8). Thai characters take up
+    # more than one byte: a context capped by *characters* can still overflow.
+    # Condense verbose extras, preserving verified AWS counts and source IDs.
+    def as_json():
+        return json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
+    context = as_json()
+    if len(context.encode("utf-8")) > 5500:
+        for source in github.get("sourceExcerpts", []):
+            source["excerpt"] = str(source.get("excerpt", ""))[:420]
+        context = as_json()
+    if len(context.encode("utf-8")) > 5500:
+        github["sourceExcerpts"] = []
+        context = as_json()
+    if len(context.encode("utf-8")) > 5500:
+        catalog = evidence.get("aiCatalog")
+        if isinstance(catalog, dict):
+            catalog["memberRoles"] = [
+                {"id": v.get("id"), "role": v.get("role")}
+                for v in catalog.get("memberRoles", []) if isinstance(v, dict)]
+            catalog["ownerConnections"] = [
+                {"name": v.get("name"), "ready": v.get("ready")}
+                for v in catalog.get("ownerConnections", []) if isinstance(v, dict)]
+        evidence["reviewedAppManifest"]["features"] = [
+            v.get("name") for v in FEATURES if isinstance(v, dict)][:10]
+        evidence["reviewedAppManifest"]["limitations"] = []
+        context = as_json()
+    if len(context.encode("utf-8")) > 5500:
+        evidence = {
+            "liveGitHub": {k: github.get(k) for k in
+                ("available", "source", "treeSha", "selectedFiles", "checkedAt")},
+            "verifiedAWS": evidence["verifiedAWS"],
+            "ownerCloudJob": evidence["ownerCloudJob"],
+            "clientReportedProject": evidence["clientReportedProject"],
+            "knowledgeVersion": KNOWLEDGE_VERSION}
+        context = as_json()
+    try:
+        result = teacher._chat({"provider": provider,
+                                "connectionId": body.get("connectionId"),
+                                "message": message,
+                                "context": context, "history": body.get("history", []),
+                                "_internalMaxOutput": 1400}, advisor_mode=True)
+    except Exception as exc:
+        # Always return valid JSON from the Lambda Function URL. The error
+        # category is safe to disclose; raw exceptions may contain secrets.
+        return _response(503, {
+            "error": "AI แม่ยังเรียกโมเดลไม่สำเร็จ (" + type(exc).__name__ + ") กรุณาลองอีกครั้ง",
+            "reasonCode": "MOTHER_CALL_FAILED"})
     if result["statusCode"] != 200:
         return result
     parsed = json.loads(result["body"])
