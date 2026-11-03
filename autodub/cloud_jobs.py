@@ -87,6 +87,8 @@ def _public(item):
             "trainingPending": bool(item.get("trainingPending", False)),
             "trainingAttempts": int(item.get("trainingAttempts", 0)),
             "nextRetryAt": int(item.get("nextRetryAt", 0)),
+            "lastProviderReason": str(item.get("lastProviderReason") or "")[:64],
+            "transientFailures": int(item.get("transientFailures", 0)),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -668,9 +670,12 @@ def _worker(payload):
     # A single strong read finds all reusable lessons in the lookahead.
     # Only the first two misses need paid/rate-limited AI inference.
     remembered = teacher._cached_scene_records(table, item["projectId"], lookahead_scenes)
+    # After a timeout, retry only one not-yet-taught scene. Replaying
+    # the same two-scene generation can time out repeatedly on a slow model.
+    fresh_limit = 1 if int(item.get("transientFailures", 0)) > 0 else 2
     selected, scenes, fresh = [], [], []
     for index, scene in zip(lookahead, lookahead_scenes):
-        if scene["id"] not in remembered and len(fresh) >= 2:
+        if scene["id"] not in remembered and len(fresh) >= fresh_limit:
             break
         selected.append(index)
         scenes.append(scene)
@@ -814,6 +819,9 @@ def _worker(payload):
                  else min(600, 25 * (2 ** (failures - 1))))
         committed = _save_progress(table, item, state="queued", leaseUntil=0,
                        transientFailures=failures,
+                       lastProviderReason=data["reasonCode"],
+                       lastConnectionId=teaching_connection or "default-" + teaching_provider,
+                       nextRetryAt=int(time.time()) + delay,
                        lastError="AI provider ตอบช้า/ไม่พร้อม กำลังรอลองใหม่โดยไม่ข้ามฉาก",
                        updatedAt=int(time.time()))
         if not committed:
@@ -896,7 +904,7 @@ def _worker(payload):
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
-                   nextRetryAt=0,
+                   nextRetryAt=0, lastProviderReason="",
                    unusableConnections=[],
                    trainingPending=bool(training_pending),
                    lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
@@ -982,6 +990,7 @@ def worker(payload):
                         committed = _save_progress(table, current, state="queued",
                                     leaseUntil=0, transientFailures=failures,
                                     nextRetryAt=int(time.time()) + delay,
+                                    lastProviderReason="AWS_NETWORK_TRANSIENT",
                                     lastError="AWS ติดลิมิตหรือเครือข่ายตอบช้า; จะทำต่ออัตโนมัติ",
                                     updatedAt=int(time.time()))
                         return {"next": bool(committed),

@@ -307,6 +307,18 @@ function jobRow(job){
     ' · ปิดเว็บได้','multi-json-muted'));
  }
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
+ if(job.lastProviderReason && job.error){
+  const cause={
+   TEACHER_PROVIDER_TIMEOUT:'AI ตอบไม่ทันเวลารอ',
+   TEACHER_PROVIDER_NETWORK:'เครือข่ายเชื่อม API ขัดข้อง',
+   TEACHER_PROVIDER_UPSTREAM:'เซิร์ฟเวอร์ AI ตอบ HTTP 408/5xx',
+   TEACHER_PROVIDER_BAD_RESPONSE:'AI ส่ง JSON ที่อ่านไม่ได้',
+   AWS_NETWORK_TRANSIENT:'AWS หรือเครือข่ายตอบช้า'
+  }[job.lastProviderReason]||'เกิดปัญหาชั่วคราวระหว่างเรียก AI';
+  row.append(dom('small','สาเหตุ: '+cause+
+   (Number(job.transientFailures)>0?' · ลองใหม่รอบ '+job.transientFailures:''),
+   'multi-json-muted'));
+ }
  const controls=dom('div',null,'multi-json-actions');
  if(['queued','running'].includes(job.state))
   controls.append(button('พัก',()=>control(job,'pause')));
