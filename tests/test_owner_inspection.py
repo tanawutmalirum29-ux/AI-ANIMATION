@@ -14,7 +14,7 @@ class InspectionTests(unittest.TestCase):
             {"path":"autodub/private/keys.py","sha":"e"*40,"type":"blob","size":200},
             {"path":"autodub/archive.pem","sha":"f"*40,"type":"blob","size":200},
         ]}
-        code='print("safe")\nPASSWORD = "do-not-send-this"\nAPI_KEY="sensitive"\n'
+        code='print("safe")\nPASSWORD = "do-not-send-this"\nAPI_KEY="DO_NOT_EXPOSE_VALUE"\n'
         def github(url,limit=0):
             if "git/trees" in url:return tree
             if "git/blobs" in url:return {"encoding":"base64",
@@ -26,7 +26,7 @@ class InspectionTests(unittest.TestCase):
         self.assertEqual(info["selectedFiles"][0],"autodub/teacher.py")
         self.assertEqual(info["totalSafeFiles"],2)
         self.assertNotIn("do-not-send-this",json.dumps(info))
-        self.assertNotIn("sensitive",json.dumps(info))
+        self.assertNotIn("DO_NOT_EXPOSE_VALUE",json.dumps(info))
         self.assertNotIn("private/keys",json.dumps(info))
         self.assertFalse(info["privateReposAccessible"])
 
@@ -70,6 +70,8 @@ class InspectionTests(unittest.TestCase):
         self.assertFalse(result["database"]["available"])
 
     def test_member_cannot_call_inspection_route(self):
+        sys.modules.setdefault("edge_tts",types.ModuleType("edge_tts"))
+        sys.modules.setdefault("github_assets",types.ModuleType("github_assets"))
         import handler,github_oauth
         env={"GITHUB_OAUTH_CLIENT_ID":"test","GITHUB_OAUTH_SECRET_PARAMETER":"test",
              "SESSION_SECRET":"a"*48}
