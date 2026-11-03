@@ -51,6 +51,9 @@ class Table:
         if "leaseOwner=:owner" in (ConditionExpression or ""):
             if row.get("leaseOwner") != values[":owner"]:
                 raise FakeConditionConflict()
+        if "#u < :until" in (ConditionExpression or ""):
+            if row.get("until", -1) >= values[":until"]:
+                raise FakeConditionConflict()
         if "leaseUntil < :now" in (ConditionExpression or "") and row.get("leaseUntil", -1) >= values[":now"]:
             raise AssertionError("lease not released")
         clause = UpdateExpression.split(" REMOVE ")[0].removeprefix("SET ")
