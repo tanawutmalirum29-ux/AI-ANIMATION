@@ -11,7 +11,8 @@ const path=require('node:path');
   await page.locator('#aiQuick').click();
   const panel=page.locator('#aiWorkspacePanel');
   await panel.waitFor({state:'visible'});
-  assert.equal(await panel.getByRole('heading',{name:'AI Production · 6 ผู้ช่วย'}).count(),1);
+  assert.equal(await panel.getByRole('heading',{name:'AI Production · 12 ตำแหน่ง'}).count(),1);
+  assert.equal(await panel.locator('.ai-production-step').count(),12);
   assert.equal(await panel.getByRole('heading',{name:/AI-5 · ตรวจจังหวะฉาก/}).count(),1);
   assert.equal(await panel.getByRole('heading',{name:/AI-4 · พากย์เสียง/}).count(),1);
   assert.equal(await panel.getByRole('heading',{name:'AI-1 / AI-2 / AI-3 / AI-6 · งานภาพและ QA'}).count(),1);
@@ -52,6 +53,6 @@ const path=require('node:path');
   await panel.getByRole('button',{name:'บันทึกเวอร์ชันในเครื่อง'}).click();
   await panel.locator('#aiProjectLibrary .ai-snapshot').first().waitFor();
   assert.deepEqual(errors,[]);
-  console.log('PASS: six specialist pipeline, imported JSON audit, measured speech trim, persisted clips and unchanged authored script');
+  console.log('PASS: twelve-position workspace preserving V1 specialized jobs, imported JSON audit, measured speech trim, persisted clips and unchanged authored script');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -55,7 +55,7 @@ const path=require('node:path');
    assert.equal(await page.locator('#studentMemorySearch').inputValue(),'ไม่ ไม่');
    await page.locator('#studentMemoryLabel').selectOption('keep');
    assert.equal(await page.locator('#studentMemoryLabel').inputValue(),'keep');
-   await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'6 ผู้ช่วย AI'}).click();
+   await page.locator('#aiWorkspacePanel .ai-tabs').getByRole('button',{name:'12 ขั้นการผลิต'}).click();
    assert.equal(await visible('#imp'),false,'paste editor starts collapsed');
    await page.locator('#aiHub').getByRole('button',{name:'วาง JSON / ตรวจสอบ'}).click();
    assert.equal(await visible('#imp'),true,'paste editor opens inline without leaving preview');

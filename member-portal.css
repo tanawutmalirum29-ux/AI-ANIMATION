@@ -6,7 +6,7 @@
 #storyMemberPortal h1{font-size:24px;color:#eed29c}#storyMemberPortal h2{font-size:17px;margin:0 0 12px}
 #storyMemberPortal button{background:#24354c;color:#eef3fb;border:1px solid #596c82;border-radius:9px;padding:10px 13px;min-height:42px;font:inherit;cursor:pointer}
 #storyMemberPortal button:disabled{opacity:.5;cursor:not-allowed}
-#storyMemberPortal button.member-primary,#storyMemberPortal .member-role.active{background:#e8c68b;color:#19263a;font-weight:750}
+#storyMemberPortal button.member-primary,#storyMemberPortal button.member-production-primary,#storyMemberPortal .member-role.active{background:#e8c68b;color:#19263a;font-weight:750}
 #storyMemberPortal .member-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}
 #storyMemberPortal .member-role{display:flex;flex-direction:column;align-items:flex-start;text-align:left}
 #storyMemberPortal small,#storyMemberPortal .subtle{color:#aebdd0;font-size:13px}
@@ -26,3 +26,16 @@ body.access-member #aiWorkspacePanel > :not(#storyMemberPortal){display:none!imp
 body.access-member #aiWorkspacePanel #storyMemberPortal{display:block!important}
 body.access-member #aiWorkspacePanel{min-height:0;min-width:0}
 body.access-member #studioToolNav,body.access-member #tl,body.access-member #pre{visibility:visible!important}
+
+/* Shared 12-stage workflow for owner/editor member/temporary guest */
+#storyMemberPortal .member-production-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+#storyMemberPortal .member-production-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+#storyMemberPortal .member-production-step{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:10px;background:#0c1b2b;border:1px solid #33475e;border-radius:9px;min-width:0}
+#storyMemberPortal .member-production-step strong{flex:1 1 55%;min-width:0}
+#storyMemberPortal .member-production-step small{width:100%;overflow-wrap:anywhere}
+#storyMemberPortal .member-production-state{font-size:12px;color:#ccdaeb}
+#storyMemberPortal .member-production-step[data-state=done]{border-color:#518265}
+#storyMemberPortal .member-production-step[data-state=running]{border-color:#e8c68b}
+#storyMemberPortal .member-production-step[data-state=unavailable],
+#storyMemberPortal .member-production-step[data-state=failed]{border-color:#a8736b}
+@media(max-width:630px){#storyMemberPortal .member-production-steps{grid-template-columns:1fr}}
