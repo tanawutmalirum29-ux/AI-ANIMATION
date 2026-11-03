@@ -138,3 +138,46 @@
 .teacher-saved-provider>span{flex:1 1 160px;overflow-wrap:anywhere}
 .teacher-saved-provider .teacher-disconnect{border-color:#b96e6e;color:var(--muted,#dfb2b2);background:transparent}
 .teacher-saved-provider button{min-height:40px}
+
+
+/* Dedicated AI Mother room: project-aware, admin-only by authenticated workspace. */
+.mother-chat{display:grid;gap:12px;min-width:0;padding:10px 2px 28px}
+.mother-chat h3{font-size:1.22rem;line-height:1.45;margin:0;color:#f4dfaf}
+.mother-chat .mother-subtitle,.mother-fine{font-size:12px;line-height:1.65;color:#b8ccdb;margin:0;overflow-wrap:anywhere}
+.mother-chat button{font:inherit;min-height:42px;cursor:pointer;border-radius:10px;padding:9px 12px;border:1px solid #7c91a78c;background:#22344a;color:#f6f7fa}
+.mother-chat button:disabled{opacity:.48;cursor:default}
+.mother-evidence{display:grid;gap:9px;padding:12px;border:1px solid #7d93a77d;background:#12243a;border-radius:12px;min-width:0}
+.mother-section-title{font-weight:700;font-size:14px}
+.mother-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.mother-fact{display:flex;min-width:0;flex-direction:column;gap:4px;padding:11px;border:1px solid #6e819a70;border-radius:10px;background:#1d344b}
+.mother-fact strong{font-size:13px;overflow-wrap:anywhere;line-height:1.5}
+.mother-fact small{font-size:11px;line-height:1.55;color:#d2e0e9}
+.mother-knowledge{padding:11px;border:1px solid #7289a477;border-radius:10px;font-size:12px;line-height:1.6;min-width:0}
+.mother-knowledge summary{font-weight:700;cursor:pointer}
+.mother-knowledge p{margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.mother-provider{display:grid;gap:7px;font-size:13px}
+.mother-provider select{width:100%;max-width:100%;box-sizing:border-box;border:1px solid #8297a8;background:#152a40;color:#eef3f9;border-radius:10px;padding:12px;font:inherit}
+.mother-chat-log{display:grid;gap:10px;align-content:start;min-height:180px;max-height:52vh;overflow-y:auto;overscroll-behavior:contain;border-radius:12px;border:1px solid #697f9980;background:#0d1c30;padding:12px}
+.mother-empty{font-size:13px;color:#b9c9d8;line-height:1.7}
+.mother-bubble{display:grid;gap:5px;min-width:0;max-width:96%;border-radius:12px;padding:12px;border:1px solid #58758f80;background:#1c334c}
+.mother-bubble.user{justify-self:end;background:#30435c;margin-left:8%}
+.mother-bubble.mother{justify-self:start}
+.mother-bubble strong{font-size:13px}
+.mother-bubble p{font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.mother-bubble small{color:#b7d0dd;line-height:1.6;font-size:11px}
+.mother-prompts{display:flex;gap:8px;flex-wrap:wrap}
+.mother-chat .mother-suggest{font-size:12px;line-height:1.4;text-align:left;min-height:38px;padding:8px 10px}
+.mother-composer{position:sticky;bottom:0;z-index:6;display:grid;gap:10px;background:#14263a;border:1px solid #6b869c8a;box-shadow:0 -8px 25px #071220ad;border-radius:12px;padding:11px;min-width:0}
+.mother-composer textarea{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;background:#0f2033;color:#fff;border:1px solid #7a93ab;border-radius:10px;font:inherit;font-size:15px;line-height:1.6;padding:11px}
+.mother-context{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;color:#d2e0ea}
+.mother-context input{margin-top:2px}
+.mother-actions{display:flex;gap:8px;flex-wrap:wrap}
+.mother-chat .mother-primary{background:#d6b976;color:#142235;font-weight:750;border-color:#d6b976}
+.mother-error{border:1px solid #cf986c;background:#392b2e;color:#ffe0c8;border-radius:10px;padding:10px;font-size:13px;overflow-wrap:anywhere;line-height:1.55}
+.mother-chat .mother-config,.mother-chat .mother-refresh{justify-self:start}
+@media(max-width:540px){
+ .mother-stats{grid-template-columns:1fr}
+ .mother-chat-log{max-height:42vh;min-height:160px}
+ .mother-composer{padding:9px;bottom:env(safe-area-inset-bottom,0px)}
+ .mother-actions button{flex:1 1 135px}
+}
