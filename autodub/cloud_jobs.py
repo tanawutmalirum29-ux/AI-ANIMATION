@@ -136,8 +136,12 @@ def _start(body, owner):
     import teacher
     import teacher_connections
     connection_id = body.get("connectionId") or ("default-" + provider)
-    if (not os.getenv("TEACHER_FEEDBACK_TABLE")
-            or not teacher_connections.available(provider, connection_id)):
+    if connection_id == "default-" + provider:
+        status = json.loads(teacher._status()["body"])
+        ready = any(p["id"] == provider and p["ready"] for p in status["providers"])
+    else:
+        ready = teacher_connections.available(provider, connection_id)
+    if not os.getenv("TEACHER_FEEDBACK_TABLE") or not ready:
         return _resp(409, {"error": "AI Key ที่เลือกไม่พร้อม กรุณาตรวจการเชื่อมต่อ"})
     # Preserve legacy job IDs and checkpoints for the original provider key.
     fingerprint = [str(owner), project_id, provider, scenes]
