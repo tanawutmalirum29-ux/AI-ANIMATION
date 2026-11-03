@@ -226,3 +226,24 @@ html:not(.ai-only) .mother-preview-toggle{display:none!important}
  .multi-json-actions select{flex:1 1 160px}
  .multi-json-actions button{flex:1 1 120px}
 }
+
+
+/* Thai editorial AI child v0.1: review-only, mobile/iPad-safe. */
+.thai-editor{display:grid;gap:12px;padding:12px 10px 26px;min-width:0;max-width:100%;box-sizing:border-box}
+.thai-editor h3{margin:0;color:#f4e2ac;font-size:1.12rem}
+.thai-editor p{margin:0;overflow-wrap:anywhere;line-height:1.55}
+.thai-editor-muted{color:#becbd7;font-size:12px}
+.thai-editor-stats{background:#203b52;border:1px solid #647b90;border-radius:10px;padding:11px;color:#e1edf7;font-size:12px}
+.thai-editor-error{color:#ffbf95;font-size:12px}
+.thai-editor-actions{display:flex;flex-wrap:wrap;gap:8px}
+.thai-editor-button{background:#284a62;color:#fff;border:1px solid #8098a8;border-radius:9px;padding:9px 11px;min-height:38px;font:inherit;cursor:pointer}
+.thai-editor-button:disabled{opacity:.5;cursor:default}
+.thai-editor-list{display:grid;gap:9px}
+.thai-editor-item{display:grid;gap:9px;background:#162c44;border:1px solid #607b94;border-radius:11px;padding:12px;min-width:0;overflow-wrap:anywhere}
+.thai-editor-item strong{font-size:13px;color:#f5e1ae}
+.thai-editor-original{font-size:13px;white-space:pre-wrap}
+.thai-editor-label{display:grid;gap:5px;font-size:12px;color:#cfdce8}
+.thai-editor-label select,.thai-editor-label textarea{width:100%;min-width:0;box-sizing:border-box;border-radius:8px;border:1px solid #7292aa;background:#122338;color:#fff;padding:9px;font:inherit;font-size:14px}
+.thai-editor-label textarea{resize:vertical}
+.thai-editor-confirmed{color:#86dcb9;font-size:12px}
+@media(max-width:550px){.thai-editor-actions .thai-editor-button{flex:1 1 140px}.thai-editor{padding:10px 6px 18px}}
