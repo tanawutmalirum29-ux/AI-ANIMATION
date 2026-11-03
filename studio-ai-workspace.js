@@ -176,7 +176,10 @@ function persist(mutator){
  bridge.persist();
 }
 function status(message,fail=false){progress=message;lastError=fail?message:'';const node=rootElement?.querySelector('#aiWorkspaceStatus');if(node){node.textContent=message;node.dataset.error=String(!!fail)}}
-function setView(id){view=id;render()}
+function setView(id){
+ if(view==='mother'&&id!=='mother')document.body.classList.remove('mother-preview');
+ view=id;render();
+}
 function recordHandoff(role,stage,summary,extra={}){
  persist(w=>{
   const p=w.production;
@@ -1070,6 +1073,9 @@ function renderProjects(container){
 }
 function render(){
  if(!rootElement||!bridge)return;
+ // Give conversational AI its own usable viewport; other tools keep the editor.
+ document.body.classList.toggle('mother-focus',view==='mother');
+ rootElement.dataset.activeAiTab=view;
  rootElement.replaceChildren(
   e('div',{className:'ai-header'},e('div',{},e('h2',{},'AI Production · 6 ผู้ช่วย'),
    e('p',{},'จัดองค์ประกอบ · SVG · Motion · เสียง · เวลา · QA'))),
