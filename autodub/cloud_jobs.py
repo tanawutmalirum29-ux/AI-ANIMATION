@@ -57,6 +57,7 @@ def _public(item):
     completed = len(item.get("completedIndices", []))
     total = int(item.get("total", 0))
     return {"jobId": item["jobId"], "projectId": item["projectId"],
+            "storyName": str(item.get("storyName") or "")[:100],
             "state": item["state"], "total": total, "completed": completed,
             "remaining": max(0, total - completed),
             "pass": int(item.get("pass", 0)) + 1,
@@ -125,6 +126,7 @@ def _start(body, owner):
         return _resp(503, {"error": "Background Jobs ยังไม่ได้ติดตั้งบน AWS"})
     project_id = body.get("projectId")
     provider = body.get("provider")
+    story_name = re.sub(r"[\x00-\x1f\x7f]", " ", str(body.get("storyName") or "")).strip()[:100]
     if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
         return _resp(400, {"error": "รหัสโปรเจกต์ไม่ถูกต้อง"})
     if provider not in ("gemini", "openrouter", "compatible"):
@@ -169,7 +171,7 @@ def _start(body, owner):
                              "scenes": scenes[start:start + CHUNK_SIZE]})
     item = {"pk": pk, "sk": "meta", "jobId": digest,
             "ownerId": str(owner), "projectId": project_id, "provider": provider,
-            "connectionId": connection_id,
+            "connectionId": connection_id, "storyName": story_name,
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
