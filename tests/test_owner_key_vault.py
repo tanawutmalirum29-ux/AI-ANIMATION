@@ -43,7 +43,7 @@ class VaultTable:
 
     def put_item(self, Item, **kwargs):
         pk = (Item["pk"], Item["sk"])
-        if pk in self.rows:
+        if pk in self.rows and kwargs.get("ConditionExpression"):
             raise AssertionError("duplicate id")
         self.rows[pk] = dict(Item)
 
@@ -122,6 +122,60 @@ class OwnerVaultTests(unittest.TestCase):
                 code, _ = read(connections.remove({
                     "connectionId": added["id"], "confirmRemove": True}, connections.ADMIN_ID))
             self.assertEqual(code, 200)
+
+    def test_friendly_names_persist_without_changing_keys_or_job_ids(self):
+        settings = {"gemini": {"key": "legacy-long-key-secret-01234",
+                                "model": "gemini-3.5-flash-lite"}}
+        with mock.patch.object(teacher, "_settings", return_value=settings), \
+             mock.patch.object(teacher, "_save_settings",
+                               side_effect=AssertionError("do not rewrite SSM")):
+            created = [vault.add("gemini", "gemini-3.5-flash-lite", "",
+                                 "mother-renaming-test-key-" + str(i)) for i in range(2)]
+            before = {row["id"]: row["encrypted"] for row in self.db.rows.values()
+                      if "encrypted" in row}
+            names = connections.listing()
+            self.assertEqual([x["name"] for x in names],
+                             ["AI แม่ 1", "AI แม่ 2", "AI แม่ 3"])
+            self.assertEqual([x["id"] for x in names],
+                             ["default-gemini"] +
+                             sorted([x["id"] for x in created]))
+            first = created[0]["id"]
+            code, result = read(connections.handle("teacher.connection.rename", {
+                "connectionId": first, "name": "AI ตรวจความต่อเนื่อง"},
+                connections.ADMIN_ID))
+            self.assertEqual(code, 200, result)
+            self.assertEqual(result["connection"]["name"], "AI ตรวจความต่อเนื่อง")
+            self.assertEqual(connections.listing()[
+                next(i for i, x in enumerate(connections.listing())
+                     if x["id"] == first)]["name"], "AI ตรวจความต่อเนื่อง")
+            code, _ = read(connections.handle("teacher.connection.rename", {
+                "connectionId": "default-gemini", "name": "แม่หลัก"},
+                connections.ADMIN_ID))
+            self.assertEqual(code, 200)
+            code, _ = read(connections.handle("teacher.connection.rename", {
+                "connectionId": created[1]["id"], "name": "แม่หลัก"},
+                connections.ADMIN_ID))
+            self.assertEqual(code, 409)
+            code, _ = read(connections.handle("teacher.connection.rename", {
+                "connectionId": first, "name": "bad" + chr(10) + "name"},
+                connections.ADMIN_ID))
+            self.assertEqual(code, 400)
+            code, _ = read(connections.handle("teacher.connection.rename", {
+                "connectionId": first, "name": " "},
+                "not-admin"))
+            self.assertEqual(code, 403)
+            self.assertEqual(before, {row["id"]: row["encrypted"]
+                                     for row in self.db.rows.values()
+                                     if "encrypted" in row})
+            self.assertEqual(vault.resolve("gemini", first)["key"],
+                             "mother-renaming-test-key-0")
+            code, reset = read(connections.handle("teacher.connection.rename", {
+                "connectionId": first, "name": ""},
+                connections.ADMIN_ID))
+            self.assertEqual(code, 200)
+            self.assertTrue(reset["connection"]["name"].startswith("AI แม่ "))
+            self.assertNotIn("mother-renaming-test-key", json.dumps(
+                connections.listing(), ensure_ascii=False))
 
     def test_key_cannot_be_removed_while_pool_has_unfinished_job(self):
         key = vault.add("gemini", "gemini-3.5-flash-lite", "", "pool-job-owner-key-secret")

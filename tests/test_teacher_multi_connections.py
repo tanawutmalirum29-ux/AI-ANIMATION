@@ -50,6 +50,37 @@ class MultiKeyTests(unittest.TestCase):
             "provider":"gemini","apiKey":"new-gemini-key-0-secret"},keys.ADMIN_ID)
         self.assertEqual(duplicate["statusCode"],409)
 
+    def test_friendly_names_and_legacy_alias_save_without_changing_connection_id(self):
+        with mock.patch("owner_key_vault.enabled", return_value=False):
+            code, initial = decode(keys.handle(
+                "teacher.connection.list", {}, keys.ADMIN_ID))
+            self.assertEqual(code, 200)
+            self.assertEqual(initial["connections"][0]["name"], "AI แม่ 1")
+            code, added = decode(keys.handle("teacher.connection.add", {
+                "provider": "gemini", "apiKey": "secondary-owner-name-key"},
+                keys.ADMIN_ID))
+            self.assertEqual(code, 200)
+            connection_id = added["connection"]["id"]
+            code, result = decode(keys.handle("teacher.connection.rename", {
+                "connectionId": connection_id, "name": "แม่เกลาบท"},
+                keys.ADMIN_ID))
+            self.assertEqual(code, 200)
+            self.assertEqual(result["connection"]["name"], "แม่เกลาบท")
+            self.assertEqual(keys.listing()[1]["name"], "แม่เกลาบท")
+            self.assertEqual(self.settings["connectionAliases"][connection_id],
+                             "แม่เกลาบท")
+            self.assertIn(connection_id, self.settings["extraConnections"])
+            code, result = decode(keys.handle("teacher.connection.rename", {
+                "connectionId": connection_id, "name": ""},
+                keys.ADMIN_ID))
+            self.assertEqual(code, 200)
+            self.assertEqual(result["connection"]["name"], "AI แม่ 2")
+            self.assertEqual(self.settings["connectionAliases"], {})
+            code, _ = decode(keys.handle("teacher.connection.rename", {
+                "connectionId": "key-" + "0"*16, "name": "ไม่มีอยู่"},
+                keys.ADMIN_ID))
+            self.assertEqual(code, 404)
+
     def test_owner_selects_any_valid_openrouter_model_without_price_tier_gate(self):
         for bad in ("bad model", "bad?model"):
             code,_=decode(keys.add({"provider":"openrouter","model":bad,

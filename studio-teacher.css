@@ -222,6 +222,20 @@ html:not(.ai-only) .mother-preview-toggle{display:none!important}
 .multi-json-item{display:grid;gap:7px;min-width:0;padding:12px;border:1px solid #657f9a;border-radius:11px;background:#162940;overflow-wrap:anywhere}
 .multi-json-item strong{font-size:13px}.multi-json-item small{font-size:12px;line-height:1.5;color:#bfd0df}
 .multi-json-item progress{width:100%;height:11px;accent-color:#4bb28c}
+.multi-json-connections{display:grid;gap:10px;min-width:0}
+.multi-json-key{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;min-width:0;box-sizing:border-box;background:#182b40;border:1px solid #405c73;border-radius:11px;padding:10px}
+.multi-json-key-info{display:grid;gap:3px;min-width:0;flex:1 1 170px;overflow-wrap:anywhere}
+.multi-json-key-info strong{font-size:14px;color:#f5e0b5;line-height:1.4}
+.multi-json-key-info small{font-size:12px;color:#b9cbdc;line-height:1.45;overflow-wrap:anywhere}
+.multi-json-key-actions{display:flex;flex:0 1 auto;flex-wrap:wrap;gap:6px}
+.multi-json-key-actions button{min-width:0;min-height:36px;padding:7px 10px;font-size:13px}
+.multi-json-rename{display:flex;gap:7px;flex-wrap:wrap;align-items:center;width:100%;min-width:0}
+.multi-json-rename input{flex:1 1 205px;min-width:0;max-width:100%;box-sizing:border-box;padding:11px;border:1px solid #7891aa;border-radius:9px;background:#0f2032;color:#fff;font:inherit}
+.multi-json-rename input:focus-visible{outline:2px solid #e6ba69;outline-offset:2px}
+.multi-json-key-form{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.multi-json-key-form input{box-sizing:border-box;min-width:0;flex:1 1 160px;padding:10px;border:1px solid #7891aa;border-radius:9px;background:#0f2032;color:#fff;font:inherit}
+.multi-json-key-form select{flex:1 1 150px}
+@media(max-width:530px){.multi-json-key-info{flex-basis:100%}.multi-json-key-actions{width:100%}.multi-json-key-actions button{flex:1 1 85px}.multi-json-rename button{flex:1 1 90px}}
 @media(max-width:530px){
  .multi-json-actions select{flex:1 1 160px}
  .multi-json-actions button{flex:1 1 120px}
