@@ -84,6 +84,8 @@ def _public(item):
             "poolMode": bool(item.get("poolMode", False)),
             "lastConnectionId": item.get("lastConnectionId", ""),
             "unusableKeys": len(item.get("unusableConnections", [])),
+            "trainingPending": bool(item.get("trainingPending", False)),
+            "trainingAttempts": int(item.get("trainingAttempts", 0)),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
