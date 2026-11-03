@@ -75,6 +75,8 @@ const path=require('path'),assert=require('node:assert/strict');
     await page.locator('#studioToolNav [data-tool="ai"]').click();
     await page.locator('#storyMemberPortal').waitFor({state:'visible'});
     assert.equal(await page.locator('#storyMemberPortal .member-role').count(),6);
+     assert.equal(await page.locator('#storyMemberPortal .member-production-step').count(),12,'all twelve positions visible to ordinary accounts');
+     assert.equal(await page.getByRole('button',{name:'เริ่มประมวลผล 12 ขั้น · ครั้งเดียว'}).count(),1);
     const denied=await page.evaluate(async()=>{
      try{await StoryStudioAccess.request({action:'teacher.status'});return false}
      catch(e){return e.status===403}
