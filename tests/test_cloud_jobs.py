@@ -17,8 +17,11 @@ class Table:
     def get_item(self, Key, **kwargs):
         return {"Item": dict(self.rows[(Key["pk"], Key["sk"])])} if (
             Key["pk"], Key["sk"]) in self.rows else {}
-    def put_item(self, Item, **kwargs):
-        self.rows[(Item["pk"], Item["sk"])] = dict(Item)
+    def put_item(self, Item, ConditionExpression=None, **kwargs):
+        key = (Item["pk"], Item["sk"])
+        if ConditionExpression and key in self.rows:
+            raise FakeConditionConflict()
+        self.rows[key] = dict(Item)
     def update_item(self, Key, UpdateExpression, ConditionExpression=None,
                     ExpressionAttributeNames=None, ExpressionAttributeValues=None,
                     **kwargs):
@@ -38,7 +41,10 @@ class Table:
             if row["generation"] != values[":g"]:
                 raise AssertionError("stale generation")
         if "#s=:running" in (ConditionExpression or "") and row["state"] != "running":
-            raise AssertionError("worker modified a paused job")
+            raise FakeConditionConflict()
+        if "leaseOwner=:owner" in (ConditionExpression or ""):
+            if row.get("leaseOwner") != values[":owner"]:
+                raise FakeConditionConflict()
         if "leaseUntil < :now" in (ConditionExpression or "") and row.get("leaseUntil", -1) >= values[":now"]:
             raise AssertionError("lease not released")
         clause = UpdateExpression.split(" REMOVE ")[0].removeprefix("SET ")
