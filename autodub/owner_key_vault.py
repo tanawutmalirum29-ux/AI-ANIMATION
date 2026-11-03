@@ -19,7 +19,10 @@ ID_RE = re.compile(r"key-[a-f0-9]{16}\Z")
 
 
 def enabled():
-    return bool(os.getenv("TEACHER_FEEDBACK_TABLE")
+    # Explicit activation prevents a routine Lambda code deployment from
+    # breaking legacy SSM when the extra DynamoDB IAM grants are not yet ready.
+    return bool(os.getenv("TEACHER_OWNER_VAULT_V2") == "1"
+                and os.getenv("TEACHER_FEEDBACK_TABLE")
                 and len(os.getenv("SESSION_SECRET", "")) >= 32)
 
 
