@@ -50,6 +50,7 @@ def _prepare(body, owner):
     upload_id = _upload_id(body)
     project_id, provider = body.get("projectId"), body.get("provider")
     connection_id = body.get("connectionId") or ("default-" + str(provider))
+    story_name = re.sub(r"[\x00-\x1f\x7f]", " ", str(body.get("storyName") or "")).strip()[:100]
     total = body.get("totalScenes")
     if not upload_id or not isinstance(project_id, str) or not re.fullmatch(
             r"[A-Za-z0-9_-]{5,90}", project_id):
@@ -81,6 +82,7 @@ def _prepare(body, owner):
         item = {"pk": UPLOAD_PREFIX + upload_id, "sk": "meta",
                 "ownerId": str(owner), "projectId": project_id,
                 "provider": provider, "connectionId": connection_id,
+                "storyName": story_name,
                 "totalScenes": total, "partCount": count,
                 "createdAt": int(time.time())}
         try:
@@ -171,6 +173,7 @@ def _commit(body, owner):
     return cloud_jobs._start({"projectId": item["projectId"],
                               "provider": item["provider"],
                               "connectionId": item.get("connectionId"),
+                              "storyName": item.get("storyName", ""),
                               "scenes": scenes}, owner)
 
 
