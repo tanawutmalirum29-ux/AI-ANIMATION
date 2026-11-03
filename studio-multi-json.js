@@ -387,6 +387,9 @@ function render(){
  poolLabel.append(poolToggle,root.document.createTextNode(
   ' ให้ AI แม่ที่ว่างช่วยงานชุดถัดไปจากเรื่องอื่น (ทดลอง · ไม่ย้ายฉากที่กำลังสอน)'));
  panel.append(poolLabel);
+ if(poolAvailable)panel.append(dom('p',
+  'เมื่อเปิด Pool เนื้อเรื่องและข้อความประกอบฉากอาจถูกส่งไปยัง API Provider ใดก็ได้ที่แอดมินเชื่อมเพิ่มไว้ ไม่จำกัดเฉพาะ Provider ที่เลือกไว้ตอนส่งงาน',
+  'multi-json-muted'));
  if(!poolAvailable)panel.append(dom('p','โหมดแบ่งงานยังไม่เปิดที่ AWS; งานปัจจุบันใช้ API ที่ผูกไว้ตามเดิม','multi-json-muted'));
  else if(!connections.some(c=>String(c.id).startsWith('key-')))
   panel.append(dom('p','ต้องเชื่อม API แม่เพิ่มเติมอย่างน้อย 1 คีย์ก่อนเปิดการช่วยงาน','multi-json-muted'));
