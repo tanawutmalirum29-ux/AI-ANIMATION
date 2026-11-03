@@ -152,6 +152,22 @@ class AutoTeacherTests(unittest.TestCase):
         self.assertIn("teachingLessons",payload["systemInstruction"]["parts"][0]["text"])
         self.assertIn("keep",payload["systemInstruction"]["parts"][0]["text"])
 
+    def test_ai_mother_teaching_does_not_hit_arbitrary_six_rpm_app_limit(self):
+        response_body = json.dumps({"teachingLessons": [lesson()]}, ensure_ascii=False)
+        candidate = {"candidates": [{"content": {"parts": [{"text": response_body}]}}]}
+        with mock.patch.object(teacher, "_settings", return_value={
+                "gemini": {"key": "test_key_abcdefghijklmnop",
+                           "model": "gemini-2.5-flash"}}), \
+             mock.patch.object(teacher, "_post_json", return_value=candidate) as http:
+            teacher._REQUEST_TIMES.clear()
+            for _ in range(9):
+                code, _ = unpack(teacher._chat({
+                    "provider": "gemini", "message": "Teach from narration",
+                    "context": "{}", "_internalMaxOutput": 3200}, teach_mode=True))
+                self.assertEqual(code, 200)
+        self.assertEqual(http.call_count, 9)
+        self.assertEqual(teacher._REQUEST_TIMES, {})
+
     def test_ai_mother_repairs_invalid_lesson_without_user_intervention(self):
         table=FakeTable()
         wrong={**lesson(),"issue":"keep","revised":"ฝนตกหนัก ชาวบ้านกลับบ้าน"}
