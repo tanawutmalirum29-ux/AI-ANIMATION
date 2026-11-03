@@ -17,6 +17,7 @@ STATES = ("queued", "running", "paused", "needs-attention", "completed", "cancel
 JOB_PREFIX = "teacher-job#"
 INDEX_PREFIX = "teacher-job-index#"
 PROVIDER_LOCK_PREFIX = "teacher-provider-lease#"
+PROVIDER_QUOTA_PREFIX = "teacher-provider-quota#"
 
 
 def _json_number(value):
@@ -347,6 +348,23 @@ def _save_progress(table, old, **updates):
     return True
 
 
+def _provider_quota_wait(table, provider, now):
+    """429 from any key may reflect a provider-wide account quota."""
+    result = table.get_item(
+        Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
+        ConsistentRead=True).get("Item", {})
+    return max(0, int(result.get("until", 0)) - now)
+
+
+def _provider_quota_block(table, provider, seconds=70):
+    table.update_item(
+        Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
+        UpdateExpression="SET #u=:until, updatedAt=:now",
+        ExpressionAttributeNames={"#u": "until"},
+        ExpressionAttributeValues={":until": int(time.time()) + seconds,
+                                   ":now": int(time.time())})
+
+
 def _provider_lock_key(provider):
     return {"pk": PROVIDER_LOCK_PREFIX + provider, "sk": "lease"}
 
@@ -435,6 +453,12 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
+        quota_wait = _provider_quota_wait(table, item["provider"], int(time.time()))
+        if quota_wait:
+            _save_progress(table, item, state="queued", leaseUntil=0,
+                           updatedAt=int(time.time()))
+            return {"next": True, "state": "provider-quota-wait",
+                    "waitSeconds": min(900, max(20, quota_wait))}
         credential_id = item.get("connectionId") or item["provider"]
         if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
             _save_progress(table, item, state="queued", leaseUntil=0,
@@ -450,6 +474,7 @@ def _worker(payload):
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
                 cooldown = 70
+                _provider_quota_block(table, item["provider"], cooldown)
         finally:
             _release_provider_lock(table, credential_id, job_id, cooldown)
     else:
