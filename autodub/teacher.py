@@ -156,7 +156,12 @@ def _disconnect(body):
                            "disconnected": True, "wasConnected": existed})
 
 
-def _post_json(url, headers, payload):
+def _post_json(url, headers, payload, *, timeout=22):
+    # Interactive messages keep a shorter deadline; checkpointed teaching
+    # may wait longer because its worker has a 90-second Lambda deadline.
+    # A single teaching batch can make at most two such calls (32 * 2 < 90).
+    if type(timeout) not in (int, float) or not 1 <= timeout <= 32:
+        raise ValueError("Invalid provider timeout")
     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     if len(raw) > 24000:
         raise ValueError("คำขอมีขนาดใหญ่เกินไป")
@@ -167,7 +172,7 @@ def _post_json(url, headers, payload):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             return None
     try:
-        with urllib.request.build_opener(NoRedirect()).open(req, timeout=22) as response:
+        with urllib.request.build_opener(NoRedirect()).open(req, timeout=timeout) as response:
             blob = response.read(180000)
             return json.loads(blob)
     except urllib.error.HTTPError as exc:
@@ -375,7 +380,8 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
                 "systemInstruction": {"parts": [{"text": system}]},
                 "contents": contents,
                 "generationConfig": {"maxOutputTokens": output_limit, "temperature": 0.2,
-                                     "responseMimeType": "application/json"}})
+                                     "responseMimeType": "application/json"}},
+                **({"timeout": 32} if teach_mode else {}))
             content = "".join(p.get("text", "") for c in result.get("candidates", [])
                               for p in c.get("content", {}).get("parts", []))
         else:
@@ -385,7 +391,8 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
             result = _post_json(endpoint, {"Authorization": "Bearer " + cfg["key"]}, {
                 "model": model, "temperature": 0.2, "max_tokens": output_limit,
                 "messages": [{"role": "system", "content": system}, *safe_history,
-                             {"role": "user", "content": prompt}]})
+                             {"role": "user", "content": prompt}]},
+                **({"timeout": 32} if teach_mode else {}))
             choices = result.get("choices") or []
             content = choices[0].get("message", {}).get("content", "") if choices else ""
     except ValueError as exc:
