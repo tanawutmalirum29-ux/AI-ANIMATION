@@ -87,6 +87,11 @@ def _prepare(body, owner):
         return cloud_jobs._resp(400, {"error": "เลือก AI Provider ไม่ถูกต้อง"})
     if type(total) is not int or not 1 <= total <= cloud_jobs.MAX_SCENES:
         return cloud_jobs._resp(400, {"error": "จำนวนฉากเกินขอบเขต 1–350"})
+    if use_pool:
+        import teacher_connections
+        if not any(x.get("ready") and str(x.get("id", "")).startswith("key-")
+                   for x in teacher_connections.listing()):
+            return cloud_jobs._resp(409, {"error": "ต้องเชื่อม API แม่เพิ่มเติมก่อนใช้โหมดช่วยงาน"})
     import teacher
     import teacher_connections
     status = json.loads(teacher._status()["body"])
