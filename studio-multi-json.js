@@ -487,8 +487,8 @@ function render(){
 function mount(target){
  host=target;render();
  if(!loading&&!connections.length)loadSettings().catch(()=>{});
- sandboxLoad().catch(()=>{});
  else refresh(true).catch(()=>{});
+ sandboxLoad().catch(()=>{});
 }
 root.StoryMultiJSON=Object.freeze({mount,normalizeForTraining});
 })(window);
