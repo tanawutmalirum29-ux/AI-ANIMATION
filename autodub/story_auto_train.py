@@ -226,6 +226,40 @@ def train():
                        "counts": counts})
 
 
+
+def status():
+    """Read-only training progress and model history; never trains on view."""
+    from boto3.dynamodb.conditions import Key
+    table = _table()
+    lessons = _rows(table)
+    counts = Counter(r["issue"] for r in lessons)
+    projects = len(set(r["projectId"] for r in lessons))
+    last = _read(table, "last-training")
+    active = _read(table, "active-model")
+    result = table.query(
+        KeyConditionExpression=Key("pk").eq(PK) &
+                               Key("sk").begins_with("model#"),
+        Limit=10, ScanIndexForward=False)
+    models = []
+    for row in result.get("Items", []):
+        m = row.get("model")
+        if isinstance(m, dict) and m.get("version"):
+            models.append({"version": m["version"],
+                           "status": row.get("status") or m.get("status"),
+                           "metrics": m.get("metrics", {}),
+                           "createdAt": row.get("createdAt")})
+    return _resp(200, {
+        "task": "thai-narrative-edit-diagnosis",
+        "counts": {"rows": len(lessons), "projects": projects, "labels": dict(counts),
+                   "minimumRows": 60, "minimumProjects": 5, "minimumPerIssue": 8},
+        "readyForTraining": len(lessons) >= 60 and projects >= 5
+                            and all(counts[l] >= 8 for l in LABELS),
+        "lastTraining": last, "activeVersion": active.get("version") if active else None,
+        "models": models, "notGenerative": True
+    })
+
+
+
 def model():
     active = _read(_table(), "active-model")
     return _resp(200, {"active": active, "task": "thai-narrative-edit-diagnosis",
