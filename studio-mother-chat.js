@@ -6,7 +6,7 @@
 (function(root){
 'use strict';
 let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,inspection=null,loading=false,busy=false;
-let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
+let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false,productionPlan=null;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
  const node=root.document.createElement(tag);
@@ -154,6 +154,20 @@ function evidence(){
      ' · '+String(item.task||item.status||'กำหนดบทบาทแล้ว')));
    }
    box.append(el('p','mother-fine','AI ลูกจัดบทเดิม: Script ML, Story Foundation, Continuity Coach, Auto Teach และโมเดล AWS เดิมยังคงใช้งานตามสิทธิ์/สถานะที่ตรวจได้'));
+   if(v2?.createPlan&&bridge?.get?.()?.episodes?.length){
+    box.append(btn('สร้างแผนส่งงาน 12 ตำแหน่ง (ยังไม่สั่ง AI ผลิต)',()=>{
+     try{productionPlan=v2.createPlan(bridge.get());error=''}
+     catch(e){productionPlan=null;error=String(e.message||e)}
+     render();
+    },'mother-config'));
+    if(productionPlan){
+     const upToDate=productionPlan.sourceHash===v2.signature(bridge.get());
+     box.append(el('p','mother-fine',upToDate?
+      'แผน '+productionPlan.scenes+' ฉาก × '+productionPlan.roles+' ตำแหน่ง = '+
+       productionPlan.tasks.length+' งาน (แผนอ่านอย่างเดียว ยังไม่เรียกโมเดล)':
+      'แผนล้าสมัย: JSON มีการเปลี่ยนแปลง กรุณาสร้างแผนอีกครั้ง'));
+    }
+   }
   }
   box.append(el('p','mother-fine','AI แม่: ให้คำปรึกษาและเรียกสอนผ่าน API แอดมิน; AI ลูก: ตรวจบท คำซ้ำ และเกลาภาษาไทยด้วยโมเดล CPU โดยไม่แก้บทต้นฉบับอัตโนมัติ'));
   box.append(el('p','mother-fine','API แม่ที่เชื่อม '+(catalog.ownerConnections?.length??0)+
