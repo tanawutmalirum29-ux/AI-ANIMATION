@@ -140,7 +140,8 @@ def handle(action, body):
         "providers": snapshot["providers"],
         "measuredAt": snapshot["measuredAt"]},
         "reviewedAppManifest": {
-            "version": KNOWLEDGE_VERSION, "features": FEATURES,
+            "version": KNOWLEDGE_VERSION, "knowledgeVersion": KNOWLEDGE_VERSION,
+            "features": FEATURES,
             "limitations": BOUNDARIES},
         "clientReportedProject": _context(body.get("project"))}
     context = json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
