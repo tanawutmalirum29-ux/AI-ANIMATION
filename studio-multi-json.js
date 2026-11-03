@@ -280,7 +280,8 @@ function jobRow(job){
     ' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
     job.saved+' · ใช้ความจำ '+job.reused+' · '+
     (job.poolMode?'แบ่งงานเมื่อว่าง · ล่าสุด '+
-       (connections.find(k=>k.id===job.lastConnectionId)?.name||job.lastConnectionId||'รอเริ่ม'):
+       (connections.find(k=>k.id===job.lastConnectionId)?.name||job.lastConnectionId||'รอเริ่ม')+
+       (job.unusableKeys?' · ข้ามคีย์มีปัญหา '+job.unusableKeys+' ตัว':''):
        (connections.find(k=>k.id===job.connectionId)?.name||job.provider))));
  const meter=dom('progress');meter.max=job.total||1;meter.value=job.completed||0;row.append(meter);
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
