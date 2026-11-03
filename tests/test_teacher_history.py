@@ -1,5 +1,6 @@
 """Read-only AWS teacher history and CPU training-progress contract."""
 import base64,json,os,sys,types,unittest
+from decimal import Decimal
 from unittest import mock
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),"..","autodub"))
 import teacher,story_auto_train as train
@@ -51,6 +52,23 @@ def saved(i):
          "qa":{"structurePassed":True},"reviewedByOwner":False}}
 
 class HistoryTests(unittest.TestCase):
+    def test_dynamodb_decimal_lesson_metadata_serializes_in_history_and_memory(self):
+        # boto3 returns DynamoDB Number attributes as Decimal, not int/float.
+        # Previously teacher._response raised TypeError before any AI work began.
+        row = saved(0)
+        row["createdAt"] = Decimal("1762137000")
+        row["record"]["qa"]["repairAttempts"] = Decimal("2")
+        row["record"]["qa"]["confidence"] = Decimal("0.75")
+        table = FakeTable([row])
+        with aws(table), mock.patch.dict(os.environ, {"TEACHER_FEEDBACK_TABLE": "test"}):
+            memory_code, memory = unpack(teacher._auto_lessons({"limit": 30}))
+            history_code, history = unpack(teacher._lesson_history({"limit": 30}))
+        self.assertEqual(memory_code, 200)
+        self.assertEqual(history_code, 200)
+        self.assertEqual(memory["lessons"][0]["qa"]["repairAttempts"], 2)
+        self.assertEqual(memory["lessons"][0]["qa"]["confidence"], 0.75)
+        self.assertEqual(history["items"][0]["createdAt"], 1762137000)
+
     def test_teacher_history_returns_real_saved_lessons_not_old_manual_feedback(self):
         table=FakeTable([saved(0),saved(1),{"pk":train.PK,
           "sk":"teach#"+format(299,"064x"),

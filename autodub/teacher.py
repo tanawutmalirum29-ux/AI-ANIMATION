@@ -8,6 +8,7 @@ import os
 import re
 import time
 import uuid
+from decimal import Decimal
 import urllib.request
 import urllib.error
 from urllib.parse import urlsplit, quote
@@ -23,10 +24,20 @@ _MAX_PROMPT = 4500
 _MAX_CONTEXT = 14000
 _REQUEST_TIMES = {}
 
+def _aws_json_number(value):
+    """DynamoDB deserializes numbers as Decimal, including nested lesson metadata."""
+    if isinstance(value, Decimal):
+        if not value.is_finite():
+            raise ValueError("Non-finite DynamoDB number")
+        return int(value) if value == value.to_integral_value() else float(value)
+    raise TypeError("Unsupported JSON type: " + type(value).__name__)
+
+
 def _response(status, data):
     return {"statusCode": status, "headers": {
         "Content-Type": "application/json", "Cache-Control": "no-store"},
-        "body": json.dumps(data, ensure_ascii=False)}
+        "body": json.dumps(data, ensure_ascii=False, default=_aws_json_number,
+                           allow_nan=False)}
 
 def _secret_id():
     return os.getenv("TEACHER_SETTINGS_SECRET_ID", "")
