@@ -12,7 +12,8 @@ test('editor is separate from frozen member release v1, admin-only at Lambda',()
  assert.match(backend,/action\.startswith\("editor\."\)/);
  assert.match(backend,/user\.get\("role"\) != "admin"/);
  assert.match(members,/RELEASE_ID\s*=\s*"member-six-v1"/);
- assert.doesNotMatch(members,/thai_editor|editor\.review|editor\.feedback/);
+ assert.match(members,/thai_editor\._suggest/);
+ assert.doesNotMatch(members,/editor\.feedback|thai_editor\.feedback|thai_editor\.handle/);
 });
 
 test('editor review and owner confirmation never write to original project',()=>{
