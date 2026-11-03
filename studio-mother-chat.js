@@ -146,6 +146,7 @@ function render(){
    const showing=root.document.body.classList.toggle('mother-preview');
    preview.textContent=showing?'ซ่อนพรีวิว':'ดูพรีวิว';
    preview.setAttribute('aria-pressed',String(showing));
+   root.requestAnimationFrame?.(()=>root.fit?.());
   },'mother-preview-toggle');
  preview.setAttribute('aria-pressed',String(root.document.body.classList.contains('mother-preview')));
  title.append(preview);
