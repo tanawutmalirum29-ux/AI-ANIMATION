@@ -412,6 +412,14 @@ def _save_progress(table, old, **updates):
     """Conditional commit: a paused or cancelled job cannot silently resume."""
     attrs = {":g": int(old["generation"]), ":running": "running"}
     names = {"#s": "state"}
+    condition = "#s=:running AND generation=:g"
+    if old.get("poolMode"):
+        # An expired Lambda may never commit after another worker takes over.
+        # The token is created by the successful DynamoDB lease acquisition.
+        if not old.get("leaseOwner"):
+            return False
+        attrs[":owner"] = old["leaseOwner"]
+        condition += " AND leaseOwner=:owner"
     sets = []
     for i, (field, value) in enumerate(updates.items()):
         name, placeholder = "#f" + str(i), ":v" + str(i)
@@ -421,7 +429,7 @@ def _save_progress(table, old, **updates):
     try:
         table.update_item(Key=_key(old["jobId"]),
             UpdateExpression="SET " + ",".join(sets),
-            ConditionExpression="#s=:running AND generation=:g",
+            ConditionExpression=condition,
             ExpressionAttributeNames=names, ExpressionAttributeValues=attrs)
     except Exception as exc:
         if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
@@ -536,17 +544,28 @@ def _worker(payload):
     if not item or item.get("generation") != generation or item.get("state") not in ("queued", "running"):
         return {"next": False, "state": "stopped"}
     now = int(time.time())
+    claim_token = uuid.uuid4().hex if item.get("poolMode") else None
+    lease_values = {":g": generation, ":queued": "queued",
+                    ":running": "running", ":lease": now + 150, ":now": now}
+    update = "SET #s=:running, leaseUntil=:lease, updatedAt=:now"
+    if claim_token:
+        # The claim token fences late work from this job's older Lambda runs.
+        update += ", leaseOwner=:owner"
+        lease_values[":owner"] = claim_token
     try:
         table.update_item(Key=_key(job_id),
-            UpdateExpression="SET #s=:running, leaseUntil=:lease, updatedAt=:now",
+            UpdateExpression=update,
             ConditionExpression="generation=:g AND #s IN (:queued,:running) AND leaseUntil < :now",
             ExpressionAttributeNames={"#s": "state"},
-            ExpressionAttributeValues={":g": generation, ":queued": "queued",
-              ":running": "running", ":lease": now + 150, ":now": now})
+            ExpressionAttributeValues=lease_values)
     except Exception as exc:
         if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             return {"next": True, "waitSeconds": 30, "state": "busy"}
         raise
+    if claim_token:
+        item = {**item, "leaseOwner": claim_token}
+        # Internal only: this is never returned to the frontend/Step Functions.
+        payload["_claimedWorkerLease"] = claim_token
     # boto3 reads every DynamoDB number as Decimal; list indices must be int.
     work, position = [int(x) for x in item["work"]], int(item["position"])
     lookahead = work[position:position + CHUNK_SIZE]
@@ -736,11 +755,35 @@ def _worker(payload):
                 accepted[index] = lesson
     completed = set(int(x) for x in item["completedIndices"])
     missed = list(item["failedIndices"])
+    if item.get("poolMode"):
+        # A pause, cancel or newer lease can arrive while a model is replying.
+        # Fail closed before publishing any results from the superseded worker.
+        active = _read(table, job_id)
+        if (not active or active.get("leaseOwner") != item.get("leaseOwner")
+                or int(active.get("generation", -1)) != generation
+                or active.get("state") != "running"
+                or int(active.get("leaseUntil", 0)) < int(time.time())):
+            return {"next": False, "state": "superseded-worker"}
     for index in selected:
         if index in accepted:
-            table.put_item(Item={"pk": JOB_PREFIX + job_id,
-                                 "sk": "result#%05d" % index,
-                                 "index": index, "lesson": accepted[index]})
+            key = {"pk": JOB_PREFIX + job_id, "sk": "result#%05d" % index}
+            result = {**key, "index": index, "lesson": accepted[index]}
+            if item.get("poolMode"):
+                # No older/newer worker may overwrite a committed scene.
+                try:
+                    table.put_item(
+                        Item=result, ConditionExpression="attribute_not_exists(pk)")
+                except Exception as exc:
+                    if (getattr(exc, "response", {}).get("Error", {}).get("Code")
+                            != "ConditionalCheckFailedException"):
+                        raise
+                    previous = table.get_item(Key=key, ConsistentRead=True).get("Item")
+                    old_lesson = previous.get("lesson", {}) if previous else {}
+                    if (old_lesson.get("sceneId") != accepted[index].get("sceneId")
+                            or old_lesson.get("original") != accepted[index].get("original")):
+                        raise RuntimeError("Conflicting previously committed scene result")
+            else:
+                table.put_item(Item=result)
             completed.add(index)
         else:
             missed.append(index)
@@ -814,6 +857,8 @@ def _safe_worker_error(exc):
 
 
 def worker(payload):
+    # Reject caller-provided claims; only the live worker may set this token.
+    payload.pop("_claimedWorkerLease", None)
     try:
         return _worker(payload)
     except Exception as exc:
@@ -828,6 +873,13 @@ def worker(payload):
                 table = _table()
                 current = _read(table, job_id)
                 if current and current.get("generation") == payload.get("generation"):
+                    if current.get("poolMode"):
+                        claimed = payload.get("_claimedWorkerLease")
+                        if (not claimed or claimed != current.get("leaseOwner")
+                                or current.get("state") != "running"):
+                            # Do not touch a job that is owned by a newer Lambda.
+                            return {"next": current.get("state") in ("queued", "running"),
+                                    "state": "worker-claim-lost", "waitSeconds": 30}
                     failures = int(current.get("transientFailures", 0)) + 1
                     if transient and failures < MAX_TRANSIENT_RETRIES:
                         committed = _save_progress(table, current, state="queued",
