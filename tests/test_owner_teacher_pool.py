@@ -364,6 +364,38 @@ class IdlePoolTests(unittest.TestCase):
         self.assertEqual(meta["position"], 0)
         self.assertEqual(meta["leaseUntil"], 0)
 
+    def test_owner_pause_cannot_revert_job_completed_by_another_worker(self):
+        table, jobid, _ = fixture()
+        original_update = table.update_item
+        def simulate_race(**kw):
+            table.rows[("teacher-job#" + jobid, "meta")]["state"] = "completed"
+            return original_update(**kw)
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(table, "update_item", side_effect=simulate_race):
+            status, output = read(cloud_jobs._control(
+                "teacher.job.pause", {"jobId": jobid}, "225819900"))
+        self.assertEqual(status, 409)
+        self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["state"], "completed")
+
+    def test_owner_resume_cannot_restart_cancelled_job_after_race(self):
+        table, jobid, _ = fixture()
+        row = table.rows[("teacher-job#" + jobid, "meta")]
+        row["state"] = "paused"
+        original_update = table.update_item
+        def simulate_race(**kw):
+            row["state"] = "cancelled"
+            return original_update(**kw)
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(table, "update_item", side_effect=simulate_race), \
+             mock.patch.object(cloud_jobs, "_launch",
+                               side_effect=AssertionError("cancelled should not launch")) as launch:
+            status, _ = read(cloud_jobs._control(
+                "teacher.job.resume", {"jobId": jobid}, "225819900"))
+        self.assertEqual(status, 409)
+        self.assertEqual(row["state"], "cancelled")
+        self.assertEqual(row["generation"], 0)
+        launch.assert_not_called()
+
     def test_non_opted_job_still_uses_original_key(self):
         table, jobid, scenes = fixture()
         lessons = [{"sceneId": x["id"], "episodeId": "ep1", "issue": "keep",
