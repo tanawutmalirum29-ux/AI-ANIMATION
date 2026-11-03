@@ -37,3 +37,24 @@ test('server route enforces existing admin-only GitHub OAuth and model secrets s
  assert.match(advisor,/curated-backend-manifest-not-live-repository-scan/);
  assert.match(deploy,/autodub\/teacher_advisor\.py/);
 });
+
+test('mother chat focus keeps an independent scroll region and collapses excessive chrome',()=>{
+ const chat=get('studio-mother-chat.js'),workspace=get('studio-ai-workspace.js');
+ const css=get('studio-ai-mode.css'),style=get('studio-teacher.css');
+ assert.match(workspace,/classList\.toggle\('mother-focus',view==='mother'\)/);
+ assert.match(workspace,/visualViewport\?\.addEventListener\('resize',syncMotherViewport\)/);
+ assert.match(workspace,/classList\.remove\('mother-preview'\)/);
+ assert.match(chat,/mother-preview-toggle/);
+ assert.match(chat,/box=el\('details','mother-evidence'\)/);
+ assert.match(chat,/const atBottom=/);
+ assert.match(chat,/log\.scrollTop=oldTop/);
+ assert.match(chat,/log\.append\(quickPrompts\(\)\)/);
+ assert.match(css,/body\.mother-focus #pre/);
+ assert.match(css,/body\.mother-focus #aiHub\{display:none!important\}/);
+ assert.match(css,/grid-auto-rows:max-content/);
+ assert.match(css,/min-height:0!important;max-height:none!important;height:auto!important/);
+ assert.match(css,/height:var\(--mother-visible-height,100dvh\)/);
+ assert.match(css,/\.mother-composer\{\s*position:relative!important;bottom:auto!important/);
+ assert.match(style,/\.mother-compose-footer/);
+ assert.doesNotMatch(style,/\.mother-composer\{position:sticky/);
+});
