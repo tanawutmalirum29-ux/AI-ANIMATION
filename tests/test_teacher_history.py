@@ -61,7 +61,7 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(len(data["items"]),2)
         self.assertTrue(all(item["trainingEligible"] for item in data["items"]))
         self.assertFalse(any(item["reviewedByOwner"] for item in data["items"]))
-        self.assertEqual(data["items"][0]["original"][:8],"ข้อความต้น")
+        self.assertTrue(data["items"][0]["original"].startswith("ข้อความต้นฉบับ"))
         self.assertFalse(data["trainedWeights"])
         self.assertNotIn("nextCursorAvailable",data)
 
