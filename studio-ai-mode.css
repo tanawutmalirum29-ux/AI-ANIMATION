@@ -96,7 +96,7 @@ html.ai-only.ai-only #dlg.aih-embedded .import-actions button{font-size:13px!imp
    subordinate card below an oversized video preview. Allow preview on demand. */
 html.ai-only.ai-only body.mother-focus{
  display:flex!important;flex-direction:column!important;
- height:100dvh!important;min-height:0!important;overflow:hidden!important;
+ height:var(--mother-visible-height,100dvh)!important;min-height:0!important;overflow:hidden!important;
 }
 html.ai-only.ai-only body.mother-focus header#top{order:0;flex:0 0 auto;min-height:0}
 html.ai-only.ai-only body.mother-focus #pre,
@@ -150,7 +150,8 @@ html.ai-only.ai-only body.mother-focus #aiWorkspaceContent>.mother-chat{
  gap:8px!important;
 }
 html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-chat-log{
- display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ display:grid!important;align-content:start!important;grid-auto-rows:max-content;
+ flex:1 1 auto!important;
  min-height:0!important;max-height:none!important;height:auto!important;
  overflow-y:auto!important;overflow-x:hidden!important;
  overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
