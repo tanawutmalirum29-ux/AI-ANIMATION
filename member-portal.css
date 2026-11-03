@@ -1,0 +1,22 @@
+#storyMemberPortal[hidden]{display:none!important}
+#storyMemberPortal{position:fixed;inset:0;z-index:2147483644;background:#0d1522;color:#e9eef6;overflow-y:auto;font:14px/1.5 system-ui,"Noto Sans Thai",sans-serif}
+#storyMemberPortal *{box-sizing:border-box}
+#storyMemberPortal header{position:sticky;top:0;z-index:3;background:#142133;border-bottom:1px solid #3b5066;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#storyMemberPortal .member-content{max-width:1020px;padding:18px;margin:auto}
+#storyMemberPortal h1{font-size:24px;color:#eed29c}#storyMemberPortal h2{font-size:17px;margin:0 0 12px}
+#storyMemberPortal button{background:#24354c;color:#eef3fb;border:1px solid #596c82;border-radius:9px;padding:10px 13px;min-height:42px;font:inherit;cursor:pointer}
+#storyMemberPortal button:disabled{opacity:.5;cursor:not-allowed}
+#storyMemberPortal button.member-primary,#storyMemberPortal .member-role.active{background:#e8c68b;color:#19263a;font-weight:750}
+#storyMemberPortal .member-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}
+#storyMemberPortal .member-role{display:flex;flex-direction:column;align-items:flex-start;text-align:left}
+#storyMemberPortal small,#storyMemberPortal .subtle{color:#aebdd0;font-size:13px}
+#storyMemberPortal .member-role.active small{color:#334259}
+#storyMemberPortal .member-card{background:#17263a;border:1px solid #354d64;border-radius:12px;padding:16px;margin:12px 0}
+#storyMemberPortal .member-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#storyMemberPortal label{display:block;font-size:13px;color:#c1d0e0;margin-bottom:12px}
+#storyMemberPortal input,#storyMemberPortal textarea,#storyMemberPortal select{display:block;width:100%;min-height:42px;background:#0d1929;color:#eef3fb;border:1px solid #5a6c81;border-radius:8px;font:inherit;padding:10px;margin-top:5px}
+#storyMemberPortal .member-error{color:#ffb5a9}
+#storyMemberPortal details{background:#0f1a2a;border:1px solid #33475e;border-radius:8px;padding:12px;margin-top:10px}
+#storyMemberPortal summary{cursor:pointer}
+#storyMemberPortal pre.member-result{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;background:#0b1421;padding:12px;border-radius:8px}
+@media(max-width:630px){#storyMemberPortal .member-roles{grid-template-columns:repeat(2,minmax(0,1fr))}#storyMemberPortal .member-columns{grid-template-columns:1fr}#storyMemberPortal .member-content{padding:12px}}
