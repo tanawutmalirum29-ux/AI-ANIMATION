@@ -171,6 +171,14 @@ def _post_json(url, headers, payload):
             blob = response.read(180000)
             return json.loads(blob)
     except urllib.error.HTTPError as exc:
+        # Honor an upstream Retry-After interval without disclosing arbitrary
+        # header text, API credentials, URLs or provider error bodies.
+        if exc.code == 429:
+            raw_wait = str(exc.headers.get("Retry-After", "") if exc.headers else "")
+            wait = int(raw_wait) if re.fullmatch(r"[0-9]{1,7}", raw_wait) else 0
+            wait = max(0, min(86400, wait))
+            raise ValueError("AI provider returned HTTP 429; retry-after=" +
+                             str(wait)) from None
         raise ValueError("AI provider returned HTTP " + str(exc.code)) from None
     except TimeoutError:
         # socket.timeout inherits TimeoutError; it is a recoverable upstream
@@ -412,9 +420,12 @@ def _chat(body, *, teach_mode=False, advisor_mode=False):
                 "suggestedModel": suggested
             })
         if "HTTP 429" in message:
+            hinted = re.search(r"retry-after=([0-9]{1,5})", message)
+            delay = min(86400, int(hinted.group(1))) if hinted else 0
             return _response(429, {"error": "AI provider จำกัดโควตา (HTTP 429); "
                                     "ยังไม่ได้สอนหรือบันทึกบทเรียน",
-                                   "reasonCode": "TEACHER_PROVIDER_RATE_LIMIT"})
+                                   "reasonCode": "TEACHER_PROVIDER_RATE_LIMIT",
+                                   "retryAfterSeconds": delay})
         if "HTTP 401" in message or "HTTP 403" in message:
             return _response(502, {"error": "AI provider ไม่อนุญาตให้เรียกโมเดล "
                                     + provider + " / " + model +
