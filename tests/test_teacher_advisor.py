@@ -75,6 +75,9 @@ class MotherAdvisorTests(unittest.TestCase):
             "measuredAt": 1762135000
         }
         with mock.patch.object(teacher_advisor, "_snapshot", return_value=snapshot), \
+             mock.patch("owner_inspection.inspect", return_value={
+                 "github":{"available":False,"selectedFiles":[]},
+                 "githubActions":{"requested":False},"aws":{"requested":False}}), \
              mock.patch.object(teacher_advisor, "_github_evidence", return_value={
                  "available": True, "source": "github-main-live-tree",
                  "treeSha": "abc123", "selectedFiles": ["autodub/teacher.py"]}), \
@@ -119,9 +122,9 @@ class MotherAdvisorTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("ไม่มีข้อมูล", answer["reply"])
         system = post.call_args.args[2]["messages"][0]["content"]
-        self.assertIn("liveGitHub", system)
+        self.assertIn("ownerTools", system)
         self.assertIn("NEVER invent", system)
-        self.assertIn("NOT trained", system)
+        self.assertIn("not automatically weight-trained", system)
         self.assertIn("ops (empty array)", system)
 
     def test_source_excerpts_are_immutable_bounded_and_redacted(self):
