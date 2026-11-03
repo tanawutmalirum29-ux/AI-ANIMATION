@@ -108,6 +108,15 @@ jobs:
             --function-name story-studio-autodub --region ap-southeast-2 \
             --query 'LastUpdateStatus' --output text)"
           test "$STATUS" = "Successful"
+          # Lambda code deployment cannot increase timeout with a code-only
+          # OIDC IAM role. Report it; don't claim a working 90s deadline.
+          CURRENT_TIMEOUT="$(aws lambda get-function-configuration \
+            --function-name story-studio-autodub --region ap-southeast-2 \
+            --query Timeout --output text)"
+          echo "Lambda timeout is ${CURRENT_TIMEOUT}s"
+          if [ "$CURRENT_TIMEOUT" -lt 90 ]; then
+            echo "::warning::Lambda timeout is under 90 seconds; two upstream AI calls plus DynamoDB may exceed the deadline. Update Lambda timeout to 90s using authorized AWS configuration access."
+          fi
           echo "Lambda updated; SSM SecureString API keys and environment untouched."
 
       - name: Amplify main (trigger only if automatic builds are disabled)
