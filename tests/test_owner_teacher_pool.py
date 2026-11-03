@@ -188,36 +188,68 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(third)
         self.assertGreaterEqual(wait, 20)
 
-    def test_hundred_same_provider_keys_still_allow_only_two_concurrent_calls(self):
+    def test_hundred_same_provider_keys_can_be_borrowed_without_arbitrary_two_slot_cap(self):
         table, jobid, _ = fixture()
         many = [{"id": "key-" + format(i, "016x"),
                  "provider": "gemini", "ready": True} for i in range(100)]
         now = int(time.time())
+        allocated = []
         with mock.patch.object(connections, "listing", return_value=many):
-            a, _ = cloud_jobs._borrow_idle_connection(
-                table, {"jobId": "a"*32, "leaseOwner": "a-token"}, now)
-            b, _ = cloud_jobs._borrow_idle_connection(
-                table, {"jobId": "b"*32, "leaseOwner": "b-token"}, now)
-            with mock.patch.object(table, "get_item", wraps=table.get_item) as reads:
-                c, wait = cloud_jobs._borrow_idle_connection(
-                    table, {"jobId": "c"*32, "leaseOwner": "c-token"}, now)
-                # One provider quota read plus two slot reads; no O(100)
-                # per-key reads when provider capacity is fully saturated.
-                self.assertLessEqual(reads.call_count, 3)
-            self.assertIsNotNone(a)
-            self.assertIsNotNone(b)
-            self.assertNotEqual(a["_providerSlot"], b["_providerSlot"])
-            self.assertIsNone(c)
-            self.assertGreaterEqual(wait, 20)
-            # After a slot and key are released, a third job can progress.
-            cloud_jobs._release_provider_lock(
-                table, a["id"], "a-token", cooldown=0)
-            cloud_jobs._release_provider_lock(
-                table, a["_providerSlot"], "a-token", cooldown=0)
-            c, _ = cloud_jobs._borrow_idle_connection(
-                table, {"jobId": "c"*32, "leaseOwner": "c-token"}, now + 1)
-        self.assertIsNotNone(c)
-        self.assertIn(c["_providerSlot"], (a["_providerSlot"], b["_providerSlot"]))
+            for i in range(12):
+                conn, wait = cloud_jobs._borrow_idle_connection(
+                    table, {"jobId": format(i+1, "032x"),
+                            "leaseOwner": "claim-" + str(i)}, now)
+                self.assertIsNotNone(conn)
+                self.assertIsNone(wait)
+                self.assertNotIn(conn["id"], allocated)
+                self.assertNotIn("_providerSlot", conn)
+                allocated.append(conn["id"])
+        self.assertEqual(len(allocated), 12)
+
+    def test_pool_429_keeps_waiting_past_six_failures_and_can_recover(self):
+        table, jobid, scenes = fixture()
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        meta["poolMode"] = True
+        single = [self.connections()[0]]
+        limit_response = teacher._response(429, {
+            "reasonCode": "TEACHER_PROVIDER_RATE_LIMIT",
+            "error": "429 rate limit"})
+        lessons = [{"sceneId": x["id"], "episodeId": "ep1", "issue": "keep",
+                    "original": x["text"], "revised": x["text"],
+                    "teacherReason": "ข้อความต้นฉบับเหมาะสมแล้ว"} for x in scenes]
+        recovery = teacher._response(200, {"lessons": lessons, "saved": 2, "reused": 0})
+        import story_auto_train
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=single), \
+             mock.patch.object(teacher, "_auto_teach",
+                               side_effect=[limit_response] * 8 + [recovery]) as ai, \
+             mock.patch.object(story_auto_train, "train", return_value={
+                 "body": '{"status":"collecting","activated":false}'}):
+            delays = []
+            for n in range(8):
+                outcome = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+                self.assertEqual(outcome["state"], "rate-limited")
+                self.assertTrue(outcome["next"])
+                self.assertEqual(meta["position"], 0)
+                self.assertEqual(meta["completedIndices"], [])
+                self.assertEqual(meta["throttles"], n + 1)
+                delays.append(outcome["waitSeconds"])
+                # Simulate Step Functions having waited until the new call is
+                # permitted; do not actually sleep 8 backoff periods.
+                for row in table.rows.values():
+                    if row.get("sk") == "lease":
+                        row["leaseUntil"] = 0
+                    if row.get("sk") == "backoff":
+                        row["until"] = 0
+            self.assertGreater(delays[-1], delays[0])
+            self.assertLessEqual(max(delays), 3600)
+            final = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+            self.assertEqual(final["state"], "training-queued")
+            trained = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(trained["state"], "completed")
+        self.assertEqual(ai.call_count, 9)
+        self.assertEqual(meta["completedIndices"], [0, 1])
+        self.assertEqual(meta["throttles"], 0)
 
     def test_story_anchors_cover_beginning_middle_and_end_without_fake_summary(self):
         scenes = [{"id": "sc%03d" % i, "text": "ตัวละครเติบโตขึ้นตามเวลา-" +
