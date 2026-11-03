@@ -29,10 +29,15 @@
   document.body.classList.toggle('access-member',authorized&&['member','guest'].includes(profile.role));
   document.body.classList.toggle('access-locked',enabled&&!authorized);
   if(gate)gate.hidden=authorized;
-  if(authorized&&['member','guest'].includes(profile.role))root.StoryMemberPortal?.mount({
-   profile,request,logout
-  });
-  else root.StoryMemberPortal?.hide?.();
+  if(authorized&&['member','guest'].includes(profile.role)){
+   // All users receive the actual video editing timeline. Only the extra
+   // admin AI workspace is unavailable; CPU helpers live in the AI tool tab.
+   try{localStorage.setItem('storyStudio.uiMode','full')}catch(_){}
+   root.StoryAIMode?.set?.('full');
+   document.documentElement.classList.remove('ai-only');
+   delete document.documentElement.dataset.aiPage;
+   root.StoryMemberPortal?.mount({profile,request,logout});
+  }else root.StoryMemberPortal?.hide?.();
   root.dispatchEvent(new Event('story-studio-access-change'));
  }
  async function call(payload,authToken){
@@ -65,7 +70,9 @@
    '#siteAccessGate button{display:block;width:100%;padding:14px;font:inherit;font-weight:700;margin:12px 0;background:#e9c586;color:#152138;border:0;border-radius:8px;min-height:48px}',
    '#siteAccessGate button:disabled{opacity:.5}',
    '#siteAccessGate .access-message{min-height:28px;color:#ffcfbd}',
-   'body.access-member> :not(#storyMemberPortal):not(script):not(#siteAccessGate){visibility:hidden!important}',
+   // The whole editing studio (scene timeline, voices, preview and export)
+   // stays visible to members. Do NOT make the member CPU page an overlay.
+   'body.access-member #aiWorkspacePanel .ai-header,body.access-member #aiWorkspacePanel .ai-command-desk{display:none!important}',
    'body.access-locked> :not(#siteAccessGate):not(script){visibility:hidden!important}'
   ].join('');
   document.head.append(style);
