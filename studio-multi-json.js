@@ -314,7 +314,7 @@ function render(){
 }
 function mount(target){
  host=target;render();
- if(!loading&&!providers.length)loadSettings().catch(()=>{});
+ if(!loading&&!connections.length)loadSettings().catch(()=>{});
  else refresh(true).catch(()=>{});
 }
 root.StoryMultiJSON=Object.freeze({mount});
