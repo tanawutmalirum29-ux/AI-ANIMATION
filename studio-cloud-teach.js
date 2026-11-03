@@ -111,6 +111,10 @@ async function teach(fallback){
   const cfg=await request({action:'teacher.job.config'});
   known=true;enabled=!!cfg.enabled;
   if(!enabled)return fallback();
+  if(job&&['queued','running'].includes(job.state)){
+   error='มีงานบน AWS กำลังสอนอยู่แล้ว · ใช้ปุ่มตรวจสถานะ หรือพัก/ยกเลิกงานเดิมก่อนเริ่มงานใหม่';
+   repaint();return adapter.getState();
+  }
   // Rescan locally: the uploaded snapshot must correspond to current JSON.
   await adapter.scan();
   const scanned=adapter.getScan();
