@@ -157,7 +157,7 @@ class OwnerVaultTests(unittest.TestCase):
                 connections.ADMIN_ID))
             self.assertEqual(code, 409)
             code, _ = read(connections.handle("teacher.connection.rename", {
-                "connectionId": first, "name": "bad\\nname"},
+                "connectionId": first, "name": "bad" + chr(10) + "name"},
                 connections.ADMIN_ID))
             self.assertEqual(code, 400)
             code, _ = read(connections.handle("teacher.connection.rename", {
