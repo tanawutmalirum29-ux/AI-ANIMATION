@@ -559,7 +559,8 @@ def _worker(payload):
                 trained = {"status": "training-deferred",
                            "error": type(exc).__name__}
             attempts = int(item.get("trainingAttempts", 0)) + 1
-            if trained.get("status") in ("training-busy", "training-deferred"):
+            if (trained.get("status") in ("training-busy", "training-deferred")
+                    or not trained.get("status")):
                 if attempts < 8:
                     committed = _save_progress(
                         table, item, state="queued", leaseUntil=0,
