@@ -81,7 +81,7 @@ test('large projects are sent in immutable 16-scene chunks and resume after drop
   adapter={provider:'gemini'},
   repaint=()=>{};
  const compile=new Function('root','request','adapter','repaint',
-   'const uploadState=null;'+code+';return startUploaded;');
+   'let uploadState=null;'+code+';return startUploaded;');
  // Reassignment of uploadState is scoped to the evaluated helper, not local storage.
  const start=compile(root,api,adapter,repaint);
  await assert.rejects(start('story293',scenes),/network disconnected/);
