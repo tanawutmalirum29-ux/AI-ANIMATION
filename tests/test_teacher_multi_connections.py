@@ -31,14 +31,14 @@ class MultiKeyTests(unittest.TestCase):
         self.patcher.stop();self.save.stop();self.secret.stop()
 
     def test_existing_keys_and_auto_named_new_keys_are_listed_without_secrets(self):
-        code, result=decode(keys.handle("teacher.connection.list", {}, "owner"))
+        code, result=decode(keys.handle("teacher.connection.list", {}, keys.ADMIN_ID))
         self.assertEqual(code,200)
         self.assertEqual(result["connections"][0]["id"],"default-gemini")
         self.assertNotIn("legacy-gemini-secret-123",json.dumps(result))
         for i in range(3):
             code, result=decode(keys.handle("teacher.connection.add", {
                 "provider": "gemini", "apiKey": "new-gemini-key-"+str(i)+"-secret"},
-                "owner"))
+                keys.ADMIN_ID))
             self.assertEqual(code,200,result)
             self.assertEqual(result["connection"]["name"].split(" · ")[-1], "#"+str(i+1))
             self.assertEqual(result["connection"]["provider"],"gemini")
@@ -47,7 +47,7 @@ class MultiKeyTests(unittest.TestCase):
         self.assertEqual(len(self.settings["extraConnections"]),3)
         self.assertNotIn("key",keys.listing()[1])
         duplicate=keys.handle("teacher.connection.add",{
-            "provider":"gemini","apiKey":"new-gemini-key-0-secret"},"owner")
+            "provider":"gemini","apiKey":"new-gemini-key-0-secret"},keys.ADMIN_ID)
         self.assertEqual(duplicate["statusCode"],409)
 
     def test_only_approved_free_openrouter_models_and_bounded_ssm_json(self):
@@ -95,13 +95,13 @@ class MultiKeyTests(unittest.TestCase):
         with mock.patch.object(cloud_jobs,"_list_jobs",return_value=cloud_jobs._resp(
             200,{"jobs":[{"connectionId":id,"state":"running"}]})):
             code,_=decode(keys.remove({"connectionId":id,
-                                       "confirmRemove":True},"owner"))
+                                       "confirmRemove":True},keys.ADMIN_ID))
             self.assertEqual(code,409)
         self.assertIn(id,self.settings["extraConnections"])
         with mock.patch.object(cloud_jobs,"_list_jobs",return_value=cloud_jobs._resp(
             200,{"jobs":[{"connectionId":id,"state":"completed"}]})):
             code,_=decode(keys.remove({"connectionId":id,
-                                       "confirmRemove":True},"owner"))
+                                       "confirmRemove":True},keys.ADMIN_ID))
             self.assertEqual(code,200)
         self.assertNotIn(id,self.settings["extraConnections"])
 
@@ -117,9 +117,9 @@ class MultiKeyTests(unittest.TestCase):
                  "TEACHER_FEEDBACK_TABLE":"test",
                  "TEACHER_JOB_STATE_MACHINE_ARN":"arn:aws:states:a:b:stateMachine:test"}):
             old=cloud_jobs._start({"projectId":"story123","provider":"gemini",
-                                   "scenes":scenes},"owner")
+                                   "scenes":scenes},keys.ADMIN_ID)
             extra=cloud_jobs._start({"projectId":"story123","provider":"gemini",
-                                     "connectionId":selected,"scenes":scenes},"owner")
+                                     "connectionId":selected,"scenes":scenes},keys.ADMIN_ID)
         self.assertEqual(old["statusCode"],200)
         self.assertEqual(extra["statusCode"],200)
         legacy=json.loads(old["body"])["job"]
