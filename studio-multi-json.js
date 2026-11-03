@@ -284,6 +284,13 @@ function jobRow(job){
        (job.unusableKeys?' · ข้ามคีย์มีปัญหา '+job.unusableKeys+' ตัว':''):
        (connections.find(k=>k.id===job.connectionId)?.name||job.provider))));
  const meter=dom('progress');meter.max=job.total||1;meter.value=job.completed||0;row.append(meter);
+ if(job.nextRetryAt && Number.isFinite(Number(job.nextRetryAt)) &&
+    Number(job.nextRetryAt)*1000>Date.now()){
+  const when=new Date(Number(job.nextRetryAt)*1000).toLocaleString('th-TH',{
+   timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
+  row.append(dom('small','ระบบเก็บ Checkpoint แล้ว · จะลอง API อีกครั้งหลัง '+when+
+    ' · ปิดเว็บได้','multi-json-muted'));
+ }
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
  const controls=dom('div',null,'multi-json-actions');
  if(['queued','running'].includes(job.state))
@@ -301,7 +308,7 @@ function connectionPanel(){
  box.append(dom('h4','API แม่ของแอดมิน · ตั้งชื่อและเรียงอัตโนมัติ'),
   dom('p','ผูกกับบัญชี GitHub: '+(github?.login||'แอดมินที่เข้าสู่ระบบ')+
    ' · เก็บใน AWS ข้ามเครื่องได้จนกว่าจะลบ · '+
-   (scalableVault?'ไม่มีเพดาน 6 คีย์ในระบบ (ยังขึ้นกับโควตา AWS)':'โหมดเดิมสูงสุด 6 คีย์เพิ่มเติม')+
+   (scalableVault?'คลังคีย์รุ่นใหม่ไม่จำกัด 6 คีย์':'โหมดเดิมสูงสุด 6 คีย์เพิ่มเติม')+
    ' · ไม่บันทึกคีย์ในเบราว์เซอร์','multi-json-muted'));
  const shown=expandKeys?connections:connections.slice(0,20);
  box.append(dom('p','เชื่อมต่อพร้อมใช้งาน '+connections.length+
@@ -342,7 +349,7 @@ function connectionPanel(){
  key.setAttribute('aria-label','API Key ใหม่');
  form.append(prov,model,base,key,button(adding?'กำลังเชื่อม…':'เพิ่ม API Key',addConnection,adding||uploading));
  box.append(form);
- box.append(dom('p','หมายเหตุ: หลายคีย์จากบัญชีผู้ให้บริการเดียวกันอาจใช้โควตาร่วมกัน ไม่ได้เพิ่มโควตาจริง','multi-json-muted'));
+ box.append(dom('p','หาก Provider ตอบ 429 ระบบ Pool จะพักงานไว้และลองใหม่อัตโนมัติโดยไม่ลบฉากที่สอนแล้ว','multi-json-muted'));
  return box;
 }
 function render(){
