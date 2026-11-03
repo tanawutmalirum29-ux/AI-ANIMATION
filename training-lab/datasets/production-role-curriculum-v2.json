@@ -1,0 +1,442 @@
+{
+  "version": 2,
+  "title": "AI Mother 12-Role Curriculum — Synthetic fixtures",
+  "status": "unverified-examples-for-contract-tests",
+  "notWeightTraining": true,
+  "notApprovedSamples": true,
+  "sourceScript": {
+    "type": "story-only",
+    "title": "เสียงเตือนที่ตลาดกลางคืน",
+    "episodes": [
+      {
+        "id": "ep1",
+        "title": "ค่ำคืนที่น้ำมา",
+        "scenes": [
+          {
+            "id": "s1",
+            "text": "ฝนตกหนักที่ตลาดกลางคืน เมย์ยืนอยู่ข้างแผงขายของเมื่อได้ยินเสียงเตือนภัย",
+            "notes": "EXT. night market; wide shot. May stands camera-left beside a stall. Rain outside, puddles on ground; warning bell from right."
+          },
+          {
+            "id": "s2",
+            "text": "เมย์หันมองทางประตูตลาด ก่อนก้มเก็บกล่องเครื่องมือที่วางอยู่บนพื้น",
+            "notes": "MEDIUM shot. May faces right then bends and grips the toolbox handle near her feet. The box is on the ground BEFORE pickup."
+          },
+          {
+            "id": "s3",
+            "text": "เธอยกกล่องไว้ในอ้อมแขนแล้ววิ่งหนีน้ำที่กำลังไหลเข้ามาในตลาด",
+            "notes": "SIDE tracking shot. May carries the same box; water advances from camera-right to camera-left; other people respond after her warning."
+          },
+          {
+            "id": "s4",
+            "text": "เมื่อถึงทางขึ้นเนิน เมย์หยุดหอบและหันกลับไปมองแสงไฟในตลาดที่ค่อย ๆ ดับลง",
+            "notes": "EXT. hill. May is still holding the toolbox; town is below; market lights turn off one after another."
+          }
+        ]
+      }
+    ]
+  },
+  "examples": [
+    {
+      "roleId": "story-analyst",
+      "kind": "extract-beats",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "text": "เมย์หันมองทางประตูตลาด ก่อนก้มเก็บกล่องเครื่องมือที่วางอยู่บนพื้น"
+      },
+      "expected": {
+        "location": "night-market",
+        "characters": [
+          "may"
+        ],
+        "props": [
+          "toolbox"
+        ],
+        "events": [
+          "turn-to-gate",
+          "bend",
+          "grip-toolbox",
+          "lift-toolbox"
+        ],
+        "emotion": "alert"
+      },
+      "acceptance": [
+        "ไม่แต่งสถานที่ใหม่",
+        "ไม่ลบท่าจับกล่อง"
+      ]
+    },
+    {
+      "roleId": "continuity-keeper",
+      "kind": "track-prop-state",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "before": "box on ground",
+        "beat": "May picks up toolbox",
+        "after": "May runs then reaches hill"
+      },
+      "expected": {
+        "prop": "toolbox",
+        "states": [
+          "ground",
+          "held-by-may",
+          "held-by-may"
+        ],
+        "violations": []
+      },
+      "acceptance": [
+        "กล่องไม่ปรากฏในมือก่อนฉากหยิบ",
+        "ไม่หายไปในฉากบนเนิน"
+      ]
+    },
+    {
+      "roleId": "scene-director",
+      "kind": "split-by-action",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "story": "ฝนตกหนักที่ตลาดกลางคืน เมย์ยืนอยู่ข้างแผงขายของเมื่อได้ยินเสียงเตือนภัย เมย์หันมองทางประตูตลาด ก่อนก้มเก็บกล่องเครื่องมือที่วางอยู่บนพื้น เธอยกกล่องไว้ในอ้อมแขนแล้ววิ่งหนีน้ำที่กำลังไหลเข้ามาในตลาด เมื่อถึงทางขึ้นเนิน เมย์หยุดหอบและหันกลับไปมองแสงไฟในตลาดที่ค่อย ๆ ดับลง",
+        "constraints": {
+          "episodeTargetSeconds": 60,
+          "episodeMaxSeconds": 65
+        }
+      },
+      "expected": {
+        "scenes": [
+          "establish-market-and-warning",
+          "react-and-pickup",
+          "escape-with-toolbox",
+          "arrive-and-look-back"
+        ],
+        "durationMethod": "speech-audio-plus-sequential-actions",
+        "splitRequiredWhenLong": true
+      },
+      "acceptance": [
+        "ไม่แบ่งจากจำนวนอักษรอย่างเดียว",
+        "ไม่ตัดบท",
+        "เวลาจริงรอไฟล์เสียง"
+      ]
+    },
+    {
+      "roleId": "storyboard-director",
+      "kind": "plan-shots",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "sceneId": "s2",
+        "actors": [
+          "may"
+        ],
+        "props": [
+          "toolbox"
+        ],
+        "direction": "May bends to pick up box"
+      },
+      "expected": {
+        "shotType": "medium",
+        "cameraSide": "front-oblique",
+        "visible": [
+          "may",
+          "toolbox",
+          "hand-to-handle"
+        ],
+        "order": [
+          "face-gate",
+          "bend",
+          "close-in-to-grip"
+        ]
+      },
+      "acceptance": [
+        "จุดจับอยู่ในเฟรม",
+        "ช็อตไม่ข้ามการก้ม"
+      ]
+    },
+    {
+      "roleId": "environment-artist",
+      "kind": "design-environment",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "location": "night-market",
+        "weather": "heavy-rain",
+        "required": [
+          "stall",
+          "path",
+          "drain",
+          "market-gate"
+        ]
+      },
+      "expected": {
+        "svgSpecification": {
+          "viewBox": "0 0 540 960",
+          "layers": [
+            "background",
+            "stalls",
+            "walkway",
+            "water",
+            "foreground"
+          ],
+          "anchors": [
+            "market-gate",
+            "stall-left",
+            "ground-level"
+          ],
+          "outsideRainOnly": true
+        }
+      },
+      "acceptance": [
+        "ตลาดมีแผงขายของจริง",
+        "ไม่ใช้รูปสี่เหลี่ยมแทนประตูน้ำ",
+        "ไม่อ้างว่าวาดได้ถ้า renderer ไม่รองรับ"
+      ]
+    },
+    {
+      "roleId": "character-artist",
+      "kind": "plan-rig",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "character": "may",
+        "action": "bend, pick up, carry toolbox"
+      },
+      "expected": {
+        "rig": {
+          "parts": [
+            "torso",
+            "upper-arm-l",
+            "lower-arm-l",
+            "hand-l",
+            "upper-arm-r",
+            "lower-arm-r",
+            "hand-r",
+            "legs"
+          ],
+          "anchors": [
+            "left-grip",
+            "right-grip",
+            "foot-ground"
+          ],
+          "poses": [
+            "stand",
+            "turn",
+            "bend",
+            "carry",
+            "run"
+          ]
+        }
+      },
+      "acceptance": [
+        "แขนไม่ทะลุเสื้อ",
+        "มือจับอยู่ตำแหน่งด้ามกล่อง"
+      ]
+    },
+    {
+      "roleId": "prop-artist",
+      "kind": "design-prop",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "name": "toolbox",
+        "action": "pick-up-and-carry"
+      },
+      "expected": {
+        "asset": {
+          "kind": "toolbox",
+          "svgRequired": true,
+          "parts": [
+            "lid",
+            "handle",
+            "body"
+          ],
+          "anchors": [
+            "handle-grip",
+            "ground-contact"
+          ],
+          "states": [
+            "on-ground",
+            "held"
+          ]
+        }
+      },
+      "acceptance": [
+        "ไม่เปลี่ยนกล่องเป็นตู้",
+        "ต้องมี handle-grip ที่อ้างอิงได้"
+      ]
+    },
+    {
+      "roleId": "layout-director",
+      "kind": "place-entities",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "frame": {
+          "width": 540,
+          "height": 960
+        },
+        "characters": [
+          "may"
+        ],
+        "props": [
+          "toolbox"
+        ]
+      },
+      "expected": {
+        "entities": [
+          {
+            "id": "may",
+            "x": 0.35,
+            "y": 0.75,
+            "scale": 1
+          },
+          {
+            "id": "toolbox",
+            "x": 0.45,
+            "y": 0.91,
+            "scale": 0.6
+          }
+        ],
+        "safeRegion": "within-frame",
+        "depth": [
+          "background",
+          "may",
+          "toolbox"
+        ]
+      },
+      "acceptance": [
+        "ตำแหน่งเป็นค่า normalized 0..1",
+        "ไม่ทับกันโดยไม่ตั้งใจ",
+        "มือและกล่องอ้างอิงพิกัดเดียวกัน"
+      ]
+    },
+    {
+      "roleId": "motion-director",
+      "kind": "sequence-actions",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "actor": "may",
+        "target": "toolbox",
+        "events": [
+          "turn",
+          "bend",
+          "grip",
+          "lift",
+          "carry",
+          "run"
+        ]
+      },
+      "expected": {
+        "motionKeys": [
+          {
+            "phase": "turn",
+            "start": 0,
+            "end": 0.7
+          },
+          {
+            "phase": "bend",
+            "start": 0.7,
+            "end": 1.7
+          },
+          {
+            "phase": "grip",
+            "start": 1.7,
+            "end": 2.2
+          },
+          {
+            "phase": "lift",
+            "start": 2.2,
+            "end": 3
+          },
+          {
+            "phase": "carry",
+            "start": 3,
+            "end": 3.4
+          },
+          {
+            "phase": "run",
+            "start": 3.4,
+            "end": 5.5
+          }
+        ],
+        "requiresContactAnchor": "handle-grip"
+      },
+      "acceptance": [
+        "เวลาเรียงถูก",
+        "กล่องยกพร้อมมือ",
+        "ไม่เริ่มวิ่งก่อนยก"
+      ]
+    },
+    {
+      "roleId": "audio-director",
+      "kind": "align-voice-and-sfx",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "narration": "เมย์หันมองทางประตูตลาด ก่อนก้มเก็บกล่องเครื่องมือที่วางอยู่บนพื้น",
+        "sfx": [
+          "rain",
+          "warning-bell",
+          "toolbox-lift"
+        ]
+      },
+      "expected": {
+        "channels": [
+          "voice",
+          "environment",
+          "effects"
+        ],
+        "voiceTextMustMatchSource": true,
+        "timingSource": "measured-tts-or-recording",
+        "fallbackOnTTSFailure": "needs-attention"
+      },
+      "acceptance": [
+        "เสียงพูดไม่ถูกตัด",
+        "ไม่กล่าวว่าพากย์สำเร็จหากไม่มีคลิปจริง"
+      ]
+    },
+    {
+      "roleId": "timeline-editor",
+      "kind": "synchronize",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "speechDurationSeconds": 6,
+        "actionDurationSeconds": 4,
+        "overlap": true
+      },
+      "expected": {
+        "durationSeconds": 6,
+        "subtitleSource": "speech-cues",
+        "separateSpeechSpeedAndMotionSpeed": true,
+        "exportGuard": "no-voice-truncation"
+      },
+      "acceptance": [
+        "6 วิเป็นตัวอย่างไม่ใช่ผลวัดจริง",
+        "ไม่คูณเวลาเสียงพูดกับท่าทางที่ทำพร้อมกัน"
+      ]
+    },
+    {
+      "roleId": "quality-inspector",
+      "kind": "verify-with-evidence",
+      "fixtureType": "illustrative-expected-output-not-approved-training",
+      "input": {
+        "source": "May picks up toolbox before running",
+        "renderEvidence": {
+          "framesAvailable": false,
+          "audioAvailable": false
+        }
+      },
+      "expected": {
+        "status": "needs-render-evidence",
+        "checks": [
+          "toolbox-visible",
+          "ground-before-grip",
+          "attached-to-hand-after-lift",
+          "voice-complete",
+          "subtitle-in-safe-area"
+        ],
+        "autoAccept": false
+      },
+      "acceptance": [
+        "ห้ามกล่าวว่าตรวจภาพ MP4 แล้วหากไม่มีเฟรม",
+        "คืนงานตำแหน่งผิดไปให้ผู้เกี่ยวข้อง"
+      ]
+    }
+  ],
+  "failFastRules": [
+    "original narration is immutable",
+    "renderers must have asset support before claiming ready",
+    "missing API or audio => checkpoint/needs-attention, never silently skip",
+    "no trained weights or existing AWS lessons are overwritten"
+  ]
+}

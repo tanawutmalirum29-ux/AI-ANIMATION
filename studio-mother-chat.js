@@ -6,7 +6,7 @@
 (function(root){
 'use strict';
 let host=null,bridge=null,provider='',connectionId='',snapshot=null,repoInfo=null,inspection=null,loading=false,busy=false;
-let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false;
+let error='',draft='',attached=true,thread=[],lastLoaded=0,infoOpen=false,productionPlan=null;
 const MAX_HISTORY=30;
 function el(tag,cls,text){
  const node=root.document.createElement(tag);
@@ -144,6 +144,31 @@ function evidence(){
    box.append(el('p','mother-fine',String(item.role||item.id)+
     ' · '+String(item.capability||'')));
   }
+  const v2=root.StoryProductionRoles;
+  const productionRoles=v2?.roles||catalog.productionRoles||[];
+  if(productionRoles.length){
+   box.append(el('strong',null,'AI Mother V2 — ทีมผลิต '+productionRoles.length+' บทบาท'));
+   box.append(el('p','mother-fine','ตำแหน่งใหม่เป็นสัญญาส่งต่องานและแผนพัฒนา ยังไม่ใช่ 12 โมเดลที่ฝึกแล้ว / ยังไม่มี worker SVG อิสระ; ระบบ 6 ขั้นและ AI ลูกตรวจบทเดิมยังอยู่ครบ'));
+   for(const item of productionRoles){
+    box.append(el('p','mother-fine',String(item.name||item.id)+
+     ' · '+String(item.task||item.status||'กำหนดบทบาทแล้ว')));
+   }
+   box.append(el('p','mother-fine','AI ลูกจัดบทเดิม: Script ML, Story Foundation, Continuity Coach, Auto Teach และโมเดล AWS เดิมยังคงใช้งานตามสิทธิ์/สถานะที่ตรวจได้'));
+   if(v2?.createPlan&&bridge?.get?.()?.episodes?.length){
+    box.append(btn('สร้างแผนส่งงาน 12 ตำแหน่ง (ยังไม่สั่ง AI ผลิต)',()=>{
+     try{productionPlan=v2.createPlan(bridge.get());error=''}
+     catch(e){productionPlan=null;error=String(e.message||e)}
+     render();
+    },'mother-config'));
+    if(productionPlan){
+     const upToDate=productionPlan.sourceHash===v2.signature(bridge.get());
+     box.append(el('p','mother-fine',upToDate?
+      'แผน '+productionPlan.scenes+' ฉาก × '+productionPlan.roles+' ตำแหน่ง = '+
+       productionPlan.tasks.length+' งาน (แผนอ่านอย่างเดียว ยังไม่เรียกโมเดล)':
+      'แผนล้าสมัย: JSON มีการเปลี่ยนแปลง กรุณาสร้างแผนอีกครั้ง'));
+    }
+   }
+  }
   box.append(el('p','mother-fine','AI แม่: ให้คำปรึกษาและเรียกสอนผ่าน API แอดมิน; AI ลูก: ตรวจบท คำซ้ำ และเกลาภาษาไทยด้วยโมเดล CPU โดยไม่แก้บทต้นฉบับอัตโนมัติ'));
   box.append(el('p','mother-fine','API แม่ที่เชื่อม '+(catalog.ownerConnections?.length??0)+
    ' รายการ · ใช้จัดคิวสอน JSON ได้ผ่านแท็บสอนหลาย JSON'));
@@ -203,7 +228,8 @@ function evidence(){
  return box;
 }
 function quickPrompts(){
- const choices=['AI ทั้งระบบมีกี่ตัว รุ่น 1 ทำอะไรได้บ้าง และใครฝึกน้ำหนักแล้ว?',
+ const choices=['AI Mother V2 มี 12 ตำแหน่งอะไรบ้าง และงานใดยังไม่ทำงานจริง?',
+  'AI ทั้งระบบมีกี่ตัว รุ่น 1 ทำอะไรได้บ้าง และใครฝึกน้ำหนักแล้ว?',
   'AI แม่ช่วยสอนและแบ่งงานให้ AI ลูกกับผู้ช่วยทั้ง 6 อย่างไร?',
   'ตอนนี้ AI ลูกเรียนรู้อะไรแล้ว และยังขาดอะไร?',
   'โมเดล API ที่เชื่อมอยู่รู้จักเว็บเราจริงแค่ไหน?',
