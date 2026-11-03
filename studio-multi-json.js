@@ -276,7 +276,8 @@ function itemRow(item){
 function jobRow(job){
  const row=dom('div',null,'multi-json-item');
  row.append(dom('strong','เรื่อง '+(job.storyName||job.projectId||'').slice(0,100)),
-  dom('small',job.state+' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
+  dom('small',(job.trainingPending?'รอคิวฝึก AI ลูก':job.state)+
+    ' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
     job.saved+' · ใช้ความจำ '+job.reused+' · '+
     (job.poolMode?'แบ่งงานเมื่อว่าง · ล่าสุด '+
        (connections.find(k=>k.id===job.lastConnectionId)?.name||job.lastConnectionId||'รอเริ่ม'):
