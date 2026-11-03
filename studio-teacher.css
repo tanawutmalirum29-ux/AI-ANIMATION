@@ -181,3 +181,27 @@
  .mother-composer{padding:9px;bottom:env(safe-area-inset-bottom,0px)}
  .mother-actions button{flex:1 1 135px}
 }
+
+
+/* Chat room usability: composer participates in layout rather than obscuring
+   replies with position:sticky. The viewport mode lives in studio-ai-mode.css. */
+.mother-composer{position:relative;bottom:auto;box-shadow:none}
+.mother-chat-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.mother-chat-heading h3{min-width:0}
+.mother-chat .mother-preview-toggle{flex:0 0 auto;min-height:34px;font-size:12px;padding:6px 10px}
+html:not(.ai-only) .mother-preview-toggle{display:none!important}
+.mother-evidence{padding:8px 11px}
+.mother-evidence>summary{cursor:pointer;line-height:1.55;min-height:28px}
+.mother-evidence[open]{display:grid;gap:9px}
+.mother-composer textarea{resize:none}
+.mother-compose-footer{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;min-width:0}
+.mother-compose-footer .mother-context{flex:1 1 140px;align-items:center}
+.mother-compose-footer .mother-actions{flex:0 1 auto;justify-content:flex-end}
+.mother-compose-footer .mother-actions button{min-height:36px;padding:6px 10px}
+.mother-chat-log{-webkit-overflow-scrolling:touch;touch-action:pan-y;scroll-padding-bottom:14px}
+@media(max-width:540px){
+ .mother-compose-footer{align-items:center}
+ .mother-compose-footer .mother-context{flex:1 1 115px}
+ .mother-compose-footer .mother-actions{flex:1 1 190px}
+ .mother-compose-footer .mother-actions button{flex:1 1 auto}
+}
