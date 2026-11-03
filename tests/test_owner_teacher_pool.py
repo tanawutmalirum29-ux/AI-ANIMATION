@@ -276,6 +276,43 @@ class IdlePoolTests(unittest.TestCase):
         self.assertEqual(choice["provider"], "openrouter")
         self.assertIsNone(wait)
 
+    def test_pool_retries_aws_throttling_without_losing_scene_checkpoints(self):
+        class AwsThrottle(Exception):
+            response = {"Error": {"Code": "ThrottlingException"}}
+        table, jobid, _ = fixture()
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        meta["poolMode"] = True
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(teacher, "_cached_scene_records",
+                               side_effect=AwsThrottle("AWS throttle")):
+            for n in range(8):
+                outcome = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+                self.assertEqual(outcome["state"], "network-retry")
+                self.assertTrue(outcome["next"])
+                self.assertEqual(meta["transientFailures"], n + 1)
+                self.assertEqual(meta["position"], 0)
+                self.assertEqual(meta["completedIndices"], [])
+                self.assertEqual(meta["state"], "queued")
+
+    def test_pool_respects_long_provider_retry_after_without_failure(self):
+        table, jobid, _ = fixture()
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        meta["poolMode"] = True
+        one = [self.connections()[0]]
+        reply = teacher._response(429, {
+            "reasonCode": "TEACHER_PROVIDER_RATE_LIMIT",
+            "retryAfterSeconds": 7200, "error": "provider limit"})
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=one), \
+             mock.patch.object(teacher, "_auto_teach", return_value=reply):
+            outcome = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(outcome["state"], "rate-limited")
+        self.assertEqual(outcome["waitSeconds"], 7200)
+        self.assertTrue(outcome["next"])
+        self.assertEqual(meta["position"], 0)
+        self.assertEqual(meta["completedIndices"], [])
+        self.assertGreater(meta["nextRetryAt"], int(time.time()) + 7100)
+
     def test_story_anchors_cover_beginning_middle_and_end_without_fake_summary(self):
         scenes = [{"id": "sc%03d" % i, "text": "ตัวละครเติบโตขึ้นตามเวลา-" +
                    ("ทดสอบ" * 200)} for i in range(120)]
