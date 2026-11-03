@@ -230,7 +230,33 @@ def _snapshot():
                      if p.get("id") in teacher.PROVIDERS]
     except Exception:
         pass
+    # Distinguish product roles from genuinely trained CPU models.
+    import member_ai
+    import teacher_connections
+    catalog = json.loads(member_ai.catalog()["body"])
+    try:
+        connections = teacher_connections.listing()
+        safe_connections = [{"name": x["name"], "model": x["model"],
+                             "provider": x["provider"], "ready": x["ready"]}
+                            for x in connections]
+    except Exception:
+        safe_connections = []
     return {"knowledgeVersion": KNOWLEDGE_VERSION,
+            "aiCatalog": {
+                "memberRelease": catalog["release"],
+                "memberRoles": catalog["modules"],
+                "memberRoleCount": catalog["moduleCount"],
+                "memberRolesTrainedWeights": False,
+                "mother": {"kind": "external-api-advisor-and-teacher",
+                           "separateModelWeights": False,
+                           "usesConnectedProviders": True},
+                "children": [
+                    {"id": "narrative", "kind": "CPU text classifier",
+                     "status": "see narrativeChild AWS snapshot"},
+                    {"id": "repetition", "kind": "CPU text classifier",
+                     "status": "see repetitionChild AWS snapshot"}],
+                "ownerConnections": safe_connections,
+                "separation": "6 fixed member prompts + 1 API Mother + 2 experimental CPU classifiers; not nine independently trained LLMs"},
             "knowledgeType": "curated-backend-manifest-not-live-repository-scan",
             "features": FEATURES, "boundaries": BOUNDARIES,
             "providers": providers, "narrativeChild": _aws_snapshot(),
@@ -331,6 +357,7 @@ def handle(action, body, owner_id=None):
         "repetitionChild": snapshot["repetitionChild"],
         "providers": snapshot["providers"],
         "measuredAt": snapshot["measuredAt"]},
+        "aiCatalog": snapshot.get("aiCatalog"),
         "reviewedAppManifest": {
             "version": KNOWLEDGE_VERSION, "knowledgeVersion": KNOWLEDGE_VERSION,
             "features": FEATURES,
