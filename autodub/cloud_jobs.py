@@ -65,6 +65,7 @@ def _public(item):
             "updatedAt": int(item["updatedAt"]),
             "error": str(item.get("lastError", ""))[:240],
             "provider": item["provider"],
+            "connectionId": item.get("connectionId") or ("default-" + item["provider"]),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -133,12 +134,17 @@ def _start(body, owner):
     except ValueError as exc:
         return _resp(400, {"error": str(exc)})
     import teacher
-    status = json.loads(teacher._status()["body"])
-    if not status.get("feedbackReady") or not any(
-            p["id"] == provider and p["ready"] for p in status["providers"]):
-        return _resp(409, {"error": "ยังไม่ได้เชื่อม API แม่หรือฐานข้อมูลบทเรียน"})
+    import teacher_connections
+    connection_id = body.get("connectionId") or ("default-" + provider)
+    if (not os.getenv("TEACHER_FEEDBACK_TABLE")
+            or not teacher_connections.available(provider, connection_id)):
+        return _resp(409, {"error": "AI Key ที่เลือกไม่พร้อม กรุณาตรวจการเชื่อมต่อ"})
+    # Preserve legacy job IDs and checkpoints for the original provider key.
+    fingerprint = [str(owner), project_id, provider, scenes]
+    if connection_id != "default-" + provider:
+        fingerprint.append(connection_id)
     digest = hashlib.sha256(json.dumps(
-        [str(owner), project_id, provider, scenes],
+        fingerprint,
         ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode()).hexdigest()[:32]
     table = _table()
     existing = _read(table, digest)
@@ -159,6 +165,7 @@ def _start(body, owner):
                              "scenes": scenes[start:start + CHUNK_SIZE]})
     item = {"pk": pk, "sk": "meta", "jobId": digest,
             "ownerId": str(owner), "projectId": project_id, "provider": provider,
+            "connectionId": connection_id,
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
@@ -422,7 +429,8 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
-        if not _try_provider_lock(table, item["provider"], job_id, int(time.time())):
+        credential_id = item.get("connectionId") or item["provider"]
+        if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
             _save_progress(table, item, state="queued", leaseUntil=0,
                            updatedAt=int(time.time()))
             return {"next": True, "state": "provider-busy", "waitSeconds": 20}
@@ -430,12 +438,14 @@ def _worker(payload):
         try:
             reply = teacher._auto_teach({
                 "projectId": item["projectId"],
-                "provider": item["provider"], "scenes": fresh})
+                "provider": item["provider"],
+                "connectionId": item.get("connectionId"),
+                "scenes": fresh})
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
                 cooldown = 70
         finally:
-            _release_provider_lock(table, item["provider"], job_id, cooldown)
+            _release_provider_lock(table, credential_id, job_id, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if code == 429:
