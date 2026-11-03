@@ -19,25 +19,17 @@ test('Member version one exposes only the six released role prompts',()=>{
  assert.match(js,/รุ่น 1/);
  assert.doesNotMatch(js,/teacher\.autoTeach|student\.train|student\.storyAutoTrain/);
 });
-test('member keys use signed GitHub identity, AWS AES-GCM, and never browser storage',()=>{
+test('Legacy member vault is encrypted and hosted user interface has no provider keys',()=>{
  const py=read('autodub/member_keys.py');
  const js=read('member-portal.js');
  const handler=read('autodub/handler.py');
- assert.match(py,/member-api-vault#/);
  assert.match(py,/AESGCM/);
  assert.match(py,/user\.get\("sub"\)/);
- assert.match(py,/member\.keys\.list/);
- assert.match(py,/member\.keys\.add/);
- assert.match(py,/member\.keys\.remove/);
  assert.match(py,/REMOVE encrypted, nonce, fingerprint/);
- assert.match(js,/member\.keys\.list/);
- assert.match(js,/member\.keys\.add/);
- assert.match(js,/member\.keys\.remove/);
- assert.match(js,/connectionId:selectedKey/);
- assert.match(js,/payload\.connectionId=selectedKey/);
- assert.doesNotMatch(js,/localStorage\.setItem\([^)]*apiKey/);
- assert.match(handler,/user\["role"\] != "admin"/);
- assert.match(handler,/action\.startswith\("member\.keys\."\)/);
+ assert.match(js,/member\.ai\.run/);
+ assert.doesNotMatch(js,/member\.keys\./);
+ assert.doesNotMatch(js,/apiKey|connectionId|baseUrl/);
+ assert.match(handler,/ไม่รองรับ API Key ส่วนตัว/);
 });
 test('admin AI Mother dashboard shows six roles, actual CPU model statuses and connection count',()=>{
  const adviser=read('autodub/teacher_advisor.py');
