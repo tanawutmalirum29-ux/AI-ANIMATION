@@ -115,6 +115,24 @@ def _validated_scenes(items):
     return out
 
 
+def _story_anchors(scenes):
+    """Bounded, immutable quotations of the owner's actual script.
+
+    Evidence from across the submitted story travels with a pooled job so
+    an idle mother has some beginning/middle/end context even when it has never
+    worked on that story. This is NOT a generated full-story summary, and
+    never claims to know events omitted by these excerpts.
+    """
+    n = len(scenes)
+    if n == 0:
+        return []
+    count = min(7, n)
+    indexes = sorted({round(i * (n - 1) / max(1, count - 1))
+                      for i in range(count)})
+    return [{"sceneId": scenes[i]["id"], "position": i + 1,
+             "text": scenes[i]["text"][:110]} for i in indexes]
+
+
 def _launch(table, item):
     """One deterministic execution per job generation, safe on lost API responses."""
     import boto3
@@ -198,6 +216,7 @@ def _start(body, owner):
             "ownerId": str(owner), "projectId": project_id, "provider": provider,
             "connectionId": connection_id, "storyName": story_name,
             "poolMode": use_pool,
+            "storyAnchors": _story_anchors(scenes) if use_pool else [],
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
@@ -593,7 +612,9 @@ def _worker(payload):
                     "projectId": item["projectId"],
                     "provider": teaching_provider,
                     "connectionId": teaching_connection,
-                    "scenes": fresh})
+                    "scenes": fresh,
+                    "storyAnchors": item.get("storyAnchors", []) if
+                        item.get("poolMode") and pool_enabled() else []})
             except TimeoutError:
                 # Covers any legacy path that still emits socket.timeout.
                 # The memory fast path will check stored lessons on retry.
