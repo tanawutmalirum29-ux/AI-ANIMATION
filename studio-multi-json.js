@@ -101,6 +101,7 @@ async function loadSettings(){
   if(!poolAvailable)poolWanted=false;
   scalableVault=keys.maxExtra===null;
   connections=(keys.connections||[]).filter(x=>x.ready);
+  if(!connections.some(x=>String(x.id).startsWith('key-')))poolWanted=false;
   connections.sort((a,b)=>(a.legacy===b.legacy?0:a.legacy?-1:1)||
    (a.createdAt||0)-(b.createdAt||0)||a.name.localeCompare(b.name));
   if(selection!=='auto'&&!connections.some(p=>p.id===selection))
