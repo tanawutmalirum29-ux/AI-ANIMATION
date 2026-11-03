@@ -43,6 +43,11 @@ def enabled():
                 os.getenv("TEACHER_JOB_STATE_MACHINE_ARN"))
 
 
+def pool_enabled():
+    # Opt-in rollout: existing jobs remain pinned until explicitly enabled.
+    return os.getenv("TEACHER_ENABLE_IDLE_POOL") == "1"
+
+
 def _table():
     import boto3
     return boto3.resource("dynamodb").Table(os.environ["TEACHER_FEEDBACK_TABLE"])
@@ -72,6 +77,8 @@ def _public(item):
             "error": str(item.get("lastError", ""))[:240],
             "provider": item["provider"],
             "connectionId": item.get("connectionId") or ("default-" + item["provider"]),
+            "poolMode": bool(item.get("poolMode", False)),
+            "lastConnectionId": item.get("lastConnectionId", ""),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -131,6 +138,9 @@ def _start(body, owner):
         return _resp(503, {"error": "Background Jobs ยังไม่ได้ติดตั้งบน AWS"})
     project_id = body.get("projectId")
     provider = body.get("provider")
+    use_pool = body.get("poolMode") is True
+    if use_pool and not pool_enabled():
+        return _resp(409, {"error": "ระบบแบ่งงาน AI แม่ยังไม่เปิดใช้บน AWS"})
     story_name = re.sub(r"[\x00-\x1f\x7f]", " ", str(body.get("storyName") or "")).strip()[:100]
     if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
         return _resp(400, {"error": "รหัสโปรเจกต์ไม่ถูกต้อง"})
@@ -154,6 +164,8 @@ def _start(body, owner):
     fingerprint = [str(owner), project_id, provider, scenes]
     if connection_id != "default-" + provider:
         fingerprint.append(connection_id)
+    if use_pool:
+        fingerprint.append("idle-pool-v1")
     digest = hashlib.sha256(json.dumps(
         fingerprint,
         ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode()).hexdigest()[:32]
@@ -177,6 +189,7 @@ def _start(body, owner):
     item = {"pk": pk, "sk": "meta", "jobId": digest,
             "ownerId": str(owner), "projectId": project_id, "provider": provider,
             "connectionId": connection_id, "storyName": story_name,
+            "poolMode": use_pool,
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
@@ -230,6 +243,37 @@ def _list_jobs(body, owner):
             break
     return _resp(200, {"jobs": jobs, "source": "aws-dynamodb-owner-index",
                        "limit": 40})
+
+
+def _connection_in_use(owner, connection_id):
+    """Check every indexed job before deleting a scalable-vault key.
+
+    Unlike the UI's 40-job listing, this is deliberately paginated and
+    fail-closed on AWS errors. Paused and recoverable jobs also retain keys.
+    """
+    from boto3.dynamodb.conditions import Key
+    table = _table()
+    cursor, seen = None, set()
+    while True:
+        options = {"KeyConditionExpression": Key("pk").eq(INDEX_PREFIX + str(owner)),
+                   "ConsistentRead": True, "Limit": 100}
+        if cursor:
+            options["ExclusiveStartKey"] = cursor
+        page = table.query(**options)
+        for ref in page.get("Items", []):
+            job_id = ref.get("jobId")
+            if not isinstance(job_id, str) or job_id in seen:
+                continue
+            seen.add(job_id)
+            row = _read(table, job_id)
+            if (row and row.get("ownerId") == str(owner)
+                    and row.get("state") not in ("completed", "cancelled")
+                    and (row.get("connectionId") == connection_id
+                         or (row.get("poolMode") and row.get("lastConnectionId") == connection_id))):
+                return True
+        cursor = page.get("LastEvaluatedKey")
+        if not cursor:
+            return False
 
 
 def _find(body, owner):
@@ -317,7 +361,7 @@ def _control(action, body, owner):
 def handle(action, body, owner):
     if action == "teacher.job.config":
         return _resp(200, {"enabled": enabled(), "mode": "step-functions",
-                           "maxScenes": MAX_SCENES})
+                           "maxScenes": MAX_SCENES, "poolEnabled": pool_enabled()})
     if not enabled():
         return _resp(503, {"error": "ระบบ Background Jobs ยังไม่เปิดใช้งานบน AWS"})
     if action.startswith("teacher.job.upload."):
@@ -407,6 +451,34 @@ def _release_provider_lock(table, provider, job_id, cooldown=12):
             raise
 
 
+def _borrow_idle_connection(table, item, now):
+    """Reserve an idle *extra* owner key for the next bounded batch.
+
+    Return (selection, None) on success or (None, wait_seconds) on failure.
+    Do not touch default keys: legacy jobs may use a different lock name.
+    Conditional DynamoDB leases resolve simultaneous claims across stories.
+    """
+    import teacher_connections
+    connections = [c for c in teacher_connections.listing()
+                   if c.get("ready") and str(c.get("id", "")).startswith("key-")]
+    candidates = []
+    next_wait = 20
+    for conn in connections:
+        lock = table.get_item(Key=_provider_lock_key(conn["id"]),
+                              ConsistentRead=True).get("Item", {})
+        occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
+        quota_wait = _provider_quota_wait(table, conn["provider"], now)
+        if occupied or quota_wait:
+            next_wait = min(60, max(20, min(occupied or 9999, quota_wait or 9999)))
+            continue
+        candidates.append((int(lock.get("updatedAt", 0)), conn["id"], conn))
+    candidates.sort(key=lambda x: (x[0], x[1]))
+    for _, _, conn in candidates:
+        if _try_provider_lock(table, conn["id"], item["jobId"], now):
+            return conn, None
+    return None, next_wait
+
+
 def _worker(payload):
     """One bounded worker: up to 16 cache hits and at most 2 fresh AI scenes."""
     job_id, generation = payload.get("jobId"), payload.get("generation")
@@ -459,24 +531,39 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
-        quota_wait = _provider_quota_wait(table, item["provider"], int(time.time()))
-        if quota_wait:
-            _save_progress(table, item, state="queued", leaseUntil=0,
-                           updatedAt=int(time.time()))
-            return {"next": True, "state": "provider-quota-wait",
-                    "waitSeconds": min(900, max(20, quota_wait))}
-        credential_id = item.get("connectionId") or item["provider"]
-        if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
-            _save_progress(table, item, state="queued", leaseUntil=0,
-                           updatedAt=int(time.time()))
-            return {"next": True, "state": "provider-busy", "waitSeconds": 20}
+        teaching_provider = item["provider"]
+        teaching_connection = item.get("connectionId")
+        credential_id = teaching_connection or teaching_provider
+        # Keep the old execution path untouched unless an opted-in job is
+        # running with the server-side pool feature enabled.
+        if item.get("poolMode") and pool_enabled():
+            choice, wait = _borrow_idle_connection(table, item, int(time.time()))
+            if not choice:
+                _save_progress(table, item, state="queued", leaseUntil=0,
+                               updatedAt=int(time.time()))
+                return {"next": True, "state": "pool-busy",
+                        "waitSeconds": wait or 20}
+            teaching_provider = choice["provider"]
+            teaching_connection = choice["id"]
+            credential_id = teaching_connection
+        else:
+            quota_wait = _provider_quota_wait(table, teaching_provider, int(time.time()))
+            if quota_wait:
+                _save_progress(table, item, state="queued", leaseUntil=0,
+                               updatedAt=int(time.time()))
+                return {"next": True, "state": "provider-quota-wait",
+                        "waitSeconds": min(900, max(20, quota_wait))}
+            if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
+                _save_progress(table, item, state="queued", leaseUntil=0,
+                               updatedAt=int(time.time()))
+                return {"next": True, "state": "provider-busy", "waitSeconds": 20}
         cooldown = 12
         try:
             try:
                 reply = teacher._auto_teach({
                     "projectId": item["projectId"],
-                    "provider": item["provider"],
-                    "connectionId": item.get("connectionId"),
+                    "provider": teaching_provider,
+                    "connectionId": teaching_connection,
                     "scenes": fresh})
             except TimeoutError:
                 # Covers any legacy path that still emits socket.timeout.
@@ -486,7 +573,7 @@ def _worker(payload):
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
                 cooldown = 70
-                _provider_quota_block(table, item["provider"], cooldown)
+                _provider_quota_block(table, teaching_provider, cooldown)
         finally:
             _release_provider_lock(table, credential_id, job_id, cooldown)
     else:
@@ -566,6 +653,7 @@ def _worker(payload):
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
+                   lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
                    lastError="" if state != "needs-attention"
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
                    **{"pass": run_pass},
