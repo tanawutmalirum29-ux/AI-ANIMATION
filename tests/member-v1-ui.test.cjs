@@ -49,6 +49,10 @@ test('admin AI Mother dashboard shows six roles, actual CPU model statuses and c
  assert.match(adviser,/narrativeChild/);
  assert.match(adviser,/ownerConnections/);
  assert.match(chat,/snapshot\?\.aiCatalog/);
+ assert.match(chat,/ownerConnections/);
+ assert.match(chat,/connectionId:e\.target\.value/);
+ assert.match(chat,/teacher\.advisorChat',provider,connectionId,message/);
+ assert.match(adviser,/"connectionId": body\.get\("connectionId"\)/);
  assert.match(chat,/เปิดหน้าสอนหลาย JSON/);
  assert.match(chat,/6 ผู้ช่วยรุ่น 1/);
  assert.match(adminKeys,/ownerGitHubId/);
