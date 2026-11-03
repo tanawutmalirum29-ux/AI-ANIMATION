@@ -1,0 +1,42 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+test('members see the ordinary full video editing workspace, not forced AI-only landing',()=>{
+ const auth=read('site-auth.js'),studio=read('index.html'),modes=read('studio-ai-mode.js');
+ assert.match(auth,/root\.StoryAIMode\?\.set\?\.\('full'\)/);
+ assert.match(auth,/classList\.remove\('ai-only'\)/);
+ assert.match(studio,/id="tl"/);
+ assert.match(studio,/id="stageWrap"/);
+ assert.match(studio,/id="studioToolNav"/);
+ assert.match(studio,/if\(id==='ai'\)\{/);
+ assert.match(studio,/StoryMemberPortal\?\.open/);
+ assert.match(studio,/else window\.StoryAIWorkspace\?\.render/);
+ assert.match(modes,/if\(mode==='ai'&&root\.StoryStudioAccess\?\.enabled&&!root\.StoryStudioAccess\.isAdmin\(\)\)/);
+});
+test('member AI child is a DOCKED tool and admin tabs stay hidden',()=>{
+ const css=read('member-portal.css'),src=read('member-portal.js');
+ const auth=read('site-auth.js'),ws=read('studio-ai-workspace.js');
+ assert.doesNotMatch(css,/#storyMemberPortal\{position:fixed/);
+ assert.match(css,/#aiWorkspacePanel > :not\(#storyMemberPortal\)/);
+ assert.match(src,/querySelector\('#aiWorkspacePanel'\)/);
+ assert.match(src,/dock\.append\(host\)/);
+ assert.match(src,/Object\.freeze\(\{mount,hide,open\}\)/);
+ assert.doesNotMatch(auth,/body\.access-member> :not\(#storyMemberPortal\)/);
+ assert.match(ws,/StoryStudioAccess\?\.enabled&&!root\.StoryStudioAccess\.isAdmin\(\)/);
+ assert.match(ws,/document\.body\.classList\.remove\('mother-focus'\)/);
+});
+test('normal member voice and cloud export are authorized but admin learning keys remain restricted',()=>{
+ const h=read('autodub/handler.py');
+ assert.match(h,/if action == "synthesize":\s+pass/);
+ assert.match(h,/elif action\.startswith\("export\."\)/);
+ assert.match(h,/_export_action\(action, body, owner=str\(user\["sub"\]\)\)/);
+ assert.match(h,/if action\.startswith\("member\.keys\."\)/);
+ assert.match(h,/action\.startswith\("teacher\.connection\."\)/);
+ assert.match(h,/not oauth_mode or not user or user\.get\("role"\) != "admin"/);
+ assert.match(h,/Metadata.*owner/);
+ assert.match(h,/hmac\.compare_digest/);
+ assert.match(h,/if action == "proposeAsset"/);
+});
