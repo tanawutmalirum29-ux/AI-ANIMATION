@@ -12,18 +12,34 @@ import time
 
 # Curated from the product code. This is not a live GitHub search, and must
 # be updated if the app changes. Treat missing features as unknown.
-KNOWLEDGE_VERSION = "2026-11-03"
+KNOWLEDGE_VERSION = "2026-11-03-production-v2"
 # Live repository evidence is opt-in and read-only for the authenticated owner.
 FEATURES = [
     {"name": "Story Studio", "detail": "นำเข้า JSON เรื่อง/ฉากแล้วพรีวิวและแก้ไขโปรเจกต์อนิเมชัน"},
     {"name": "AI Mother", "detail": "เชื่อมผู้ให้บริการ Gemini/OpenRouter หรือ compatible ด้วยคีย์เจ้าของที่เก็บใน AWS; ตรวจบทและเสนอคำแก้"},
     {"name": "AI Child — Thai repetition", "detail": "เรียนรู้ตัวอย่างคำซ้ำ/เจตนาจากบทเรียนที่เจ้าของอนุมัติ; โมเดล CPU ให้คำแนะนำ ไม่ใช่ LLM แต่งเรื่อง"},
     {"name": "AI Child — narrative", "detail": "รับบทเรียนตรวจความต่อเนื่อง/ความชัด/จังหวะที่ AI แม่สอน, ผ่าน QA ก่อนใช้ฝึก CPU แบบจำแนกประเภท"},
+    {"name": "Twelve-role production V2", "detail": "AI Mother manages 12 defined roles: story analysis, continuity, scene splitting, shots, environments, characters, props, layout, motion, audio, timeline, QA. Registry/planning only; not twelve trained models or finished SVG workers"},
     {"name": "Six production helpers", "detail": "จัดองค์ประกอบ, SVG, motion, voice, timing, QA; เป็นขั้นตอนงาน/บทบาท ไม่ใช่โมเดล LLM 6 ตัวที่ฝึกแยก"},
     {"name": "Cloud Background Jobs", "detail": "มีโค้ดสำหรับ Step Functions และ Checkpoint; ต้องติดตั้งบริการ AWS ครั้งแรกก่อนจึงใช้จริงได้"},
     {"name": "Export", "detail": "ส่งออกวิดีโอและ JSON ผ่านสตูดิโอ; เสียง/วิดีโอต้องทดสอบจากผลงานจริงก่อนยืนยันว่าไม่มีปัญหา"},
     {"name": "Member access", "detail": "สมาชิกและผู้เยี่ยมชมใช้ได้เฉพาะโมเดล AI ลูก CPU ที่ฝึกไว้ ไม่เชื่อม API ภายนอก; ตำแหน่งที่ยังไม่มีโมเดลจะแสดงว่ารอฝึก"},
 ]
+# New planning topology intentionally does not replace the six existing member roles,
+# CPU model weights, teacher lesson records, or executable six-stage pipeline.
+PRODUCTION_ROLE_IDS = [
+    "story-analyst", "continuity-keeper", "scene-director",
+    "storyboard-director", "environment-artist", "character-artist",
+    "prop-artist", "layout-director", "motion-director",
+    "audio-director", "timeline-editor", "quality-inspector"
+]
+LEGACY_STAGE_IDS = ["composition", "assets", "motion", "voice", "timing", "qa"]
+PRESERVED_SCRIPT_SYSTEMS = [
+    "StoryScriptML", "StoryNarrativeFoundation", "StoryContinuityCoach",
+    "StoryAutoTeach", "story_auto_train active CPU model",
+    "student_learning active repetition model", "Thai editor CPU model"
+]
+
 BOUNDARIES = [
     "โมเดลที่ดึง API มายังไม่ถูกฝึกด้วยโค้ด AI-ANIMATION โดยอัตโนมัติ",
     "แอดมินอนุญาตให้เซิร์ฟเวอร์อ่าน GitHub main สาธารณะเป็นรายคำถาม แต่ไม่มีสิทธิ์อ่าน repository ส่วนตัวโดยปริยาย",
@@ -33,6 +49,7 @@ BOUNDARIES = [
     "แอดมินสามารถเรียกเครื่องมืออ่าน GitHub public main, Actions และสถานะ AWS แบบตรวจสดได้ผ่านเซิร์ฟเวอร์; IAM อาจไม่อนุญาตบางรายการ",
     "สถานะฝึกมาจากการอ่าน AWS จริง ณ เวลาขอ หากอ่านไม่สำเร็จต้องบอกว่ายังตรวจไม่ได้",
     "บทเรียนบันทึกแล้วไม่เท่ากับฝึกน้ำหนักเสร็จ; โมเดล CPU จำแนกประเภทไม่ใช่โมเดลเขียนบทอิสระ",
+    "ทีมผลิต V2 จำนวน 12 ตำแหน่งยังเป็นแผนกำหนดบทบาทและสัญญาส่งงาน ไม่ใช่ 12 โมเดลฝึกแล้วหรือ worker วาดอิสระ; ห้ามลบหรือแทนโมเดลบทเดิม",
     "คำตอบในห้องนี้เป็นคำแนะนำเท่านั้น ไม่แก้ JSON ไม่ Deploy ไม่สั่งฝึก และไม่รับรองว่าแอปทำงานสำเร็จ",
 ]
 
@@ -246,6 +263,12 @@ def _snapshot():
                 "memberRelease": catalog["release"],
                 "memberRoles": catalog["modules"],
                 "memberRoleCount": catalog["moduleCount"],
+                "productionRoleVersion": "mother-production-roles-v2",
+                "productionRoleCount": len(PRODUCTION_ROLE_IDS),
+                "productionRoles": [{"id": x, "status": "defined-not-trained"} for x in PRODUCTION_ROLE_IDS],
+                "legacyStages": LEGACY_STAGE_IDS,
+                "preservedScriptSystems": PRESERVED_SCRIPT_SYSTEMS,
+                "productionExecutable": False,
                 "memberRolesTrainedWeights": False,
                 "mother": {"kind": "external-api-advisor-and-teacher",
                            "separateModelWeights": False,
@@ -259,7 +282,7 @@ def _snapshot():
                      "status": "starter training on 90 synthetic scenes, 30 held out",
                      "ownerOnly": True, "autoApply": False}],
                 "ownerConnections": safe_connections,
-                "separation": "6 fixed member prompts + 1 API Mother + 3 experimental CPU classifiers; not ten independently trained LLMs"},
+                "separation": "6 existing member roles + 6 executable legacy stages + 12 newly registered planning roles + Mother; existing CPU classifiers preserved; NOT 12 trained LLMs"},
             "knowledgeType": "curated-backend-manifest-not-live-repository-scan",
             "features": FEATURES, "boundaries": BOUNDARIES,
             "providers": providers, "narrativeChild": _aws_snapshot(),
@@ -414,6 +437,7 @@ def handle(action, body, owner_id=None):
     if len(context.encode("utf-8")) > 5500:
         catalog = evidence.get("aiCatalog")
         if isinstance(catalog, dict):
+            catalog["productionRoles"] = [{"id": x} for x in PRODUCTION_ROLE_IDS]
             catalog["memberRoles"] = [
                 {"id": v.get("id"), "role": v.get("role")}
                 for v in catalog.get("memberRoles", []) if isinstance(v, dict)]
@@ -437,7 +461,11 @@ def handle(action, body, owner_id=None):
             "verifiedAWS": evidence["verifiedAWS"],
             "ownerCloudJob": evidence["ownerCloudJob"],
             "clientReportedProject": evidence["clientReportedProject"],
-            "knowledgeVersion": KNOWLEDGE_VERSION}
+            "knowledgeVersion": KNOWLEDGE_VERSION,
+            "productionTopology": {"roles": PRODUCTION_ROLE_IDS,
+                                   "legacyStages": LEGACY_STAGE_IDS,
+                                   "preserveScriptLearning": True,
+                                   "executable": False}}
         context = as_json()
     try:
         result = teacher._chat({"provider": provider,
