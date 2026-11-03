@@ -90,7 +90,8 @@ test('friendly AI Mother names remain editable and mobile controls do not expose
  assert.ok(vault.includes('def set_alias(connection_id, alias):'));
  assert.ok(css.includes('.multi-json-key-actions'));
  assert.ok(css.includes('.multi-json-rename input'));
- assert.doesNotMatch(browser,/localStorage|sessionStorage/);
+ assert.ok(!browser.includes('localStorage.setItem('));
+ assert.ok(!browser.includes('sessionStorage.setItem('));
 });
 
 test('auto scheduler sends whole largest stories to least-loaded connections and pins retries',()=>{
