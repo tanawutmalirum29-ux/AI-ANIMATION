@@ -276,6 +276,7 @@ function connectionPanel(){
  for(const conn of connections){
   const line=dom('div',null,'multi-json-key');
   line.append(dom('span',conn.name+' · '+conn.provider));
+  line.append(button('ทดสอบ',()=>testConnection(conn),uploading||adding));
   if(!conn.legacy)line.append(button('ลบ',()=>removeConnection(conn),uploading||adding));
   box.append(line);
  }
