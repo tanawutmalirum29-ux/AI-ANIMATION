@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -104,10 +105,46 @@ class TimeoutRecoveryTests(unittest.TestCase):
                 self.assertEqual(row["completedIndices"],[0])
                 self.assertEqual(row["saved"],0)
                 self.assertEqual(row["transientFailures"],i)
+                self.assertEqual(row["lastProviderReason"], "TEACHER_PROVIDER_TIMEOUT")
+                self.assertGreater(row["nextRetryAt"], int(time.time()))
+                self.assertEqual(cloud_jobs._public(row)["transientFailures"], i)
             last=cloud_jobs.worker({"jobId":jobid,"generation":0})
         self.assertFalse(last["next"])
         self.assertEqual(last["state"],"needs-attention")
         self.assertEqual(table.rows[("teacher-job#"+jobid,"meta")]["position"],1)
+
+    def test_timeout_retries_only_one_scene_instead_of_two(self):
+        table, jobid, _ = fixture()
+        reply = teacher._response(503, {
+            "reasonCode": "TEACHER_PROVIDER_TIMEOUT", "error": "temporary"})
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(cloud_jobs, "_provider_quota_wait", return_value=0), \
+             mock.patch.object(cloud_jobs, "_try_provider_lock", return_value=True), \
+             mock.patch.object(cloud_jobs, "_release_provider_lock"), \
+             mock.patch.object(teacher, "_auto_teach", return_value=reply) as called:
+            first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+            second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(first["state"], "provider-retry")
+        self.assertEqual(second["state"], "provider-retry")
+        self.assertEqual([len(x.args[0]["scenes"]) for x in called.call_args_list],
+                         [2, 1])
+        row = table.rows[("teacher-job#" + jobid, "meta")]
+        self.assertEqual(row["position"], 0)
+        self.assertEqual(row["completedIndices"], [])
+        self.assertEqual(row["lastProviderReason"], "TEACHER_PROVIDER_TIMEOUT")
+
+    def test_teach_provider_timeout_is_longer_than_interactive_timeout(self):
+        content = {"candidates": [{"content": {"parts": [{"text":
+             '{"teachingLessons":[]}'}]}}]}
+        with mock.patch.object(teacher, "_settings", return_value={
+             "gemini": {"key": "fake-secret-for-tests", "model": "gemini-2.5-flash"}}), \
+             mock.patch.object(teacher, "_post_json", return_value=content) as called:
+            teacher._REQUEST_TIMES.clear()
+            teacher._chat({"provider": "gemini", "message": "สอนฉาก", "context": "{}"},
+                          teach_mode=True)
+            self.assertEqual(called.call_args.kwargs["timeout"], 32)
+            teacher._chat({"provider": "gemini", "message": "สอนฉาก", "context": "{}"})
+            self.assertNotIn("timeout", called.call_args.kwargs)
 
     def test_worker_catches_raw_timeout_and_recovers_without_skipped_scene(self):
         table,jobid,_=fixture()
