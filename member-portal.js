@@ -143,6 +143,7 @@ function render(){
  if(!logs.length)sectionHistory.append(node('p','subtle','ยังไม่มีผลวิเคราะห์'));
  for(const entry of logs.slice(-20).reverse()){
   const details=node('details');
+  if(entry===logs[logs.length-1])details.open=true;
   details.append(node('summary',null,entry.date+' · '+entry.question.slice(0,90)),
    node('pre','member-result',entry.reply),
    button('คัดลอก',()=>root.navigator.clipboard?.writeText(entry.reply).catch(()=>{})));
