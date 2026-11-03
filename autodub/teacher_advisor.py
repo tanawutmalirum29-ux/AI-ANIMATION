@@ -254,14 +254,30 @@ def _snapshot():
                     {"id": "narrative", "kind": "CPU text classifier",
                      "status": "see narrativeChild AWS snapshot"},
                     {"id": "repetition", "kind": "CPU text classifier",
-                     "status": "see repetitionChild AWS snapshot"}],
+                     "status": "see repetitionChild AWS snapshot"},
+                    {"id": "thai-editor", "kind": "experimental CPU editorial classifier",
+                     "status": "starter training on 90 synthetic scenes, 30 held out",
+                     "ownerOnly": True, "autoApply": False}],
                 "ownerConnections": safe_connections,
-                "separation": "6 fixed member prompts + 1 API Mother + 2 experimental CPU classifiers; not nine independently trained LLMs"},
+                "separation": "6 fixed member prompts + 1 API Mother + 3 experimental CPU classifiers; not ten independently trained LLMs"},
             "knowledgeType": "curated-backend-manifest-not-live-repository-scan",
             "features": FEATURES, "boundaries": BOUNDARIES,
             "providers": providers, "narrativeChild": _aws_snapshot(),
             "repetitionChild": _repetition_snapshot(),
+            "editorChild": _editor_snapshot(),
             "measuredAt": int(time.time())}
+
+
+def _editor_snapshot():
+    try:
+        import thai_editor
+        response = json.loads(thai_editor.status()["body"])
+        return {"available": True, "source": "bundled-cpu-synthetic-starter",
+                "version": response["version"], "status": response["status"],
+                "metrics": response["metrics"], "canAutoApply": False,
+                "ownerOnly": True, "trainedExternalLLMWeights": False}
+    except Exception:
+        return {"available": False, "source": "bundled-cpu-synthetic-starter"}
 
 
 def _context(project):
@@ -355,6 +371,7 @@ def handle(action, body, owner_id=None):
                 "ownerCloudJob": snapshot["projectJob"], "verifiedAWS": {
         "narrativeChild": snapshot["narrativeChild"],
         "repetitionChild": snapshot["repetitionChild"],
+        "editorChild": snapshot.get("editorChild"),
         "providers": snapshot["providers"],
         "measuredAt": snapshot["measuredAt"]},
         "aiCatalog": snapshot.get("aiCatalog"),
