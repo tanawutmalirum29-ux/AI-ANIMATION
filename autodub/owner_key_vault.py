@@ -94,6 +94,42 @@ def listing():
     return [_public(row) for row in _rows()]
 
 
+def aliases():
+    """Read name overrides from isolated metadata rows, not secret fields."""
+    from boto3.dynamodb.conditions import Key
+    table = _table()
+    result, cursor = {}, None
+    while True:
+        options = {
+            "KeyConditionExpression": Key("pk").eq(PK)
+                & Key("sk").begins_with("alias#"),
+            "ConsistentRead": True, "Limit": 100}
+        if cursor:
+            options["ExclusiveStartKey"] = cursor
+        page = table.query(**options)
+        for row in page.get("Items", []):
+            sk = str(row.get("sk") or "")
+            alias = row.get("alias")
+            if sk.startswith("alias#") and isinstance(alias, str) and alias:
+                result[sk[6:]] = alias
+        cursor = page.get("LastEvaluatedKey")
+        if not cursor:
+            return result
+
+
+def set_alias(connection_id, alias):
+    """Only cosmetic data is overwritten; credential material stays intact."""
+    if (not isinstance(connection_id, str)
+            or not (ID_RE.fullmatch(connection_id)
+                    or connection_id in ("default-gemini", "default-openrouter",
+                                         "default-compatible"))
+            or not isinstance(alias, str)):
+        raise ValueError("Invalid connection alias")
+    _table().put_item(Item={
+        "pk": PK, "sk": "alias#" + connection_id,
+        "alias": alias, "updatedAt": int(time.time())})
+
+
 def add(provider, model, base, key, legacy_keys=()):
     fingerprint = _fingerprint(provider, key)
     if any(hmac.compare_digest(fingerprint, _fingerprint(provider, old))
