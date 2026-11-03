@@ -1083,7 +1083,7 @@ function syncMotherViewport(){
 }
 window.visualViewport?.addEventListener('resize',syncMotherViewport);
 window.visualViewport?.addEventListener('scroll',syncMotherViewport);
-window.addEventListener('orientationchange',syncMotherViewport);
+window.addEventListener?.('orientationchange',syncMotherViewport);
 function render(){
  if(!rootElement||!bridge)return;
  // Give conversational AI its own usable viewport; other tools keep the editor.
