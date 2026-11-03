@@ -1153,7 +1153,14 @@ function mount(){
  if(state.tasks.some(t=>t.status==='running'))persist(s=>{for(const t of s.tasks)if(t.status==='running')t.status='interrupted'});
  render();
 }
-root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});
+root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),
+ status,getBusy:()=>busy,
+ runProduction12:()=>runCoordinatedProduction(),
+ getProductionSteps:()=>{
+  const task=w().tasks.slice().reverse().find(t=>t.role==='production');
+  return {steps:task?.steps?.length===12?task.steps:productionSteps(),
+   summary:task?.response||'',status:task?.status||'pending'};
+ }});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});
 else mount();
 })(window);
