@@ -61,6 +61,10 @@ on:
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
       - studio-ai-workspace.js
+      - studio-mother-chat.js
+      - studio-teacher.css
+      - studio-ai-mode.css
+      - tests/mother-chat-layout-browser-smoke.cjs
       - tests/ai-workspace-regression.test.cjs
       - studio-ai-workspace.css
       - studio-asset-core.js
@@ -152,6 +156,10 @@ on:
       - tests/indoor-weather.test.cjs
       - training-lab/evaluations/three-flashes-v2-comparison.json
       - studio-ai-workspace.js
+      - studio-mother-chat.js
+      - studio-teacher.css
+      - studio-ai-mode.css
+      - tests/mother-chat-layout-browser-smoke.cjs
       - tests/ai-workspace-regression.test.cjs
       - studio-ai-workspace.css
       - studio-asset-core.js
@@ -314,3 +322,4 @@ jobs:
           node tests/audio-export-integrity-smoke.cjs
           node tests/cloud-export-browser-smoke.cjs
           node tests/ai-only-mode-smoke.cjs
+          node tests/mother-chat-layout-browser-smoke.cjs
