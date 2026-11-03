@@ -6,6 +6,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "autodub"))
 import cloud_jobs
 
 
+class FakeConditionConflict(Exception):
+    response = {"Error": {"Code": "ConditionalCheckFailedException"}}
+
+
 class Table:
     def __init__(self, rows):
         self.rows = {(r["pk"], r["sk"]): dict(r) for r in rows}
@@ -18,9 +22,17 @@ class Table:
     def update_item(self, Key, UpdateExpression, ConditionExpression=None,
                     ExpressionAttributeNames=None, ExpressionAttributeValues=None,
                     **kwargs):
-        row = self.rows[(Key["pk"], Key["sk"])]
+        key = (Key["pk"], Key["sk"])
+        existed = key in self.rows
+        row = self.rows.setdefault(key, dict(Key))
         names = ExpressionAttributeNames or {}
         values = ExpressionAttributeValues or {}
+        if "ownerJob=:job" in (ConditionExpression or ""):
+            if row.get("ownerJob") != values[":job"]:
+                raise FakeConditionConflict()
+        if "attribute_not_exists(pk)" in (ConditionExpression or "") and existed:
+            if row.get("leaseUntil", 0) >= values[":now"]:
+                raise FakeConditionConflict()
         # Model conditional owner pause / generation and worker-lease semantics.
         if "generation=:g" in (ConditionExpression or ""):
             if row["generation"] != values[":g"]:
