@@ -22,15 +22,15 @@ FEATURES = [
     {"name": "Six production helpers", "detail": "จัดองค์ประกอบ, SVG, motion, voice, timing, QA; เป็นขั้นตอนงาน/บทบาท ไม่ใช่โมเดล LLM 6 ตัวที่ฝึกแยก"},
     {"name": "Cloud Background Jobs", "detail": "มีโค้ดสำหรับ Step Functions และ Checkpoint; ต้องติดตั้งบริการ AWS ครั้งแรกก่อนจึงใช้จริงได้"},
     {"name": "Export", "detail": "ส่งออกวิดีโอและ JSON ผ่านสตูดิโอ; เสียง/วิดีโอต้องทดสอบจากผลงานจริงก่อนยืนยันว่าไม่มีปัญหา"},
-    {"name": "Member access", "detail": "GitHub OAuth แยกแอดมินออกจากสมาชิก; สมาชิกเรียกผู้ช่วย 6 บทบาทด้วย API Key ของตนเอง"},
+    {"name": "Member access", "detail": "GitHub OAuth และเซสชันชั่วคราว; สมาชิกใช้ผู้ช่วย 6 บทบาทผ่าน API เว็บโดยไม่ต้องมีคีย์"},
 ]
 BOUNDARIES = [
     "โมเดลที่ดึง API มายังไม่ถูกฝึกด้วยโค้ด AI-ANIMATION โดยอัตโนมัติ",
-    "แอดมินอนุญาตให้เซิร์ฟเวอร์อ่าน GitHub main สาธารณะเป็นรายคำถาม แต่ไม่มีสิทธิ์อ่าน repository ส่วนตัวโดยปริยาย",
+    "เครื่องมืออ่าน GitHub main สาธารณะและ AWS metadata ของโปรเจกต์ได้ตาม IAM จริง แต่การเปิด repository ส่วนตัว/การแก้ AWS ต้องให้สิทธิ์แยกอย่างชัดเจน",
     "ห้ามส่ง AWS Secrets, GitHub Token, API Key หรืออีเมลส่วนตัวให้ผู้ให้บริการโมเดลภายนอก",
     "CloudWatch ต้องมี IAM read-only เพิ่ม จึงอาจยังตรวจไม่ได้; ไม่เปิดเผยข้อความ Logs ดิบ",
     "วิดีโอและไฟล์ที่ไม่ถูกแนบโดยเจ้าของยังไม่ได้ถูกวิเคราะห์จริง",
-    "รายการฟีเจอร์เป็นสรุปที่ดูแลไว้ ส่วนหลักฐานโค้ดอ่านจาก main ได้สูงสุด 2 ไฟล์ต่อคำถาม; ไม่ใช่การตรวจทั้ง repo",
+    "แอดมินเรียกเครื่องมืออ่าน GitHub tree/CI และข้อมูล AWS ที่ IAM อนุญาตผ่านเซิร์ฟเวอร์ โดยคัดเฉพาะหลักฐานที่จำเป็นตามคำถาม",
     "สถานะฝึกมาจากการอ่าน AWS จริง ณ เวลาขอ หากอ่านไม่สำเร็จต้องบอกว่ายังตรวจไม่ได้",
     "บทเรียนบันทึกแล้วไม่เท่ากับฝึกน้ำหนักเสร็จ; โมเดล CPU จำแนกประเภทไม่ใช่โมเดลเขียนบทอิสระ",
     "คำตอบในห้องนี้เป็นคำแนะนำเท่านั้น ไม่แก้ JSON ไม่ Deploy ไม่สั่งฝึก และไม่รับรองว่าแอปทำงานสำเร็จ",
@@ -350,6 +350,13 @@ def _cloudwatch_summary(question):
 def handle(action, body, owner_id=None):
     if action == "teacher.advisorRepoStatus":
         return _response(200, {"repository": _github_evidence("", include_code=False)})
+    if action == "teacher.advisorInspect":
+        import owner_inspection
+        query=body.get("question") or body.get("path") or "ระบบ aws github"
+        try:
+            return _response(200, {"inspection":owner_inspection.inspect(query)})
+        except ValueError:
+            return _response(400, {"error":"คำขอตรวจหลักฐานต้องไม่เกิน 200 ตัวอักษร"})
     if action == "teacher.advisorStatus":
         snapshot = _snapshot()
         snapshot["projectJob"] = _job_snapshot(body.get("project"), owner_id)
@@ -366,8 +373,12 @@ def handle(action, body, owner_id=None):
     snapshot = _snapshot()
     snapshot["projectJob"] = _job_snapshot(body.get("project"), owner_id)
     github = _github_evidence(message, include_code=True)
+    import owner_inspection
+    # The assistant receives actual tool results, not autonomous credentials.
+    owner_tools=owner_inspection.inspect(message[:200])
     logs = _cloudwatch_summary(message)
-    evidence = {"liveGitHub": github, "cloudWatch": logs,
+    evidence = {"liveGitHub": github, "ownerTools": owner_tools,
+                "cloudWatch": logs,
                 "ownerCloudJob": snapshot["projectJob"], "verifiedAWS": {
         "narrativeChild": snapshot["narrativeChild"],
         "repetitionChild": snapshot["repetitionChild"],
@@ -381,6 +392,18 @@ def handle(action, body, owner_id=None):
             "limitations": BOUNDARIES},
         "clientReportedProject": _context(body.get("project"))}
     context = json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
+    # Prioritize verified live measurements over duplicated long source code;
+    # teacher._chat caps total context at 14,000 characters.
+    if len(context)>12800:
+        for item in github.get("sourceExcerpts",[]):
+            item["excerpt"]=str(item.get("excerpt",""))[:600]
+        context=json.dumps(evidence,ensure_ascii=False,separators=(",",":"))
+    if len(context)>12800:
+        github["sourceExcerpts"]=[]
+        context=json.dumps(evidence,ensure_ascii=False,separators=(",",":"))
+    if len(context)>12800:
+        owner_tools["github"]["snippets"]=[]
+        context=json.dumps(evidence,ensure_ascii=False,separators=(",",":"))
     result = teacher._chat({"provider": provider,
                             "connectionId": body.get("connectionId"),
                             "message": message,
@@ -394,6 +417,10 @@ def handle(action, body, owner_id=None):
                            "model": parsed.get("model"),
                            "evidence": {"manifestVersion": KNOWLEDGE_VERSION,
                                         "githubLive": github["available"],
+                                        "ownerToolsLive":owner_tools["github"]["available"],
+                                        "ownerFiles":owner_tools["github"].get("selectedFiles",[]),
+                                        "awsLive":owner_tools["aws"].get("lambda",{}).get("available",False)
+                                           or owner_tools["aws"].get("amplify",{}).get("available",False),
                                         "githubTreeSha": github.get("treeSha"),
                                         "githubFiles": github.get("selectedFiles", []),
                                         "cloudWatchAvailable": logs.get("available", False),
