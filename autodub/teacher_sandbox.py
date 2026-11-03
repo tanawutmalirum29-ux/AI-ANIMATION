@@ -131,14 +131,22 @@ def _get(body):
     if not isinstance(report_id, str) or not re.fullmatch(r"[0-9a-f]{32}", report_id):
         return _resp(400, {"error": "หมายเลขรายงานไม่ถูกต้อง"})
     # Querying within the owner sandbox partition only, never production data.
-    response = _table().query(
-        KeyConditionExpression=Key("pk").eq(PK) &
-                               Key("sk").begins_with("report#"),
-        ScanIndexForward=False, ConsistentRead=True, Limit=100)
-    for item in response.get("Items", []):
-        record = item.get("record")
-        if isinstance(record, dict) and record.get("reportId") == report_id:
-            return _resp(200, {"report": record})
+    cursor = None
+    while True:
+        options = {
+            "KeyConditionExpression": Key("pk").eq(PK)
+                & Key("sk").begins_with("report#"),
+            "ScanIndexForward": False, "ConsistentRead": True, "Limit": 100}
+        if cursor:
+            options["ExclusiveStartKey"] = cursor
+        response = _table().query(**options)
+        for item in response.get("Items", []):
+            record = item.get("record")
+            if isinstance(record, dict) and record.get("reportId") == report_id:
+                return _resp(200, {"report": record})
+        cursor = response.get("LastEvaluatedKey")
+        if not cursor:
+            break
     return _resp(404, {"error": "ไม่พบรายงานในรายการล่าสุด"})
 
 
