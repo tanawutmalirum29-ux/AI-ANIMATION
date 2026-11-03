@@ -132,10 +132,8 @@ def _safe_excerpt(content):
     lines = []
     for line in content.splitlines()[:190]:
         lowered = line.lower()
-        if any(marker in lowered for marker in (
-                "authorization:", "bearer ", "client_secret =", "api_key =",
-                "password =", "private_key =", "access_token =", "secret_value =")):
-            lines.append("[configuration/redacted]")
+        if re.search(r"password|secret|token|credential|authorization|api.?key|private.?key|bearer|session", lowered):
+            lines.append("[credential-related source line redacted]")
         else:
             lines.append(line[:350])
     return "\n".join(lines)[:2700]
