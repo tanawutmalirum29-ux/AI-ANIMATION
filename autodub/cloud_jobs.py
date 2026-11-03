@@ -549,7 +549,10 @@ def _borrow_idle_connection(table, item, now, excluded=()):
     # Least recently used first, for fairer sharing across stories.
     candidates.sort(key=lambda x: (x[0], x[1]))
     for _, _, conn in candidates:
-        if _try_provider_lock(table, conn["id"], item["jobId"], now):
+        # Pool invocations use the unique job-lease token, not a reusable
+        # job ID, so an old Lambda cannot release its successor's API lock.
+        lock_owner = item.get("leaseOwner") or item["jobId"]
+        if _try_provider_lock(table, conn["id"], lock_owner, now):
             return conn, None
         # Another worker won the claim while we checked availability.
         shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
@@ -696,6 +699,8 @@ def _worker(payload):
                     return {"next": False, "state": "worker-claim-lost"}
                 return {"next": True, "state": "provider-busy", "waitSeconds": 20}
         cooldown = 12
+        provider_lock_owner = (
+            item["leaseOwner"] if item.get("poolMode") and pool_enabled() else job_id)
         try:
             try:
                 reply = teacher._auto_teach({
@@ -719,7 +724,7 @@ def _worker(payload):
                 # Do not burn the same invalid key across other jobs.
                 cooldown = 3600 if data["reasonCode"] == "TEACHER_PROVIDER_AUTH" else 1800
         finally:
-            _release_provider_lock(table, credential_id, job_id, cooldown)
+            _release_provider_lock(table, credential_id, provider_lock_owner, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
     if (fresh and item.get("poolMode") and pool_enabled()
