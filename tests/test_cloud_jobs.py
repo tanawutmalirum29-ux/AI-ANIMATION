@@ -67,6 +67,8 @@ class CloudJobTests(unittest.TestCase):
 
     def test_two_scenes_save_checkpoint_and_complete(self):
         table, jobid, scenes = fixture()
+        # Match actual boto3 DynamoDB deserialization, not Python list literals.
+        table.rows[("teacher-job#" + jobid, "meta")]["work"] = [Decimal("0"), Decimal("1")]
         lessons = [{"sceneId": x["id"], "episodeId": "ep1", "issue": "keep",
                     "original": x["text"], "revised": x["text"],
                     "teacherReason": "บทสอดคล้องกับบริบทไม่ควรแก้ไข"}
