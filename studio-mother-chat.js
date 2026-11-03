@@ -172,10 +172,10 @@ function evidence(){
   const g=inspection.github||{},a=inspection.aws||{},act=inspection.githubActions||{};
   status.append(el('p',null,'GitHub สด: '+(g.available?
    (g.selectedFiles||[]).join(', ')+' · tree '+String(g.treeSha||'').slice(0,12):
-   String(g.reason||'ไม่พร้อม')));
+   String(g.reason||'ไม่พร้อม'))));
   status.append(el('p',null,'Actions: '+(act.available?
    (act.runs||[]).map(j=>j.name+' '+j.conclusion).join(' · '):
-   String(act.reason||'ยังไม่ตรวจ')));
+   String(act.reason||'ยังไม่ตรวจ'))));
   for(const name of ['lambda','amplify','database']){
    const item=a[name]||{};
    status.append(el('p',null,'AWS '+name+': '+(item.available?
