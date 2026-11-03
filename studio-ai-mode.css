@@ -90,3 +90,94 @@ html.ai-only.ai-only #dlg.aih-embedded .import-actions button{font-size:13px!imp
  html.ai-only.ai-only body.pre-side:not(.export-focus) #pre>#stageWrap{display:flex!important;justify-content:center!important;align-items:center!important;flex:1 1 auto!important;max-width:none!important;min-width:0!important}
  html.ai-only.ai-only body.pre-side:not(.export-focus) #pre>#ctl{width:100%!important;max-width:none!important}
 }
+
+
+/* AI Mother focus: on this tab the conversation is the product, not a
+   subordinate card below an oversized video preview. Allow preview on demand. */
+html.ai-only.ai-only body.mother-focus{
+ display:flex!important;flex-direction:column!important;
+ height:100dvh!important;min-height:0!important;overflow:hidden!important;
+}
+html.ai-only.ai-only body.mother-focus header#top{order:0;flex:0 0 auto;min-height:0}
+html.ai-only.ai-only body.mother-focus #pre,
+html.ai-only.ai-only body.mother-focus.pre-side:not(.export-focus) #pre{
+ display:none!important;
+}
+html.ai-only.ai-only body.mother-focus.mother-preview #pre,
+html.ai-only.ai-only body.mother-focus.mother-preview.pre-side:not(.export-focus) #pre{
+ display:flex!important;order:1;flex:0 0 auto!important;
+ height:clamp(145px,25dvh,250px)!important;max-height:25dvh!important;
+ min-height:0!important;width:100%!important;overflow:hidden!important;
+ position:relative!important;top:auto!important;
+}
+html.ai-only.ai-only body.mother-focus.mother-preview #pre #stageWrap{
+ flex:1 1 auto;min-height:0!important;max-height:none!important;
+}
+html.ai-only.ai-only body.mother-focus #studioWorkspace{
+ display:flex!important;order:2;flex:1 1 auto!important;
+ width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+ overflow:hidden!important;grid-area:auto!important;border-left:0!important;
+}
+html.ai-only.ai-only body.mother-focus #aiHub{display:none!important}
+html.ai-only.ai-only body.mother-focus #studioToolBody{
+ display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ min-height:0!important;height:100%!important;
+ overflow:hidden!important;padding:0!important;
+}
+html.ai-only.ai-only body.mother-focus #studioToolBody>#aiWorkspacePanel{
+ display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ height:100%!important;min-height:0!important;padding:0 10px 8px!important;
+ overflow:hidden!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel>.ai-header,
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel>.ai-status,
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel>.ai-command-desk{
+ display:none!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .ai-tabs{
+ position:relative!important;top:auto!important;flex:0 0 auto!important;
+ min-height:43px;z-index:2;padding:5px 0!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .ai-workspace-content{
+ display:flex!important;flex:1 1 auto!important;
+ min-height:0!important;width:100%!important;overflow:hidden!important;
+ padding:0!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspaceContent>.mother-chat{
+ display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ height:100%!important;min-height:0!important;min-width:0!important;
+ overflow:hidden!important;padding:8px 2px max(6px,env(safe-area-inset-bottom,0px))!important;
+ gap:8px!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-chat-log{
+ display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+ min-height:0!important;max-height:none!important;height:auto!important;
+ overflow-y:auto!important;overflow-x:hidden!important;
+ overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
+ touch-action:pan-y;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-composer{
+ position:relative!important;bottom:auto!important;z-index:auto!important;
+ flex:0 0 auto!important;min-height:0!important;
+ padding:8px!important;gap:7px!important;box-shadow:none!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-composer textarea{
+ min-height:54px!important;height:60px!important;max-height:17dvh!important;
+ font-size:16px!important;resize:none!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-chat-heading{flex:0 0 auto!important}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-chat .mother-subtitle{display:none!important}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-evidence{
+ flex:0 0 auto!important;max-height:34dvh;overflow-y:auto;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-provider{
+ flex:0 0 auto!important;gap:3px!important;
+}
+html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-provider select{
+ min-height:36px!important;padding:6px 10px!important;
+}
+@media(max-height:590px){
+ html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-chat{gap:5px!important}
+ html.ai-only.ai-only body.mother-focus #aiWorkspacePanel .mother-composer textarea{height:52px!important}
+ html.ai-only.ai-only body.mother-focus.mother-preview #pre{max-height:20dvh!important}
+}
