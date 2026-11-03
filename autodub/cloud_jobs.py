@@ -140,7 +140,7 @@ def _start(body, owner):
     table = _table()
     existing = _read(table, digest)
     if existing:
-        if existing["ownerId"] != owner:
+        if existing["ownerId"] != str(owner):
             return _resp(403, {"error": "ไม่อนุญาต"})
         if existing["state"] == "queued" and not existing.get("executionArn"):
             try:
