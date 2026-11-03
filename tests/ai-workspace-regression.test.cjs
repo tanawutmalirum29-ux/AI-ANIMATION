@@ -150,20 +150,24 @@ test('narration preview has a local speech option when no actual voice clip exis
 });
 
 
-test('six-stage coordinated production safely creates two ~60s episodes',async()=>{
+test('twelve-role production runs V1 engines safely and keeps two ~60s episodes',async()=>{
  const core=require('../studio-ai-core.js');
  const auditor=require('../studio-timing-auditor.js');
   const planner=require('../studio-production-planner.js');
   const assets=require('../studio-production-assets.js');
   const visualQA=require('../studio-visual-qa.js');
- const marker='root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),status,getBusy:()=>busy});';
+ const marker='root.StoryAIWorkspace=Object.freeze({';
  const backupStart='async function backupBeforeEdit(){';
  const backupEnd='// No pasted story or replacement script operations';
  const start=workspace.indexOf(backupStart),stop=workspace.indexOf(backupEnd,start);
  assert.ok(start>0&&stop>start,'backups function must exist');
  const instrument=workspace.slice(0,start)+'async function backupBeforeEdit(){return {ok:true}}\n'+workspace.slice(stop);
- const source=instrument.replace(marker,
-  'root.__productionTest={setup:b=>{bridge=b},run:runCoordinatedProduction,state:()=>({busy,progress,lastError})};');
+ const startAPI=instrument.indexOf(marker);
+ const endAPI=instrument.indexOf('if(document.readyState',startAPI);
+ assert.ok(startAPI>0&&endAPI>startAPI,'test hook must replace public workspace API');
+ const source=instrument.slice(0,startAPI)+
+  'root.__productionTest={setup:b=>{bridge=b},run:runCoordinatedProduction,state:()=>({busy,progress,lastError})};\n'+
+  instrument.slice(endAPI);
  const original=Array.from({length:6},(_,i)=>({
   id:'s'+i,duration:20,voiceover:'รถไฟมาถึงสถานี เวลาเที่ยงคืน',
   subtitle:['รถไฟมาถึงสถานี'],subtitleCues:[{id:'c'+i,text:'รถไฟมาถึงสถานี',start:0,end:20}],
@@ -194,7 +198,8 @@ test('six-stage coordinated production safely creates two ~60s episodes',async()
   }
  };
  const win={StoryAIWorkspaceCore:core,StoryTimingAuditor:auditor,StudioAPI:editor,
-    StoryProductionPlanner:planner,StoryProductionAssets:assets,StoryVisualQA:visualQA};
+    StoryProductionPlanner:planner,StoryProductionAssets:assets,StoryVisualQA:visualQA,
+     StoryProductionRoles:require('../studio-production-roles.js')};
  new Function('window','document','localStorage','performance','navigator','Worker','URL',source)(
   win,{readyState:'loading',addEventListener(){}},
   {getItem:()=>null,setItem(){}},{now:()=>1},{},class Worker{},class URL{}
@@ -210,10 +215,10 @@ test('six-stage coordinated production safely creates two ~60s episodes',async()
  assert.deepEqual(state.episodes.flatMap(e=>e.scenes.map(s=>s.voiceover)),original.map(s=>s.voiceover));
  assert.ok(applied.includes('replaceScenes'));
  assert.ok(state.episodes.flatMap(e=>e.scenes).every(s=>s.audioClips.length===1));
- assert.equal(state.project.aiWorkspace.production.stage,'ready');
+ assert.equal(state.project.aiWorkspace.production.stage,'needs_attention','missing independent SVG workers cannot be marked ready');
  assert.equal(state.project.aiWorkspace.production.pendingDub,false);
- assert.deepEqual(state.project.aiWorkspace.tasks.find(x=>x.role==='production').steps.map(x=>x.id),planner.stages.map(x=>x.id));
-  assert.equal(state.project.aiWorkspace.production.handoffs.length,7,'all six stages plus completion handoff');
+ assert.deepEqual(state.project.aiWorkspace.tasks.find(x=>x.role==='production').steps.map(x=>x.id),require('../studio-production-roles.js').roles.map(x=>x.id));
+  assert.equal(state.project.aiWorkspace.production.handoffs.length,13,'all twelve stage handoffs plus completion');
  assert.equal(win.__productionTest.state().busy,false);
 });
 
