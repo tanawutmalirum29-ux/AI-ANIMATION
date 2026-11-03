@@ -167,7 +167,7 @@
 .mother-bubble small{color:#b7d0dd;line-height:1.6;font-size:11px}
 .mother-prompts{display:flex;gap:8px;flex-wrap:wrap}
 .mother-chat .mother-suggest{font-size:12px;line-height:1.4;text-align:left;min-height:38px;padding:8px 10px}
-.mother-composer{position:sticky;bottom:0;z-index:6;display:grid;gap:10px;background:#14263a;border:1px solid #6b869c8a;box-shadow:0 -8px 25px #071220ad;border-radius:12px;padding:11px;min-width:0}
+.mother-composer{position:relative;bottom:auto;z-index:1;display:grid;gap:10px;background:#14263a;border:1px solid #6b869c8a;box-shadow:0 -8px 25px #071220ad;border-radius:12px;padding:11px;min-width:0}
 .mother-composer textarea{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;background:#0f2033;color:#fff;border:1px solid #7a93ab;border-radius:10px;font:inherit;font-size:15px;line-height:1.6;padding:11px}
 .mother-context{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;color:#d2e0ea}
 .mother-context input{margin-top:2px}
@@ -178,7 +178,7 @@
 @media(max-width:540px){
  .mother-stats{grid-template-columns:1fr}
  .mother-chat-log{max-height:42vh;min-height:160px}
- .mother-composer{padding:9px;bottom:env(safe-area-inset-bottom,0px)}
+ .mother-composer{padding:9px;bottom:auto}
  .mother-actions button{flex:1 1 135px}
 }
 
