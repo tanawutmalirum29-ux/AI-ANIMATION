@@ -107,30 +107,42 @@ async function loadResults(){
 }
 // For large projects use resumable 16-scene requests, not a single long
 // multi-hundred-kilobyte upload. No API inference starts until commit.
-async function startUploaded(projectId,scenes){
+async function startUploaded(projectId,scenes,selectedProvider=adapter?.provider,onProgress=null){
  const encoder=new root.TextEncoder();
- const raw=encoder.encode(JSON.stringify([projectId,adapter.provider,scenes]));
+ const raw=encoder.encode(JSON.stringify([projectId,selectedProvider,scenes]));
  if(!root.crypto?.subtle?.digest)throw Error('เบราว์เซอร์ไม่รองรับ SHA-256 สำหรับส่งงานอย่างปลอดภัย');
  const digest=new Uint8Array(await root.crypto.subtle.digest('SHA-256',raw));
  const uploadId=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('').slice(0,32);
  const prepared=await request({action:'teacher.job.upload.prepare',
-  uploadId,projectId,provider:adapter.provider,totalScenes:scenes.length});
+  uploadId,projectId,provider:selectedProvider,totalScenes:scenes.length});
  const size=Number(prepared.chunkSize)||16,parts=Math.ceil(scenes.length/size);
  if(prepared.partCount!==parts||size!==16)
   throw Error('จำนวนชุดที่ AWS ตอบกลับไม่ตรงกัน');
  const done=new Set(prepared.uploadedParts||[]);
- uploadState={done:done.size,total:parts,scenes:scenes.length};
- repaint();
+ if(onProgress)onProgress(done.size,parts);
+ else {uploadState={done:done.size,total:parts,scenes:scenes.length};repaint();}
  for(let partIndex=0;partIndex<parts;partIndex++){
   if(done.has(partIndex))continue;
   await request({action:'teacher.job.upload.chunk',uploadId,partIndex,
    scenes:scenes.slice(partIndex*size,(partIndex+1)*size)});
   done.add(partIndex);
-  uploadState={done:done.size,total:parts,scenes:scenes.length};
-  repaint();
+  if(onProgress)onProgress(done.size,parts);
+  else {uploadState={done:done.size,total:parts,scenes:scenes.length};repaint();}
  }
  const committed=await request({action:'teacher.job.upload.commit',uploadId});
  return committed;
+}
+async function startBatchProject({projectId:pid,scenes,provider:chosen,onProgress}){
+ if(!access()?.isReady?.())throw Error('กรุณาเข้าสู่ระบบ GitHub แอดมิน');
+ if(!['gemini','openrouter','compatible'].includes(chosen))
+  throw Error('กรุณาเลือก AI Provider ที่เชื่อมไว้');
+ if(!Array.isArray(scenes)||scenes.length<1||scenes.length>350)
+  throw Error('หนึ่ง JSON ต้องมี 1–350 ฉากที่ถูกต้อง');
+ const cfg=await request({action:'teacher.job.config'});
+ if(!cfg?.enabled)throw Error('Cloud Background Jobs ยังไม่พร้อม');
+ const bytes=new root.TextEncoder().encode(JSON.stringify(scenes)).length;
+ if(bytes>4_000_000)throw Error('บทพากย์รวมใหญ่เกิน 4 MB');
+ return startUploaded(pid,scenes,chosen,onProgress||(()=>{}));
 }
 async function teach(fallback){
  if(busy)return adapter?.getState?.();
@@ -242,7 +254,7 @@ function mount(bridge){
 function afterScan(){
  if(job?.state==='completed')loadResults().catch(()=>{});
 }
-root.StoryCloudTeach=Object.freeze({mount,decorate,teach,afterScan,refresh});
+root.StoryCloudTeach=Object.freeze({mount,decorate,teach,afterScan,refresh,startBatchProject});
 if(typeof root.addEventListener==='function'){
  root.addEventListener('online',()=>{if(job)refresh().catch(()=>{})});
  root.addEventListener('visibilitychange',()=>{
