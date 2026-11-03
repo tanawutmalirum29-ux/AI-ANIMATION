@@ -86,6 +86,7 @@ def _public(item):
             "unusableKeys": len(item.get("unusableConnections", [])),
             "trainingPending": bool(item.get("trainingPending", False)),
             "trainingAttempts": int(item.get("trainingAttempts", 0)),
+            "nextRetryAt": int(item.get("nextRetryAt", 0)),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -675,6 +676,7 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
+        rate_limit_delay = 0
         teaching_provider = item["provider"]
         teaching_connection = item.get("connectionId")
         credential_id = teaching_connection or teaching_provider
@@ -734,8 +736,13 @@ def _worker(payload):
                                     "error": "AI provider ตอบช้า กำลังลองใหม่"})
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
-                cooldown = (_retry_delay(job_id, int(item.get("throttles", 0)) + 1)
-                            if item.get("poolMode") and pool_enabled() else 70)
+                suggested = data.get("retryAfterSeconds", 0)
+                retry_after = (min(86400, suggested) if
+                               type(suggested) is int and suggested > 0 else 0)
+                rate_limit_delay = max(
+                    retry_after, _retry_delay(job_id, int(item.get("throttles", 0)) + 1)
+                    if item.get("poolMode") and pool_enabled() else 70)
+                cooldown = rate_limit_delay
                 _provider_quota_block(table, teaching_provider, cooldown)
             elif (item.get("poolMode") and pool_enabled()
                   and data.get("reasonCode") in POOL_KEY_FAILURES):
@@ -779,12 +786,13 @@ def _worker(payload):
                 return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
         committed = _save_progress(table, item, state="queued", throttles=throttles,
-                       lastError="Provider จำกัดโควตา กำลังรอทำต่อ",
+                       lastError="Provider ตอบ HTTP 429; เก็บ Checkpoint แล้วรอเรียกใหม่อัตโนมัติ",
+                       nextRetryAt=int(time.time()) + rate_limit_delay,
                        updatedAt=int(time.time()), leaseUntil=0)
         if not committed:
             return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "rate-limited",
-                "waitSeconds": (_retry_delay(job_id, throttles)
+                "waitSeconds": (rate_limit_delay
                                 if item.get("poolMode") and pool_enabled()
                                 else min(900, 60 * (2 ** (throttles - 1))))}
     # Provider timeouts and transient 5xx are NOT corrupted lessons.
@@ -887,6 +895,7 @@ def _worker(payload):
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
+                   nextRetryAt=0,
                    unusableConnections=[],
                    trainingPending=bool(training_pending),
                    lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
