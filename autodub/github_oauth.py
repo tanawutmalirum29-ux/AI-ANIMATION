@@ -33,10 +33,12 @@ def _resp(code, value):
             "body":json.dumps(value,ensure_ascii=False)}
 
 def config():
-    # Public metadata only; no secret or user records.
+    # Public metadata only, no keys/user records.
+    import guest_access
     return _resp(200, {"mode":"github" if enabled() else "legacy-password",
                        "clientId":os.getenv("GITHUB_OAUTH_CLIENT_ID","") if enabled() else "",
-                       "redirectUri":REDIRECT_URI if enabled() else ""})
+                       "redirectUri":REDIRECT_URI if enabled() else "",
+                       "guestEnabled":guest_access.enabled()})
 
 def _b64(data):
     return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
