@@ -94,7 +94,6 @@ def _validated_scenes(items):
 def _launch(table, item):
     """One deterministic execution per job generation, safe on lost API responses."""
     import boto3
-    from botocore.exceptions import ClientError
     arn = os.environ["TEACHER_JOB_STATE_MACHINE_ARN"]
     name = "teach-" + item["jobId"] + "-" + str(item["generation"])
     execution_arn = arn.replace(":stateMachine:", ":execution:") + ":" + name
@@ -103,8 +102,8 @@ def _launch(table, item):
             stateMachineArn=arn, name=name,
             input=json.dumps({"jobId": item["jobId"],
                               "generation": int(item["generation"])}))
-    except ClientError as exc:
-        if exc.response.get("Error", {}).get("Code") != "ExecutionAlreadyExists":
+    except Exception as exc:
+        if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ExecutionAlreadyExists":
             raise
     table.update_item(Key=_key(item["jobId"]),
                       UpdateExpression="SET executionArn=:arn, updatedAt=:now",
@@ -116,7 +115,6 @@ def _launch(table, item):
 
 
 def _start(body, owner):
-    import botocore.exceptions
     if not enabled():
         return _resp(503, {"error": "Background Jobs ยังไม่ได้ติดตั้งบน AWS"})
     project_id = body.get("projectId")
@@ -163,8 +161,8 @@ def _start(body, owner):
             "lastError": "", "leaseUntil": 0}
     try:
         table.put_item(Item=item, ConditionExpression="attribute_not_exists(pk)")
-    except botocore.exceptions.ClientError as exc:
-        if exc.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+    except Exception as exc:
+        if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
             raise
         item = _read(table, digest)
     table.put_item(Item={"pk": INDEX_PREFIX + str(owner),
@@ -284,7 +282,6 @@ def handle(action, body, owner):
 
 def _save_progress(table, old, **updates):
     """Conditional commit: a paused or cancelled job cannot silently resume."""
-    from botocore.exceptions import ClientError
     attrs = {":g": int(old["generation"]), ":running": "running"}
     names = {"#s": "state"}
     sets = []
@@ -298,8 +295,8 @@ def _save_progress(table, old, **updates):
             UpdateExpression="SET " + ",".join(sets),
             ConditionExpression="#s=:running AND generation=:g",
             ExpressionAttributeNames=names, ExpressionAttributeValues=attrs)
-    except ClientError as exc:
-        if exc.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+    except Exception as exc:
+        if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
             raise
         return False
     return True
@@ -307,7 +304,6 @@ def _save_progress(table, old, **updates):
 
 def _worker(payload):
     """Single Step Functions Task invocation, at most two scenes per call."""
-    from botocore.exceptions import ClientError
     job_id, generation = payload.get("jobId"), payload.get("generation")
     if not isinstance(job_id, str) or not re.fullmatch(r"[a-f0-9]{32}", job_id):
         return {"next": False, "state": "invalid"}
@@ -325,8 +321,8 @@ def _worker(payload):
             ExpressionAttributeNames={"#s": "state"},
             ExpressionAttributeValues={":g": generation, ":queued": "queued",
               ":running": "running", ":lease": now + 150, ":now": now})
-    except ClientError as exc:
-        if exc.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+    except Exception as exc:
+        if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             return {"next": True, "waitSeconds": 30, "state": "busy"}
         raise
     work, position = item["work"], int(item["position"])
