@@ -13,6 +13,7 @@ import time
 import cloud_jobs
 
 UPLOAD_PREFIX = "teacher-upload#"
+UPLOAD_INDEX_PREFIX = "teacher-upload-index#"
 UPLOAD_ID_PATTERN = re.compile(r"[a-f0-9]{32}\Z")
 MAX_UPLOAD_BYTES_PER_PART = 150_000
 
@@ -29,6 +30,29 @@ def _get(table, key):
 def _upload_id(body):
     value = body.get("uploadId")
     return value if isinstance(value, str) and UPLOAD_ID_PATTERN.fullmatch(value) else None
+
+
+def _upload_index(owner, project):
+    return {"pk": UPLOAD_INDEX_PREFIX + str(owner), "sk": "project#" + project}
+
+
+def _find_upload(body, owner):
+    project = body.get("projectId")
+    if not isinstance(project, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project):
+        return cloud_jobs._resp(400, {"error": "รหัสโปรเจกต์ไม่ถูกต้อง"})
+    table = cloud_jobs._table()
+    row = _get(table, _upload_index(owner, project))
+    if not row:
+        return cloud_jobs._resp(200, {"upload": None})
+    meta = _get(table, _key(row.get("uploadId", "")))
+    if not meta or str(meta.get("ownerId")) != str(owner):
+        return cloud_jobs._resp(200, {"upload": None})
+    return cloud_jobs._resp(200, {"upload": {
+        "uploadId": meta["pk"][len(UPLOAD_PREFIX):],
+        "projectId": project,
+        "provider": meta["provider"],
+        "connectionId": meta.get("connectionId") or "default-" + meta["provider"],
+        "totalScenes": int(meta["totalScenes"])}})
 
 
 def _verified(table, body, owner):
@@ -93,6 +117,22 @@ def _prepare(body, owner):
             item = _get(table, _key(upload_id))
             if not item or str(item.get("ownerId")) != str(owner):
                 return cloud_jobs._resp(409, {"error": "รหัสอัปโหลดนี้ถูกใช้งานแล้ว"})
+    index_key = _upload_index(owner, project_id)
+    old_index = _get(table, index_key)
+    if old_index and old_index.get("uploadId") != upload_id:
+        return cloud_jobs._resp(409, {
+            "error": "โปรเจกต์นี้มีการอัปโหลดค้างด้วยการเชื่อมต่อเดิม กรุณาใช้คีย์เดิม"})
+    if not old_index:
+        try:
+            table.put_item(Item={**index_key, "uploadId": upload_id,
+                                 "createdAt": int(time.time())},
+                           ConditionExpression="attribute_not_exists(pk)")
+        except Exception as exc:
+            if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                raise
+            existing = _get(table, index_key)
+            if not existing or existing.get("uploadId") != upload_id:
+                return cloud_jobs._resp(409, {"error": "มีอัปโหลดโปรเจกต์นี้จากการเชื่อมต่ออื่น"})
     return cloud_jobs._resp(200, {"uploadId": upload_id, "partCount": count,
                                   "uploadedParts": _parts(table, upload_id, count),
                                   "chunkSize": cloud_jobs.CHUNK_SIZE})
@@ -178,6 +218,8 @@ def _commit(body, owner):
 
 
 def handle(action, body, owner):
+    if action == "teacher.job.upload.find":
+        return _find_upload(body, owner)
     if action == "teacher.job.upload.prepare":
         return _prepare(body, owner)
     if action == "teacher.job.upload.chunk":
