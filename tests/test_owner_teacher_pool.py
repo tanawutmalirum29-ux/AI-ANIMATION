@@ -197,10 +197,10 @@ class IdlePoolTests(unittest.TestCase):
                    for sc in scenes]
         success = teacher._response(200, {"lessons": lessons, "saved": 2, "reused": 0})
         import story_auto_train
-        with mock.patch.object(cloud_jobs, "_table", return_value=table), \\
-             mock.patch.object(connections, "listing", return_value=self.connections()), \\
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=self.connections()), \
              mock.patch.object(teacher, "_auto_teach", side_effect=[
-                 unavailable, success]) as teach_call, \\
+                 unavailable, success]) as teach_call, \
              mock.patch.object(story_auto_train, "train", return_value={
                  "body": '{"status":"collecting","activated":false}'}):
             first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
@@ -227,8 +227,8 @@ class IdlePoolTests(unittest.TestCase):
         table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
         unavailable = teacher._response(404, {
             "reasonCode": "TEACHER_MODEL_UNAVAILABLE", "error": "model not found"})
-        with mock.patch.object(cloud_jobs, "_table", return_value=table), \\
-             mock.patch.object(connections, "listing", return_value=self.connections()), \\
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=self.connections()), \
              mock.patch.object(teacher, "_auto_teach", return_value=unavailable) as work:
             first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
             second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
@@ -244,7 +244,7 @@ class IdlePoolTests(unittest.TestCase):
         table, jobid, _ = fixture()
         two_same = [{"id": "key-" + "b"*16, "provider": "gemini", "ready": True},
                     {"id": "key-" + "c"*16, "provider": "gemini", "ready": True}]
-        with mock.patch.object(connections, "listing", return_value=two_same), \\
+        with mock.patch.object(connections, "listing", return_value=two_same), \
              mock.patch.object(cloud_jobs, "_provider_quota_wait", return_value=0) as quota:
             choice, wait = cloud_jobs._borrow_idle_connection(
                 table, {"jobId": jobid}, int(time.time()))
