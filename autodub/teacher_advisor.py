@@ -26,8 +26,11 @@ FEATURES = [
 ]
 BOUNDARIES = [
     "โมเดลที่ดึง API มายังไม่ถูกฝึกด้วยโค้ด AI-ANIMATION โดยอัตโนมัติ",
-    "ไม่มีสิทธิ์อ่าน GitHub, AWS secrets, CloudWatch, วิดีโอ, อีเมล หรือไฟล์ทั้งหมดโดยตัวมันเอง",
-    "ข้อมูลฟีเจอร์คือสรุปที่ดูแลไว้ในเซิร์ฟเวอร์ ไม่ใช่การสแกนโค้ด GitHub สด",
+    "แอดมินอนุญาตให้เซิร์ฟเวอร์อ่าน GitHub main สาธารณะเป็นรายคำถาม แต่ไม่มีสิทธิ์อ่าน repository ส่วนตัวโดยปริยาย",
+    "ห้ามส่ง AWS Secrets, GitHub Token, API Key หรืออีเมลส่วนตัวให้ผู้ให้บริการโมเดลภายนอก",
+    "CloudWatch ต้องมี IAM read-only เพิ่ม จึงอาจยังตรวจไม่ได้; ไม่เปิดเผยข้อความ Logs ดิบ",
+    "วิดีโอและไฟล์ที่ไม่ถูกแนบโดยเจ้าของยังไม่ได้ถูกวิเคราะห์จริง",
+    "รายการฟีเจอร์เป็นสรุปที่ดูแลไว้ ส่วนหลักฐานโค้ดอ่านจาก main ได้สูงสุด 2 ไฟล์ต่อคำถาม; ไม่ใช่การตรวจทั้ง repo",
     "สถานะฝึกมาจากการอ่าน AWS จริง ณ เวลาขอ หากอ่านไม่สำเร็จต้องบอกว่ายังตรวจไม่ได้",
     "บทเรียนบันทึกแล้วไม่เท่ากับฝึกน้ำหนักเสร็จ; โมเดล CPU จำแนกประเภทไม่ใช่โมเดลเขียนบทอิสระ",
     "คำตอบในห้องนี้เป็นคำแนะนำเท่านั้น ไม่แก้ JSON ไม่ Deploy ไม่สั่งฝึก และไม่รับรองว่าแอปทำงานสำเร็จ",
@@ -242,7 +245,7 @@ def _context(project):
     if not isinstance(project, dict):
         return None
     safe = {}
-    for key in ("title", "aspect", "selectedEpisode", "selectedScene", "mode"):
+    for key in ("title", "aspect", "selectedEpisode", "selectedScene", "mode", "projectId"):
         val = project.get(key)
         if isinstance(val, str):
             safe[key] = val[:160]
@@ -253,9 +256,63 @@ def _context(project):
     return safe
 
 
-def handle(action, body):
+
+def _job_snapshot(project, owner_id):
+    if owner_id is None:
+        return {"available": False, "reason": "owner session required"}
+    overview = _context(project) or {}
+    project_id = overview.get("projectId")
+    if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
+        return {"available": False, "reason": "เลือกโปรเจกต์เพื่อดูงาน AWS"}
+    try:
+        import cloud_jobs
+        if not cloud_jobs.enabled():
+            return {"available": False, "reason": "Cloud Jobs ยังไม่พร้อม"}
+        response = cloud_jobs._find({"projectId": project_id}, str(owner_id))
+        if response["statusCode"] != 200:
+            raise RuntimeError("job status unavailable")
+        data = json.loads(response["body"])
+        return {"available": True, "source": "aws-owner-cloud-job",
+                "job": data.get("job")}
+    except Exception:
+        return {"available": False, "reason": "อ่านงาน AWS ไม่สำเร็จ"}
+
+
+def _cloudwatch_summary(question):
+    # No raw messages, credentials or free-form log text cross to the provider.
+    words = ("cloudwatch", "logs", "log", "บันทึกข้อผิดพลาด", "บันทึกระบบ")
+    if not any(w in question.lower() for w in words):
+        return {"requested": False}
+    try:
+        import boto3
+        client = boto3.client("logs")
+        events = client.filter_log_events(
+            logGroupName="/aws/lambda/story-studio-autodub",
+            startTime=int((time.time() - 7200) * 1000),
+            filterPattern="ERROR", limit=15).get("events", [])
+        codes = ("AccessDeniedException", "ClientError", "ResourceNotFoundException",
+                 "ThrottlingException", "ValidationException", "TimeoutError")
+        summary = [{"at": int(e.get("timestamp", 0)),
+                    "errorCodes": [c for c in codes if c in str(e.get("message", ""))]}
+                   for e in events[:15]]
+        return {"requested": True, "available": True,
+                "source": "aws-cloudwatch-redacted-error-summary",
+                "events": summary, "lookbackHours": 2}
+    except Exception as exc:
+        code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+        return {"requested": True, "available": False,
+                "reason": "CloudWatch IAM read permission unavailable"
+                if code in ("AccessDeniedException", "AccessDenied")
+                else "CloudWatch diagnostic unavailable"}
+
+
+def handle(action, body, owner_id=None):
+    if action == "teacher.advisorRepoStatus":
+        return _response(200, {"repository": _github_evidence("", include_code=False)})
     if action == "teacher.advisorStatus":
-        return _response(200, {"snapshot": _snapshot()})
+        snapshot = _snapshot()
+        snapshot["projectJob"] = _job_snapshot(body.get("project"), owner_id)
+        return _response(200, {"snapshot": snapshot})
     if action != "teacher.advisorChat":
         return _response(400, {"error": "Unknown AI Mother advisor action"})
     message = body.get("message")
@@ -266,7 +323,11 @@ def handle(action, body):
     if provider not in teacher.PROVIDERS:
         return _response(400, {"error": "กรุณาเลือก AI Provider ที่รองรับ"})
     snapshot = _snapshot()
-    evidence = {"verifiedAWS": {
+    snapshot["projectJob"] = _job_snapshot(body.get("project"), owner_id)
+    github = _github_evidence(message, include_code=True)
+    logs = _cloudwatch_summary(message)
+    evidence = {"liveGitHub": github, "cloudWatch": logs,
+                "ownerCloudJob": snapshot["projectJob"], "verifiedAWS": {
         "narrativeChild": snapshot["narrativeChild"],
         "repetitionChild": snapshot["repetitionChild"],
         "providers": snapshot["providers"],
@@ -287,6 +348,11 @@ def handle(action, body):
                            "provider": parsed.get("provider"),
                            "model": parsed.get("model"),
                            "evidence": {"manifestVersion": KNOWLEDGE_VERSION,
+                                        "githubLive": github["available"],
+                                        "githubTreeSha": github.get("treeSha"),
+                                        "githubFiles": github.get("selectedFiles", []),
+                                        "cloudWatchAvailable": logs.get("available", False),
+                                        "projectJobAvailable": snapshot["projectJob"]["available"],
                                         "narrativeAWS": snapshot["narrativeChild"]["available"],
                                         "repetitionAWS": snapshot["repetitionChild"]["available"],
                                         "projectContext": evidence["clientReportedProject"] is not None},
