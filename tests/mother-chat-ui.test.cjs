@@ -58,3 +58,20 @@ test('mother chat focus keeps an independent scroll region and collapses excessi
  assert.match(style,/\.mother-compose-footer/);
  assert.doesNotMatch(style,/\.mother-composer\{position:sticky/);
 });
+
+test('live GitHub inspection is backend-only and owner-scoped',()=>{
+ const backend=get('autodub/teacher_advisor.py');
+ const handler=get('autodub/handler.py');
+ const chat=get('studio-mother-chat.js');
+ assert.match(handler,/teacher\.advisorRepoStatus/);
+ assert.match(handler,/not oauth_mode or not user or user\.get\("role"\) != "admin"/);
+ assert.match(backend,/github-main-live-tree/);
+ assert.match(backend,/selectedFiles/);
+ assert.match(backend,/sourceExcerpts/);
+ assert.match(backend,/credential-related source line redacted/);
+ assert.match(backend,/cloudwatch-redacted-error-summary/);
+ assert.match(chat,/teacher\.advisorRepoStatus/);
+ assert.match(chat,/ev\.githubTreeSha/);
+ assert.match(chat,/project\.project\?\.aiWorkspace\?\.projectId/);
+ assert.doesNotMatch(chat,/getUserMedia|navigator\.credentials|localStorage|sessionStorage/);
+});
