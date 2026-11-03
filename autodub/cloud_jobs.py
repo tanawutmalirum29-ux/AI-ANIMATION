@@ -448,6 +448,21 @@ def _worker(payload):
             "waitSeconds": 1 if not fresh else 12}
 
 
+def _safe_worker_error(exc):
+    """Expose error code and AWS operation, never secrets or full AWS messages."""
+    category = type(exc).__name__
+    details = getattr(exc, "response", {})
+    if not isinstance(details, dict):
+        details = {}
+    code = details.get("Error", {}).get("Code", "")
+    operation = getattr(exc, "operation_name", "")
+    if isinstance(code, str) and re.fullmatch(r"[A-Za-z0-9_]{1,50}", code):
+        category += " / " + code
+    if isinstance(operation, str) and re.fullmatch(r"[A-Za-z]{2,40}", operation):
+        category += " / " + operation
+    return "AWS Worker: " + category
+
+
 def worker(payload):
     try:
         return _worker(payload)
@@ -460,7 +475,7 @@ def worker(payload):
                 current = _read(table, job_id)
                 if current and current.get("generation") == payload.get("generation"):
                     _save_progress(table, current, state="needs-attention", leaseUntil=0,
-                                   lastError="AWS Worker: " + type(exc).__name__,
+                                   lastError=_safe_worker_error(exc),
                                    updatedAt=int(time.time()))
             except Exception:
                 raise  # Let Step Functions retry actual AWS infrastructure errors.
