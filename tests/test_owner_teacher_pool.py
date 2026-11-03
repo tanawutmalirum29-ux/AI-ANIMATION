@@ -169,6 +169,21 @@ class IdlePoolTests(unittest.TestCase):
         self.assertEqual(args["provider"], "openrouter")
         self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["completedIndices"], [0, 1])
 
+    def test_two_idle_workers_cannot_claim_the_same_api_key(self):
+        table, jobid, _ = fixture()
+        first_job = {"jobId": jobid}
+        second_job = {"jobId": "b" * 32}
+        with mock.patch.object(connections, "listing", return_value=self.connections()):
+            first, _ = cloud_jobs._borrow_idle_connection(table, first_job, int(time.time()))
+            second, _ = cloud_jobs._borrow_idle_connection(table, second_job, int(time.time()))
+            third, wait = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": "c" * 32}, int(time.time()))
+        self.assertIsNotNone(first)
+        self.assertIsNotNone(second)
+        self.assertNotEqual(first["id"], second["id"])
+        self.assertIsNone(third)
+        self.assertGreaterEqual(wait, 20)
+
     def test_all_busy_does_not_call_teacher_or_advance_progress(self):
         table, jobid, scenes = fixture()
         table.rows[("teacher-job#" + jobid, "meta")]["poolMode"] = True
