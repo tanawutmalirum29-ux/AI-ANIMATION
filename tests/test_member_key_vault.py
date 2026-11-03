@@ -146,29 +146,13 @@ class MemberKeyTests(unittest.TestCase):
             self.assertFalse(item["trainedWeights"])
             self.assertIn(item["id"], member_ai.ROLES)
 
-    def test_member_inference_only_uses_its_own_stored_key(self):
-        from io import BytesIO
-        saved = self.save(self.a, "alpha-provider-key-secure")
-        class Response:
-            def __enter__(self): return self
-            def __exit__(self, *args): pass
-            def read(self, n): return b'{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}'
-        member_ai._ATTEMPTS.clear()
-        with mock.patch.object(member_ai.urllib.request, "urlopen", return_value=Response()) as call:
-            code, output = read(member_ai.run({
-                "release": "member-six-v1",
+    def test_saved_legacy_member_key_is_not_accepted_by_hosted_inference(self):
+        saved = self.save(self.a, "legacy-key")
+        for user in (self.a, self.b):
+            code, _ = read(member_ai.run({
                 "role": "voice", "connectionId": saved["id"],
-                "message": "วรรคตอนที่เหมาะสมคืออะไร", "context": ""}, self.a))
-        self.assertEqual(code, 200, output)
-        self.assertEqual(output["release"], "member-six-v1")
-        self.assertTrue(output["keyStored"])
-        self.assertNotIn("alpha-provider-key", json.dumps(output))
-        self.assertEqual(call.call_args.kwargs["timeout"], 21)
-        code, result = read(member_ai.run({
-            "role": "voice", "connectionId": saved["id"],
-            "message": "ลองดู", "context": ""}, self.b))
-        self.assertEqual(code, 404, result)
-        member_ai._ATTEMPTS.clear()
+                "message": "วรรคตอน"}, user))
+            self.assertEqual(code, 403)
 
 
 if __name__ == "__main__":
