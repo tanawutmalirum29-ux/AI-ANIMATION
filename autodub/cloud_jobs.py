@@ -13,6 +13,10 @@ from decimal import Decimal
 MAX_SCENES = 350
 CHUNK_SIZE = 16
 MAX_PASSES = 3
+MAX_TRANSIENT_RETRIES = 6
+TRANSIENT_PROVIDER_CODES = frozenset((
+    "TEACHER_PROVIDER_TIMEOUT", "TEACHER_PROVIDER_NETWORK",
+    "TEACHER_PROVIDER_UPSTREAM", "TEACHER_PROVIDER_BAD_RESPONSE"))
 STATES = ("queued", "running", "paused", "needs-attention", "completed", "cancelled")
 JOB_PREFIX = "teacher-job#"
 INDEX_PREFIX = "teacher-job-index#"
@@ -176,7 +180,8 @@ def _start(body, owner):
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
-            "throttles": 0, "createdAt": now, "updatedAt": now,
+            "throttles": 0, "transientFailures": 0,
+            "createdAt": now, "updatedAt": now,
             "lastError": "", "leaseUntil": 0}
     try:
         table.put_item(Item=item, ConditionExpression="attribute_not_exists(pk)")
@@ -295,10 +300,11 @@ def _control(action, body, owner):
             return _resp(200, {"job": _public(item)})
         generation = int(item["generation"]) + (0 if state == "queued" else 1)
         table.update_item(Key=_key(job_id),
-                          UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, updatedAt=:now REMOVE executionArn",
+                          UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, updatedAt=:now REMOVE executionArn",
                           ExpressionAttributeNames={"#s": "state", "#p": "pass"},
                           ExpressionAttributeValues={":s": "queued", ":g": generation,
-                                                     ":p": 0, ":z": 0, ":e": "", ":now": int(time.time())})
+                                                     ":p": 0, ":z": 0, ":f": 0,
+                                                     ":e": "", ":now": int(time.time())})
         current = _read(table, job_id)
         try:
             _launch(table, current)
@@ -466,11 +472,17 @@ def _worker(payload):
             return {"next": True, "state": "provider-busy", "waitSeconds": 20}
         cooldown = 12
         try:
-            reply = teacher._auto_teach({
-                "projectId": item["projectId"],
-                "provider": item["provider"],
-                "connectionId": item.get("connectionId"),
-                "scenes": fresh})
+            try:
+                reply = teacher._auto_teach({
+                    "projectId": item["projectId"],
+                    "provider": item["provider"],
+                    "connectionId": item.get("connectionId"),
+                    "scenes": fresh})
+            except TimeoutError:
+                # Covers any legacy path that still emits socket.timeout.
+                # The memory fast path will check stored lessons on retry.
+                reply = _resp(503, {"reasonCode": "TEACHER_PROVIDER_TIMEOUT",
+                                    "error": "AI provider ตอบช้า กำลังลองใหม่"})
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
                 cooldown = 70
@@ -491,6 +503,24 @@ def _worker(payload):
                        updatedAt=int(time.time()), leaseUntil=0)
         return {"next": True, "state": "rate-limited",
                 "waitSeconds": min(900, 60 * (2 ** (throttles - 1)))}
+    # Provider timeouts and transient 5xx are NOT corrupted lessons.
+    # Keep the exact position and checkpoint; delay using Step Functions
+    # rather than repeatedly calling the model in the same Lambda invocation.
+    if code in (502, 503, 504) and data.get("reasonCode") in TRANSIENT_PROVIDER_CODES:
+        failures = int(item.get("transientFailures", 0)) + 1
+        if failures >= MAX_TRANSIENT_RETRIES:
+            _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                           transientFailures=failures,
+                           lastError="AI provider ขัดข้องชั่วคราวซ้ำหลายครั้ง; กดทำต่อเมื่อบริการกลับมา",
+                           updatedAt=int(time.time()))
+            return {"next": False, "state": "needs-attention"}
+        delay = min(600, 25 * (2 ** (failures - 1)))
+        _save_progress(table, item, state="queued", leaseUntil=0,
+                       transientFailures=failures,
+                       lastError="AI provider ตอบช้า/ไม่พร้อม กำลังรอลองใหม่โดยไม่ข้ามฉาก",
+                       updatedAt=int(time.time()))
+        return {"next": True, "state": "provider-retry",
+                "waitSeconds": delay}
     if code not in (200, 422):
         _save_progress(table, item, state="needs-attention", leaseUntil=0,
                        lastError=str(data.get("error") or "AI provider ไม่พร้อม")[:200],
@@ -535,7 +565,7 @@ def _worker(payload):
                    saved=int(item.get("saved", 0)) + int(data.get("saved", 0)),
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
-                   throttles=0, leaseUntil=0,
+                   throttles=0, transientFailures=0, leaseUntil=0,
                    lastError="" if state != "needs-attention"
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
                    **{"pass": run_pass},
@@ -580,14 +610,27 @@ def worker(payload):
     try:
         return _worker(payload)
     except Exception as exc:
-        # Persist a resumable failure instead of leaving a browser-less job stuck.
+        # AWS SDK network glitches can also be transient. Preserve the
+        # checkpoint and let Step Functions retry them, but never loop forever.
         job_id = payload.get("jobId")
+        transient = type(exc).__name__ in (
+            "TimeoutError", "ReadTimeoutError", "ConnectTimeoutError",
+            "EndpointConnectionError", "ConnectionError")
         if isinstance(job_id, str) and re.fullmatch(r"[a-f0-9]{32}", job_id):
             try:
                 table = _table()
                 current = _read(table, job_id)
                 if current and current.get("generation") == payload.get("generation"):
+                    failures = int(current.get("transientFailures", 0)) + 1
+                    if transient and failures < MAX_TRANSIENT_RETRIES:
+                        committed = _save_progress(table, current, state="queued",
+                                    leaseUntil=0, transientFailures=failures,
+                                    lastError="AWS เครือข่ายตอบช้า กำลังรอทำต่อ",
+                                    updatedAt=int(time.time()))
+                        return {"next": bool(committed), "state": "network-retry",
+                                "waitSeconds": min(600, 25 * (2 ** (failures - 1)))}
                     _save_progress(table, current, state="needs-attention", leaseUntil=0,
+                                   transientFailures=failures if transient else int(current.get("transientFailures",0)),
                                    lastError=_safe_worker_error(exc),
                                    updatedAt=int(time.time()))
             except Exception:
