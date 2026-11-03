@@ -73,7 +73,7 @@ const metrics=()=> {
    assert.equal(m.preview.display,'none',width+': preview can collapse again');
 
    await page.locator('#aiWorkspacePanel .ai-tabs')
-    .getByRole('button',{name:'6 ผู้ช่วย AI'}).click();
+    .getByRole('button',{name:'12 ขั้นการผลิต'}).click();
    m=await page.evaluate(metrics);
    assert.equal(m.focused,false,width+': leaving mother tab releases focus');
    assert.notEqual(m.preview.display,'none',width+': regular AI pages keep preview');
