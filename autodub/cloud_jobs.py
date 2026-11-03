@@ -624,7 +624,8 @@ def _worker(payload):
             attempts = int(item.get("trainingAttempts", 0)) + 1
             if (trained.get("status") in ("training-busy", "training-deferred")
                     or not trained.get("status")):
-                if attempts < 8:
+                # A busy training lock is contention, not a terminal failure.
+                if trained.get("status") == "training-busy" or attempts < 8:
                     committed = _save_progress(
                         table, item, state="queued", leaseUntil=0,
                         trainingAttempts=attempts,
@@ -632,7 +633,7 @@ def _worker(payload):
                         updatedAt=int(time.time()))
                     return {"next": bool(committed),
                             "state": "training-wait" if committed else "stopped",
-                            "waitSeconds": min(180, 25 * attempts)}
+                            "waitSeconds": min(600, 25 * attempts)}
                 committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                                trainingAttempts=attempts,
                                lastError="บทเรียนครบแล้ว แต่ขั้นฝึก AI ลูกไม่พร้อม กดทำต่อภายหลัง",
