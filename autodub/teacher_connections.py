@@ -21,10 +21,8 @@ def _models_and_rules(provider, model, base):
     model = str(model or teacher.MODELS[provider]).strip()
     if not re.fullmatch(r"[A-Za-z0-9_.:/-]{1,128}", model):
         raise ValueError("ชื่อ Model ID ไม่ถูกต้อง")
-    if (provider == "openrouter" and model != "openrouter/free"
-            and not model.endswith(":free")
-            and teacher.os.getenv("TEACHER_ALLOW_PAID_MODELS") != "1"):
-        raise ValueError("OpenRouter ต้องใช้โมเดลฟรี (:free)")
+    # Provider model selection is the owner's explicit choice. Do not
+    # enforce price-tier-specific model names at this server boundary.
     base = str(base or "").strip()
     if provider == "compatible" and not teacher._host_allowed(base):
         raise ValueError("API URL ไม่อยู่ในรายชื่อที่ AWS อนุญาต")

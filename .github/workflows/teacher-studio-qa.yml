@@ -13,6 +13,8 @@ on:
       - 'autodub/teacher_connections.py'
       - 'autodub/owner_key_vault.py'
       - 'tests/test_owner_key_vault.py'
+      - 'tests/test_owner_teacher_pool.py'
+      - 'autodub/setup-cloud-jobs.sh'
       - 'tests/test_teacher_multi_connections.py'
       - 'autodub/teacher_advisor.py'
       - 'tests/test_teacher_advisor.py'
@@ -102,6 +104,8 @@ on:
       - 'autodub/teacher_connections.py'
       - 'autodub/owner_key_vault.py'
       - 'tests/test_owner_key_vault.py'
+      - 'tests/test_owner_teacher_pool.py'
+      - 'autodub/setup-cloud-jobs.sh'
       - 'tests/test_teacher_multi_connections.py'
       - 'autodub/teacher_advisor.py'
       - 'tests/test_teacher_advisor.py'
@@ -231,6 +235,7 @@ jobs:
           python3 tests/test_teacher_connections.py
           python3 tests/test_teacher_multi_connections.py
           python3 tests/test_owner_key_vault.py
+           python3 tests/test_owner_teacher_pool.py
           python3 autodub/thai_editor.py
           python3 tests/test_thai_editor.py
           python3 tests/test_story_auto_train.py
