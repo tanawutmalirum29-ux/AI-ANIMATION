@@ -251,6 +251,31 @@ class IdlePoolTests(unittest.TestCase):
         self.assertEqual(meta["completedIndices"], [0, 1])
         self.assertEqual(meta["throttles"], 0)
 
+    def test_provider_backoff_may_lengthen_but_never_shorten(self):
+        table, _, _ = fixture()
+        key = (cloud_jobs.PROVIDER_QUOTA_PREFIX + "gemini", "backoff")
+        now = int(time.time())
+        with mock.patch.object(cloud_jobs.time, "time", return_value=now):
+            cloud_jobs._provider_quota_block(table, "gemini", 3600)
+            saved = table.rows[key]["until"]
+            cloud_jobs._provider_quota_block(table, "gemini", 50)
+            self.assertEqual(table.rows[key]["until"], saved)
+            cloud_jobs._provider_quota_block(table, "gemini", 7200)
+            self.assertEqual(table.rows[key]["until"], now + 7200)
+
+    def test_provider_429_on_one_service_can_borrow_other_service_key(self):
+        table, jobid, _ = fixture()
+        shared = self.connections()
+        now = int(time.time())
+        with mock.patch.object(connections, "listing", return_value=shared), \
+             mock.patch.object(cloud_jobs.time, "time", return_value=now):
+            cloud_jobs._provider_quota_block(table, "gemini", 1800)
+            choice, wait = cloud_jobs._borrow_idle_connection(
+                table, {"jobId": jobid, "leaseOwner": "safe-token"}, now)
+        self.assertIsNotNone(choice)
+        self.assertEqual(choice["provider"], "openrouter")
+        self.assertIsNone(wait)
+
     def test_story_anchors_cover_beginning_middle_and_end_without_fake_summary(self):
         scenes = [{"id": "sc%03d" % i, "text": "ตัวละครเติบโตขึ้นตามเวลา-" +
                    ("ทดสอบ" * 200)} for i in range(120)]
