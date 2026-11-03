@@ -11,6 +11,8 @@ on:
       - 'studio-ai-workspace.js'
       - 'autodub/teacher.py'
       - 'autodub/teacher_connections.py'
+      - 'autodub/owner_key_vault.py'
+      - 'tests/test_owner_teacher_pool.py'
       - 'tests/test_teacher_multi_connections.py'
       - 'autodub/teacher_advisor.py'
       - 'tests/test_teacher_advisor.py'
@@ -98,6 +100,8 @@ on:
       - 'studio-ai-workspace.js'
       - 'autodub/teacher.py'
       - 'autodub/teacher_connections.py'
+      - 'autodub/owner_key_vault.py'
+      - 'tests/test_owner_teacher_pool.py'
       - 'tests/test_teacher_multi_connections.py'
       - 'autodub/teacher_advisor.py'
       - 'tests/test_teacher_advisor.py'
@@ -187,7 +191,7 @@ jobs:
           node-version: '22'
       - name: Check JavaScript and Python
         run: |
-          python3 -m pip install --quiet cryptography
+          python3 -m pip install --quiet cryptography boto3
           node --check site-auth.js
           node --check member-portal.js
           python3 -m py_compile autodub/github_oauth.py autodub/guest_access.py autodub/member_ai.py autodub/member_keys.py autodub/owner_inspection.py autodub/handler.py
@@ -203,7 +207,7 @@ jobs:
           node --check studio-thai-editor.js
           node --check studio-cloud-teach.js
           node --check studio-multi-json.js
-          python3 -m py_compile autodub/thai_editor.py autodub/story_auto_train.py autodub/teacher.py autodub/teacher_connections.py autodub/teacher_advisor.py autodub/cloud_jobs.py autodub/cloud_upload.py autodub/student_learning.py
+          python3 -m py_compile autodub/thai_editor.py autodub/story_auto_train.py autodub/teacher.py autodub/teacher_connections.py autodub/owner_key_vault.py autodub/teacher_advisor.py autodub/cloud_jobs.py autodub/cloud_upload.py autodub/student_learning.py
           node --check studio-story-only.js
           node --check studio-story-only-ui.js
           node --check studio-script-ml.js
@@ -226,6 +230,7 @@ jobs:
           python3 tests/test_teacher_model_probe.py
           python3 tests/test_teacher_connections.py
           python3 tests/test_teacher_multi_connections.py
+          python3 tests/test_owner_teacher_pool.py
           python3 autodub/thai_editor.py
           python3 tests/test_thai_editor.py
           python3 tests/test_story_auto_train.py
