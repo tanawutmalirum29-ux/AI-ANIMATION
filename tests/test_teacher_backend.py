@@ -85,5 +85,93 @@ class TeacherBackendTests(unittest.TestCase):
             self.assertEqual(status, 503)
             self.assertNotIn("saved", result)
 
+
+class ProviderOutputTests(unittest.TestCase):
+    def setUp(self):
+        teacher._REQUEST_TIMES.clear()
+
+    def _call(self, provider, upstream, model=None, **flags):
+        model = model or ("gemini-3.5-flash-lite" if provider == "gemini"
+                          else "openrouter/free")
+        with mock.patch.object(teacher, "_settings", return_value={
+            provider: {"key": "offline-secret-do-not-expose", "model": model}
+        }), mock.patch.object(teacher, "_post_json", return_value=upstream) as post:
+            result = payload(teacher._chat({
+                "provider": provider, "message": "ช่วยอธิบาย AI แม่",
+                "context": "status only", "_internalMaxOutput": 1400
+            }, **flags))
+            return result, post
+
+    def test_gemini_thinking_exhaustion_has_useful_diagnostic(self):
+        (code, result), post = self._call("gemini", {
+            "candidates": [{"finishReason": "MAX_TOKENS", "content": {"parts": []}}],
+            "usageMetadata": {"thoughtsTokenCount": 1400}
+        }, advisor_mode=True)
+        self.assertEqual(code, 502)
+        self.assertEqual(result["reasonCode"], "TEACHER_PROVIDER_OUTPUT_LIMIT")
+        self.assertNotIn("offline-secret-do-not-expose", json.dumps(result))
+        self.assertEqual(post.call_count, 1, "do not silently waste another request")
+        generation = post.call_args.args[2]["generationConfig"]
+        self.assertGreaterEqual(generation["maxOutputTokens"], 2400)
+        self.assertEqual(generation["thinkingConfig"], {"thinkingLevel": "minimal"})
+
+    def test_gemini_pro_uses_low_thinking_not_unsupported_minimal(self):
+        (code, result), post = self._call("gemini", {
+            "candidates": [{"finishReason": "STOP", "content": {
+                "parts": [{"text": '{"reply":"ตรวจแล้ว","ops":[]}'}]}}]
+        }, model="gemini-3.1-pro", advisor_mode=True)
+        self.assertEqual(code, 200)
+        self.assertEqual(result["reply"], "ตรวจแล้ว")
+        self.assertEqual(post.call_args.args[2]["generationConfig"]
+                         ["thinkingConfig"]["thinkingLevel"], "low")
+
+    def test_gemini_blocked_and_thought_only_are_never_presented_as_answers(self):
+        (blocked, result), _ = self._call("gemini", {
+            "candidates": [], "promptFeedback": {"blockReason": "SAFETY"}
+        }, advisor_mode=True)
+        self.assertEqual(blocked, 422)
+        self.assertEqual(result["reasonCode"], "TEACHER_PROVIDER_BLOCKED")
+        (code, result), _ = self._call("gemini", {
+            "candidates": [{"finishReason": "STOP", "content": {
+                "parts": [{"thought": True, "text": "private thoughts"}]}}]
+        }, advisor_mode=True)
+        self.assertEqual(code, 502)
+        self.assertEqual(result["reasonCode"], "TEACHER_PROVIDER_EMPTY_RESPONSE")
+        self.assertNotIn("private thoughts", json.dumps(result))
+
+    def test_openrouter_empty_reasoning_length_is_explained(self):
+        (code, result), post = self._call("openrouter", {
+            "choices": [{"finish_reason": "length",
+                         "message": {"content": None, "reasoning": "internal"}}]
+        }, advisor_mode=True)
+        self.assertEqual(code, 502)
+        self.assertEqual(result["reasonCode"], "TEACHER_PROVIDER_OUTPUT_LIMIT")
+        self.assertEqual(post.call_args.args[2]["max_tokens"], 2400)
+        self.assertEqual(post.call_count, 1)
+
+    def test_openai_compatible_content_parts_are_readable(self):
+        (code, result), _ = self._call("openrouter", {
+            "choices": [{"finish_reason": "stop", "message": {
+                "content": [{"type": "text", "text": '{"reply":"สำเร็จ","ops":[]}'},
+                            {"type": "reasoning", "text": "do not expose"}]}}]
+        }, advisor_mode=True)
+        self.assertEqual(code, 200)
+        self.assertEqual(result["reply"], "สำเร็จ")
+        self.assertNotIn("do not expose", json.dumps(result))
+
+    def test_thinking_limits_dont_change_existing_weight_training_pipeline(self):
+        (code, result), post = self._call("gemini", {
+            "candidates": [{"content": {"parts": [{"text": json.dumps({
+                "teachingLessons": [{"sceneId": "s1", "issue": "keep",
+                                     "revised": "บทเดิม", "reason": "รักษาบทที่ผู้ใช้เขียนอย่างครบถ้วน"}]})
+            }]}}]
+        }, teach_mode=True)
+        self.assertEqual(code, 200)
+        self.assertEqual(result["teachingLessons"][0]["revised"], "บทเดิม")
+        generation = post.call_args.args[2]["generationConfig"]
+        self.assertEqual(generation["maxOutputTokens"], 1400)
+        self.assertNotIn("thinkingConfig", generation)
+
+
 if __name__ == "__main__":
     unittest.main()
