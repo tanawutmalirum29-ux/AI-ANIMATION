@@ -950,9 +950,17 @@ def worker(payload):
         # AWS SDK network glitches can also be transient. Preserve the
         # checkpoint and let Step Functions retry them, but never loop forever.
         job_id = payload.get("jobId")
-        transient = type(exc).__name__ in (
+        aws_error = getattr(exc, "response", {})
+        aws_code = (aws_error.get("Error", {}).get("Code", "")
+                    if isinstance(aws_error, dict) else "")
+        transient = (type(exc).__name__ in (
             "TimeoutError", "ReadTimeoutError", "ConnectTimeoutError",
             "EndpointConnectionError", "ConnectionError")
+            or aws_code in ("ThrottlingException", "Throttling",
+                            "TooManyRequestsException",
+                            "ProvisionedThroughputExceededException",
+                            "RequestLimitExceeded", "LimitExceededException",
+                            "ServiceUnavailableException", "InternalServerError"))
         if isinstance(job_id, str) and re.fullmatch(r"[a-f0-9]{32}", job_id):
             try:
                 table = _table()
@@ -966,13 +974,18 @@ def worker(payload):
                             return {"next": current.get("state") in ("queued", "running"),
                                     "state": "worker-claim-lost", "waitSeconds": 30}
                     failures = int(current.get("transientFailures", 0)) + 1
-                    if transient and failures < MAX_TRANSIENT_RETRIES:
+                    pooled = current.get("poolMode") and pool_enabled()
+                    if transient and (pooled or failures < MAX_TRANSIENT_RETRIES):
+                        delay = (_retry_delay(job_id, failures, base=30, ceiling=1800)
+                                 if pooled else min(600, 25 * (2 ** (failures - 1))))
                         committed = _save_progress(table, current, state="queued",
                                     leaseUntil=0, transientFailures=failures,
-                                    lastError="AWS เครือข่ายตอบช้า กำลังรอทำต่อ",
+                                    nextRetryAt=int(time.time()) + delay,
+                                    lastError="AWS ติดลิมิตหรือเครือข่ายตอบช้า; จะทำต่ออัตโนมัติ",
                                     updatedAt=int(time.time()))
-                        return {"next": bool(committed), "state": "network-retry",
-                                "waitSeconds": min(600, 25 * (2 ** (failures - 1)))}
+                        return {"next": bool(committed),
+                                "state": "network-retry" if committed else "worker-claim-lost",
+                                "waitSeconds": delay}
                     _save_progress(table, current, state="needs-attention", leaseUntil=0,
                                    transientFailures=failures if transient else int(current.get("transientFailures",0)),
                                    lastError=_safe_worker_error(exc),
