@@ -9,6 +9,8 @@ let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,error='',notice='',timer=null;
 let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
+let sandboxInput='',sandboxResult=null,sandboxReports=[],sandboxBusy=false;
+let sandboxSelected='',sandboxNotice='';
 const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
 function dom(tag,text,cls){
  const e=root.document.createElement(tag);
@@ -352,6 +354,75 @@ function connectionPanel(){
  box.append(dom('p','หาก Provider ตอบ 429 ระบบ Pool จะพักงานไว้และลองใหม่อัตโนมัติโดยไม่ลบฉากที่สอนแล้ว','multi-json-muted'));
  return box;
 }
+
+async function sandboxLoad(){
+ const res=await api('teacher.sandbox.list');
+ sandboxReports=Array.isArray(res.reports)?res.reports:[];
+ render();
+}
+async function sandboxRun(){
+ if(sandboxBusy||uploading)return;
+ const lines=sandboxInput.split(/\\n\\s*\\n/).map(x=>x.trim()).filter(Boolean);
+ if(!lines.length||lines.length>3||lines.some(x=>x.length<4||x.length>1200))
+  throw Error('พื้นที่ทดลองรับบทพากย์ 1–3 ฉาก ฉากละ 4–1200 ตัวอักษร คั่นด้วยบรรทัดว่าง');
+ const connection=connections.find(x=>x.id===sandboxSelected)||connections[0];
+ if(!connection)throw Error('ยังไม่มี AI แม่ที่เชื่อมต่อ');
+ sandboxBusy=true;sandboxNotice='กำลังทดลองกับ AI แม่โดยไม่บันทึกเข้าโมเดลจริง';render();
+ try{
+  const res=await api('teacher.sandbox.run',{
+   provider:connection.provider,connectionId:connection.id,
+   scenes:lines.map((text,i)=>({id:'test-'+String(i+1),text}))});
+  if(!res?.saved||!res?.report)throw Error('AWS ยังไม่ยืนยันการบันทึกรายงาน');
+  sandboxResult=res.report;sandboxNotice='บันทึกรายงานในพื้นที่ทดลองของ AWS แล้ว';
+  await sandboxLoad();
+ }finally{sandboxBusy=false;render();}
+}
+async function sandboxView(id){
+ const res=await api('teacher.sandbox.get',{reportId:id});
+ if(!res?.report)throw Error('ไม่พบรายงานทดสอบนี้');
+ sandboxResult=res.report;sandboxNotice='เปิดรายงานที่เก็บแยกแล้ว';render();
+}
+function sandboxDownload(){
+ if(!sandboxResult)throw Error('ยังไม่มีรายงานทดสอบ');
+ const body=JSON.stringify(sandboxResult,null,2);
+ const url=root.URL.createObjectURL(new Blob([body],{type:'application/json;charset=utf-8'}));
+ const a=dom('a');a.href=url;a.download='ai-mother-sandbox-'+sandboxResult.reportId+'.json';
+ root.document.body.append(a);a.click();a.remove();
+ root.setTimeout(()=>root.URL.revokeObjectURL(url),2000);
+}
+function sandboxPanel(){
+ const box=dom('details',null,'multi-json-sandbox');
+ const title=dom('summary','พื้นที่ทดลอง AI แม่ (ข้อมูลแยก · รายงาน AWS)');box.append(title);
+ const wrap=dom('div',null,'dbody');
+ wrap.append(dom('p','ทดลองกับ API แม่ที่เชื่อมไว้ได้เลย ระบบนี้ไม่เขียนบทเรียนจริง ไม่ฝึกหรือเปิดใช้โมเดล AI ลูก ผลทดสอบถูกเก็บแยกเพื่อดาวน์โหลดส่งตรวจ','multi-json-muted'));
+ const sel=dom('select');sel.setAttribute('aria-label','เลือก AI แม่สำหรับพื้นที่ทดสอบ');
+ for(const c of connections){const op=dom('option',c.name+' · '+c.model);
+  op.value=c.id;op.selected=(sandboxSelected||connections[0]?.id)===c.id;sel.append(op)}
+ sel.disabled=sandboxBusy;sel.addEventListener('change',()=>{sandboxSelected=sel.value;});
+ wrap.append(sel);
+ const input=dom('textarea');input.rows=5;input.placeholder='วางบทพากย์ทดลอง ฉากละย่อหน้า คั่นแต่ละฉากด้วยบรรทัดว่าง';
+ input.value=sandboxInput;input.disabled=sandboxBusy;
+ input.addEventListener('input',()=>{sandboxInput=input.value});
+ wrap.append(input);
+ const bar=dom('div',null,'multi-json-actions');
+ bar.append(button(sandboxBusy?'กำลังทดสอบ…':'ทดสอบและบันทึกรายงาน',sandboxRun,
+                   sandboxBusy||!connections.length),
+            button('โหลดประวัติทดสอบ',sandboxLoad,sandboxBusy));
+ if(sandboxResult)bar.append(button('ดาวน์โหลดรายงาน JSON',async()=>sandboxDownload()));
+ wrap.append(bar);
+ if(sandboxNotice)wrap.append(dom('p',sandboxNotice,'multi-json-muted'));
+ if(sandboxResult){const pre=dom('pre',JSON.stringify(sandboxResult,null,2));
+  pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:250px;overflow:auto;font-size:11px';
+  wrap.append(pre);}
+ const history=dom('div',null,'multi-json-list');
+ for(const report of sandboxReports){
+  const date=new Date(Number(report.createdAt)*1000).toLocaleString('th-TH');
+  history.append(button(date+' · '+report.provider+' · '+report.state,
+   ()=>sandboxView(report.reportId)));
+ }
+ if(sandboxReports.length)wrap.append(dom('h4','ประวัติรายงานพื้นที่ทดลอง ('+sandboxReports.length+')'),history);
+ box.append(wrap);return box;
+}
 function render(){
  if(!host)return;
  host.replaceChildren();
@@ -401,6 +472,7 @@ function render(){
  else if(!connections.some(c=>String(c.id).startsWith('key-')))
   panel.append(dom('p','ต้องเชื่อม API แม่เพิ่มเติมอย่างน้อย 1 คีย์ก่อนเปิดการช่วยงาน','multi-json-muted'));
  panel.append(connectionPanel());
+ panel.append(sandboxPanel());
  if(notice)panel.append(dom('p',notice,'multi-json-muted'));
  if(error)panel.append(dom('p',error,'multi-json-error'));
  panel.append(dom('p','หลัง AWS รับงานครบ สามารถปิดเว็บได้ · หากเน็ตหลุดตอนอัปโหลดให้เลือกไฟล์เดิมอีกครั้งเพื่อส่งเฉพาะชุดที่ขาด · สถานะงานบันทึกอยู่บน AWS','multi-json-muted'));
@@ -414,6 +486,7 @@ function render(){
 function mount(target){
  host=target;render();
  if(!loading&&!connections.length)loadSettings().catch(()=>{});
+ sandboxLoad().catch(()=>{});
  else refresh(true).catch(()=>{});
 }
 root.StoryMultiJSON=Object.freeze({mount,normalizeForTraining});
