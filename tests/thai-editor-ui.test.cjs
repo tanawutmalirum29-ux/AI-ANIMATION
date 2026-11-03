@@ -11,7 +11,7 @@ test('editor is separate from frozen member release v1, admin-only at Lambda',()
  assert.match(ui,/StoryThaiEditor\.mount\(area,bridge\)/);
  assert.match(backend,/action\.startswith\("editor\."\)/);
  assert.match(backend,/user\.get\("role"\) != "admin"/);
- assert.match(members,/RELEASE_ID = "member-six-v1"/);
+ assert.match(members,/RELEASE_ID\s*=\s*"member-six-v1"/);
  assert.doesNotMatch(members,/thai_editor|editor\.review|editor\.feedback/);
 });
 
