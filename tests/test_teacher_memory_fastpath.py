@@ -89,7 +89,7 @@ class MemoryFastPathTests(unittest.TestCase):
         self.assertEqual(len(item["completedIndices"]), 16)
 
     def test_limit_to_two_new_scenes_even_with_long_lookahead(self):
-        table, jobid, scenes = prepared(16, remembered=range(2, 16))
+        table, jobid, scenes = prepared(16, remembered=range(3, 16))
         reply = teacher._response(200, {
             "saved": 2, "reused": 0, "lessons": [lesson(s) for s in scenes[:2]]})
         with mock.patch.object(cloud_jobs, "_table", return_value=table), \
@@ -97,7 +97,7 @@ class MemoryFastPathTests(unittest.TestCase):
             first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
         self.assertTrue(first["next"])
         self.assertEqual(first["waitSeconds"], 12)
-        self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["position"], 16)
+        self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["position"], 2)
         ai.assert_called_once()
 
     def test_exact_matching_rejects_changed_context_and_nonqa_memory(self):
