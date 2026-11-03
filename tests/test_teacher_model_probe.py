@@ -1,4 +1,5 @@
 """Provider HTTP 404 diagnostics and free-only model repair contract tests."""
+import copy
 import json
 import os
 import sys
@@ -37,7 +38,8 @@ class ModelRepairTests(unittest.TestCase):
         saved=[]
         with mock.patch.object(teacher,"_settings",return_value={"openrouter":{
              "model":"google/gemma-3-27b-it:free","key":"old-private-key"}}),\
-             mock.patch.object(teacher,"_save_settings",side_effect=saved.append),\
+             mock.patch.object(teacher,"_save_settings",
+                               side_effect=lambda value: saved.append(copy.deepcopy(value))),\
              mock.patch.dict(os.environ,{"TEACHER_SETTINGS_PARAMETER":"/test/teacher-key",
                                       "TEACHER_ALLOW_PAID_MODELS":"0"}):
             status,result=unpack(teacher._configure({"provider":"openrouter",
