@@ -299,6 +299,15 @@ def handler(event, context):
         import teacher_advisor
         return teacher_advisor.handle(action, body, owner_id=user["sub"])
 
+    if action.startswith("teacher.connection."):
+        if not oauth_mode or not user or user.get("role") != "admin":
+            return _resp(403, {"error": "จัดการหลาย API Key ได้เฉพาะ GitHub แอดมิน"})
+        import teacher_connections
+        try:
+            return teacher_connections.handle(action, body, str(user["sub"]))
+        except Exception as exc:
+            return _resp(503, {"error": "ระบบเชื่อม API ไม่พร้อม: " + type(exc).__name__})
+
     if action.startswith("teacher.job."):
         if not oauth_mode or not user or user.get("role") != "admin":
             return _resp(403, {"error": "Cloud Jobs เฉพาะ GitHub แอดมิน"})
