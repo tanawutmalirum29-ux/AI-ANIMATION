@@ -10,7 +10,7 @@ const path=require('node:path');
   page.on('dialog',x=>x.accept());
   await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
   await page.locator('#aiQuick').click();
-  assert.equal(await page.getByRole('heading',{name:'AI Production · 6 ผู้ช่วย'}).count(),1);
+  assert.equal(await page.getByRole('heading',{name:'AI Production · 12 ตำแหน่ง'}).count(),1);
   const setup=await page.evaluate(()=>{
    const s=StoryStudioBridge.get().episodes[0].scenes[0];
    s.duration=9;s.voiceover='หนึ่งวาบ สองวาบ สามวาบ ลำแสงสัญญาณส่องผ่านฝน';
@@ -30,7 +30,7 @@ const path=require('node:path');
    return {id:s.id,voice:s.voiceover};
   });
   const run=async()=>{
-   await page.getByRole('button',{name:'เริ่มผลิตด้วย 6 ผู้ช่วย · ปุ่มเดียว'}).click();
+   await page.getByRole('button',{name:'เริ่มประมวลผล 12 ขั้น · ปุ่มเดียว'}).click();
    await page.waitForFunction(()=>{
     const tasks=StoryStudioBridge.get().project.aiWorkspace?.tasks||[];
     return tasks.some(t=>t.role==='production'&&['done','failed'].includes(t.status));
@@ -46,8 +46,9 @@ const path=require('node:path');
   };
   const first=await run();
   assert.equal(first.status,'done',JSON.stringify(first));
-  assert.deepEqual(first.steps.map(x=>x.id),['composition','assets','motion','voice','timing','qa']);
-  assert.equal(first.steps.length,6);
+  assert.deepEqual(first.steps.map(x=>x.id),require('../studio-production-roles.js').roles.map(x=>x.id));
+  assert.equal(first.steps.length,12);
+  assert.ok(first.steps.some(x=>x.status==='unavailable'),'untrained worker must not be reported as done');
   assert.ok(first.assets.includes('beacon'),'light signal must exist in stage output');
   assert.equal(first.voice,setup.voice,'original narration unchanged');
   assert.equal(first.audio,1,'recorded voice preserved');
@@ -67,10 +68,10 @@ const path=require('node:path');
   const offline=await run();
   assert.equal(offline.status,'done','workflow reaches QA even when TTS is offline');
   assert.equal(offline.audio,0,'no fake voice recordings are inserted');
-  assert.equal(offline.steps.find(x=>x.id==='voice').status,'warning');
-  assert.equal(offline.steps.find(x=>x.id==='timing').status,'skipped');
-  assert.equal(offline.steps.find(x=>x.id==='qa').status,'warning');
+  assert.equal(offline.steps.find(x=>x.id==='audio-director').status,'warning');
+  assert.equal(offline.steps.find(x=>x.id==='timeline-editor').status,'skipped');
+  assert.equal(offline.steps.find(x=>x.id==='quality-inspector').status,'warning');
   assert.deepEqual(errors,[],'no uncaught page JS errors');
-  console.log('PASS: six-stage one button, voice before timing, persistent tasks, re-run safe, mobile viewport');
+  console.log('PASS: 12-stage one button with six existing execution engines, voice before timing, persistent tasks, re-run safe, mobile viewport');
  }finally{await browser.close();}
 })().catch(err=>{console.error(err);process.exit(1)});
