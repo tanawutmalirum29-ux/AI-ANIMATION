@@ -33,7 +33,7 @@ class ModelRepairTests(unittest.TestCase):
         self.assertEqual(result["suggestedModel"],"openrouter/free")
         self.assertNotIn("private-DO-NOT-LOG",json.dumps(result))
 
-    def test_model_switch_reuses_existing_key_and_still_blocks_paid_openrouter(self):
+    def test_owner_selected_openrouter_model_reuses_key_without_price_tier_gate(self):
         saved=[]
         with mock.patch.object(teacher,"_settings",return_value={"openrouter":{
              "model":"google/gemma-3-27b-it:free","key":"old-private-key"}}),\
@@ -42,14 +42,16 @@ class ModelRepairTests(unittest.TestCase):
                                       "TEACHER_ALLOW_PAID_MODELS":"0"}):
             status,result=unpack(teacher._configure({"provider":"openrouter",
                                                      "model":"openrouter/free","apiKey":""}))
-            blocked,_=unpack(teacher._configure({"provider":"openrouter",
-                                                "model":"openai/gpt-4o","apiKey":""}))
+            selected,_=unpack(teacher._configure({"provider":"openrouter",
+                                                 "model":"openai/gpt-4o","apiKey":""}))
         self.assertEqual(status,200)
         self.assertTrue(result["ok"])
         self.assertEqual(saved[0]["openrouter"]["key"],"old-private-key")
         self.assertEqual(saved[0]["openrouter"]["model"],"openrouter/free")
-        self.assertEqual(blocked,400)
-        self.assertEqual(len(saved),1)
+        self.assertEqual(selected,200)
+        self.assertEqual(len(saved),2)
+        self.assertEqual(saved[1]["openrouter"]["key"],"old-private-key")
+        self.assertEqual(saved[1]["openrouter"]["model"],"openai/gpt-4o")
 
     def test_429_does_not_look_like_an_unavailable_model(self):
         with mock.patch.object(teacher,"_settings",return_value={
