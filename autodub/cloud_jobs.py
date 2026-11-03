@@ -557,6 +557,12 @@ def _borrow_idle_connection(table, item, now, excluded=()):
                     free.append(slot_name)
             provider_slots[provider] = free
             slot_wait[provider] = min(slot_delays) if slot_delays else 20
+        # When all provider slots are occupied (or quota is blocked), avoid
+        # doing one DynamoDB key-read for every connected credential.
+        if quota_wait or not provider_slots.get(provider):
+            delay = max(quota_wait, slot_wait.get(provider, 20))
+            shortest_wait = delay if shortest_wait is None else min(shortest_wait, delay)
+            continue
         lock = table.get_item(Key=_provider_lock_key(conn["id"]),
                               ConsistentRead=True).get("Item", {})
         occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
