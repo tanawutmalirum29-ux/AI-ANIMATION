@@ -64,6 +64,7 @@ def _public(item):
             "updatedAt": int(item["updatedAt"]),
             "error": str(item.get("lastError", ""))[:240],
             "provider": item["provider"],
+            "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
 
@@ -393,7 +394,7 @@ def _worker(payload):
             state = "completed"
     else:
         state = "queued"
-    _save_progress(table, item, state=state, work=work, position=pos,
+    committed = _save_progress(table, item, state=state, work=work, position=pos,
                    failedIndices=missed, completedIndices=sorted(completed),
                    saved=int(item.get("saved", 0)) + int(data.get("saved", 0)),
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0)),
@@ -402,6 +403,23 @@ def _worker(payload):
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
                    **{"pass": run_pass},
                    updatedAt=int(time.time()))
+    if not committed:
+        return {"next": False, "state": "interrupted-by-owner"}
+    if state == "completed":
+        # Match the old browser workflow: CPU advisory model trains only after
+        # all lessons are confirmed. Cross-story QA still gates promotion.
+        try:
+            import story_auto_train
+            training = json.loads(story_auto_train.train()["body"])
+            summary = {"status": str(training.get("status", ""))[:90],
+                       "activated": bool(training.get("activated")),
+                       "counts": training.get("counts", {})}
+        except Exception as exc:
+            summary = {"status": "training-deferred",
+                       "error": type(exc).__name__}
+        table.update_item(Key=_key(job_id),
+                          UpdateExpression="SET trainingStatus=:t",
+                          ExpressionAttributeValues={":t": summary})
     return {"next": state == "queued", "state": state, "waitSeconds": 12}
 
 
