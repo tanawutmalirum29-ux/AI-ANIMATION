@@ -114,8 +114,8 @@ def _configure(body):
     model = str(body.get("model") or MODELS[provider]).strip()
     if not re.fullmatch(r"[a-zA-Z0-9_.:/-]{1,128}", model):
         return _response(400, {"error": "ชื่อโมเดลไม่ถูกต้อง"})
-    if provider == "openrouter" and model != "openrouter/free" and not model.endswith(":free") and os.getenv("TEACHER_ALLOW_PAID_MODELS") != "1":
-        return _response(400, {"error": "โหมดประหยัด: OpenRouter ต้องเลือกโมเดลลงท้าย :free"})
+    # Do not enforce a free-only tier: the owner chooses the model ID.
+    # Defaults remain unchanged and no paid model is selected automatically.
     key = body.get("apiKey")
     if key == "":
         key = None
