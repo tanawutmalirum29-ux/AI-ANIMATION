@@ -33,7 +33,7 @@ resources=[
 ]
 data={"Version":"2012-10-17","Statement":[
  {"Effect":"Allow","Action":["ssm:GetParameter","ssm:PutParameter"],"Resource":[resources[0]]},
- {"Effect":"Allow","Action":["dynamodb:PutItem","dynamodb:Query"],"Resource":[resources[1]]}
+ {"Effect":"Allow","Action":["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:Query"],"Resource":[resources[1]]}
 ]}
 with open(path,"w") as f: json.dump(data,f)
 PY

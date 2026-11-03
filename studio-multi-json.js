@@ -7,7 +7,7 @@
 'use strict';
 let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,error='',notice='',timer=null;
-let scalableVault=false,expandKeys=false;
+let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
 const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
 function dom(tag,text,cls){
@@ -97,8 +97,11 @@ async function loadSettings(){
   const [keys,config]=await Promise.all([
    api('teacher.connection.list'),api('teacher.job.config')]);
   if(!config.enabled)throw Error('AWS Background Jobs ยังไม่เปิดใช้งาน');
-   scalableVault=keys.maxExtra===null;
+  poolAvailable=config.poolEnabled===true;
+  if(!poolAvailable)poolWanted=false;
+  scalableVault=keys.maxExtra===null;
   connections=(keys.connections||[]).filter(x=>x.ready);
+  if(!connections.some(x=>String(x.id).startsWith('key-')))poolWanted=false;
   connections.sort((a,b)=>(a.legacy===b.legacy?0:a.legacy?-1:1)||
    (a.createdAt||0)-(b.createdAt||0)||a.name.localeCompare(b.name));
   if(selection!=='auto'&&!connections.some(p=>p.id===selection))
@@ -182,6 +185,7 @@ async function start(){
      const existing=connections.find(c=>c.id===found.upload.connectionId);
      if(!existing)throw Error('API Key ของอัปโหลดเดิมถูกถอดออก กรุณาเชื่อมใหม่');
      item.connectionId=existing.id;item.connectionName=existing.name;
+     item.poolMode=found.upload.poolMode===true;
     }
     pending.push(item);
    }catch(e){
@@ -199,6 +203,7 @@ async function start(){
     const out=await root.StoryCloudTeach.startBatchProject({
      projectId:item.projectId,scenes:item.scenes,storyName:item.storyName,
      provider:conn.provider,connectionId:conn.id,
+     poolMode:item.poolMode===true || (item.poolMode==null && poolWanted && poolAvailable),
      onProgress:(done,total)=>{item.done=done;item.total=total;render()}});
     if(!out?.job?.jobId)throw Error('AWS ยังไม่ยืนยันหมายเลขงาน');
     item.state='accepted';item.done=item.total;
@@ -271,10 +276,21 @@ function itemRow(item){
 function jobRow(job){
  const row=dom('div',null,'multi-json-item');
  row.append(dom('strong','เรื่อง '+(job.storyName||job.projectId||'').slice(0,100)),
-  dom('small',job.state+' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
+  dom('small',(job.trainingPending?'รอคิวฝึก AI ลูก':job.state)+
+    ' · '+job.completed+'/'+job.total+' ฉาก · บันทึก '+
     job.saved+' · ใช้ความจำ '+job.reused+' · '+
-    (connections.find(k=>k.id===job.connectionId)?.name||job.provider)));
+    (job.poolMode?'แบ่งงานเมื่อว่าง · ล่าสุด '+
+       (connections.find(k=>k.id===job.lastConnectionId)?.name||job.lastConnectionId||'รอเริ่ม')+
+       (job.unusableKeys?' · ข้ามคีย์มีปัญหา '+job.unusableKeys+' ตัว':''):
+       (connections.find(k=>k.id===job.connectionId)?.name||job.provider))));
  const meter=dom('progress');meter.max=job.total||1;meter.value=job.completed||0;row.append(meter);
+ if(job.nextRetryAt && Number.isFinite(Number(job.nextRetryAt)) &&
+    Number(job.nextRetryAt)*1000>Date.now()){
+  const when=new Date(Number(job.nextRetryAt)*1000).toLocaleString('th-TH',{
+   timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
+  row.append(dom('small','ระบบเก็บ Checkpoint แล้ว · จะลอง API อีกครั้งหลัง '+when+
+    ' · ปิดเว็บได้','multi-json-muted'));
+ }
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
  const controls=dom('div',null,'multi-json-actions');
  if(['queued','running'].includes(job.state))
@@ -292,10 +308,11 @@ function connectionPanel(){
  box.append(dom('h4','API แม่ของแอดมิน · ตั้งชื่อและเรียงอัตโนมัติ'),
   dom('p','ผูกกับบัญชี GitHub: '+(github?.login||'แอดมินที่เข้าสู่ระบบ')+
    ' · เก็บใน AWS ข้ามเครื่องได้จนกว่าจะลบ · '+
-   (scalableVault?'เพิ่ม API Key ได้มากกว่า 6 คีย์':'สูงสุด 6 คีย์เพิ่มเติม (ต้องตั้งค่า AWS เพื่อขยาย)')+
+   (scalableVault?'คลังคีย์รุ่นใหม่ไม่จำกัด 6 คีย์':'โหมดเดิมสูงสุด 6 คีย์เพิ่มเติม')+
    ' · ไม่บันทึกคีย์ในเบราว์เซอร์','multi-json-muted'));
  const shown=expandKeys?connections:connections.slice(0,20);
- box.append(dom('p','เชื่อมต่อพร้อมใช้งาน '+connections.length+' คีย์','multi-json-muted'));
+ box.append(dom('p','เชื่อมต่อพร้อมใช้งาน '+connections.length+
+   ' คีย์ · แสดง '+shown.length+' คีย์','multi-json-muted'));
  for(const conn of shown){
   const line=dom('div',null,'multi-json-key');
   line.append(dom('span',conn.name+' · '+conn.provider));
@@ -332,9 +349,10 @@ function connectionPanel(){
  key.setAttribute('aria-label','API Key ใหม่');
  form.append(prov,model,base,key,button(adding?'กำลังเชื่อม…':'เพิ่ม API Key',addConnection,adding||uploading));
  box.append(form);
- box.append(dom('p','หมายเหตุ: หลายคีย์จากบัญชีผู้ให้บริการเดียวกันอาจใช้โควตาร่วมกัน ไม่ได้เพิ่มโควตาจริง','multi-json-muted'));
+ box.append(dom('p','หาก Provider ตอบ 429 ระบบ Pool จะพักงานไว้และลองใหม่อัตโนมัติโดยไม่ลบฉากที่สอนแล้ว','multi-json-muted'));
  return box;
 }
+
 function render(){
  if(!host)return;
  host.replaceChildren();
@@ -367,6 +385,22 @@ function render(){
     uploading||checking||!items.some(x=>x.state==='ready'||x.state==='failed')||!connections.length),
   button('รีเฟรช AWS',()=>refresh(),loading||uploading));
  panel.append(actions);
+ const poolLabel=dom('label',null,'multi-json-muted');
+ const poolToggle=dom('input');poolToggle.type='checkbox';
+ poolToggle.checked=poolWanted&&poolAvailable;
+ poolToggle.disabled=!poolAvailable||uploading||checking||
+  !connections.some(c=>String(c.id).startsWith('key-'));
+ poolToggle.setAttribute('aria-label','แบ่งงานให้ AI แม่ที่ว่างช่วยสอนระหว่างเรื่อง');
+ poolToggle.addEventListener('change',()=>{poolWanted=poolToggle.checked;render()});
+ poolLabel.append(poolToggle,root.document.createTextNode(
+  ' ให้ AI แม่ที่ว่างช่วยงานชุดถัดไปจากเรื่องอื่น (ทดลอง · ไม่ย้ายฉากที่กำลังสอน)'));
+ panel.append(poolLabel);
+ if(poolAvailable)panel.append(dom('p',
+  'เมื่อเปิด Pool เนื้อเรื่องและข้อความประกอบฉากอาจถูกส่งไปยัง API Provider ใดก็ได้ที่แอดมินเชื่อมเพิ่มไว้ ไม่จำกัดเฉพาะ Provider ที่เลือกไว้ตอนส่งงาน',
+  'multi-json-muted'));
+ if(!poolAvailable)panel.append(dom('p','โหมดแบ่งงานยังไม่เปิดที่ AWS; งานปัจจุบันใช้ API ที่ผูกไว้ตามเดิม','multi-json-muted'));
+ else if(!connections.some(c=>String(c.id).startsWith('key-')))
+  panel.append(dom('p','ต้องเชื่อม API แม่เพิ่มเติมอย่างน้อย 1 คีย์ก่อนเปิดการช่วยงาน','multi-json-muted'));
  panel.append(connectionPanel());
  if(notice)panel.append(dom('p',notice,'multi-json-muted'));
  if(error)panel.append(dom('p',error,'multi-json-error'));

@@ -83,6 +83,36 @@ class AutonomousStoryModelTests(unittest.TestCase):
         self.assertTrue(model["metrics"]["qaPassed"])
         self.assertFalse(model["notHumanFactChecked"] is False)
 
+    def test_pooled_training_lock_prevents_concurrent_promotion(self):
+        class Conflict(Exception):
+            response = {"Error": {"Code": "ConditionalCheckFailedException"}}
+        table = Table(rows(projects=5))
+        env = {"TEACHER_FEEDBACK_TABLE": "test", "TEACHER_ENABLE_IDLE_POOL": "1"}
+        with inject(table), mock.patch.dict(os.environ, env), \
+             mock.patch.object(table, "update_item", create=True,
+                               side_effect=Conflict("already training")) as update:
+            result = train.train()
+        data = json.loads(result["body"])
+        self.assertEqual(data["status"], "training-busy")
+        self.assertFalse(data["activated"])
+        self.assertEqual(table.saved, [])
+        update.assert_called_once()
+
+    def test_pooled_training_releases_its_own_lease_after_promotion(self):
+        table = Table(rows(projects=5))
+        env = {"TEACHER_FEEDBACK_TABLE": "test", "TEACHER_ENABLE_IDLE_POOL": "1"}
+        with inject(table), mock.patch.dict(os.environ, env), \
+             mock.patch.object(table, "update_item", create=True) as update:
+            result = train.train()
+        data = json.loads(result["body"])
+        self.assertTrue(data["trained"])
+        self.assertEqual(update.call_count, 2)
+        claim, release = (x.kwargs for x in update.call_args_list)
+        self.assertIn("attribute_not_exists(pk)", claim["ConditionExpression"])
+        self.assertEqual(release["ConditionExpression"], "ownerToken=:token")
+        self.assertEqual(claim["ExpressionAttributeValues"][":token"],
+                         release["ExpressionAttributeValues"][":token"])
+
     def test_rejected_teacher_or_pending_entries_never_enter_training(self):
         records=rows(1)
         records[0]["status"]="teacher-retry-queued"

@@ -50,14 +50,19 @@ class MultiKeyTests(unittest.TestCase):
             "provider":"gemini","apiKey":"new-gemini-key-0-secret"},keys.ADMIN_ID)
         self.assertEqual(duplicate["statusCode"],409)
 
-    def test_only_approved_free_openrouter_models_and_bounded_ssm_json(self):
-        for bad in ("openrouter/paid-model", "bad model", "openrouter/paid",):
+    def test_owner_selects_any_valid_openrouter_model_without_price_tier_gate(self):
+        for bad in ("bad model", "bad?model"):
             code,_=decode(keys.add({"provider":"openrouter","model":bad,
                                       "apiKey":"new-openrouter-key-123"}))
             self.assertEqual(code,400)
+        code,paid=decode(keys.add({"provider":"openrouter",
+                                   "model":"somevendor/explicit-model",
+                                   "apiKey":"new-openrouter-key-paid-123"}))
+        self.assertEqual(code,200,paid)
+        self.assertEqual(paid["connection"]["model"],"somevendor/explicit-model")
         code,data=decode(keys.add({"provider":"openrouter",
                                    "model":"somevendor/example:free",
-                                   "apiKey":"new-openrouter-key-123"}))
+                                   "apiKey":"new-openrouter-key-free-123"}))
         self.assertEqual(code,200,data)
         self.assertEqual(data["connection"]["model"],"somevendor/example:free")
         self.settings["extraConnections"]["key-"+"b"*16] = {

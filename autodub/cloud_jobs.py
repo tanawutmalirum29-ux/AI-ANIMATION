@@ -14,6 +14,10 @@ MAX_SCENES = 350
 CHUNK_SIZE = 16
 MAX_PASSES = 3
 MAX_TRANSIENT_RETRIES = 6
+# Only opt-in pool jobs use the following key-specific failure fallback.
+# It does not broaden existing provider retry or legacy job semantics.
+MAX_POOL_BAD_KEYS_PER_JOB = 128
+POOL_KEY_FAILURES = frozenset(("TEACHER_PROVIDER_AUTH", "TEACHER_MODEL_UNAVAILABLE"))
 TRANSIENT_PROVIDER_CODES = frozenset((
     "TEACHER_PROVIDER_TIMEOUT", "TEACHER_PROVIDER_NETWORK",
     "TEACHER_PROVIDER_UPSTREAM", "TEACHER_PROVIDER_BAD_RESPONSE"))
@@ -41,6 +45,11 @@ def _resp(code, data):
 def enabled():
     return bool(os.getenv("TEACHER_FEEDBACK_TABLE") and
                 os.getenv("TEACHER_JOB_STATE_MACHINE_ARN"))
+
+
+def pool_enabled():
+    # Opt-in rollout: existing jobs remain pinned until explicitly enabled.
+    return os.getenv("TEACHER_ENABLE_IDLE_POOL") == "1"
 
 
 def _table():
@@ -72,6 +81,12 @@ def _public(item):
             "error": str(item.get("lastError", ""))[:240],
             "provider": item["provider"],
             "connectionId": item.get("connectionId") or ("default-" + item["provider"]),
+            "poolMode": bool(item.get("poolMode", False)),
+            "lastConnectionId": item.get("lastConnectionId", ""),
+            "unusableKeys": len(item.get("unusableConnections", [])),
+            "trainingPending": bool(item.get("trainingPending", False)),
+            "trainingAttempts": int(item.get("trainingAttempts", 0)),
+            "nextRetryAt": int(item.get("nextRetryAt", 0)),
             "trainingStatus": item.get("trainingStatus"),
             "cloud": True}
 
@@ -103,6 +118,24 @@ def _validated_scenes(items):
     return out
 
 
+def _story_anchors(scenes):
+    """Bounded, immutable quotations of the owner's actual script.
+
+    Evidence from across the submitted story travels with a pooled job so
+    an idle mother has some beginning/middle/end context even when it has never
+    worked on that story. This is NOT a generated full-story summary, and
+    never claims to know events omitted by these excerpts.
+    """
+    n = len(scenes)
+    if n == 0:
+        return []
+    count = min(7, n)
+    indexes = sorted({round(i * (n - 1) / max(1, count - 1))
+                      for i in range(count)})
+    return [{"sceneId": scenes[i]["id"], "position": i + 1,
+             "text": scenes[i]["text"][:110]} for i in indexes]
+
+
 def _launch(table, item):
     """One deterministic execution per job generation, safe on lost API responses."""
     import boto3
@@ -131,6 +164,9 @@ def _start(body, owner):
         return _resp(503, {"error": "Background Jobs ยังไม่ได้ติดตั้งบน AWS"})
     project_id = body.get("projectId")
     provider = body.get("provider")
+    use_pool = body.get("poolMode") is True
+    if use_pool and not pool_enabled():
+        return _resp(409, {"error": "ระบบแบ่งงาน AI แม่ยังไม่เปิดใช้บน AWS"})
     story_name = re.sub(r"[\x00-\x1f\x7f]", " ", str(body.get("storyName") or "")).strip()[:100]
     if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
         return _resp(400, {"error": "รหัสโปรเจกต์ไม่ถูกต้อง"})
@@ -150,10 +186,15 @@ def _start(body, owner):
         ready = teacher_connections.available(provider, connection_id)
     if not os.getenv("TEACHER_FEEDBACK_TABLE") or not ready:
         return _resp(409, {"error": "AI Key ที่เลือกไม่พร้อม กรุณาตรวจการเชื่อมต่อ"})
+    if use_pool and not any(x.get("ready") and str(x.get("id", "")).startswith("key-")
+                            for x in teacher_connections.listing()):
+        return _resp(409, {"error": "โหมดช่วยงานต้องมี API แม่ที่เชื่อมเพิ่มเติมอย่างน้อย 1 คีย์"})
     # Preserve legacy job IDs and checkpoints for the original provider key.
     fingerprint = [str(owner), project_id, provider, scenes]
     if connection_id != "default-" + provider:
         fingerprint.append(connection_id)
+    if use_pool:
+        fingerprint.append("idle-pool-v1")
     digest = hashlib.sha256(json.dumps(
         fingerprint,
         ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode()).hexdigest()[:32]
@@ -177,6 +218,8 @@ def _start(body, owner):
     item = {"pk": pk, "sk": "meta", "jobId": digest,
             "ownerId": str(owner), "projectId": project_id, "provider": provider,
             "connectionId": connection_id, "storyName": story_name,
+            "poolMode": use_pool,
+            "storyAnchors": _story_anchors(scenes) if use_pool else [],
             "state": "queued", "generation": 0, "total": len(scenes),
             "work": list(range(len(scenes))), "position": 0, "pass": 0,
             "completedIndices": [], "failedIndices": [], "saved": 0, "reused": 0,
@@ -265,7 +308,6 @@ def _connection_in_use(owner, connection_id):
             return False
 
 
-
 def _find(body, owner):
     project_id = body.get("projectId")
     if not isinstance(project_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{5,90}", project_id):
@@ -308,17 +350,33 @@ def _control(action, body, owner):
         return _resp(200, {"items": result, "nextCursor": next_cursor})
     if action == "teacher.job.pause":
         if state in ("queued", "running"):
-            table.update_item(Key=_key(job_id),
-                              UpdateExpression="SET #s=:s, updatedAt=:now",
-                              ExpressionAttributeNames={"#s": "state"},
-                              ExpressionAttributeValues={":s": "paused", ":now": int(time.time())})
+            try:
+                table.update_item(Key=_key(job_id),
+                    UpdateExpression="SET #s=:s, updatedAt=:now",
+                    ConditionExpression="#s=:expected AND generation=:expectedGen",
+                    ExpressionAttributeNames={"#s": "state"},
+                    ExpressionAttributeValues={":s": "paused", ":expected": state,
+                                               ":expectedGen": int(item["generation"]),
+                                               ":now": int(time.time())})
+            except Exception as exc:
+                if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                    raise
+                return _resp(409, {"error": "งานเปลี่ยนสถานะระหว่างสั่งพัก กรุณารีเฟรช"})
         return _resp(200, {"job": _public(_read(table, job_id))})
     if action == "teacher.job.cancel":
         if state not in ("completed", "cancelled"):
-            table.update_item(Key=_key(job_id),
-                              UpdateExpression="SET #s=:s, updatedAt=:now",
-                              ExpressionAttributeNames={"#s": "state"},
-                              ExpressionAttributeValues={":s": "cancelled", ":now": int(time.time())})
+            try:
+                table.update_item(Key=_key(job_id),
+                    UpdateExpression="SET #s=:s, updatedAt=:now",
+                    ConditionExpression="#s=:expected AND generation=:expectedGen",
+                    ExpressionAttributeNames={"#s": "state"},
+                    ExpressionAttributeValues={":s": "cancelled", ":expected": state,
+                                               ":expectedGen": int(item["generation"]),
+                                               ":now": int(time.time())})
+            except Exception as exc:
+                if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                    raise
+                return _resp(409, {"error": "งานเปลี่ยนสถานะระหว่างสั่งยกเลิก กรุณารีเฟรช"})
             if item.get("executionArn"):
                 try:
                     import boto3
@@ -333,12 +391,20 @@ def _control(action, body, owner):
         if state == "queued" and item.get("executionArn"):
             return _resp(200, {"job": _public(item)})
         generation = int(item["generation"]) + (0 if state == "queued" else 1)
-        table.update_item(Key=_key(job_id),
-                          UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, updatedAt=:now REMOVE executionArn",
-                          ExpressionAttributeNames={"#s": "state", "#p": "pass"},
-                          ExpressionAttributeValues={":s": "queued", ":g": generation,
-                                                     ":p": 0, ":z": 0, ":f": 0,
-                                                     ":e": "", ":now": int(time.time())})
+        try:
+            table.update_item(Key=_key(job_id),
+                UpdateExpression="SET #s=:s, generation=:g, #p=:p, leaseUntil=:z, lastError=:e, transientFailures=:f, trainingAttempts=:a, updatedAt=:now REMOVE executionArn",
+                ConditionExpression="#s=:expected AND generation=:expectedGen",
+                ExpressionAttributeNames={"#s": "state", "#p": "pass"},
+                ExpressionAttributeValues={":s": "queued", ":g": generation,
+                                           ":p": 0, ":z": 0, ":f": 0,
+                                           ":e": "", ":a": 0, ":expected": state,
+                                           ":expectedGen": int(item["generation"]),
+                                           ":now": int(time.time())})
+        except Exception as exc:
+            if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                raise
+            return _resp(409, {"error": "งานเปลี่ยนสถานะระหว่างสั่งทำต่อ กรุณารีเฟรช"})
         current = _read(table, job_id)
         try:
             _launch(table, current)
@@ -351,7 +417,7 @@ def _control(action, body, owner):
 def handle(action, body, owner):
     if action == "teacher.job.config":
         return _resp(200, {"enabled": enabled(), "mode": "step-functions",
-                           "maxScenes": MAX_SCENES})
+                           "maxScenes": MAX_SCENES, "poolEnabled": pool_enabled()})
     if not enabled():
         return _resp(503, {"error": "ระบบ Background Jobs ยังไม่เปิดใช้งานบน AWS"})
     if action.startswith("teacher.job.upload."):
@@ -370,6 +436,14 @@ def _save_progress(table, old, **updates):
     """Conditional commit: a paused or cancelled job cannot silently resume."""
     attrs = {":g": int(old["generation"]), ":running": "running"}
     names = {"#s": "state"}
+    condition = "#s=:running AND generation=:g"
+    if old.get("poolMode"):
+        # An expired Lambda may never commit after another worker takes over.
+        # The token is created by the successful DynamoDB lease acquisition.
+        if not old.get("leaseOwner"):
+            return False
+        attrs[":owner"] = old["leaseOwner"]
+        condition += " AND leaseOwner=:owner"
     sets = []
     for i, (field, value) in enumerate(updates.items()):
         name, placeholder = "#f" + str(i), ":v" + str(i)
@@ -379,7 +453,7 @@ def _save_progress(table, old, **updates):
     try:
         table.update_item(Key=_key(old["jobId"]),
             UpdateExpression="SET " + ",".join(sets),
-            ConditionExpression="#s=:running AND generation=:g",
+            ConditionExpression=condition,
             ExpressionAttributeNames=names, ExpressionAttributeValues=attrs)
     except Exception as exc:
         if getattr(exc, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
@@ -397,12 +471,21 @@ def _provider_quota_wait(table, provider, now):
 
 
 def _provider_quota_block(table, provider, seconds=70):
-    table.update_item(
-        Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
-        UpdateExpression="SET #u=:until, updatedAt=:now",
-        ExpressionAttributeNames={"#u": "until"},
-        ExpressionAttributeValues={":until": int(time.time()) + seconds,
-                                   ":now": int(time.time())})
+    """Never shorten a backoff already set by another worker."""
+    now = int(time.time())
+    try:
+        table.update_item(
+            Key={"pk": PROVIDER_QUOTA_PREFIX + provider, "sk": "backoff"},
+            UpdateExpression="SET #u=:until, updatedAt=:now",
+            ConditionExpression="attribute_not_exists(#u) OR #u < :until",
+            ExpressionAttributeNames={"#u": "until"},
+            ExpressionAttributeValues={":until": now + max(20, int(seconds)),
+                                       ":now": now})
+    except Exception as exc:
+        if (getattr(exc, "response", {}).get("Error", {}).get("Code")
+                != "ConditionalCheckFailedException"):
+            raise  # Never hide infrastructure or permission errors.
+        # Another worker already set a longer cooldown; honor it.
 
 
 def _provider_lock_key(provider):
@@ -441,6 +524,58 @@ def _release_provider_lock(table, provider, job_id, cooldown=12):
             raise
 
 
+def _borrow_idle_connection(table, item, now, excluded=()):
+    """Borrow the next free owner key; only 429 triggers provider-wide waiting.
+
+    Every individual key is protected by an atomic DynamoDB lease. There is no
+    arbitrary two-requests-per-provider cap. When a provider reports HTTP 429,
+    a durable shared cooldown suspends new calls from *this pool* until it is
+    reasonable to retry; other providers may continue immediately.
+    """
+    import teacher_connections
+    connections = [c for c in teacher_connections.listing()
+                   if c.get("ready") and str(c.get("id", "")).startswith("key-")]
+    excluded = set(excluded)
+    if not connections or all(c["id"] in excluded for c in connections):
+        return None, None
+    candidates, provider_wait = [], {}
+    shortest_wait = None
+    for conn in connections:
+        if conn["id"] in excluded:
+            continue
+        provider = conn["provider"]
+        if provider not in provider_wait:
+            provider_wait[provider] = _provider_quota_wait(table, provider, now)
+        wait = provider_wait[provider]
+        if wait:
+            shortest_wait = wait if shortest_wait is None else min(shortest_wait, wait)
+            continue
+        lock = table.get_item(Key=_provider_lock_key(conn["id"]),
+                              ConsistentRead=True).get("Item", {})
+        occupied = max(0, int(lock.get("leaseUntil", 0)) - now)
+        if occupied:
+            shortest_wait = occupied if shortest_wait is None else min(shortest_wait, occupied)
+            continue
+        candidates.append((int(lock.get("updatedAt", 0)), conn["id"], conn))
+    # Least recently used first; every claim remains atomic even across Lambdas.
+    candidates.sort(key=lambda x: (x[0], x[1]))
+    lock_owner = item.get("leaseOwner") or item["jobId"]
+    for _, _, conn in candidates:
+        if _try_provider_lock(table, conn["id"], lock_owner, now):
+            return conn, None
+        shortest_wait = 20 if shortest_wait is None else min(shortest_wait, 20)
+    return None, min(900, max(20, shortest_wait or 20))
+
+
+def _retry_delay(job_id, attempt, base=60, ceiling=3600):
+    """Bounded exponential delay with stable jitter; no hot retry loops."""
+    exponent = min(16, max(0, int(attempt) - 1))
+    seconds = min(ceiling, base * (2 ** exponent))
+    # Stable jitter prevents jobs for the same provider waking up at once.
+    seed = hashlib.sha256((str(job_id) + ":" + str(attempt)).encode()).digest()
+    return max(20, min(ceiling, seconds + int.from_bytes(seed[:2], "big") % 17))
+
+
 def _worker(payload):
     """One bounded worker: up to 16 cache hits and at most 2 fresh AI scenes."""
     job_id, generation = payload.get("jobId"), payload.get("generation")
@@ -453,23 +588,72 @@ def _worker(payload):
     if not item or item.get("generation") != generation or item.get("state") not in ("queued", "running"):
         return {"next": False, "state": "stopped"}
     now = int(time.time())
+    claim_token = uuid.uuid4().hex if item.get("poolMode") else None
+    lease_values = {":g": generation, ":queued": "queued",
+                    ":running": "running", ":lease": now + 150, ":now": now}
+    update = "SET #s=:running, leaseUntil=:lease, updatedAt=:now"
+    if claim_token:
+        # The claim token fences late work from this job's older Lambda runs.
+        update += ", leaseOwner=:owner"
+        lease_values[":owner"] = claim_token
     try:
         table.update_item(Key=_key(job_id),
-            UpdateExpression="SET #s=:running, leaseUntil=:lease, updatedAt=:now",
+            UpdateExpression=update,
             ConditionExpression="generation=:g AND #s IN (:queued,:running) AND leaseUntil < :now",
             ExpressionAttributeNames={"#s": "state"},
-            ExpressionAttributeValues={":g": generation, ":queued": "queued",
-              ":running": "running", ":lease": now + 150, ":now": now})
+            ExpressionAttributeValues=lease_values)
     except Exception as exc:
         if getattr(exc, "response", {}).get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             return {"next": True, "waitSeconds": 30, "state": "busy"}
         raise
+    if claim_token:
+        item = {**item, "leaseOwner": claim_token}
+        # Internal only: this is never returned to the frontend/Step Functions.
+        payload["_claimedWorkerLease"] = claim_token
     # boto3 reads every DynamoDB number as Decimal; list indices must be int.
     work, position = [int(x) for x in item["work"]], int(item["position"])
     lookahead = work[position:position + CHUNK_SIZE]
     if not lookahead:
-        _save_progress(table, item, state="completed", leaseUntil=0,
+        if item.get("trainingPending"):
+            import story_auto_train
+            try:
+                trained = json.loads(story_auto_train.train()["body"])
+            except Exception as exc:
+                trained = {"status": "training-deferred",
+                           "error": type(exc).__name__}
+            attempts = int(item.get("trainingAttempts", 0)) + 1
+            if (trained.get("status") in ("training-busy", "training-deferred")
+                    or not trained.get("status")):
+                # A busy training lock is contention, not a terminal failure.
+                if trained.get("status") == "training-busy" or attempts < 8:
+                    committed = _save_progress(
+                        table, item, state="queued", leaseUntil=0,
+                        trainingAttempts=attempts,
+                        lastError="รอคิวฝึกโมเดล AI ลูกโดยไม่สอนฉากซ้ำ",
+                        updatedAt=int(time.time()))
+                    return {"next": bool(committed),
+                            "state": "training-wait" if committed else "stopped",
+                            "waitSeconds": min(600, 25 * attempts)}
+                committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                               trainingAttempts=attempts,
+                               lastError="บทเรียนครบแล้ว แต่ขั้นฝึก AI ลูกไม่พร้อม กดทำต่อภายหลัง",
+                               updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
+                return {"next": False, "state": "needs-attention"}
+            summary = {"status": str(trained.get("status", ""))[:90],
+                       "activated": bool(trained.get("activated")),
+                       "counts": trained.get("counts", {})}
+            committed = _save_progress(
+                table, item, state="completed", leaseUntil=0,
+                trainingPending=False, trainingAttempts=0,
+                trainingStatus=summary, lastError="", updatedAt=int(time.time()))
+            return {"next": False,
+                    "state": "completed" if committed else "stopped"}
+        committed = _save_progress(table, item, state="completed", leaseUntil=0,
                        updatedAt=int(time.time()), lastError="")
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": False, "state": "completed"}
     chunk_cache = {}
     lookahead_scenes = []
@@ -493,25 +677,59 @@ def _worker(payload):
         if scene["id"] not in remembered:
             fresh.append(scene)
     if fresh:
-        quota_wait = _provider_quota_wait(table, item["provider"], int(time.time()))
-        if quota_wait:
-            _save_progress(table, item, state="queued", leaseUntil=0,
-                           updatedAt=int(time.time()))
-            return {"next": True, "state": "provider-quota-wait",
-                    "waitSeconds": min(900, max(20, quota_wait))}
-        credential_id = item.get("connectionId") or item["provider"]
-        if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
-            _save_progress(table, item, state="queued", leaseUntil=0,
-                           updatedAt=int(time.time()))
-            return {"next": True, "state": "provider-busy", "waitSeconds": 20}
+        rate_limit_delay = 0
+        teaching_provider = item["provider"]
+        teaching_connection = item.get("connectionId")
+        credential_id = teaching_connection or teaching_provider
+        # Keep the old execution path untouched unless an opted-in job is
+        # running with the server-side pool feature enabled.
+        if item.get("poolMode") and pool_enabled():
+            choice, wait = _borrow_idle_connection(
+                table, item, int(time.time()), item.get("unusableConnections", ()))
+            if not choice:
+                if wait is None:
+                    committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                                   lastError="ไม่มี API แม่ที่พร้อมและไม่เคยล้มเหลวในงานนี้ กรุณาตรวจคีย์",
+                                   updatedAt=int(time.time()))
+                    if not committed:
+                        return {"next": False, "state": "worker-claim-lost"}
+                    return {"next": False, "state": "needs-attention"}
+                committed = _save_progress(table, item, state="queued", leaseUntil=0,
+                               updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
+                return {"next": True, "state": "pool-busy",
+                        "waitSeconds": wait}
+            teaching_provider = choice["provider"]
+            teaching_connection = choice["id"]
+            credential_id = teaching_connection
+        else:
+            quota_wait = _provider_quota_wait(table, teaching_provider, int(time.time()))
+            if quota_wait:
+                committed = _save_progress(table, item, state="queued", leaseUntil=0,
+                               updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
+                return {"next": True, "state": "provider-quota-wait",
+                        "waitSeconds": min(900, max(20, quota_wait))}
+            if not _try_provider_lock(table, credential_id, job_id, int(time.time())):
+                committed = _save_progress(table, item, state="queued", leaseUntil=0,
+                               updatedAt=int(time.time()))
+                if not committed:
+                    return {"next": False, "state": "worker-claim-lost"}
+                return {"next": True, "state": "provider-busy", "waitSeconds": 20}
         cooldown = 12
+        provider_lock_owner = (
+            item["leaseOwner"] if item.get("poolMode") and pool_enabled() else job_id)
         try:
             try:
                 reply = teacher._auto_teach({
                     "projectId": item["projectId"],
-                    "provider": item["provider"],
-                    "connectionId": item.get("connectionId"),
-                    "scenes": fresh})
+                    "provider": teaching_provider,
+                    "connectionId": teaching_connection,
+                    "scenes": fresh,
+                    "storyAnchors": item.get("storyAnchors", []) if
+                        item.get("poolMode") and pool_enabled() else []})
             except TimeoutError:
                 # Covers any legacy path that still emits socket.timeout.
                 # The memory fast path will check stored lessons on retry.
@@ -519,46 +737,95 @@ def _worker(payload):
                                     "error": "AI provider ตอบช้า กำลังลองใหม่"})
             code, data = reply["statusCode"], json.loads(reply["body"])
             if code == 429:
-                cooldown = 70
-                _provider_quota_block(table, item["provider"], cooldown)
+                suggested = data.get("retryAfterSeconds", 0)
+                retry_after = (min(86400, suggested) if
+                               type(suggested) is int and suggested > 0 else 0)
+                rate_limit_delay = max(
+                    retry_after, _retry_delay(job_id, int(item.get("throttles", 0)) + 1)
+                    if item.get("poolMode") and pool_enabled() else 70)
+                cooldown = rate_limit_delay
+                _provider_quota_block(table, teaching_provider, cooldown)
+            elif (item.get("poolMode") and pool_enabled()
+                  and data.get("reasonCode") in POOL_KEY_FAILURES):
+                # Do not burn the same invalid key across other jobs.
+                cooldown = 3600 if data["reasonCode"] == "TEACHER_PROVIDER_AUTH" else 1800
         finally:
-            _release_provider_lock(table, credential_id, job_id, cooldown)
+            _release_provider_lock(table, credential_id, provider_lock_owner, cooldown)
     else:
         code, data = 200, {"saved": 0, "reused": 0, "lessons": []}
+    if (fresh and item.get("poolMode") and pool_enabled()
+            and data.get("reasonCode") in POOL_KEY_FAILURES):
+        # This failure is about a credential/model, not the script.
+        # Keep the exact scene index and try an independent key next.
+        unusable = sorted(set(item.get("unusableConnections", [])) | {teaching_connection})
+        import teacher_connections
+        possible = [c["id"] for c in teacher_connections.listing()
+                    if c.get("ready") and str(c.get("id", "")).startswith("key-")]
+        if (len(unusable) >= MAX_POOL_BAD_KEYS_PER_JOB
+                or not any(cid not in unusable for cid in possible)):
+            committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
+                           unusableConnections=unusable,
+                           lastError="AI แม่ที่พร้อมทุกตัวใช้คีย์หรือโมเดลไม่ได้ กรุณาตรวจการเชื่อมต่อ",
+                           updatedAt=int(time.time()))
+            if not committed:
+                return {"next": False, "state": "worker-claim-lost"}
+            return {"next": False, "state": "needs-attention"}
+        committed = _save_progress(table, item, state="queued", leaseUntil=0,
+                       unusableConnections=unusable,
+                       lastError="ข้ามคีย์/โมเดลที่ใช้ไม่ได้ และรอ AI แม่ตัวอื่น",
+                       updatedAt=int(time.time()))
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
+        return {"next": True, "state": "pool-key-fallback", "waitSeconds": 20}
     if code == 429:
         throttles = int(item.get("throttles", 0)) + 1
-        if throttles >= 6:
-            _save_progress(table, item, state="needs-attention", throttles=throttles,
+        if not (item.get("poolMode") and pool_enabled()) and throttles >= 6:
+            committed = _save_progress(table, item, state="needs-attention", throttles=throttles,
                            lastError="Provider จำกัดโควตาหลายครั้ง โปรดตรวจบัญชีและกดทำต่อ",
                            updatedAt=int(time.time()), leaseUntil=0)
+            if not committed:
+                return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
-        _save_progress(table, item, state="queued", throttles=throttles,
-                       lastError="Provider จำกัดโควตา กำลังรอทำต่อ",
+        committed = _save_progress(table, item, state="queued", throttles=throttles,
+                       lastError="Provider ตอบ HTTP 429; เก็บ Checkpoint แล้วรอเรียกใหม่อัตโนมัติ",
+                       nextRetryAt=int(time.time()) + rate_limit_delay,
                        updatedAt=int(time.time()), leaseUntil=0)
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "rate-limited",
-                "waitSeconds": min(900, 60 * (2 ** (throttles - 1)))}
+                "waitSeconds": (rate_limit_delay
+                                if item.get("poolMode") and pool_enabled()
+                                else min(900, 60 * (2 ** (throttles - 1))))}
     # Provider timeouts and transient 5xx are NOT corrupted lessons.
     # Keep the exact position and checkpoint; delay using Step Functions
     # rather than repeatedly calling the model in the same Lambda invocation.
     if code in (502, 503, 504) and data.get("reasonCode") in TRANSIENT_PROVIDER_CODES:
         failures = int(item.get("transientFailures", 0)) + 1
-        if failures >= MAX_TRANSIENT_RETRIES:
-            _save_progress(table, item, state="needs-attention", leaseUntil=0,
+        if not (item.get("poolMode") and pool_enabled()) and failures >= MAX_TRANSIENT_RETRIES:
+            committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                            transientFailures=failures,
                            lastError="AI provider ขัดข้องชั่วคราวซ้ำหลายครั้ง; กดทำต่อเมื่อบริการกลับมา",
                            updatedAt=int(time.time()))
+            if not committed:
+                return {"next": False, "state": "worker-claim-lost"}
             return {"next": False, "state": "needs-attention"}
-        delay = min(600, 25 * (2 ** (failures - 1)))
-        _save_progress(table, item, state="queued", leaseUntil=0,
+        delay = (_retry_delay(job_id, failures, base=30, ceiling=1800)
+                 if item.get("poolMode") and pool_enabled()
+                 else min(600, 25 * (2 ** (failures - 1))))
+        committed = _save_progress(table, item, state="queued", leaseUntil=0,
                        transientFailures=failures,
                        lastError="AI provider ตอบช้า/ไม่พร้อม กำลังรอลองใหม่โดยไม่ข้ามฉาก",
                        updatedAt=int(time.time()))
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "provider-retry",
                 "waitSeconds": delay}
     if code not in (200, 422):
-        _save_progress(table, item, state="needs-attention", leaseUntil=0,
+        committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                        lastError=str(data.get("error") or "AI provider ไม่พร้อม")[:200],
                        updatedAt=int(time.time()))
+        if not committed:
+            return {"next": False, "state": "worker-claim-lost"}
         return {"next": False, "state": "needs-attention"}
     lessons = data.get("lessons", []) if code == 200 else []
     accepted = {
@@ -573,11 +840,35 @@ def _worker(payload):
                 accepted[index] = lesson
     completed = set(int(x) for x in item["completedIndices"])
     missed = list(item["failedIndices"])
+    if item.get("poolMode"):
+        # A pause, cancel or newer lease can arrive while a model is replying.
+        # Fail closed before publishing any results from the superseded worker.
+        active = _read(table, job_id)
+        if (not active or active.get("leaseOwner") != item.get("leaseOwner")
+                or int(active.get("generation", -1)) != generation
+                or active.get("state") != "running"
+                or int(active.get("leaseUntil", 0)) < int(time.time())):
+            return {"next": False, "state": "superseded-worker"}
     for index in selected:
         if index in accepted:
-            table.put_item(Item={"pk": JOB_PREFIX + job_id,
-                                 "sk": "result#%05d" % index,
-                                 "index": index, "lesson": accepted[index]})
+            key = {"pk": JOB_PREFIX + job_id, "sk": "result#%05d" % index}
+            result = {**key, "index": index, "lesson": accepted[index]}
+            if item.get("poolMode"):
+                # No older/newer worker may overwrite a committed scene.
+                try:
+                    table.put_item(
+                        Item=result, ConditionExpression="attribute_not_exists(pk)")
+                except Exception as exc:
+                    if (getattr(exc, "response", {}).get("Error", {}).get("Code")
+                            != "ConditionalCheckFailedException"):
+                        raise
+                    previous = table.get_item(Key=key, ConsistentRead=True).get("Item")
+                    old_lesson = previous.get("lesson", {}) if previous else {}
+                    if (old_lesson.get("sceneId") != accepted[index].get("sceneId")
+                            or old_lesson.get("original") != accepted[index].get("original")):
+                        raise RuntimeError("Conflicting previously committed scene result")
+            else:
+                table.put_item(Item=result)
             completed.add(index)
         else:
             missed.append(index)
@@ -594,18 +885,29 @@ def _worker(payload):
             state = "completed"
     else:
         state = "queued"
+    # Pool jobs use a separate durable training phase. Their completed
+    # scenes are checkpointed before contending for the global model lock.
+    training_pending = state == "completed" and item.get("poolMode") and pool_enabled()
+    if training_pending:
+        state = "queued"
     committed = _save_progress(table, item, state=state, work=work, position=pos,
                    failedIndices=missed, completedIndices=sorted(completed),
                    saved=int(item.get("saved", 0)) + int(data.get("saved", 0)),
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
+                   nextRetryAt=0,
+                   unusableConnections=[],
+                   trainingPending=bool(training_pending),
+                   lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
                    lastError="" if state != "needs-attention"
                        else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
                    **{"pass": run_pass},
                    updatedAt=int(time.time()))
     if not committed:
         return {"next": False, "state": "interrupted-by-owner"}
+    if training_pending:
+        return {"next": True, "state": "training-queued", "waitSeconds": 1}
     if state == "completed":
         # Match the old browser workflow: CPU advisory model trains only after
         # all lessons are confirmed. Cross-story QA still gates promotion.
@@ -641,28 +943,50 @@ def _safe_worker_error(exc):
 
 
 def worker(payload):
+    # Reject caller-provided claims; only the live worker may set this token.
+    payload.pop("_claimedWorkerLease", None)
     try:
         return _worker(payload)
     except Exception as exc:
         # AWS SDK network glitches can also be transient. Preserve the
         # checkpoint and let Step Functions retry them, but never loop forever.
         job_id = payload.get("jobId")
-        transient = type(exc).__name__ in (
+        aws_error = getattr(exc, "response", {})
+        aws_code = (aws_error.get("Error", {}).get("Code", "")
+                    if isinstance(aws_error, dict) else "")
+        transient = (type(exc).__name__ in (
             "TimeoutError", "ReadTimeoutError", "ConnectTimeoutError",
             "EndpointConnectionError", "ConnectionError")
+            or aws_code in ("ThrottlingException", "Throttling",
+                            "TooManyRequestsException",
+                            "ProvisionedThroughputExceededException",
+                            "RequestLimitExceeded", "LimitExceededException",
+                            "ServiceUnavailableException", "InternalServerError"))
         if isinstance(job_id, str) and re.fullmatch(r"[a-f0-9]{32}", job_id):
             try:
                 table = _table()
                 current = _read(table, job_id)
                 if current and current.get("generation") == payload.get("generation"):
+                    if current.get("poolMode"):
+                        claimed = payload.get("_claimedWorkerLease")
+                        if (not claimed or claimed != current.get("leaseOwner")
+                                or current.get("state") != "running"):
+                            # Do not touch a job that is owned by a newer Lambda.
+                            return {"next": current.get("state") in ("queued", "running"),
+                                    "state": "worker-claim-lost", "waitSeconds": 30}
                     failures = int(current.get("transientFailures", 0)) + 1
-                    if transient and failures < MAX_TRANSIENT_RETRIES:
+                    pooled = current.get("poolMode") and pool_enabled()
+                    if transient and (pooled or failures < MAX_TRANSIENT_RETRIES):
+                        delay = (_retry_delay(job_id, failures, base=30, ceiling=1800)
+                                 if pooled else min(600, 25 * (2 ** (failures - 1))))
                         committed = _save_progress(table, current, state="queued",
                                     leaseUntil=0, transientFailures=failures,
-                                    lastError="AWS เครือข่ายตอบช้า กำลังรอทำต่อ",
+                                    nextRetryAt=int(time.time()) + delay,
+                                    lastError="AWS ติดลิมิตหรือเครือข่ายตอบช้า; จะทำต่ออัตโนมัติ",
                                     updatedAt=int(time.time()))
-                        return {"next": bool(committed), "state": "network-retry",
-                                "waitSeconds": min(600, 25 * (2 ** (failures - 1)))}
+                        return {"next": bool(committed),
+                                "state": "network-retry" if committed else "worker-claim-lost",
+                                "waitSeconds": delay}
                     _save_progress(table, current, state="needs-attention", leaseUntil=0,
                                    transientFailures=failures if transient else int(current.get("transientFailures",0)),
                                    lastError=_safe_worker_error(exc),
