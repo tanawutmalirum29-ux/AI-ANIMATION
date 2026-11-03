@@ -157,4 +157,11 @@ def handle(action, body, owner):
         return add(body)
     if action == "teacher.connection.remove":
         return remove(body, owner)
+    if action == "teacher.connection.test":
+        conn_id = body.get("connectionId")
+        matches = [x for x in listing() if x["id"] == conn_id]
+        if not matches:
+            return teacher._response(404, {"error": "ไม่พบการเชื่อมต่อ"})
+        return teacher._model_test({"provider": matches[0]["provider"],
+                                    "connectionId": conn_id})
     return teacher._response(400, {"error": "ไม่รู้จักคำสั่งการเชื่อมต่อ"})
