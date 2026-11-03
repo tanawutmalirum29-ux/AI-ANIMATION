@@ -39,7 +39,13 @@ class Table:
         # Model conditional owner pause / generation and worker-lease semantics.
         if "generation=:g" in (ConditionExpression or ""):
             if row["generation"] != values[":g"]:
-                raise AssertionError("stale generation")
+                raise FakeConditionConflict()
+        if "generation=:expectedGen" in (ConditionExpression or ""):
+            if row["generation"] != values[":expectedGen"]:
+                raise FakeConditionConflict()
+        if "#s=:expected" in (ConditionExpression or ""):
+            if row["state"] != values[":expected"]:
+                raise FakeConditionConflict()
         if "#s=:running" in (ConditionExpression or "") and row["state"] != "running":
             raise FakeConditionConflict()
         if "leaseOwner=:owner" in (ConditionExpression or ""):
