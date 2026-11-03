@@ -44,11 +44,11 @@ test('one-tap model repair saves only model ID, reuses existing key in backend',
  assert.equal(auto.getState().repairSuggestion,null);
  assert.match(auto.getState().progress,/ทดสอบโมเดล/);
 });
-test('OpenRouter default remains a free-only model identifier',()=>{
+test('OpenRouter default remains free but owner-selected models are not restricted by price tier',()=>{
  const server=fs.readFileSync(path.join(base,'autodub/teacher.py'),'utf8'),
   client=fs.readFileSync(path.join(base,'studio-teacher.js'),'utf8');
  assert.match(server,/"openrouter": "openrouter\/free"/);
- assert.match(server,/model != "openrouter\/free"/);
+ assert.doesNotMatch(server,/TEACHER_ALLOW_PAID_MODELS/);
  assert.match(client,/openrouter\/free/);
  assert.doesNotMatch(client,/google\/gemma-3-27b-it:free/);
 });

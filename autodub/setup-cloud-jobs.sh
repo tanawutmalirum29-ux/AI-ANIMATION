@@ -67,13 +67,16 @@ data={"Comment":"Durable AI Teacher training (2 scenes per Lambda batch, checkpo
               "generation.$":"$.generation"}},
   "ResultPath":"$.step",
   "Retry":[{"ErrorEquals":["Lambda.ServiceException","Lambda.AWSLambdaException",
-          "Lambda.SdkClientException","States.Timeout"],
+          "Lambda.SdkClientException","States.Timeout","Lambda.TooManyRequestsException"],
            "IntervalSeconds":15,"MaxAttempts":3,"BackoffRate":2}],
+  "Catch":[{"ErrorEquals":["Lambda.TooManyRequestsException"],
+            "ResultPath":"$.awsThrottle","Next":"WaitForAwsCapacity"}],
   "Next":"HasMore"},
  "HasMore":{"Type":"Choice","Choices":[{"Variable":"$.step.Payload.next",
            "BooleanEquals":True,"Next":"WaitForQuota"}],"Default":"Finish"},
  "WaitForQuota":{"Type":"Wait",
            "SecondsPath":"$.step.Payload.waitSeconds","Next":"RunBatch"},
+ "WaitForAwsCapacity":{"Type":"Wait","Seconds":120,"Next":"RunBatch"},
  "Finish":{"Type":"Succeed"}}}
 with open(file,"w") as f:json.dump(data,f)
 PY

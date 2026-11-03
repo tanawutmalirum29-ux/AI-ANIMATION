@@ -21,10 +21,8 @@ def _models_and_rules(provider, model, base):
     model = str(model or teacher.MODELS[provider]).strip()
     if not re.fullmatch(r"[A-Za-z0-9_.:/-]{1,128}", model):
         raise ValueError("ชื่อ Model ID ไม่ถูกต้อง")
-    if (provider == "openrouter" and model != "openrouter/free"
-            and not model.endswith(":free")
-            and teacher.os.getenv("TEACHER_ALLOW_PAID_MODELS") != "1"):
-        raise ValueError("OpenRouter ต้องใช้โมเดลฟรี (:free)")
+    # Provider model selection is the owner's explicit choice. Do not
+    # enforce price-tier-specific model names at this server boundary.
     base = str(base or "").strip()
     if provider == "compatible" and not teacher._host_allowed(base):
         raise ValueError("API URL ไม่อยู่ในรายชื่อที่ AWS อนุญาต")
@@ -66,6 +64,9 @@ def listing(settings=None):
         if (ID_RE.fullmatch(str(key)) and isinstance(config, dict)
                 and config.get("provider") in teacher.PROVIDERS):
             result.append(_public(key, config))
+    import owner_key_vault
+    if owner_key_vault.enabled():
+        result.extend(owner_key_vault.listing())
     result.sort(key=lambda item: (0 if item.get("legacy") else 1,
                                   item.get("createdAt", 0), item["name"]))
     return result
@@ -83,7 +84,8 @@ def resolve(settings, provider, connection_id=None):
     entry = _entries(settings).get(connection_id)
     if (not isinstance(entry, dict) or entry.get("provider") != provider
             or str(entry.get("ownerGitHubId") or ADMIN_ID) != ADMIN_ID):
-        return {}
+        import owner_key_vault
+        return owner_key_vault.resolve(provider, connection_id) if owner_key_vault.enabled() else {}
     return entry
 
 
@@ -96,7 +98,9 @@ def add(body, owner=None):
     import teacher
     if str(owner or ADMIN_ID) != ADMIN_ID:
         return teacher._response(403, {"error": "เพิ่ม API Key ได้เฉพาะบัญชี GitHub แอดมิน"})
-    if not (teacher._secret_id() or teacher.os.getenv("TEACHER_SETTINGS_PARAMETER")):
+    import owner_key_vault
+    if not (owner_key_vault.enabled() or teacher._secret_id()
+            or teacher.os.getenv("TEACHER_SETTINGS_PARAMETER")):
         return teacher._response(503, {"error": "AWS ยังไม่พร้อมบันทึก API Key"})
     provider = str(body.get("provider") or "").lower()
     try:
@@ -109,8 +113,20 @@ def add(body, owner=None):
         return teacher._response(400, {"error": "กรุณาใส่ API Key ที่ถูกต้อง"})
     settings = teacher._settings()
     entries = _entries(settings)
+    if owner_key_vault.enabled():
+        old_keys = [str(p.get("key")) for p in entries.values()
+                    if isinstance(p, dict) and p.get("key")]
+        old_keys.extend(str(teacher._config(settings, p).get("key")) for p in teacher.PROVIDERS
+                        if teacher._config(settings, p).get("key"))
+        try:
+            connection = owner_key_vault.add(provider, model, base, key, old_keys)
+        except ValueError as exc:
+            if str(exc) == "duplicate-key":
+                return teacher._response(409, {"error": "API Key นี้ถูกเชื่อมไว้แล้ว"})
+            raise
+        return teacher._response(200, {"ok": True, "connection": connection})
     if len(entries) >= MAX_EXTRA_KEYS:
-        return teacher._response(409, {"error": "เชื่อมเพิ่มได้สูงสุด 6 คีย์ต่อบัญชี AWS เพื่อจำกัดขนาด Secret"})
+        return teacher._response(409, {"error": "ยังไม่เปิดคลังคีย์ AWS แบบขยาย (ต้องมี DynamoDB และ SESSION_SECRET)"})
     # Duplicate keys under the same provider are not independent capacity.
     if any(teacher._config(settings, p).get("key") == key for p in teacher.PROVIDERS):
         return teacher._response(409, {"error": "API Key นี้เชื่อมเป็นคีย์หลักอยู่แล้ว"})
@@ -140,20 +156,34 @@ def remove(body, owner):
         return teacher._response(400, {"error": "กรุณายืนยันการลบการเชื่อมต่อ"})
     settings = teacher._settings()
     entries = _entries(settings)
+    import owner_key_vault
+    vault_connection = False
     if connection_id not in entries:
-        return teacher._response(404, {"error": "ไม่พบการเชื่อมต่อ"})
+        if not owner_key_vault.enabled():
+            return teacher._response(404, {"error": "ไม่พบการเชื่อมต่อ"})
+        vault_connection = any(x["id"] == connection_id
+                               for x in owner_key_vault.listing())
+        if not vault_connection:
+            return teacher._response(404, {"error": "ไม่พบการเชื่อมต่อ"})
     # An in-flight job must not have its key revoked mid-run.
     try:
         import cloud_jobs
-        jobs = json.loads(cloud_jobs._list_jobs({}, owner)["body"]).get("jobs", [])
-        if any(x.get("connectionId") == connection_id and
-               x.get("state") in ("queued", "running")
-               for x in jobs):
+        if vault_connection:
+            busy = cloud_jobs._connection_in_use(owner, connection_id)
+        else:
+            jobs = json.loads(cloud_jobs._list_jobs({}, owner)["body"]).get("jobs", [])
+            busy = any(x.get("connectionId") == connection_id and
+                       x.get("state") in ("queued", "running") for x in jobs)
+        if busy:
             return teacher._response(409, {"error": "มีงานสอนที่กำลังใช้คีย์นี้ กรุณาพักหรือรอให้จบก่อน"})
     except Exception:
         return teacher._response(503, {"error": "ตรวจงานที่กำลังใช้คีย์ไม่ได้ จึงยังไม่ลบ"})
-    settings["extraConnections"] = {k: v for k, v in entries.items() if k != connection_id}
-    teacher._save_settings(settings)
+    if vault_connection:
+        if not owner_key_vault.remove(connection_id):
+            return teacher._response(409, {"error": "การเชื่อมต่อนี้ถูกลบหรือเปลี่ยนสถานะแล้ว"})
+    else:
+        settings["extraConnections"] = {k: v for k, v in entries.items() if k != connection_id}
+        teacher._save_settings(settings)
     return teacher._response(200, {"ok": True, "connectionId": connection_id, "deleted": True})
 
 
@@ -164,7 +194,7 @@ def handle(action, body, owner):
     if action == "teacher.connection.list":
         return teacher._response(200, {"ownerGitHubId": ADMIN_ID,
                                        "connections": listing(),
-                                       "maxExtra": MAX_EXTRA_KEYS,
+                                       "maxExtra": None if __import__("owner_key_vault").enabled() else MAX_EXTRA_KEYS,
                                        "distribution": "balanced-by-pending-scenes"})
     if action == "teacher.connection.add":
         return add(body, owner)
