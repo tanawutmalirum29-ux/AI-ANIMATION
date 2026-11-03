@@ -119,7 +119,7 @@ def _export_s3_client():
     ))
 
 
-def _export_action(action, body):
+def _export_action(action, body, owner=None):
     import boto3
     from botocore.exceptions import ClientError
     bucket = os.environ.get("CLOUD_EXPORT_BUCKET", "")
@@ -131,10 +131,17 @@ def _export_action(action, body):
     ident = str(body.get("jobId") or "")
     def key(suffix):
         return "jobs/" + ident + "/" + suffix
+    # Bind cloud-export jobs to their signed user account. No user ID or
+    # bearer token is stored in S3; admins retain legacy job compatibility.
+    owner_hash = (hmac.new(SESSION_SECRET.encode(),
+        ("studio-export-v1:"+owner).encode(),hashlib.sha256).hexdigest()
+        if owner is not None else None)
     if action == "export.prepare":
         ident = str(__import__("uuid").uuid4())
         try:
-            s3.put_object(Bucket=bucket, Key=key("prepared"), Body=b"ready", ContentType="text/plain")
+            s3.put_object(Bucket=bucket, Key=key("prepared"), Body=b"ready",
+                          ContentType="text/plain",
+                          **({"Metadata":{"owner":owner_hash}} if owner_hash else {}))
             url = s3.generate_presigned_url("put_object", Params={
                 "Bucket": bucket, "Key": key("input.json"), "ContentType": "application/json"
             }, ExpiresIn=1800)
@@ -144,7 +151,10 @@ def _export_action(action, body):
     if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", ident):
         return _resp(400, {"error": "หมายเลขงานไม่ถูกต้อง"})
     try:
-        s3.head_object(Bucket=bucket, Key=key("prepared"))
+        prepared=s3.head_object(Bucket=bucket, Key=key("prepared"))
+        if owner_hash and not hmac.compare_digest(
+                str(prepared.get("Metadata",{}).get("owner") or ""),owner_hash):
+            return _resp(403, {"error": "ไม่อนุญาตให้เข้าถึงงานส่งออกของบัญชีอื่น"})
     except ClientError:
         return _resp(404, {"error": "ไม่พบงานส่งออกนี้"})
     def build_info():
@@ -255,7 +265,13 @@ def handler(event, context):
         # Enforce role on the Lambda endpoint. Hiding front-end tabs alone
         # cannot protect admin secrets, project exports, training or asset PRs.
         if user["role"] != "admin":
-            if action == "member.ai.catalog":
+            # Members edit ordinary scenes/videos too. Only provider keys,
+            # model training and project-admin tools remain admin scoped.
+            if action == "synthesize":
+                pass
+            elif action.startswith("export."):
+                return _export_action(action, body, owner=str(user["sub"]))
+            elif action == "member.ai.catalog":
                 import member_ai
                 return member_ai.catalog()
             # Old member credentials stay encrypted in AWS but cannot be
@@ -265,7 +281,8 @@ def handler(event, context):
             if action == "member.ai.run":
                 import member_ai
                 return member_ai.run(body,user)
-            return _resp(403, {"error": "เฉพาะแอดมินเท่านั้นที่เรียกคำสั่งนี้ได้"})
+            elif action != "synthesize":
+                return _resp(403, {"error": "ส่วนนี้สำหรับแอดมินเท่านั้น ผู้ใช้ทั่วไปตัดต่อวิดีโอได้ตามปกติ"})
         if action in ("member.ai.run","member.ai.catalog"):
             import member_ai
             return member_ai.catalog() if action.endswith("catalog") else member_ai.run(body,user)
