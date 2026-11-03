@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 2,
+  "purpose": "Instructions for external AI scriptwriters (NOT an animation project)",
+  "targetRepository": "tanawutmalirum29-ux/AI-ANIMATION",
+  "compatibleInputType": "story-only",
+  "instructionLanguage": "th",
+  "instructions": [
+    "เขียนเนื้อเรื่องต้นฉบับใหม่เป็น JSON เท่านั้น ไม่มี Markdown ครอบเมื่อส่งไฟล์",
+    "ใช้สคีมา type=story-only; title; episodes[].id/title/scenes[].id/text และ notes (ไม่จำเป็น) ตามตัวอย่าง",
+    "แบ่งฉากจากเหตุการณ์และสถานที่ ไม่ใช่จำนวนอักษร; ฉากละหนึ่งชุดการกระทำที่เข้าใจได้ และมีเหตุ/ผล",
+    "ใน notes ระบุสถานที่ ตำแหน่งซ้าย/ขวา หน้า/หลัง วัตถุที่อยู่บนพื้น/ในมือ มุมกล้อง ลำดับการกระทำและสถานะก่อน/หลัง",
+    "เขียน text เป็นเสียงพากย์ภาษาไทยที่อ่านได้จริง ห้ามวางคำสั่งระบบหรือ metadata แทนเสียงบรรยาย",
+    "ห้ามใส่ imagePrompt, camera, actors, motionKeys หรือไฟล์ปลอมใน story-only เพียงเพื่ออ้างว่าเอนจินเรนเดอร์ได้",
+    "เอไอแม่จะนำเข้าแปลง ตรวจและส่งให้ทีม 12 บทบาทต่อไป แต่โครงสร้างตำแหน่งใหม่ยังไม่ใช่โมเดลที่วาดได้จริง",
+    "ต้องรักษาเรื่องและตัวละครต่อเนื่อง อย่าทำกล่องปรากฏในมือก่อนหยิบ หรือย้ายตัวละครโดยไร้การกระทำ",
+    "เป้าหมายตอน ~60 วินาที ไม่เกิน 65 เมื่อทำได้; หากยาวแบ่งตอน; ห้ามตัดบทเพื่อบังคับเวลา",
+    "หากเรื่องยาวมากแต่ละ text ไม่ควรเกินประมาณ 1,100 อักษร; แยกออกหลาย scenes พร้อม id ไม่ซ้ำ",
+    "ห้ามแก้บทต้นฉบับที่ผู้ใช้อนุมัติ; ข้อเสนอแก้ไขต้องแยกจากต้นฉบับ",
+    "ตรวจ JSON syntax, id ไม่ซ้ำ, text ไม่ว่าง และเหตุการณ์ต่อเนื่องก่อนส่งมอบ"
+  ],
+  "productionStageRoles": [
+    "story-analyst",
+    "continuity-keeper",
+    "scene-director",
+    "storyboard-director",
+    "environment-artist",
+    "character-artist",
+    "prop-artist",
+    "layout-director",
+    "motion-director",
+    "audio-director",
+    "timeline-editor",
+    "quality-inspector"
+  ],
+  "exampleImportable": {
+    "type": "story-only",
+    "title": "เสียงเตือนที่ตลาดกลางคืน",
+    "episodes": [
+      {
+        "id": "ep1",
+        "title": "ค่ำคืนที่น้ำมา",
+        "scenes": [
+          {
+            "id": "s1",
+            "text": "ฝนตกหนักที่ตลาดกลางคืน เมย์ยืนอยู่ข้างแผงขายของเมื่อได้ยินเสียงเตือนภัย",
+            "notes": "EXT. night market; wide shot. May stands camera-left beside a stall. Rain outside, puddles on ground; warning bell from right."
+          },
+          {
+            "id": "s2",
+            "text": "เมย์หันมองทางประตูตลาด ก่อนก้มเก็บกล่องเครื่องมือที่วางอยู่บนพื้น",
+            "notes": "MEDIUM shot. May faces right then bends and grips the toolbox handle near her feet. The box is on the ground BEFORE pickup."
+          },
+          {
+            "id": "s3",
+            "text": "เธอยกกล่องไว้ในอ้อมแขนแล้ววิ่งหนีน้ำที่กำลังไหลเข้ามาในตลาด",
+            "notes": "SIDE tracking shot. May carries the same box; water advances from camera-right to camera-left; other people respond after her warning."
+          },
+          {
+            "id": "s4",
+            "text": "เมื่อถึงทางขึ้นเนิน เมย์หยุดหอบและหันกลับไปมองแสงไฟในตลาดที่ค่อย ๆ ดับลง",
+            "notes": "EXT. hill. May is still holding the toolbox; town is below; market lights turn off one after another."
+          }
+        ]
+      }
+    ]
+  },
+  "warning": "This guide is not the story import. Import exampleImportable alone."
+}
