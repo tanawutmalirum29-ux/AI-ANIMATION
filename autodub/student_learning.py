@@ -375,6 +375,9 @@ def handle(action, body):
         if action == "student.storyAutoModel":
             import story_auto_train
             return story_auto_train.model()
+        if action == "student.storyAutoStatus":
+            import story_auto_train
+            return story_auto_train.status()
     except Exception as exc:
         # Never leak raw text, storage contents, environment variables or API keys.
         return _resp(503, {"error": "AI Student service unavailable: " + type(exc).__name__})
