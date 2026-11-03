@@ -121,7 +121,7 @@ class MotherAdvisorTests(unittest.TestCase):
         system = post.call_args.args[2]["messages"][0]["content"]
         self.assertIn("liveGitHub", system)
         self.assertIn("NEVER invent", system)
-        self.assertIn("NOT trained", system)
+        self.assertIn("NOT automatically weight-trained", system)
         self.assertIn("ops (empty array)", system)
 
     def test_source_excerpts_are_immutable_bounded_and_redacted(self):
