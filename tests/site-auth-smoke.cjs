@@ -18,6 +18,9 @@ const assert=require('assert');
    if(request.method()==='OPTIONS')return r.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'authorization,content-type'}});
    const json=request.postDataJSON();
    calls.push({action:json.action,headers});
+   if(json.action==='auth.config')
+    return r.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},
+     body:JSON.stringify({mode:'legacy-password'})});
    if(json.action==='login'){
     const ok=json.password===pass;
     return r.fulfill({status:ok?200:401,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,content-type'},
@@ -32,10 +35,10 @@ const assert=require('assert');
   await page.locator('#siteAccessGate').waitFor({state:'visible',timeout:20000});
   assert.equal(await page.evaluate(()=>window.StoryStudioAccess.enabled),true);
   await page.locator('#siteAccessPassword').fill('wrong');
-  await page.getByRole('button',{name:'เข้าสู่สตูดิโอ'}).click();
+  await page.getByRole('button',{name:'เข้าสู่ระบบด้วยรหัสผ่านเดิม'}).click();
   await page.getByText('รหัสผ่านไม่ถูกต้อง').waitFor();
   await page.locator('#siteAccessPassword').fill(pass);
-  await page.getByRole('button',{name:'เข้าสู่สตูดิโอ'}).click();
+  await page.getByRole('button',{name:'เข้าสู่ระบบด้วยรหัสผ่านเดิม'}).click();
   await page.locator('#siteAccessGate').waitFor({state:'hidden'});
   const answer=await page.evaluate(()=>window.StoryStudioAccess.request({text:'สวัสดี',voice:'th-TH-NiwatNeural'}));
   assert.equal(answer.audio,'RkFLRV9NUDM=');

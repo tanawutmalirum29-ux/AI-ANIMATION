@@ -41,6 +41,15 @@ on:
       - 'tests/student-memory-browser.test.cjs'
       - 'tests/test_student_memory_browser.py'
       - 'autodub/handler.py'
+      - 'autodub/github_oauth.py'
+      - 'autodub/member_ai.py'
+      - 'autodub/setup-github-oauth.sh'
+      - 'site-auth.js'
+      - 'member-portal.js'
+      - 'member-portal.css'
+      - 'tests/test_github_oauth_roles.py'
+      - 'tests/github-oauth-members.test.cjs'
+      - 'amplify.yml'
       - 'autodub/setup-teacher.sh'
       - 'tests/test_teacher_backend.py'
       - 'tests/teacher-studio-contract.test.cjs'
@@ -84,6 +93,15 @@ on:
       - 'tests/student-memory-browser.test.cjs'
       - 'tests/test_student_memory_browser.py'
       - 'autodub/handler.py'
+      - 'autodub/github_oauth.py'
+      - 'autodub/member_ai.py'
+      - 'autodub/setup-github-oauth.sh'
+      - 'site-auth.js'
+      - 'member-portal.js'
+      - 'member-portal.css'
+      - 'tests/test_github_oauth_roles.py'
+      - 'tests/github-oauth-members.test.cjs'
+      - 'amplify.yml'
       - 'autodub/setup-teacher.sh'
       - 'tests/test_teacher_backend.py'
       - 'tests/teacher-studio-contract.test.cjs'
@@ -99,6 +117,10 @@ jobs:
           node-version: '22'
       - name: Check JavaScript and Python
         run: |
+          node --check site-auth.js
+          node --check member-portal.js
+          python3 -m py_compile autodub/github_oauth.py autodub/member_ai.py autodub/handler.py
+          bash -n autodub/setup-github-oauth.sh
           node --check studio-teacher.js
           node --check studio-ai-workspace.js
           node --check studio-student-learning.js
@@ -112,7 +134,7 @@ jobs:
           node --check studio-script-ml.js
           python3 -m py_compile autodub/teacher.py autodub/handler.py autodub/student_learning.py
           bash -n autodub/setup-github-deploy.sh
-          node --test tests/teacher-history-ui.test.cjs tests/aws-auto-deploy-contract.test.cjs tests/teacher-self-healing.test.cjs tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs tests/story-continuity-coach.test.cjs tests/story-foundation-cpu.test.cjs tests/teacher-auto-teach.test.cjs tests/teacher-auto-teach-failfast.test.cjs tests/story-only-json.test.cjs tests/teacher-model-probe.test.cjs
+          node --test tests/github-oauth-members.test.cjs tests/teacher-history-ui.test.cjs tests/aws-auto-deploy-contract.test.cjs tests/teacher-self-healing.test.cjs tests/teacher-studio-contract.test.cjs tests/student-learning.test.cjs tests/student-memory-browser.test.cjs tests/story-continuity-coach.test.cjs tests/story-foundation-cpu.test.cjs tests/teacher-auto-teach.test.cjs tests/teacher-auto-teach-failfast.test.cjs tests/story-only-json.test.cjs tests/teacher-model-probe.test.cjs
           node training-lab/train-story-foundation.cjs
           python3 tests/test_teacher_backend.py
           python3 tests/test_student_learning.py
@@ -123,3 +145,4 @@ jobs:
           python3 tests/test_teacher_connections.py
           python3 tests/test_story_auto_train.py
           python3 tests/test_teacher_history.py
+          python3 tests/test_github_oauth_roles.py

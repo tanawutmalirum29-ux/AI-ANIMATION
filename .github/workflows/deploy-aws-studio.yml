@@ -80,7 +80,8 @@ jobs:
             --target "$BUILD" --platform manylinux2014_x86_64 \
             --python-version 3.12 --implementation cp --only-binary=:all: edge-tts
           cp autodub/handler.py autodub/github_assets.py autodub/teacher.py \
-             autodub/student_learning.py autodub/story_auto_train.py "$BUILD/"
+             autodub/student_learning.py autodub/story_auto_train.py \
+             autodub/github_oauth.py autodub/member_ai.py "$BUILD/"
           python3 - "$BUILD" "$RUNNER_TEMP/story-studio-autodub.zip" <<'PY'
           import os,sys,zipfile
           src,dst=sys.argv[1:]

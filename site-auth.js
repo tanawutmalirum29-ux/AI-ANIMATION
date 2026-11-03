@@ -1,79 +1,188 @@
-/* Story Studio authenticated AI gateway. PUBLIC endpoint only; never store passwords in code. */
+/* Site access: GitHub OAuth S256 PKCE with AWS-verified RBAC.
+ * Legacy password remains ONLY until the owner configures GitHub OAuth in AWS.
+ * Never trust a username, role or identity supplied by the browser.
+ */
 (function(root){
  'use strict';
  const apiUrl=String((root.STORY_STUDIO_CONFIG||{}).apiUrl||'').trim();
  const enabled=/^https:\/\/[^/?#]+(?:\/[^?#]*)?$/.test(apiUrl);
- const SESSION_KEY='storyStudio.session.v1';
- let token='',authorized=false,gate=null,busy=false;
- function clear(){token='';authorized=false;try{localStorage.removeItem(SESSION_KEY)}catch(e){}}
- function restore(){try{const saved=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');if(saved&&typeof saved.token==='string'&&Number(saved.expiresAt)>Date.now()+30000)token=saved.token}catch(e){}}
- function setAuth(value){authorized=!!value;document.body.classList.toggle('access-locked',enabled&&!authorized);if(gate)gate.hidden=!enabled||authorized;root.dispatchEvent(new Event('story-studio-access-change'))}
+ const SESSION_KEY='storyStudio.githubSession.v2',LEGACY_KEY='storyStudio.session.v1';
+ const PKCE_KEY='storyStudio.githubPKCE.v1';
+ let token='',authorized=false,profile=null,mode='loading',config=null;
+ let gate=null,notice=null,authButton=null,busy=false;
+ function clear(){
+  token='';profile=null;authorized=false;
+  try{sessionStorage.removeItem(SESSION_KEY);localStorage.removeItem(LEGACY_KEY)}catch(_){}
+ }
+ function restore(){
+  try{
+   const key=mode==='github'?SESSION_KEY:LEGACY_KEY;
+   const raw=mode==='github'?sessionStorage.getItem(key):localStorage.getItem(key);
+   const saved=JSON.parse(raw||'null');
+   if(saved&&typeof saved.token==='string'&&Number(saved.expiresAt)>Date.now()+30000)
+    token=saved.token;
+  }catch(_){}
+ }
+ function setAuth(p){
+  profile=p||null;authorized=!!p;
+  document.body.classList.toggle('access-admin',authorized&&profile.role==='admin');
+  document.body.classList.toggle('access-member',authorized&&profile.role==='member');
+  document.body.classList.toggle('access-locked',enabled&&!authorized);
+  if(gate)gate.hidden=authorized;
+  if(authorized&&profile.role==='member')root.StoryMemberPortal?.mount({
+   profile,request,logout
+  });
+  else root.StoryMemberPortal?.hide?.();
+  root.dispatchEvent(new Event('story-studio-access-change'));
+ }
  async function call(payload,authToken){
-  if(!enabled)throw new Error('ยังไม่ได้ตั้งค่าบริการ AI บนเซิร์ฟเวอร์');
+  if(!enabled)throw Error('ยังไม่ได้ตั้งค่า AWS API');
   const headers={'Content-Type':'application/json'};
   if(authToken)headers.Authorization='Bearer '+authToken;
-  let response;try{response=await fetch(apiUrl,{method:'POST',headers,body:JSON.stringify(payload),cache:'no-store',credentials:'omit'})}
-  catch(e){throw new Error('เชื่อมต่อบริการ AI ไม่ได้ กรุณาตรวจอินเทอร์เน็ตและตั้งค่า AWS')}
-  let data;try{data=await response.json()}catch(e){throw new Error('เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ (HTTP '+response.status+')')}
-  if(!response.ok){const err=new Error(String((data&&data.error)||('HTTP '+response.status)));err.status=response.status;throw err}
+  let res;
+  try{res=await fetch(apiUrl,{method:'POST',headers,
+   body:JSON.stringify(payload),cache:'no-store',credentials:'omit'})}
+  catch(_){throw Error('เชื่อม AWS ไม่ได้ กรุณาตรวจเครือข่าย')}
+  let data;
+  try{data=await res.json()}catch(_){throw Error('AWS ส่งข้อมูลผิดรูปแบบ HTTP '+res.status)}
+  if(!res.ok){
+   const err=Error(String(data?.error||'HTTP '+res.status));
+   err.status=res.status;throw err;
+  }
   return data;
  }
  function createGate(){
   if(gate)return;
-  const css=document.createElement('style');css.textContent=[
+  const style=document.createElement('style');
+  style.textContent=[
    'body.access-locked{overflow:hidden!important}',
    '#siteAccessGate[hidden]{display:none!important}',
-   '#siteAccessGate{position:fixed;inset:0;z-index:2147483645;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 40% 24%,#243d5f 0%,#0a1527 75%);overflow-y:auto;color:#f5ead8;font:15px/1.55 system-ui,"Noto Sans Thai",sans-serif}',
-   '#siteAccessGate .access-card{width:min(440px,100%);padding:30px 24px;background:#15253d;border:1px solid #50617c;border-radius:18px;box-shadow:0 22px 90px #0009}',
-   '#siteAccessGate h1{font-size:23px;margin:0 0 5px;color:#e5c88c}',
-   '#siteAccessGate p{margin:0 0 18px;color:#bfd0df}',
-   '#siteAccessGate label{display:block;margin:0 0 7px;font-size:14px;color:#f5ead8}',
-   '#siteAccessGate input{display:block;width:100%;min-height:46px;padding:12px;font-size:16px;border-radius:10px}',
-   '#siteAccessGate button{display:block;width:100%;margin-top:15px;min-height:44px;border:0;background:#e2c28c;color:#16233a;font-weight:750;font-size:16px}',
-   '#siteAccessGate button:disabled{opacity:.6}',
-   '#siteAccessGate .access-message{min-height:24px;margin:12px 0 0;color:#ffd9aa}',
-   '#siteAccessGate small{display:block;margin-top:12px;color:#b6c7d7}',
-   '@media(max-width:480px){#siteAccessGate{padding:14px}#siteAccessGate .access-card{padding:23px 18px}}'
+   '#siteAccessGate{position:fixed;inset:0;z-index:2147483645;display:grid;place-items:center;padding:16px;background:radial-gradient(ellipse at 30% 10%,#243d59,#081222 78%);color:#fff;font:15px/1.5 system-ui,"Noto Sans Thai",sans-serif}',
+   '#siteAccessGate .access-card{width:min(440px,100%);padding:26px;background:#152339;border:1px solid #526784;border-radius:16px}',
+   '#siteAccessGate h1{font-size:24px;color:#efd3a0;margin:0 0 10px}',
+   '#siteAccessGate p{color:#ccd8e8}',
+   '#siteAccessGate input{width:100%;padding:13px;font-size:16px;box-sizing:border-box}',
+   '#siteAccessGate button{display:block;width:100%;padding:14px;font:inherit;font-weight:700;margin:12px 0;background:#e9c586;color:#152138;border:0;border-radius:8px;min-height:48px}',
+   '#siteAccessGate button:disabled{opacity:.5}',
+   '#siteAccessGate .access-message{min-height:28px;color:#ffcfbd}',
+   'body.access-member> :not(#storyMemberPortal):not(script):not(#siteAccessGate){visibility:hidden!important}',
+   'body.access-locked> :not(#siteAccessGate):not(script){visibility:hidden!important}'
   ].join('');
-  document.head.append(css);
+  document.head.append(style);
   gate=document.createElement('div');gate.id='siteAccessGate';gate.setAttribute('role','dialog');
-  gate.setAttribute('aria-modal','true');gate.setAttribute('aria-labelledby','siteAccessTitle');
+  gate.setAttribute('aria-modal','true');
   const card=document.createElement('div');card.className='access-card';
-  const title=document.createElement('h1');title.id='siteAccessTitle';title.textContent='Story Studio Director';
-  const intro=document.createElement('p');intro.textContent='ใส่รหัสผ่านสตูดิโอครั้งเดียว เพื่อเข้าใช้งานและเปิดเครื่องมือพากย์ AI อัตโนมัติ';
-  const form=document.createElement('form');form.autocomplete='on';
-  const label=document.createElement('label');label.htmlFor='siteAccessPassword';label.textContent='รหัสผ่านสตูดิโอ';
-  const input=document.createElement('input');input.id='siteAccessPassword';input.type='password';input.required=true;
-  input.autocomplete='current-password';input.placeholder='รหัสผ่านที่ตั้งไว้ใน AWS';
-  const button=document.createElement('button');button.type='submit';button.textContent='เข้าสู่สตูดิโอ';
-  const status=document.createElement('p');status.className='access-message';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-  form.append(label,input,button,status);card.append(title,intro,form);
-  const foot=document.createElement('small');foot.textContent='ตรวจรหัสกับ AWS Lambda รหัสผ่านไม่ได้บันทึกในเบราว์เซอร์';card.append(foot);
-  gate.append(card);document.body.append(gate);
-  form.addEventListener('submit',async e=>{
-   e.preventDefault();if(busy)return;busy=true;button.disabled=true;status.textContent='กำลังตรวจรหัสผ่าน...';
+  const title=document.createElement('h1');title.textContent='AI-ANIMATION';
+  const intro=document.createElement('p');intro.textContent='เข้าสู่ระบบอย่างปลอดภัย';
+  authButton=document.createElement('button');authButton.type='button';
+  authButton.textContent='กำลังตรวจระบบเข้าสู่ระบบ...';
+  authButton.disabled=true;
+  notice=document.createElement('p');notice.className='access-message';notice.setAttribute('role','status');
+  card.append(title,intro,authButton,notice);gate.append(card);document.body.append(gate);
+ }
+ function status(text){if(notice)notice.textContent=text}
+ function legacyGate(){
+  if(!gate)return;
+  const card=gate.firstChild;
+  const label=document.createElement('label');label.textContent='รหัสผ่านเว็บไซต์เดิม (รอเปิด GitHub OAuth)';
+  const field=document.createElement('input');field.id='siteAccessPassword';field.type='password';field.autocomplete='current-password';
+  field.placeholder='รหัสผ่านเว็บไซต์';
+  card.insertBefore(label,authButton);card.insertBefore(field,authButton);
+  authButton.textContent='เข้าสู่ระบบด้วยรหัสผ่านเดิม';
+  authButton.disabled=false;
+  authButton.onclick=async()=>{
+   if(busy)return;busy=true;authButton.disabled=true;status('กำลังตรวจ...');
    try{
-    const data=await call({action:'login',password:input.value});
-    if(!data.token||!Number.isFinite(Number(data.expiresAt)))throw new Error('เซิร์ฟเวอร์ไม่ส่งข้อมูลเข้าสู่ระบบ');
-    token=data.token;input.value='';
-    try{localStorage.setItem(SESSION_KEY,JSON.stringify({token,expiresAt:Number(data.expiresAt)*1000}))}catch(e){}
-    status.textContent='';setAuth(true);
-   }catch(err){status.textContent=err.message;setAuth(false)}
-   finally{busy=false;button.disabled=false}
-  });
+    const info=await call({action:'login',password:field.value});
+    token=info.token;field.value='';
+    localStorage.setItem(LEGACY_KEY,JSON.stringify({token,expiresAt:info.expiresAt*1000}));
+    setAuth({id:0,login:'legacy-admin',role:'admin'});status('');
+   }catch(e){status(e.message);setAuth(null)}
+   finally{busy=false;authButton.disabled=false}
+  };
+ }
+ function randomUrlToken(bytes){
+  const arr=crypto.getRandomValues(new Uint8Array(bytes));
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+ }
+ async function githubLogin(){
+  if(busy)return;
+  if(!root.crypto?.subtle||!root.crypto?.getRandomValues)throw Error('เบราว์เซอร์ไม่รองรับ OAuth PKCE');
+  const state=randomUrlToken(24),verifier=randomUrlToken(48);
+  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
+  const challenge=btoa(String.fromCharCode(...new Uint8Array(hash)))
+   .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  sessionStorage.setItem(PKCE_KEY,JSON.stringify({state,verifier,created:Date.now()}));
+  const uri=new URL('https://github.com/login/oauth/authorize');
+  uri.searchParams.set('client_id',config.clientId);
+  uri.searchParams.set('redirect_uri',config.redirectUri);
+  uri.searchParams.set('state',state);
+  uri.searchParams.set('code_challenge',challenge);
+  uri.searchParams.set('code_challenge_method','S256');
+  root.location.assign(uri.toString());
+ }
+ async function handleCallback(){
+  const url=new URL(root.location.href);
+  const code=url.searchParams.get('code'),state=url.searchParams.get('state');
+  const denied=url.searchParams.get('error');
+  if(!code&&!denied)return false;
+  // Strip one-time OAuth code immediately, before any other page operations.
+  url.searchParams.delete('code');url.searchParams.delete('state');
+  url.searchParams.delete('error');url.searchParams.delete('error_description');
+  root.history.replaceState(null,'',url.pathname+url.search+url.hash);
+  if(denied)throw Error('GitHub ไม่อนุญาตการเชื่อมต่อ');
+  let pkce=null;
+  try{pkce=JSON.parse(sessionStorage.getItem(PKCE_KEY)||'null')}catch(_){}
+  sessionStorage.removeItem(PKCE_KEY);
+  if(!pkce||!state||pkce.state!==state||Date.now()-pkce.created>600000)
+   throw Error('OAuth state ไม่ตรงกัน กรุณาเข้าสู่ระบบใหม่');
+  const data=await call({action:'auth.github.exchange',code,codeVerifier:pkce.verifier});
+  if(!data.token||!data.user||!['admin','member'].includes(data.user.role))
+   throw Error('AWS ไม่ยืนยันข้อมูลบัญชี GitHub');
+  token=data.token;
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify({token,expiresAt:data.expiresAt*1000}));
+  setAuth(data.user);return true;
  }
  async function boot(){
   if(!enabled)return;
-  createGate();restore();setAuth(false);
-  if(token){try{await call({action:'verify'},token);setAuth(true);return}catch(e){clear()}}
-  setAuth(false);
+  createGate();setAuth(null);
+  try{
+   config=await call({action:'auth.config'});
+   mode=config?.mode==='github'?'github':'legacy-password';
+   if(mode==='github'){
+    authButton.textContent='เข้าสู่ระบบด้วย GitHub';
+    authButton.disabled=false;
+    authButton.onclick=()=>githubLogin().catch(e=>status(e.message));
+    try{if(await handleCallback())return}catch(e){status(e.message)}
+    restore();
+    if(token){
+     try{const d=await call({action:'verify'},token);if(d.user){setAuth(d.user);return}}
+     catch(_){clear()}
+    }
+   }else{
+    restore();
+    if(token){
+     try{await call({action:'verify'},token);
+      setAuth({id:0,login:'legacy-admin',role:'admin'});return}
+     catch(_){clear()}
+    }
+    legacyGate();
+   }
+  }catch(e){
+   mode='unavailable';authButton.disabled=true;
+   status('ตรวจระบบล็อกอินไม่ได้: '+e.message+' · ปิดการเข้าใช้งานไว้เพื่อความปลอดภัย');
+  }
  }
  async function request(payload){
-  if(!enabled)throw new Error('บริการ AI ยังไม่ได้ติดตั้ง');
-  if(!authorized||!token){setAuth(false);throw new Error('กรุณาเข้าสู่สตูดิโอก่อนใช้ AI')}
+  if(!authorized||!token)throw Error('กรุณาเข้าสู่ระบบก่อน');
   try{return await call(Object.assign({action:'synthesize'},payload),token)}
-  catch(err){if(err.status===401||err.status===403){clear();setAuth(false);throw new Error('เซสชันหมดอายุ กรุณาใส่รหัสผ่านอีกครั้ง')}throw err}
+  catch(e){
+   if(e.status===401){clear();setAuth(null);throw Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบ GitHub ใหม่')}
+   throw e;
+  }
  }
- function logout(){clear();setAuth(false)}
- root.StoryStudioAccess=Object.freeze({enabled,apiUrl,boot,request,logout,isReady:()=>authorized});
+ function logout(){clear();setAuth(null)}
+ root.StoryStudioAccess=Object.freeze({enabled,apiUrl,boot,request,logout,
+  isReady:()=>authorized,isAdmin:()=>authorized&&profile?.role==='admin',
+  user:()=>profile?{...profile}:null,authMode:()=>mode});
 })(window);

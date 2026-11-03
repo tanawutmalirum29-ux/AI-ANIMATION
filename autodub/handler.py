@@ -227,9 +227,33 @@ def handler(event, context):
     if body is None:
         return _resp(400, {"error": "ข้อมูลที่ส่งมาอ่านไม่ได้"})
     action = str(body.get("action") or "synthesize")
-    secured = bool(PASSWORD_HASH or PASSWORD_SALT or SESSION_SECRET)
+    import github_oauth
+    if action == "auth.config":
+        return github_oauth.config()
+    oauth_mode = github_oauth.enabled()
+    secured = oauth_mode or bool(PASSWORD_HASH or PASSWORD_SALT or SESSION_SECRET)
+    if oauth_mode:
+        if action == "auth.github.exchange":
+            return github_oauth.exchange(body)
+        bearer = str(headers.get("authorization") or "")
+        user = github_oauth.verify(bearer[7:]) if bearer.startswith("Bearer ") else None
+        if not user:
+            return _resp(401, {"error": "กรุณาเข้าสู่ระบบผ่าน GitHub"})
+        if action == "verify":
+            return _resp(200, {"ok": True, "user": {
+                "id": user["sub"], "login": user["login"], "role": user["role"]}})
+        # Enforce role on the Lambda endpoint. Hiding front-end tabs alone
+        # cannot protect admin secrets, project exports, training or asset PRs.
+        if user["role"] != "admin":
+            if action == "member.ai.run":
+                import member_ai
+                return member_ai.run(body,user)
+            return _resp(403, {"error": "เฉพาะแอดมินเท่านั้นที่เรียกคำสั่งนี้ได้"})
+        if action == "member.ai.run":
+            import member_ai
+            return member_ai.run(body,user)
 
-    if secured:
+    if not oauth_mode and secured:
         # Never fall back to the old reusable x-dub-key once website login is enabled.
         if not (PASSWORD_HASH and PASSWORD_SALT and SESSION_SECRET):
             return _resp(503, {"error": "ระบบเข้าสู่ระบบยังตั้งค่าไม่ครบ"})
@@ -250,7 +274,7 @@ def handler(event, context):
             return _resp(401, {"error": "กรุณาเข้าสู่ระบบใหม่"})
         if action == "verify":
             return _resp(200, {"ok": True})
-    else:
+    elif not oauth_mode:
         if action in ("login", "verify"):
             return _resp(503, {"error": "ยังไม่ได้ตั้งรหัสผ่านเว็บไซต์บน AWS"})
         sent = str(headers.get("x-dub-key", "")).encode("utf-8")
