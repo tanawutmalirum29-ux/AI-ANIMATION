@@ -52,7 +52,8 @@ def _find_upload(body, owner):
         "projectId": project,
         "provider": meta["provider"],
         "connectionId": meta.get("connectionId") or "default-" + meta["provider"],
-        "totalScenes": int(meta["totalScenes"])}})
+        "totalScenes": int(meta["totalScenes"]),
+        "poolMode": bool(meta.get("poolMode", False))}})
 
 
 def _verified(table, body, owner):
@@ -76,6 +77,9 @@ def _prepare(body, owner):
     connection_id = body.get("connectionId") or ("default-" + str(provider))
     story_name = re.sub(r"[\x00-\x1f\x7f]", " ", str(body.get("storyName") or "")).strip()[:100]
     total = body.get("totalScenes")
+    use_pool = body.get("poolMode") is True
+    if use_pool and not cloud_jobs.pool_enabled():
+        return cloud_jobs._resp(409, {"error": "ระบบแบ่งงาน AI แม่ยังไม่เปิดใช้บน AWS"})
     if not upload_id or not isinstance(project_id, str) or not re.fullmatch(
             r"[A-Za-z0-9_-]{5,90}", project_id):
         return cloud_jobs._resp(400, {"error": "ข้อมูลโปรเจกต์หรือรหัสอัปโหลดไม่ถูกต้อง"})
@@ -99,6 +103,7 @@ def _prepare(body, owner):
         if (str(item.get("ownerId")) != str(owner)
                 or item.get("projectId") != project_id or item.get("provider") != provider
                 or (item.get("connectionId") or "default-" + provider) != connection_id
+                or bool(item.get("poolMode", False)) != use_pool
                 or int(item.get("totalScenes", -1)) != total
                 or int(item.get("partCount", -1)) != count):
             return cloud_jobs._resp(409, {"error": "พบรหัสอัปโหลดที่มีข้อมูลไม่ตรงกัน"})
@@ -106,7 +111,7 @@ def _prepare(body, owner):
         item = {"pk": UPLOAD_PREFIX + upload_id, "sk": "meta",
                 "ownerId": str(owner), "projectId": project_id,
                 "provider": provider, "connectionId": connection_id,
-                "storyName": story_name,
+                "storyName": story_name, "poolMode": use_pool,
                 "totalScenes": total, "partCount": count,
                 "createdAt": int(time.time())}
         try:
@@ -213,6 +218,7 @@ def _commit(body, owner):
     return cloud_jobs._start({"projectId": item["projectId"],
                               "provider": item["provider"],
                               "connectionId": item.get("connectionId"),
+                              "poolMode": bool(item.get("poolMode", False)),
                               "storyName": item.get("storyName", ""),
                               "scenes": scenes}, owner)
 
