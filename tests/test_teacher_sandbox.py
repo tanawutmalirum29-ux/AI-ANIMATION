@@ -33,10 +33,10 @@ class SandboxTests(unittest.TestCase):
         teacher_result = teacher._response(200, {
             "teachingLessons": [{"sceneId": "s01", "issue": "keep",
                                  "revised": "นี่คือเนื้อเรื่องทดลอง", "reason": "เนื้อเรื่องถูกต้องตามเดิม"}]})
-        with mock.patch.object(teacher_sandbox, "_table", return_value=table), \\
-             mock.patch.object(teacher, "_settings", return_value={}), \\
-             mock.patch("teacher_connections.resolve", return_value={"key": "SECRET"}), \\
-             mock.patch.object(teacher, "_chat", return_value=teacher_result) as chat, \\
+        with mock.patch.object(teacher_sandbox, "_table", return_value=table), \
+             mock.patch.object(teacher, "_settings", return_value={}), \
+             mock.patch("teacher_connections.resolve", return_value={"key": "SECRET"}), \
+             mock.patch.object(teacher, "_chat", return_value=teacher_result) as chat, \
              mock.patch.object(teacher, "_auto_teach") as real_lesson:
             response=teacher_sandbox.handle("teacher.sandbox.run", {
                 "provider": "gemini", "connectionId": "default-gemini",
@@ -59,9 +59,9 @@ class SandboxTests(unittest.TestCase):
         def fail(**kwargs):
             raise RuntimeError("DynamoDB unavailable")
         table.put_item=fail
-        with mock.patch.object(teacher_sandbox, "_table", return_value=table), \\
-             mock.patch.object(teacher, "_settings", return_value={}), \\
-             mock.patch("teacher_connections.resolve", return_value={"key": "SECRET"}), \\
+        with mock.patch.object(teacher_sandbox, "_table", return_value=table), \
+             mock.patch.object(teacher, "_settings", return_value={}), \
+             mock.patch("teacher_connections.resolve", return_value={"key": "SECRET"}), \
              mock.patch.object(teacher, "_chat", return_value=teacher._response(429, {
                  "reasonCode": "TEACHER_PROVIDER_RATE_LIMIT",
                  "error": "Provider busy"})):
