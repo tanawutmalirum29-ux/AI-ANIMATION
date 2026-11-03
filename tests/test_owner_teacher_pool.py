@@ -293,6 +293,35 @@ class IdlePoolTests(unittest.TestCase):
         self.assertIsNone(wait)
         quota.assert_called_once()
 
+    def test_pool_retry_does_not_replace_an_already_saved_scene_result(self):
+        table, jobid, scenes = fixture()
+        row = table.rows[("teacher-job#" + jobid, "meta")]
+        row["poolMode"] = True
+        previously_saved = {"sceneId": scenes[0]["id"],
+                            "original": scenes[0]["text"], "revised": scenes[0]["text"],
+                            "episodeId": "ep1", "issue": "keep",
+                            "teacherReason": "ผลจากรอบแรกที่บันทึกไว้แล้ว"}
+        table.put_item(Item={"pk": "teacher-job#" + jobid, "sk": "result#00000",
+                             "index": 0, "lesson": previously_saved})
+        lessons = [
+            {"sceneId": x["id"], "episodeId": "ep1", "issue": "keep",
+             "original": x["text"], "revised": x["text"],
+             "teacherReason": "ผลใหม่จากการสอนรอบถัดไป"} for x in scenes]
+        import story_auto_train
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(connections, "listing", return_value=self.connections()), \
+             mock.patch.object(teacher, "_auto_teach", return_value=teacher._response(
+                 200, {"lessons": lessons, "saved": 2, "reused": 0})), \
+             mock.patch.object(story_auto_train, "train",
+                               return_value={"body": '{"status":"collecting","activated":false}'}):
+            result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(result["state"], "training-queued")
+        self.assertEqual(table.rows[("teacher-job#" + jobid, "result#00000")]["lesson"],
+                         previously_saved)
+        self.assertEqual(table.rows[("teacher-job#" + jobid, "result#00001")]["lesson"]["sceneId"],
+                         scenes[1]["id"])
+        self.assertEqual(row["completedIndices"], [0, 1])
+
     def test_stale_same_job_invocation_cannot_release_successor_api_lease(self):
         table, jobid, _ = fixture()
         only_one = [self.connections()[0]]
