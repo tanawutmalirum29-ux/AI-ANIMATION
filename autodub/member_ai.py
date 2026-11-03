@@ -1,7 +1,7 @@
-"""Member-only BYOK gateway for the six existing specialist tasks.
+"""Member v1 gateway for six fixed roles, not separately trained weight models.
 
-No credentials are stored in AWS, DynamoDB or project data. Each request uses
-the requesting member's own provider API key and rejects paid OpenRouter IDs.
+Members can use one-time BYOK credentials or AES-GCM encrypted keys persisted
+in DynamoDB under their verified GitHub numeric ID. Admin keys are separate.
 """
 import json
 import re
