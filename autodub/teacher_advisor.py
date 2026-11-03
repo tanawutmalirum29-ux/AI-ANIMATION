@@ -34,6 +34,137 @@ BOUNDARIES = [
 ]
 
 
+
+# Strict read-only public repository reader; OAuth sessions are never forwarded
+# to GitHub or to the external AI provider.
+import base64
+import urllib.request
+import urllib.error
+
+GITHUB_REPO = "tanawutmalirum29-ux/AI-ANIMATION"
+GITHUB_API = "https://api.github.com/repos/" + GITHUB_REPO
+_SOURCE_CACHE = {"time": 0, "tree": None}
+_CODE_TOPICS = {
+    "training": (("ฝึก", "เทรน", "ความจำ", "บทเรียน", "โมเดล", "train"),
+                 ("autodub/teacher.py", "autodub/cloud_jobs.py", "autodub/story_auto_train.py")),
+    "aws": (("aws", "lambda", "cloud", "deploy", "worker", "เซิร์ฟเวอร์", "คิว"),
+            ("autodub/cloud_jobs.py", "autodub/handler.py", ".github/workflows/deploy-aws-studio.yml")),
+    "auth": (("oauth", "login", "ล็อกอิน", "แอดมิน", "สิทธิ์"),
+             ("autodub/github_oauth.py", "site-auth.js", "autodub/handler.py")),
+    "media": (("เสียง", "พากย์", "วิดีโอ", "เรนเดอร์", "preview", "export"),
+              ("cloud-export-client.js", "studio-preview.js", "autodub/handler.py")),
+    "ui": (("แชท", "หน้าเว็บ", "ui", "แท็บ", "เมนู", "พื้นที่"),
+           ("studio-ai-workspace.js", "studio-mother-chat.js", "studio-ai-mode.css")),
+}
+
+
+class _GitHubUnavailable(Exception):
+    pass
+
+
+class _NoGitHubRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise _GitHubUnavailable("GitHub redirect was blocked")
+
+
+def _github_read(url, size_limit=550000):
+    """Only fixed github.com API endpoints are passed by internal callers."""
+    request = urllib.request.Request(url, headers={
+        "User-Agent": "AI-ANIMATION-OwnerAdvisor",
+        "Accept": "application/vnd.github+json"})
+    try:
+        with urllib.request.build_opener(_NoGitHubRedirect()).open(request, timeout=6) as response:
+            payload = response.read(size_limit + 1)
+        if len(payload) > size_limit:
+            raise _GitHubUnavailable("GitHub response exceeds bound")
+        return json.loads(payload.decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise _GitHubUnavailable("GitHub HTTP " + str(exc.code)) from None
+    except (urllib.error.URLError, TimeoutError, ValueError, UnicodeError):
+        raise _GitHubUnavailable("GitHub API temporarily unavailable") from None
+
+
+def _github_tree():
+    now = time.monotonic()
+    if _SOURCE_CACHE["tree"] is not None and now - _SOURCE_CACHE["time"] < 90:
+        return _SOURCE_CACHE["tree"]
+    data = _github_read(GITHUB_API + "/git/trees/main?recursive=1", 1750000)
+    allow = {path for _, (_, paths) in _CODE_TOPICS.items() for path in paths}
+    allow.add("README.md")
+    found = {}
+    for entry in data.get("tree", []):
+        if not isinstance(entry, dict):
+            continue
+        path, sha = entry.get("path"), entry.get("sha")
+        if (path in allow and entry.get("type") == "blob"
+                and isinstance(sha, str) and re.fullmatch("[a-f0-9]{40}", sha)):
+            found[path] = {"sha": sha, "size": entry.get("size", 0)}
+    result = {"treeSha": str(data.get("sha", ""))[:40],
+              "partialTree": bool(data.get("truncated")),
+              "files": found}
+    _SOURCE_CACHE.update({"time": now, "tree": result})
+    return result
+
+
+def _selected_sources(question, tree):
+    value = question.lower()
+    ranking = {}
+    for _, (terms, preferred) in _CODE_TOPICS.items():
+        if any(term in value for term in terms):
+            for i, path in enumerate(preferred):
+                if path in tree["files"]:
+                    ranking[path] = ranking.get(path, 0) + (10 - i)
+    if not ranking:
+        for path in ("README.md", "autodub/teacher.py", "studio-ai-workspace.js"):
+            if path in tree["files"]:
+                ranking[path] = 1
+    return [path for path, _ in sorted(ranking.items(),
+            key=lambda entry: (-entry[1], entry[0]))[:2]]
+
+
+def _safe_excerpt(content):
+    # Code/configuration names are useful, credential values are not.
+    # Restrict to public allowlisted source and redact suspicious lines before
+    # any text crosses the third-party provider boundary.
+    lines = []
+    for line in content.splitlines()[:190]:
+        lowered = line.lower()
+        if any(marker in lowered for marker in (
+                "authorization:", "bearer ", "client_secret =", "api_key =",
+                "password =", "private_key =", "access_token =", "secret_value =")):
+            lines.append("[configuration/redacted]")
+        else:
+            lines.append(line[:350])
+    return "\n".join(lines)[:2700]
+
+
+def _github_evidence(question, include_code=True):
+    try:
+        tree = _github_tree()
+        paths = _selected_sources(question, tree)
+        result = {"available": True, "source": "github-main-live-tree",
+                  "repository": GITHUB_REPO, "branch": "main",
+                  "treeSha": tree["treeSha"], "partialTree": tree["partialTree"],
+                  "checkedAt": int(time.time()), "selectedFiles": paths,
+                  "sourceExcerpts": []}
+        if include_code:
+            for path in paths:
+                sha = tree["files"][path]["sha"]
+                data = _github_read(GITHUB_API + "/git/blobs/" + sha, 310000)
+                if data.get("encoding") != "base64":
+                    continue
+                raw = base64.b64decode(data.get("content", ""))[:18000]
+                result["sourceExcerpts"].append({
+                    "path": path, "sha": sha,
+                    "excerpt": _safe_excerpt(raw.decode("utf-8", "replace"))})
+        return result
+    except (_GitHubUnavailable, ValueError, KeyError, TypeError):
+        return {"available": False, "source": "github-main-live-tree",
+                "repository": GITHUB_REPO, "branch": "main",
+                "reason": "Cannot verify public GitHub main right now",
+                "selectedFiles": [], "sourceExcerpts": []}
+
+
 def _response(code, body):
     import teacher
     return teacher._response(code, body)
