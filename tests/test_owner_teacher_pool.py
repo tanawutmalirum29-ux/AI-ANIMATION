@@ -163,6 +163,9 @@ class IdlePoolTests(unittest.TestCase):
                  200, {"lessons": lessons, "saved": 2, "reused": 0})) as work, \
              mock.patch.object(story_auto_train, "train", return_value={
                  "body": '{"status":"collecting","activated":false}'}):
+            first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+            self.assertEqual(first["state"], "training-queued")
+            self.assertTrue(table.rows[("teacher-job#" + jobid, "meta")]["trainingPending"])
             result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
         self.assertEqual(result["state"], "completed")
         args = work.call_args.args[0]
@@ -224,7 +227,9 @@ class IdlePoolTests(unittest.TestCase):
                                       "key-" + "b"*16, "lease")]
             self.assertGreater(blocked_key["leaseUntil"], int(time.time()) + 3000)
             second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
-        self.assertEqual(second["state"], "completed")
+            self.assertEqual(second["state"], "training-queued")
+            third = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(third["state"], "completed")
         self.assertEqual(teach_call.call_count, 2)
         self.assertEqual(teach_call.call_args.args[0]["storyAnchors"],
                          cloud_jobs._story_anchors(scenes))
@@ -234,6 +239,29 @@ class IdlePoolTests(unittest.TestCase):
         self.assertEqual(meta["position"], 2)
         self.assertEqual(meta["completedIndices"], [0, 1])
         self.assertEqual(meta["unusableConnections"], [])
+
+    def test_pool_training_lock_retries_without_reteaching_confirmed_scenes(self):
+        table, jobid, scenes = fixture()
+        table.rows[("teacher-job#" + jobid, "meta")].update({
+            "poolMode": True, "trainingPending": True, "state": "queued",
+            "position": 2, "completedIndices": [0, 1]})
+        import story_auto_train
+        outcomes = [
+            {"body": '{"status":"training-busy","trained":false}'},
+            {"body": '{"status":"collecting","activated":false}'}]
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(story_auto_train, "train", side_effect=outcomes) as train, \
+             mock.patch.object(teacher, "_auto_teach",
+                               side_effect=AssertionError("must not teach twice")) as teach:
+            first = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+            self.assertEqual(first["state"], "training-wait")
+            self.assertTrue(first["next"])
+            self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["position"], 2)
+            second = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(second["state"], "completed")
+        self.assertEqual(train.call_count, 2)
+        teach.assert_not_called()
+        self.assertEqual(table.rows[("teacher-job#" + jobid, "meta")]["trainingAttempts"], 0)
 
     def test_all_invalid_mothers_stop_and_preserve_checkpoint(self):
         table, jobid, _ = fixture()
