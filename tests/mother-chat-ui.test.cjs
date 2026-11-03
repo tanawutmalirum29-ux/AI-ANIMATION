@@ -9,7 +9,7 @@ test('AI Mother chat module is browser-valid, safely rendered, and isolated from
  assert.match(source,/teacher\.advisorChat/);
  assert.match(source,/root\.StoryStudioAccess\.request/);
  assert.match(source,/textContent=String\(text\)/);
- assert.match(source,/thread\.slice\(-8\)/);
+ assert.match(source,/thread\.filter\(m=>!m\.error\)\.slice\(-8\)/);
  assert.match(source,/maxLength=2500/);
  assert.match(source,/MAX_HISTORY=30/);
  assert.match(source,/activeVersion/);
