@@ -880,15 +880,21 @@ def _auto_teach(body):
     record_ids = {r["sceneId"] for r in list(cached.values()) + persisted}
     failed_ids = [x["id"] for x in clean if x["id"] not in record_ids]
     reason_counts = dict(Counter(rejected.values()))
+    # Return only deterministic validator codes: never leak provider output,
+    # credentials or the original script in a job status response.
+    failed_reasons = {sid: str(rejected.get(sid, "missing_valid_lesson"))[:64]
+                      for sid in failed_ids}
     if not saved and not reused:
         return _response(422, {
             "error": "AI แม่ตรวจซ้ำแล้วแต่ยังไม่มีบทเรียนที่ผ่าน QA; เก็บฉากที่ค้างไว้ใน AWS เพื่อสอนซ้ำ",
             "reasonCode": "TEACHER_LESSONS_RETRY_QUEUED",
             "saved": 0, "reused": 0, "failed": failed,
             "failedSceneIds": failed_ids, "reasonCounts": reason_counts,
+            "failedSceneReasons": failed_reasons,
             "verifiedByOwner": False, "trainedWeights": False})
     return _response(200, {"saved": saved, "reused": reused, "failed": failed,
                            "failedSceneIds": failed_ids, "reasonCounts": reason_counts,
+            "failedSceneReasons": failed_reasons,
                            "lessons": list(cached.values()) + persisted,
                            "verifiedByOwner": False, "ownerDelegatedTraining": True,
                            "trainingEligible": True, "trainedWeights": False,
