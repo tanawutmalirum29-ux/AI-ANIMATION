@@ -50,6 +50,22 @@ test('16-scene cloud chunks upload out of order with a bounded 2-worker pool',()
  assert.match(source('autodub/cloud_upload.py'),/partIndex/);
 });
 
+test('legacy QA needs no manual resume; single-project and many-JSON portals recover once',()=>{
+ const ui=source('studio-multi-json.js'),single=source('studio-cloud-teach.js');
+ const backend=source('autodub/cloud_jobs.py');
+ assert.match(ui,/async function recoverLegacyQA\(list\)/);
+ assert.match(ui,/qaRecoveryAttempted=new Set\(\)/);
+ assert.match(ui,/teacher\.job\.auto-recover-qa/);
+ assert.match(ui,/await recoverLegacyQA\(jobs\)/);
+ assert.match(single,/async function recoverLegacyQA\(value\)/);
+ assert.match(single,/qaAutoRecoveryAvailable/);
+ assert.match(single,/teacher\.job\.auto-recover-qa/);
+ assert.match(backend,/MAX_PASSES = 6/);
+ assert.match(backend,/QA_AUTO_REVIVES = 1/);
+ assert.match(backend,/qa-retry-wait/);
+ assert.match(backend,/ConditionExpression=.*?attribute_not_exists\(qaAutoRevives\)/s);
+ assert.match(backend,/lastError="" if state != "needs-attention"/);
+});
 test('AWS intake reuses original safe 16-scene upload API and preserves existing teach API',()=>{
  const cloud=source('studio-cloud-teach.js');
  assert.match(cloud,/async function startBatchProject/);

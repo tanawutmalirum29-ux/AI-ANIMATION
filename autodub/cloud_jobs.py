@@ -12,7 +12,11 @@ from decimal import Decimal
 
 MAX_SCENES = 350
 CHUNK_SIZE = 16
-MAX_PASSES = 3
+# Bounded autonomous QA repair. A single source scene is never accepted
+# without independent lesson QA, and a persistently invalid one must stop.
+MAX_PASSES = 6
+QA_LEGACY_STALLED = "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง"
+QA_AUTO_REVIVES = 1
 MAX_TRANSIENT_RETRIES = 6
 # Only opt-in pool jobs use the following key-specific failure fallback.
 # It does not broaden existing provider retry or legacy job semantics.
@@ -90,6 +94,11 @@ def _public(item):
             "lastProviderReason": str(item.get("lastProviderReason") or "")[:64],
             "transientFailures": int(item.get("transientFailures", 0)),
             "trainingStatus": item.get("trainingStatus"),
+            "qaAutoRecoveryAvailable": (
+                item.get("state") == "needs-attention" and
+                item.get("lastError") == QA_LEGACY_STALLED and
+                int(item.get("qaAutoRevives", 0)) < QA_AUTO_REVIVES and
+                bool(item.get("work"))),
             "cloud": True}
 
 
@@ -361,6 +370,45 @@ def _control(action, body, owner):
                   for x in response.get("Items", [])]
         next_cursor = result[-1]["index"] + 1 if response.get("LastEvaluatedKey") and result else None
         return _resp(200, {"items": result, "nextCursor": next_cursor})
+    if action == "teacher.job.auto-recover-qa":
+        # Explicit owner-authorized action used by the AI Studio page once
+        # for legacy jobs stuck under the old three-pass QA policy.
+        # New jobs always keep retrying in their existing Step Functions.
+        if state in ("queued", "running") and int(item.get("qaAutoRevives", 0)):
+            return _resp(200, {"job": _public(item), "existing": True})
+        if (state != "needs-attention" or item.get("lastError") != QA_LEGACY_STALLED
+                or int(item.get("qaAutoRevives", 0)) >= QA_AUTO_REVIVES
+                or not item.get("work")):
+            return _resp(409, {"error": "งานนี้ไม่เข้าข่ายกู้ QA อัตโนมัติ กรุณาตรวจรายละเอียด"})
+        generation = int(item["generation"]) + 1
+        try:
+            table.update_item(Key=_key(job_id),
+                UpdateExpression=("SET #s=:queued,generation=:g,#p=:z,leaseUntil=:z,"
+                                  "lastError=:empty,transientFailures=:z,"
+                                  "trainingAttempts=:z,qaAutoRevives=:one,"
+                                  "nextRetryAt=:z,updatedAt=:now REMOVE executionArn"),
+                ConditionExpression=("#s=:expected AND generation=:old AND "
+                                     "(attribute_not_exists(qaAutoRevives) OR "
+                                     "qaAutoRevives < :one)"),
+                ExpressionAttributeNames={"#s": "state", "#p": "pass"},
+                ExpressionAttributeValues={
+                    ":queued": "queued", ":g": generation, ":z": 0,
+                    ":empty": "", ":one": QA_AUTO_REVIVES,
+                    ":expected": "needs-attention", ":old": int(item["generation"]),
+                    ":now": int(time.time())})
+        except Exception as exc:
+            if (getattr(exc, "response", {}).get("Error", {}).get("Code")
+                    != "ConditionalCheckFailedException"):
+                raise
+            return _resp(200, {"job": _public(_read(table, job_id)),
+                               "existing": True})
+        current = _read(table, job_id)
+        try:
+            _launch(table, current)
+        except Exception:
+            return _resp(503, {"error": "กู้คิว QA แล้ว แต่ AWS ยังเปิดงานไม่ได้ กดลองใหม่ได้"})
+        return _resp(200, {"job": _public(_read(table, job_id)),
+                           "autoRecovered": True})
     if action == "teacher.job.pause":
         if state in ("queued", "running"):
             try:
@@ -839,7 +887,13 @@ def _worker(payload):
             return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "provider-retry",
                 "waitSeconds": delay}
-    if code not in (200, 422):
+    # A lesson batch can return HTTP 503 even when the provider worked:
+    # _auto_teach deliberately signals all-rejected deterministic QA as
+    # TEACHER_LESSONS_RETRY_QUEUED. This is *not* a provider outage and must
+    # follow the bounded scene-only QA retry path below, never stop the job.
+    qa_rejected = (code == 503 and data.get("reasonCode") ==
+                   "TEACHER_LESSONS_RETRY_QUEUED")
+    if code not in (200, 422) and not qa_rejected:
         committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                        lastError=str(data.get("error") or "AI provider ไม่พร้อม")[:200],
                        updatedAt=int(time.time()))
@@ -893,10 +947,15 @@ def _worker(payload):
             missed.append(index)
     pos = position + len(selected)
     run_pass = int(item["pass"])
+    qa_wait = 0
     if pos >= len(work):
         if missed and run_pass + 1 < MAX_PASSES:
             work, pos, missed, run_pass = sorted(set(missed)), 0, [], run_pass + 1
             state = "queued"
+            # Step Functions keeps the execution alive without a browser tab.
+            # Backoff avoids hammering a provider whose output repeatedly
+            # fails deterministic lesson QA.
+            qa_wait = _retry_delay(job_id, run_pass, base=20, ceiling=240)
         elif missed:
             work, pos, missed = sorted(set(missed)), 0, []
             state = "needs-attention"
@@ -915,12 +974,14 @@ def _worker(payload):
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
                    throttles=0, transientFailures=0, leaseUntil=0,
-                   nextRetryAt=0, lastProviderReason="",
+                   nextRetryAt=int(time.time()) + qa_wait if qa_wait else 0,
+                   lastProviderReason="",
                    unusableConnections=[],
                    trainingPending=bool(training_pending),
                    lastConnectionId=teaching_connection if fresh else item.get("lastConnectionId", ""),
                    lastError="" if state != "needs-attention"
-                       else "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง",
+                       else "บางฉากยังไม่ผ่าน QA แม้ระบบลองสอนเฉพาะฉากที่ค้างครบ "
+                            + str(MAX_PASSES) + " รอบแล้ว โปรดตรวจโมเดลหรือบทก่อนสั่งทำต่อ",
                    **{"pass": run_pass},
                    updatedAt=int(time.time()))
     if not committed:
@@ -942,8 +1003,9 @@ def _worker(payload):
         table.update_item(Key=_key(job_id),
                           UpdateExpression="SET trainingStatus=:t",
                           ExpressionAttributeValues={":t": summary})
-    return {"next": state == "queued", "state": state,
-            "waitSeconds": 1 if not fresh else 12}
+    return {"next": state == "queued",
+            "state": "qa-retry-wait" if qa_wait else state,
+            "waitSeconds": qa_wait or (1 if not fresh else 12)}
 
 
 def _safe_worker_error(exc):

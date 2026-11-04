@@ -6,6 +6,7 @@
 'use strict';
 let adapter=null,job=null,enabled=false,known=false,busy=false,error='';
 let timer=null,restoreEpoch=0,loadingResults=false,uploadState=null;
+const qaRecoveryAttempted=new Set();
 const completedStates=new Set(['completed','cancelled','paused','needs-attention']);
 function access(){return root.StoryStudioAccess}
 function request(data){return access().request(data)}
@@ -42,6 +43,18 @@ function schedule(){
   else refresh().catch(()=>{});
  },root.document?.visibilityState==='hidden'?30000:10000);
 }
+async function recoverLegacyQA(value){
+ if(!value?.qaAutoRecoveryAvailable||!value.jobId||qaRecoveryAttempted.has(value.jobId))
+  return value;
+ qaRecoveryAttempted.add(value.jobId);
+ try{
+  const response=await request({action:'teacher.job.auto-recover-qa',jobId:value.jobId});
+  return response?.job||value;
+ }catch(e){
+  error='กู้คิว QA อัตโนมัติไม่สำเร็จ: '+String(e.message||e);
+  return value;
+ }
+}
 function setJob(value){
  job=value;
  error='';
@@ -54,7 +67,7 @@ async function refresh(){
  if(!job||!access()?.isReady?.())return;
  try{
   const out=await request({action:'teacher.job.status',jobId:job.jobId});
-  if(out?.job)setJob(out.job);
+  if(out?.job)setJob(await recoverLegacyQA(out.job));
  }catch(e){error='เน็ตหรือ AWS ไม่พร้อมชั่วคราว: '+String(e.message||e);
   repaint();schedule()}
 }
@@ -70,7 +83,7 @@ async function restore(){
   if(!id){repaint();return}
   const out=await request({action:'teacher.job.find',projectId:id});
   if(epoch!==restoreEpoch)return;
-  job=out?.job||null;
+  job=out?.job?await recoverLegacyQA(out.job):null;
   repaint();schedule();
   if(job?.state==='completed')loadResults().catch(e=>{error=String(e.message||e);repaint()});
  }catch(e){
