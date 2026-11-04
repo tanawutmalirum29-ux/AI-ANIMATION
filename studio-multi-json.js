@@ -251,7 +251,7 @@ async function start(){
    try{
     const out=await root.StoryCloudTeach.startBatchProject({
      projectId:item.projectId,scenes:item.scenes,storyName:item.storyName,
-     provider:conn.provider,connectionId:conn.id,
+     provider:conn.provider,connectionId:conn.id,skipConfigCheck:true,
      poolMode:item.poolMode===true||(item.poolMode==null&&poolWanted&&poolAvailable),
      onProgress:(done,total)=>{item.done=done;item.total=total;progressRender()}});
     if(!out?.job?.jobId)throw Error('AWS ยังไม่ยืนยันหมายเลขงาน');
