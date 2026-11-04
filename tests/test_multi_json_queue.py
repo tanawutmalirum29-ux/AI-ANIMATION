@@ -126,6 +126,28 @@ class MultiJSONTests(unittest.TestCase):
                     self.assertIn("ครบ", row["lastError"])
         self.assertEqual(infer.call_count, cloud_jobs.MAX_PASSES)
 
+    def test_all_rejected_lessons_503_are_autoretried_as_qa_not_provider_failure(self):
+        table, jobid, _ = fixture()
+        rejection = teacher._response(503, {
+            "reasonCode": "TEACHER_LESSONS_RETRY_QUEUED",
+            "error": "AI แม่ตรวจซ้ำแล้วแต่ยังไม่มีบทเรียนที่ผ่าน QA",
+            "failed": 2})
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(teacher, "_auto_teach", return_value=rejection) as called, \
+             mock.patch.object(teacher, "_cached_scene_records", return_value={}), \
+             mock.patch.object(cloud_jobs, "_try_provider_lock", return_value=True), \
+             mock.patch.object(cloud_jobs, "_release_provider_lock"):
+            result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(result["state"], "qa-retry-wait")
+        self.assertTrue(result["next"])
+        row = table.rows[(cloud_jobs.JOB_PREFIX + jobid, "meta")]
+        self.assertEqual(row["state"], "queued")
+        self.assertEqual(row["position"], 0)
+        self.assertEqual(row["work"], [0, 1])
+        self.assertEqual(row["pass"], 1)
+        self.assertEqual(row["completedIndices"], [])
+        called.assert_called_once()
+
     def test_manual_pause_and_persistent_qa_error_are_not_silently_restarted(self):
         table, jobid, _ = fixture()
         row = table.rows[(cloud_jobs.JOB_PREFIX + jobid, "meta")]
