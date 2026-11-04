@@ -377,8 +377,25 @@ function jobRow(job){
     ' · ปิดเว็บได้','multi-json-muted'));
  }
  if(job.qaAutoRecoveryAvailable)
-  row.append(dom('small','พบคิว QA เก่าที่ค้าง ระบบกำลังกู้และสอนเฉพาะฉากที่ยังไม่ผ่านให้อัตโนมัติ','multi-json-muted'));
+  row.append(dom('small','พบคิว QA ค้าง · ระบบจะกู้ครั้งเดียวและสอนใหม่ทีละฉากโดยไม่ลบงานที่ผ่านแล้ว','multi-json-muted'));
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
+ if(job.qaFailures?.length){
+  const hints={
+   missing_scene:'โมเดลไม่ได้ส่งผลสำหรับฉากนี้',
+   invalid_issue:'ชนิดการแก้ไม่ตรงรูปแบบ',
+   invalid_revision_length:'บทที่ AI ส่งมายาวหรือสั้นเกินไป',
+   missing_reason:'AI ไม่ให้เหตุผลเพียงพอ',
+   keep_must_preserve_original:'สั่งคงบทเดิม แต่ AI เปลี่ยนข้อความ',
+   changed_label_without_change:'สั่งแก้บท แต่ AI ส่งบทเดิม',
+   retry_provider_unavailable:'โมเดลไม่ตอบระหว่างแก้ซ้ำ',
+   missing_valid_lesson:'ยังไม่มีบทเรียนที่ผ่านการตรวจรูปแบบ'
+  };
+  const details=dom('details',null,'multi-json-qa-details');
+  details.append(dom('summary','ดูฉากที่ QA ไม่ผ่าน '+(job.qaFailureCount||job.qaFailures.length)+' ฉาก'));
+  for(const failure of job.qaFailures)
+   details.append(dom('small',failure.sceneId+' · '+(hints[failure.reason]||failure.reason),'multi-json-error'));
+  row.append(details);
+ }
  if(job.lastProviderReason && job.error){
   const cause={
    TEACHER_PROVIDER_TIMEOUT:'AI ตอบไม่ทันเวลารอ',
