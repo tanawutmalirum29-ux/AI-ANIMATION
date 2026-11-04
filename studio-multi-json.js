@@ -7,6 +7,7 @@
 'use strict';
 let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,renaming=false,error='',notice='',timer=null;
+let olderJobs=[],nextJobCursor=null,loadingOlder=false;
 let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let editingConnectionId='';
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
@@ -130,14 +131,29 @@ function schedule(){
  timer=setTimeout(()=>refresh().catch(()=>{}),
    root.document?.visibilityState==='hidden'?60000:17000);
 }
-async function refresh(silent=false){
+async function refresh(silent=false,resetOlder=false){
  if(!root.StoryStudioAccess?.isReady?.()){schedule();return}
  try{
   const response=await api('teacher.job.list');
   jobs=Array.isArray(response.jobs)?response.jobs:[];
+  if(resetOlder){olderJobs=[];nextJobCursor=null}
+  if(!olderJobs.length)nextJobCursor=response.nextCursor||null;
   if(!silent){error='';render()}
  }catch(e){if(!silent){error='อ่านสถานะ AWS ไม่สำเร็จ: '+String(e.message||e);render()}}
  finally{schedule()}
+}
+async function loadOlderJobs(){
+ if(loadingOlder||!nextJobCursor||uploading)return;
+ loadingOlder=true;render();
+ try{
+  const response=await api('teacher.job.list',{cursor:nextJobCursor});
+  const seen=new Set([...jobs,...olderJobs].map(x=>x.jobId));
+  for(const job of response.jobs||[]){
+   if(!seen.has(job.jobId)){olderJobs.push(job);seen.add(job.jobId)}
+  }
+  nextJobCursor=response.nextCursor||null;
+ }catch(e){error='โหลดรายการงานเก่าจาก AWS ไม่สำเร็จ: '+String(e.message||e)}
+ finally{loadingOlder=false;render()}
 }
 // LPT scheduling: assign each entire story to the least loaded connection.
  // Context remains coherent within one story; existing AWS workers split its
@@ -219,7 +235,7 @@ async function start(){
      item.connectionId=existing.id;item.connectionName=existing.name;
      item.poolMode=found.upload.poolMode===true;
     }
-    item.state='ready';
+    item.state='ready';delete item.lookupFailed;
    }catch(e){
     item.state='failed';item.error=String(e.message||e);item.lookupFailed=true;failed++;
    }
@@ -484,7 +500,7 @@ function render(){
  actions.append(select,
   button(uploading?'กำลังส่งพร้อมกัน '+UPLOAD_PARALLEL+' เรื่อง…':'ส่งทุกเรื่องพร้อมกันสูงสุด '+UPLOAD_PARALLEL+' เรื่อง',start,
     uploading||checking||!items.some(x=>x.state==='ready'||x.state==='failed')||!connections.length),
-  button('รีเฟรช AWS',()=>refresh(),loading||uploading));
+  button('รีเฟรช AWS',()=>refresh(false,true),loading||uploading));
  panel.append(actions);
  const poolLabel=dom('label',null,'multi-json-muted');
  const poolToggle=dom('input');poolToggle.type='checkbox';
@@ -506,11 +522,15 @@ function render(){
  if(notice)panel.append(dom('p',notice,'multi-json-muted'));
  if(error)panel.append(dom('p',error,'multi-json-error'));
  panel.append(dom('p','ความเร็วการส่ง JSON กับความเร็ว AI สอนต่างกัน: AWS เปิดคิวแต่ละเรื่องได้พร้อมกัน แต่ API Key เดียวจะสอนเรียงเพื่อเคารพโควตา · หลายคีย์อิสระจึงช่วยให้สอนขนานกันได้ · เมื่อ AWS รับครบปิดเว็บได้ หากเน็ตหลุดเลือกไฟล์เดิมแล้วกดส่งเฉพาะส่วนที่ขาด','multi-json-muted'));
- panel.append(dom('h4','งานสอนล่าสุดจาก AWS ('+jobs.length+')'));
+ const allJobs=[...jobs,...olderJobs.filter(j=>!jobs.some(x=>x.jobId===j.jobId))];
+ panel.append(dom('h4','งานสอนจาก AWS ('+allJobs.length+' ที่โหลด)'));
  const recent=dom('div',null,'multi-json-list');
- if(!jobs.length)recent.append(dom('p','ยังไม่พบงาน AWS'));
- for(const job of jobs)recent.append(jobRow(job));
+ if(!allJobs.length)recent.append(dom('p','ยังไม่พบงาน AWS'));
+ for(const job of allJobs)recent.append(jobRow(job));
  panel.append(recent);
+ if(nextJobCursor)panel.append(button(loadingOlder?'กำลังโหลด…':'โหลดงานก่อนหน้าอีก 40 เรื่อง',
+  loadOlderJobs,loadingOlder||uploading));
+ if(olderJobs.length)panel.append(dom('p','รายการที่โหลดเพิ่มเป็นสถานะ ณ ตอนดึงข้อมูล · กดรีเฟรช AWS เพื่ออ่านหน้าล่าสุดใหม่','multi-json-muted'));
  host.append(panel);
 }
 function mount(target){
