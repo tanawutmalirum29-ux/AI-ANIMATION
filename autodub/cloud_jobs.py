@@ -887,7 +887,13 @@ def _worker(payload):
             return {"next": False, "state": "worker-claim-lost"}
         return {"next": True, "state": "provider-retry",
                 "waitSeconds": delay}
-    if code not in (200, 422):
+    # A lesson batch can return HTTP 503 even when the provider worked:
+    # _auto_teach deliberately signals all-rejected deterministic QA as
+    # TEACHER_LESSONS_RETRY_QUEUED. This is *not* a provider outage and must
+    # follow the bounded scene-only QA retry path below, never stop the job.
+    qa_rejected = (code == 503 and data.get("reasonCode") ==
+                   "TEACHER_LESSONS_RETRY_QUEUED")
+    if code not in (200, 422) and not qa_rejected:
         committed = _save_progress(table, item, state="needs-attention", leaseUntil=0,
                        lastError=str(data.get("error") or "AI provider ไม่พร้อม")[:200],
                        updatedAt=int(time.time()))
