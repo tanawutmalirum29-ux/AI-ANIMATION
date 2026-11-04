@@ -45,7 +45,7 @@ class MultiJSONTests(unittest.TestCase):
                  "pk": cloud_jobs.INDEX_PREFIX + "225819900", "sk": next_sk}},
             {"Items": [{"jobId": jobid}]}
         ])
-        with mock.patch.object(cloud_jobs, "_table", return_value=table), \\
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
              mock.patch.dict(os.environ, {
                  "TEACHER_FEEDBACK_TABLE": "test",
                  "TEACHER_JOB_STATE_MACHINE_ARN": "arn:aws:states:a:b:stateMachine:test"}):
