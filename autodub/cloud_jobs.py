@@ -16,6 +16,7 @@ CHUNK_SIZE = 16
 # without independent lesson QA, and a persistently invalid one must stop.
 MAX_PASSES = 6
 QA_LEGACY_STALLED = "บางฉากยังไม่ผ่าน QA กดทำต่อเพื่อลองสอนเฉพาะฉากที่ค้าง"
+QA_EXHAUSTED_PREFIX = "บางฉากยังไม่ผ่าน QA แม้ระบบลองสอนเฉพาะฉากที่ค้างครบ "
 QA_AUTO_REVIVES = 1
 MAX_TRANSIENT_RETRIES = 6
 # Only opt-in pool jobs use the following key-specific failure fallback.
@@ -69,6 +70,15 @@ def _read(table, job_id):
     return table.get_item(Key=_key(job_id), ConsistentRead=True).get("Item")
 
 
+def _qa_recoverable(item):
+    """Allow one bounded automatic rescue of exhausted or legacy QA jobs."""
+    return bool(item and item.get("state") == "needs-attention" and
+                (item.get("lastError") == QA_LEGACY_STALLED or
+                 str(item.get("lastError") or "").startswith(QA_EXHAUSTED_PREFIX)) and
+                int(item.get("qaAutoRevives", 0)) < QA_AUTO_REVIVES and
+                item.get("work"))
+
+
 def _public(item):
     if not item:
         return None
@@ -94,11 +104,11 @@ def _public(item):
             "lastProviderReason": str(item.get("lastProviderReason") or "")[:64],
             "transientFailures": int(item.get("transientFailures", 0)),
             "trainingStatus": item.get("trainingStatus"),
-            "qaAutoRecoveryAvailable": (
-                item.get("state") == "needs-attention" and
-                item.get("lastError") == QA_LEGACY_STALLED and
-                int(item.get("qaAutoRevives", 0)) < QA_AUTO_REVIVES and
-                bool(item.get("work"))),
+            "qaFailureCount": len(item.get("qaFailedReasons") or {}),
+            "qaFailures": [
+                {"sceneId": str(sid)[:100], "reason": str(reason)[:64]}
+                for sid, reason in sorted((item.get("qaFailedReasons") or {}).items())[:30]],
+            "qaAutoRecoveryAvailable": _qa_recoverable(item),
             "cloud": True}
 
 
@@ -372,18 +382,16 @@ def _control(action, body, owner):
         return _resp(200, {"items": result, "nextCursor": next_cursor})
     if action == "teacher.job.auto-recover-qa":
         # Explicit owner-authorized action used by the AI Studio page once
-        # for legacy jobs stuck under the old three-pass QA policy.
-        # New jobs always keep retrying in their existing Step Functions.
+        # Rescue a stalled job only once, including the six-pass QA error.
+        # Checkpoints survive; revised worker retries one scene at a time.
         if state in ("queued", "running") and int(item.get("qaAutoRevives", 0)):
             return _resp(200, {"job": _public(item), "existing": True})
-        if (state != "needs-attention" or item.get("lastError") != QA_LEGACY_STALLED
-                or int(item.get("qaAutoRevives", 0)) >= QA_AUTO_REVIVES
-                or not item.get("work")):
+        if not _qa_recoverable(item):
             return _resp(409, {"error": "งานนี้ไม่เข้าข่ายกู้ QA อัตโนมัติ กรุณาตรวจรายละเอียด"})
         generation = int(item["generation"]) + 1
         try:
             table.update_item(Key=_key(job_id),
-                UpdateExpression=("SET #s=:queued,generation=:g,#p=:z,leaseUntil=:z,"
+                UpdateExpression=("SET #s=:queued,generation=:g,#p=:one,leaseUntil=:z,"
                                   "lastError=:empty,transientFailures=:z,"
                                   "trainingAttempts=:z,qaAutoRevives=:one,"
                                   "nextRetryAt=:z,updatedAt=:now REMOVE executionArn"),
@@ -731,7 +739,10 @@ def _worker(payload):
     remembered = teacher._cached_scene_records(table, item["projectId"], lookahead_scenes)
     # After a timeout, retry only one not-yet-taught scene. Replaying
     # the same two-scene generation can time out repeatedly on a slow model.
-    fresh_limit = 1 if int(item.get("transientFailures", 0)) > 0 else 2
+    # A repeated QA failure is often a model that cannot follow the two-scene
+    # JSON contract. Isolate each failed scene on the next pass.
+    fresh_limit = 1 if (int(item.get("transientFailures", 0)) > 0 or
+                        int(item.get("pass", 0)) > 0) else 2
     selected, scenes, fresh = [], [], []
     for index, scene in zip(lookahead, lookahead_scenes):
         if scene["id"] not in remembered and len(fresh) >= fresh_limit:
@@ -913,6 +924,16 @@ def _worker(payload):
                 accepted[index] = lesson
     completed = set(int(x) for x in item["completedIndices"])
     missed = list(item["failedIndices"])
+    qa_failures = dict(item.get("qaFailedReasons") or {})
+    reported_failures = data.get("failedSceneReasons") or {}
+    if not isinstance(reported_failures, dict):
+        reported_failures = {}
+    for index, scene in zip(selected, scenes):
+        if index in accepted:
+            qa_failures.pop(scene["id"], None)
+        else:
+            qa_failures[scene["id"]] = str(
+                reported_failures.get(scene["id"]) or "missing_valid_lesson")[:64]
     if item.get("poolMode"):
         # A pause, cancel or newer lease can arrive while a model is replying.
         # Fail closed before publishing any results from the superseded worker.
@@ -970,6 +991,7 @@ def _worker(payload):
         state = "queued"
     committed = _save_progress(table, item, state=state, work=work, position=pos,
                    failedIndices=missed, completedIndices=sorted(completed),
+                   qaFailedReasons=qa_failures,
                    saved=int(item.get("saved", 0)) + int(data.get("saved", 0)),
                    reused=int(item.get("reused", 0)) + int(data.get("reused", 0))
                           + sum(1 for scene in scenes if scene["id"] in remembered),
