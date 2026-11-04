@@ -266,8 +266,35 @@ function decorate(host){
   refreshBtn.addEventListener('click',()=>refresh().catch(()=>{}));
   buttons.append(refreshBtn);
   box.append(buttons);
+  if(job.qaAutoRecoveryAvailable){
+   const notice=doc.createElement('p');
+   notice.textContent='QA ไม่ผ่าน · ระบบกำลังกู้คิวหนึ่งครั้งและสอนฉากที่ค้างแยกทีละฉากโดยอัตโนมัติ';
+   box.append(notice);
+  }
   if(job.error){const warning=doc.createElement('p');
    warning.textContent=job.error;box.append(warning)}
+  if(Array.isArray(job.qaFailures)&&job.qaFailures.length){
+   const labels={
+    missing_scene:'โมเดลไม่ได้ส่งบทเรียนของฉากนี้',
+    invalid_issue:'ประเภทการแก้ไขไม่ถูกต้อง',
+    invalid_revision_length:'บทที่ส่งมาสั้นหรือยาวเกินเกณฑ์',
+    missing_reason:'โมเดลไม่ได้ให้เหตุผลที่เพียงพอ',
+    keep_must_preserve_original:'โมเดลสั่งคงบท แต่แก้ข้อความ',
+    changed_label_without_change:'โมเดลสั่งแก้บท แต่ไม่เปลี่ยนข้อความ',
+    retry_provider_unavailable:'โมเดลไม่ตอบตอนแก้ซ้ำ',
+    missing_valid_lesson:'บทเรียนยังไม่ผ่านการตรวจโครงสร้าง'
+   };
+   const details=doc.createElement('details');
+   const summary=doc.createElement('summary');
+   summary.textContent='ดูฉากที่ QA ไม่ผ่าน '+(job.qaFailureCount||job.qaFailures.length)+' ฉาก';
+   details.append(summary);
+   for(const failure of job.qaFailures){
+    const p=doc.createElement('p');
+    p.textContent=failure.sceneId+' · '+(labels[failure.reason]||failure.reason);
+    details.append(p);
+   }
+   box.append(details);
+  }
  }
  if(error){const warning=doc.createElement('p');
   warning.textContent=error;warning.style.color='#ffd3a1';box.append(warning)}
