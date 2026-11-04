@@ -143,6 +143,53 @@ class CloudJobTests(unittest.TestCase):
         self.assertEqual(row["throttles"], 1)
         self.assertEqual(row["state"], "queued")
 
+    def test_failed_qa_isolated_and_reason_is_checkpointed(self):
+        table, jobid, _ = fixture()
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        meta["pass"] = 1
+        import teacher
+        reply = teacher._response(422, {
+            "reasonCode": "TEACHER_LESSONS_RETRY_QUEUED",
+            "failedSceneIds": ["s1"],
+            "failedSceneReasons": {"s1": "keep_must_preserve_original"}})
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(teacher, "_auto_teach", return_value=reply) as called:
+            result = cloud_jobs.worker({"jobId": jobid, "generation": 0})
+        self.assertEqual(result["state"], "queued")
+        self.assertEqual(len(called.call_args.args[0]["scenes"]), 1)
+        self.assertEqual(meta["qaFailedReasons"],
+                         {"s1": "keep_must_preserve_original"})
+        public = cloud_jobs._public(meta)
+        self.assertEqual(public["qaFailureCount"], 1)
+        self.assertEqual(public["qaFailures"][0]["sceneId"], "s1")
+
+    def test_exhausted_qa_auto_recovers_once_without_losing_progress(self):
+        table, jobid, _ = fixture()
+        meta = table.rows[("teacher-job#" + jobid, "meta")]
+        meta.update(state="needs-attention", position=0, work=[1], **{
+            "pass": 5, "completedIndices": [0], "saved": 1,
+            "qaFailedReasons": {"s2": "missing_reason"},
+            "lastError": (cloud_jobs.QA_EXHAUSTED_PREFIX +
+                          "6 รอบแล้ว โปรดตรวจโมเดลหรือบทก่อนสั่งทำต่อ")})
+        self.assertTrue(cloud_jobs._public(meta)["qaAutoRecoveryAvailable"])
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.object(cloud_jobs, "_launch") as launch, \
+             mock.patch.dict(os.environ, {
+                 "TEACHER_FEEDBACK_TABLE": "test",
+                 "TEACHER_JOB_STATE_MACHINE_ARN":
+                     "arn:aws:states:ap-southeast-2:123:stateMachine:test"}):
+            reply = cloud_jobs.handle("teacher.job.auto-recover-qa",
+                                      {"jobId": jobid}, "225819900")
+        self.assertEqual(reply["statusCode"], 200)
+        self.assertEqual(meta["state"], "queued")
+        self.assertEqual(meta["pass"], 1)
+        self.assertEqual(meta["work"], [1])
+        self.assertEqual(meta["completedIndices"], [0])
+        self.assertEqual(meta["saved"], 1)
+        self.assertEqual(meta["qaAutoRevives"], 1)
+        self.assertFalse(cloud_jobs._public(meta)["qaAutoRecoveryAvailable"])
+        launch.assert_called_once()
+
     def test_admin_owned_job_required_for_status(self):
         table, jobid, _ = fixture()
         with mock.patch.object(cloud_jobs, "_table", return_value=table), \
