@@ -126,25 +126,39 @@ async function startUploaded(projectId,scenes,selectedProvider=adapter?.provider
  const done=new Set(prepared.uploadedParts||[]);
  if(onProgress)onProgress(done.size,parts);
  else {uploadState={done:done.size,total:parts,scenes:scenes.length};repaint();}
- for(let partIndex=0;partIndex<parts;partIndex++){
-  if(done.has(partIndex))continue;
-  await request({action:'teacher.job.upload.chunk',uploadId,partIndex,
-   scenes:scenes.slice(partIndex*size,(partIndex+1)*size)});
-  done.add(partIndex);
-  if(onProgress)onProgress(done.size,parts);
-  else {uploadState={done:done.size,total:parts,scenes:scenes.length};repaint();}
- }
+ // Chunks are immutable/idempotent and may arrive out of order. Limit to
+ // two parallel requests per story to accelerate high-latency mobile upload
+ // without flooding DynamoDB or starting inference before all chunks arrive.
+ const missing=Array.from({length:parts},(_,i)=>i).filter(i=>!done.has(i));
+ let nextPart=0,firstError=null;
+ await Promise.all(Array.from({length:Math.min(2,missing.length)},async()=>{
+  while(nextPart<missing.length&&!firstError){
+   const partIndex=missing[nextPart++];
+   try{
+    await request({action:'teacher.job.upload.chunk',uploadId,partIndex,
+     scenes:scenes.slice(partIndex*size,(partIndex+1)*size)});
+    done.add(partIndex);
+    if(onProgress)onProgress(done.size,parts);
+    else {uploadState={done:done.size,total:parts,scenes:scenes.length};repaint();}
+   }catch(e){if(!firstError)firstError=e}
+  }
+ }));
+ if(firstError)throw firstError;
  const committed=await request({action:'teacher.job.upload.commit',uploadId});
  return committed;
 }
-async function startBatchProject({projectId:pid,scenes,provider:chosen,connectionId,storyName,onProgress,poolMode=false}){
+async function startBatchProject({projectId:pid,scenes,provider:chosen,connectionId,storyName,onProgress,poolMode=false,skipConfigCheck=false}){
  if(!access()?.isReady?.())throw Error('กรุณาเข้าสู่ระบบ GitHub แอดมิน');
  if(!['gemini','openrouter','compatible'].includes(chosen))
   throw Error('กรุณาเลือก AI Provider ที่เชื่อมไว้');
  if(!Array.isArray(scenes)||scenes.length<1||scenes.length>350)
   throw Error('หนึ่ง JSON ต้องมี 1–350 ฉากที่ถูกต้อง');
- const cfg=await request({action:'teacher.job.config'});
- if(!cfg?.enabled)throw Error('Cloud Background Jobs ยังไม่พร้อม');
+ // Multi-JSON already fetched this config once for the entire submission.
+ // The AWS prepare/commit endpoints still authenticate and check job readiness.
+ if(!skipConfigCheck){
+  const cfg=await request({action:'teacher.job.config'});
+  if(!cfg?.enabled)throw Error('Cloud Background Jobs ยังไม่พร้อม');
+ }
  const bytes=new root.TextEncoder().encode(JSON.stringify(scenes)).length;
  if(bytes>4_000_000)throw Error('บทพากย์รวมใหญ่เกิน 4 MB');
  return startUploaded(pid,scenes,chosen,onProgress||(()=>{}),connectionId,storyName,poolMode);

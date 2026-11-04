@@ -7,7 +7,13 @@ test('multi JSON UI validates source without sending project media or private ke
  const js=source('studio-multi-json.js');
  assert.doesNotThrow(()=>new Function(js));
  assert.match(js,/picker\.multiple=true/);
- assert.match(js,/MAX_FILES=8/);
+ assert.match(js,/MAX_FILES=100/);
+ assert.match(js,/MAX_TOTAL_BYTES=64\*1024\*1024/);
+ assert.match(js,/UPLOAD_PARALLEL=3/);
+ assert.match(js,/items=remaining/);
+ assert.match(js,/runLimited\(pending,UPLOAD_PARALLEL/);
+ assert.match(js,/runLimited\(unverified,UPLOAD_PARALLEL/);
+ assert.match(js,/teacher\.job\.list',\{cursor:nextJobCursor\}/);
  assert.match(js,/MAX_FILE_BYTES=8\*1024\*1024/);
  assert.match(js,/StoryAutoTeach\.childScan\(project,null,root\.StoryContinuityCoach\)/);
  assert.match(js,/normalizeForTraining\(input\)/);
@@ -18,6 +24,32 @@ test('multi JSON UI validates source without sending project media or private ke
  assert.match(js,/teacher\.job\.'\+action/);
  assert.doesNotMatch(js,/localStorage\.setItem|sessionStorage\.setItem|innerHTML\s*=|apiKey\s*:/);
 });
+test('bounded worker pool actually overlaps uploads without exceeding three in flight',async()=>{
+ const js=source('studio-multi-json.js');
+ const start=js.indexOf('async function runLimited(entries,limit,worker){');
+ const end=js.indexOf('let progressQueued=',start);
+ assert.ok(start>=0&&end>start);
+ const runLimited=new Function(js.slice(start,end)+';return runLimited;')();
+ let active=0,peak=0,count=0;
+ await runLimited(Array.from({length:100},(_,i)=>i),3,async()=>{
+  active++;peak=Math.max(peak,active);
+  await Promise.resolve();await Promise.resolve();
+  active--;count++;
+ });
+ assert.equal(count,100,'one upload worker for each selected JSON');
+ assert.equal(peak,3,'three uploads at a time, never 100 simultaneous requests');
+});
+test('16-scene cloud chunks upload out of order with a bounded 2-worker pool',()=>{
+ const js=source('studio-cloud-teach.js');
+ assert.match(js,/Math\.min\(2,missing\.length\)/);
+ assert.match(js,/if\(firstError\)throw firstError/);
+ assert.match(js,/skipConfigCheck=false/);
+ assert.match(js,/if\(!skipConfigCheck\)/);
+ assert.match(source('studio-multi-json.js'),/skipConfigCheck:true/);
+ assert.match(source('autodub/cloud_upload.py'),/alreadyUploaded/);
+ assert.match(source('autodub/cloud_upload.py'),/partIndex/);
+});
+
 test('AWS intake reuses original safe 16-scene upload API and preserves existing teach API',()=>{
  const cloud=source('studio-cloud-teach.js');
  assert.match(cloud,/async function startBatchProject/);

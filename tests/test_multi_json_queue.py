@@ -36,6 +36,34 @@ class MultiJSONTests(unittest.TestCase):
         self.assertEqual(result["source"], "aws-dynamodb-owner-index")
         self.assertEqual(table.query.call_count, 1)
 
+    def test_older_jobs_are_paginated_and_never_cross_owner_partition(self):
+        table, jobid, _ = fixture()
+        next_sk = "job#" + "1" * 12 + "#" + "b" * 32
+        table.query = mock.Mock(side_effect=[
+            {"Items": [{"jobId": jobid}],
+             "LastEvaluatedKey": {
+                 "pk": cloud_jobs.INDEX_PREFIX + "225819900", "sk": next_sk}},
+            {"Items": [{"jobId": jobid}]}
+        ])
+        with mock.patch.object(cloud_jobs, "_table", return_value=table), \
+             mock.patch.dict(os.environ, {
+                 "TEACHER_FEEDBACK_TABLE": "test",
+                 "TEACHER_JOB_STATE_MACHINE_ARN": "arn:aws:states:a:b:stateMachine:test"}):
+            code, page1 = read(cloud_jobs.handle("teacher.job.list", {}, "225819900"))
+            code2, page2 = read(cloud_jobs.handle(
+                "teacher.job.list", {"cursor": next_sk}, "225819900"))
+            rejected, _ = read(cloud_jobs.handle(
+                "teacher.job.list", {"cursor": "job#evil#other-owner"}, "225819900"))
+        self.assertEqual(code, 200)
+        self.assertEqual(page1["nextCursor"], next_sk)
+        self.assertEqual(code2, 200)
+        self.assertIsNone(page2["nextCursor"])
+        self.assertEqual(rejected, 400)
+        args = table.query.call_args_list[1].kwargs
+        self.assertEqual(args["ExclusiveStartKey"],
+                         {"pk": cloud_jobs.INDEX_PREFIX + "225819900", "sk": next_sk})
+        self.assertEqual(args["Limit"], 40)
+
     def test_busy_provider_waits_and_preserves_checkpoint_without_ai_call(self):
         table, jobid, scenes = fixture()
         table.put_item(Item={"pk": cloud_jobs.PROVIDER_LOCK_PREFIX + "gemini",

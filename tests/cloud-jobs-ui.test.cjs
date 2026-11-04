@@ -86,7 +86,8 @@ test('large projects are sent in immutable 16-scene chunks and resume after drop
  const start=compile(root,api,adapter,repaint);
  await assert.rejects(start('story293',scenes),/network disconnected/);
  assert.equal(counts.commit,0,'AI must not start on partial upload');
- assert.equal(uploaded.size,5);
+ assert.ok(uploaded.size>=5&&uploaded.size<=6,
+  'a second in-flight chunk may complete after the dropped connection; it stays immutable and safe to resume');
  const result=await start('story293',scenes);
  assert.equal(result.job.total,293);
  assert.equal(started,true);

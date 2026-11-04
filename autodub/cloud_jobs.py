@@ -256,14 +256,22 @@ def _authorized_job(body, owner):
 
 
 def _list_jobs(body, owner):
-    """Owner-indexed recent jobs, no scan or cross-owner exposure."""
+    """Read one owner-scoped page. Older jobs are explicit, never polled in bulk."""
     from boto3.dynamodb.conditions import Key
+    cursor = body.get("cursor")
+    if cursor is not None and (not isinstance(cursor, str) or
+            not re.fullmatch(r"job#[0-9]{12}#[a-f0-9]{32}", cursor)):
+        return _resp(400, {"error": "ตัวชี้หน้ารายการงานไม่ถูกต้อง"})
+    index_pk = INDEX_PREFIX + str(owner)
+    opts = {"KeyConditionExpression": Key("pk").eq(index_pk),
+            "ScanIndexForward": False, "Limit": 40}
+    if cursor:
+        # Never trust a client-supplied partition key: construct it from auth.
+        opts["ExclusiveStartKey"] = {"pk": index_pk, "sk": cursor}
     table = _table()
-    rows = table.query(
-        KeyConditionExpression=Key("pk").eq(INDEX_PREFIX + str(owner)),
-        ScanIndexForward=False, Limit=80).get("Items", [])
+    page = table.query(**opts)
     seen, jobs = set(), []
-    for row in rows:
+    for row in page.get("Items", []):
         job_id = row.get("jobId")
         if job_id in seen or not isinstance(job_id, str):
             continue
@@ -271,10 +279,13 @@ def _list_jobs(body, owner):
         item = _read(table, job_id)
         if item and str(item.get("ownerId")) == str(owner):
             jobs.append(_public(item))
-        if len(jobs) >= 40:
-            break
+    last = page.get("LastEvaluatedKey") or {}
+    next_cursor = last.get("sk") if isinstance(last, dict) else None
+    # Only expose a supported owner-index cursor; keep older API clients valid.
+    if next_cursor and not re.fullmatch(r"job#[0-9]{12}#[a-f0-9]{32}", str(next_cursor)):
+        next_cursor = None
     return _resp(200, {"jobs": jobs, "source": "aws-dynamodb-owner-index",
-                       "limit": 40})
+                       "limit": 40, "nextCursor": next_cursor})
 
 
 def _connection_in_use(owner, connection_id):

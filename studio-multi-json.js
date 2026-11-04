@@ -7,10 +7,12 @@
 'use strict';
 let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,renaming=false,error='',notice='',timer=null;
+let olderJobs=[],nextJobCursor=null,loadingOlder=false;
 let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let editingConnectionId='';
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
-const MAX_FILES=8,MAX_FILE_BYTES=8*1024*1024;
+const MAX_FILES=100,MAX_FILE_BYTES=8*1024*1024,MAX_TOTAL_BYTES=64*1024*1024;
+const UPLOAD_PARALLEL=3;
 function dom(tag,text,cls){
  const e=root.document.createElement(tag);
  if(text!=null)e.textContent=String(text);
@@ -48,15 +50,25 @@ function normalizeForTraining(input){
 async function prepare(files){
  if(uploading||checking)return;
  if(!files.length)return;
- checking=true;error='';notice='กำลังตรวจ JSON บนอุปกรณ์…';items=[];render();
  const selected=Array.from(files);
- if(selected.length>MAX_FILES){
-  checking=false;error='เลือกได้ครั้งละไม่เกิน '+MAX_FILES+' ไฟล์';render();return;
+ // Accepted jobs live on AWS. Remove their transient browser rows when a
+ // new selection arrives; preserve unsent/failed files for retry or next pick.
+ const remaining=items.filter(x=>x.state!=='accepted');
+ if(selected.length+remaining.length>MAX_FILES){
+  error='เกินขีดจำกัดคิว '+MAX_FILES+' ไฟล์ กรุณาส่งงานหรือล้างรายการก่อนเลือกเพิ่ม';
+  render();return;
  }
- const seen=new Set();
+ const bytes=selected.reduce((n,f)=>n+f.size,0)+
+  remaining.reduce((n,x)=>n+(x.state==='invalid'?0:x.bytes||0),0);
+ if(bytes>MAX_TOTAL_BYTES){
+  error='ไฟล์ที่ยังไม่ส่งรวมกันเกิน 64 MB กรุณาส่งบางส่วนก่อนเลือกเพิ่ม';render();return;
+ }
+ checking=true;error='';notice='กำลังตรวจ JSON บนอุปกรณ์…';
+ items=remaining;render();
+ const seen=new Set(items.filter(x=>x.projectId&&x.state!=='invalid').map(x=>x.projectId));
  try{
-  for(const file of selected){
-   const entry={name:file.name.slice(0,130),state:'checking',count:0,done:0,total:0,
+  for(const [index,file] of selected.entries()){
+   const entry={name:file.name.slice(0,130),bytes:file.size,state:'checking',count:0,done:0,total:0,
                 skipped:0,error:'',scenes:null,projectId:''};
    items.push(entry);render();
    try{
@@ -86,9 +98,9 @@ async function prepare(files){
     entry.storyName=String(project.project?.title||input.title||file.name.replace(/\.json$/i,'')).slice(0,100);
     entry.count=entry.scenes.length;entry.state='ready';
    }catch(e){entry.state='invalid';entry.error=String(e.message||e);entry.scenes=null}
-   render();
+   if(index%5===4||index===selected.length-1)render();
   }
-  notice=items.filter(x=>x.state==='ready').length+' ไฟล์พร้อมส่ง · เลือก AI แม่แล้วกดส่งงานทั้งหมด';
+  notice=items.filter(x=>x.state==='ready').length+' ไฟล์พร้อมส่ง · เพิ่ม JSON ได้อีกหรือกดส่งทั้งหมด';
  }finally{checking=false;render()}
 }
 async function loadSettings(){
@@ -119,14 +131,29 @@ function schedule(){
  timer=setTimeout(()=>refresh().catch(()=>{}),
    root.document?.visibilityState==='hidden'?60000:17000);
 }
-async function refresh(silent=false){
+async function refresh(silent=false,resetOlder=false){
  if(!root.StoryStudioAccess?.isReady?.()){schedule();return}
  try{
   const response=await api('teacher.job.list');
   jobs=Array.isArray(response.jobs)?response.jobs:[];
+  if(resetOlder){olderJobs=[];nextJobCursor=null}
+  if(!olderJobs.length)nextJobCursor=response.nextCursor||null;
   if(!silent){error='';render()}
  }catch(e){if(!silent){error='อ่านสถานะ AWS ไม่สำเร็จ: '+String(e.message||e);render()}}
  finally{schedule()}
+}
+async function loadOlderJobs(){
+ if(loadingOlder||!nextJobCursor||uploading)return;
+ loadingOlder=true;render();
+ try{
+  const response=await api('teacher.job.list',{cursor:nextJobCursor});
+  const seen=new Set([...jobs,...olderJobs].map(x=>x.jobId));
+  for(const job of response.jobs||[]){
+   if(!seen.has(job.jobId)){olderJobs.push(job);seen.add(job.jobId)}
+  }
+  nextJobCursor=response.nextCursor||null;
+ }catch(e){error='โหลดรายการงานเก่าจาก AWS ไม่สำเร็จ: '+String(e.message||e)}
+ finally{loadingOlder=false;render()}
 }
 // LPT scheduling: assign each entire story to the least loaded connection.
  // Context remains coherent within one story; existing AWS workers split its
@@ -152,22 +179,40 @@ function planAssignments(batch){
  }
  return chosen;
 }
+// At most three concurrent AWS intake jobs. A single upload still sends
+// immutable 16-scene chunks sequentially and can resume after disconnection.
+// This controls HTTP intake only: server-side AI inference respects key leases.
+async function runLimited(entries,limit,worker){
+ let next=0;
+ await Promise.all(Array.from({length:Math.min(limit,entries.length)},async()=>{
+  while(next<entries.length){
+   const index=next++;
+   await worker(entries[index],index);
+  }
+ }));
+}
+let progressQueued=false;
+function progressRender(){
+ if(progressQueued)return;
+ progressQueued=true;
+ root.setTimeout(()=>{progressQueued=false;render()},160);
+}
 async function start(){
  if(uploading||checking)return;
  const valid=items.filter(x=>x.state==='ready'||x.state==='failed');
  if(!valid.length){error='กรุณาเลือกไฟล์ JSON ที่ผ่านการตรวจ';render();return}
  if(!connections.length){error='กรุณาเพิ่ม API Key ก่อน';render();return}
- uploading=true;error='';notice='กำลังตรวจงานและอัปโหลดค้างบน AWS…';render();
+ uploading=true;error='';notice='กำลังตรวจและส่งงาน AWS พร้อมกันสูงสุด '+UPLOAD_PARALLEL+' เรื่อง…';render();
  let accepted=0,failed=0;
  try{
   await refresh(true);
-  const pending=[];
+  const unverified=[];
   for(const item of valid){
    const prior=jobs.find(j=>j.projectId===item.projectId);
    if(prior){
     if(prior.state==='cancelled'){
      item.state='failed';
-     item.error='งานเวอร์ชันนี้เคยถูกยกเลิกแล้ว กรุณาแก้ไข JSON เป็นเวอร์ชันใหม่';
+     item.error='งานเวอร์ชันนี้เคยยกเลิก กรุณาแก้ไข JSON เป็นเวอร์ชันใหม่';
      failed++;
     }else{
      item.state='accepted';item.jobId=prior.jobId;item.scenes=null;
@@ -175,11 +220,13 @@ async function start(){
      item.connectionName=connections.find(k=>k.id===prior.connectionId)?.name||prior.provider;
      accepted++;
     }
-    render();
     continue;
    }
-   // Restore the exact server-selected connection after a browser restart.
-   // It avoids creating a second partial upload when job loads change.
+   unverified.push(item);
+  }
+  // Existing partial upload lookup is parallel but limited to protect AWS.
+  await runLimited(unverified,UPLOAD_PARALLEL,async item=>{
+   item.state='finding';progressRender();
    try{
     const found=await api('teacher.job.upload.find',{projectId:item.projectId});
     if(found.upload){
@@ -188,38 +235,39 @@ async function start(){
      item.connectionId=existing.id;item.connectionName=existing.name;
      item.poolMode=found.upload.poolMode===true;
     }
-    pending.push(item);
+    item.state='ready';delete item.lookupFailed;
    }catch(e){
-    item.state='failed';item.error=String(e.message||e);failed++;
+    item.state='failed';item.error=String(e.message||e);item.lookupFailed=true;failed++;
    }
-  }
+   progressRender();
+  });
+  const pending=unverified.filter(item=>!item.lookupFailed);
+  // Least-load assignment is pinned to each file before parallel upload.
   const assignments=planAssignments(pending);
-  for(const item of pending){
+  await runLimited(pending,UPLOAD_PARALLEL,async item=>{
    const conn=assignments.get(item);
-   // Lock assignment on first attempt; a reconnect must use the same API key.
-   item.connectionId=conn.id;
-   item.connectionName=conn.name;
-   item.state='uploading';item.error='';render();
+   item.connectionId=conn.id;item.connectionName=conn.name;
+   item.state='uploading';item.error='';progressRender();
    try{
     const out=await root.StoryCloudTeach.startBatchProject({
      projectId:item.projectId,scenes:item.scenes,storyName:item.storyName,
-     provider:conn.provider,connectionId:conn.id,
-     poolMode:item.poolMode===true || (item.poolMode==null && poolWanted && poolAvailable),
-     onProgress:(done,total)=>{item.done=done;item.total=total;render()}});
+     provider:conn.provider,connectionId:conn.id,skipConfigCheck:true,
+     poolMode:item.poolMode===true||(item.poolMode==null&&poolWanted&&poolAvailable),
+     onProgress:(done,total)=>{item.done=done;item.total=total;progressRender()}});
     if(!out?.job?.jobId)throw Error('AWS ยังไม่ยืนยันหมายเลขงาน');
-    item.state='accepted';item.done=item.total;
-    item.jobId=out.job.jobId;item.scenes=null;accepted++;
-    notice='AWS รับงานแล้ว '+accepted+' เรื่อง · งานจะทำต่อแม้ปิดเว็บ';
+    item.state='accepted';item.done=item.total;item.jobId=out.job.jobId;
+    item.scenes=null;accepted++;
    }catch(e){
     failed++;item.state='failed';item.error=String(e.message||e);
-    notice='บางไฟล์ยังส่งไม่ครบ · กดส่งงานอีกครั้งเพื่อส่งเฉพาะส่วนที่ขาด';
    }
-   render();
-  }
+   notice='AWS รับแล้ว '+accepted+' เรื่อง · ค้างส่ง '+failed+
+    ' เรื่อง · เริ่มสอนบนเซิร์ฟเวอร์ตามโควตาแต่ละ API Key';
+   progressRender();
+  });
   await refresh(true);
   notice='AWS รับแล้ว '+accepted+' เรื่อง · ค้างส่ง '+failed+
-   ' เรื่อง · ไม่ต้องเปิดเว็บค้างหลัง AWS รับงานครบ';
- }finally{uploading=false;render()}
+   ' เรื่อง · ปิดหน้าเว็บได้เมื่อรับครบ คิวสอนทำต่อบน AWS';
+ }finally{uploading=false;progressQueued=false;render()}
 }
 async function addConnection(){
  if(adding||uploading)return;
@@ -277,7 +325,7 @@ function itemRow(item){
  const row=dom('div',null,'multi-json-item');
  const title=dom('strong',(item.storyName||item.name)+' · '+item.name);row.append(title);
  const label={checking:'กำลังตรวจ',ready:'ตรวจผ่าน',
-  invalid:'ตรวจไม่ผ่าน',uploading:'กำลังส่ง AWS',accepted:'AWS รับงานแล้ว',
+  invalid:'ตรวจไม่ผ่าน',finding:'ตรวจอัปโหลดเดิม',uploading:'กำลังส่ง AWS',accepted:'AWS รับงานแล้ว',
   failed:'ส่งไม่สำเร็จ'}[item.state]||item.state;
  row.append(dom('small',label+' · '+item.count+' ฉาก'+
   (item.connectionName?' · '+item.connectionName:'')+
@@ -414,17 +462,30 @@ function render(){
  host.replaceChildren();
  const panel=dom('section',null,'multi-json');
  panel.append(dom('h3','สอน AI ลูกจากหลาย JSON'),
-  dom('p','เลือกได้ 8 เรื่องต่อรอบ · กระจายแต่ละเรื่องตามภาระงานของ API แต่ละคีย์ · เก็บบทเรียนร่วมบน AWS','multi-json-muted'));
+  dom('p','เลือกเพิ่มได้สูงสุด 100 เรื่องในคิว (รวมไม่เกิน 64 MB) · ส่ง AWS พร้อมกันสูงสุด 3 เรื่อง · เซิร์ฟเวอร์สอนหลายเรื่องพร้อมกันได้เมื่อใช้ API Key อิสระที่มีโควตา','multi-json-muted'));
  const picker=dom('input');picker.type='file';picker.accept='.json,application/json';
  picker.multiple=true;picker.disabled=uploading||checking;
  picker.setAttribute('aria-label','เลือก JSON หลายไฟล์');
  picker.addEventListener('change',()=>prepare(picker.files).catch(e=>{
   error=String(e.message||e);checking=false;render()}));
  panel.append(picker);
+ panel.append(dom('p','เลือกไฟล์เพิ่มได้หลายรอบโดยไม่ล้างคิวที่ยังไม่ส่ง · ไฟล์ JSON แต่ละเรื่องยังจำกัด 8 MB / 350 ฉาก · ลบข้อมูลชั่วคราวจากเครื่องหลัง AWS รับงาน','multi-json-muted'));
  if(items.length){
   const block=dom('div',null,'multi-json-list');
   for(const item of items)block.append(itemRow(item));
   panel.append(block);
+  panel.append(dom('p','รายการในคิว '+items.length+'/'+MAX_FILES+' · พร้อมส่ง '+items.filter(x=>x.state==='ready').length+
+   ' · AWS รับแล้ว '+items.filter(x=>x.state==='accepted').length,'multi-json-muted'));
+  panel.append(button('ล้างรายการที่ส่งแล้ว',async()=>{
+   if(uploading||checking)return;
+   items=items.filter(x=>x.state!=='accepted');
+   render();
+  },uploading||checking||!items.some(x=>x.state==='accepted')));
+  panel.append(button('ล้างคิวทั้งหมดบนหน้านี้',async()=>{
+   if(uploading||checking)return;
+   if(root.confirm&&!root.confirm('ล้างรายการที่เลือกในเบราว์เซอร์? ไม่ลบงานหรือบทเรียนบน AWS'))return;
+   items=[];notice='ล้างรายการในเบราว์เซอร์แล้ว งานบน AWS ไม่เปลี่ยน';render();
+  },uploading||checking));
  }
  const actions=dom('div',null,'multi-json-actions');
  const select=dom('select');select.disabled=uploading||loading;
@@ -437,9 +498,9 @@ function render(){
  }
  select.addEventListener('change',()=>{selection=select.value});
  actions.append(select,
-  button(uploading?'กำลังส่งงาน…':'ส่งและเริ่มสอนทุกเรื่อง',start,
+  button(uploading?'กำลังส่งพร้อมกัน '+UPLOAD_PARALLEL+' เรื่อง…':'ส่งทุกเรื่องพร้อมกันสูงสุด '+UPLOAD_PARALLEL+' เรื่อง',start,
     uploading||checking||!items.some(x=>x.state==='ready'||x.state==='failed')||!connections.length),
-  button('รีเฟรช AWS',()=>refresh(),loading||uploading));
+  button('รีเฟรช AWS',()=>refresh(false,true),loading||uploading));
  panel.append(actions);
  const poolLabel=dom('label',null,'multi-json-muted');
  const poolToggle=dom('input');poolToggle.type='checkbox';
@@ -460,12 +521,16 @@ function render(){
  panel.append(connectionPanel());
  if(notice)panel.append(dom('p',notice,'multi-json-muted'));
  if(error)panel.append(dom('p',error,'multi-json-error'));
- panel.append(dom('p','หลัง AWS รับงานครบ สามารถปิดเว็บได้ · หากเน็ตหลุดตอนอัปโหลดให้เลือกไฟล์เดิมอีกครั้งเพื่อส่งเฉพาะชุดที่ขาด · สถานะงานบันทึกอยู่บน AWS','multi-json-muted'));
- panel.append(dom('h4','งานสอนล่าสุดจาก AWS ('+jobs.length+')'));
+ panel.append(dom('p','ความเร็วการส่ง JSON กับความเร็ว AI สอนต่างกัน: AWS เปิดคิวแต่ละเรื่องได้พร้อมกัน แต่ API Key เดียวจะสอนเรียงเพื่อเคารพโควตา · หลายคีย์อิสระจึงช่วยให้สอนขนานกันได้ · เมื่อ AWS รับครบปิดเว็บได้ หากเน็ตหลุดเลือกไฟล์เดิมแล้วกดส่งเฉพาะส่วนที่ขาด','multi-json-muted'));
+ const allJobs=[...jobs,...olderJobs.filter(j=>!jobs.some(x=>x.jobId===j.jobId))];
+ panel.append(dom('h4','งานสอนจาก AWS ('+allJobs.length+' ที่โหลด)'));
  const recent=dom('div',null,'multi-json-list');
- if(!jobs.length)recent.append(dom('p','ยังไม่พบงาน AWS'));
- for(const job of jobs)recent.append(jobRow(job));
+ if(!allJobs.length)recent.append(dom('p','ยังไม่พบงาน AWS'));
+ for(const job of allJobs)recent.append(jobRow(job));
  panel.append(recent);
+ if(nextJobCursor)panel.append(button(loadingOlder?'กำลังโหลด…':'โหลดงานก่อนหน้าอีก 40 เรื่อง',
+  loadOlderJobs,loadingOlder||uploading));
+ if(olderJobs.length)panel.append(dom('p','รายการที่โหลดเพิ่มเป็นสถานะ ณ ตอนดึงข้อมูล · กดรีเฟรช AWS เพื่ออ่านหน้าล่าสุดใหม่','multi-json-muted'));
  host.append(panel);
 }
 function mount(target){
