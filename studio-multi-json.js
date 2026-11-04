@@ -8,6 +8,7 @@
 let host=null,items=[],jobs=[],connections=[],selection='auto',loading=false,
  uploading=false,checking=false,adding=false,renaming=false,error='',notice='',timer=null;
 let olderJobs=[],nextJobCursor=null,loadingOlder=false;
+const qaRecoveryAttempted=new Set();
 let poolAvailable=false,poolWanted=false,scalableVault=false,expandKeys=false;
 let editingConnectionId='';
 let keyDraft={provider:'gemini',model:'',baseUrl:''};
@@ -131,6 +132,25 @@ function schedule(){
  timer=setTimeout(()=>refresh().catch(()=>{}),
    root.document?.visibilityState==='hidden'?60000:17000);
 }
+async function recoverLegacyQA(list){
+ // Older jobs were stopped by the three-pass policy. The owner explicitly
+ // delegated teaching; resume only QA-specific pending scenes once and let
+ // Step Functions continue autonomously even when the browser is closed.
+ const candidates=list.filter(j=>j.qaAutoRecoveryAvailable&&j.jobId&&
+  !qaRecoveryAttempted.has(j.jobId)).slice(0,2);
+ await Promise.all(candidates.map(async j=>{
+  qaRecoveryAttempted.add(j.jobId);
+  try{
+   const value=await api('teacher.job.auto-recover-qa',{jobId:j.jobId});
+   if(value?.job)Object.assign(j,value.job);
+   if(value?.autoRecovered)
+    notice='AWS กู้คิว QA แล้ว · สอนเฉพาะฉากที่ค้างต่อเองได้แม้ปิดเว็บ';
+  }catch(e){
+   // Idempotent server-side fencing prevents repeated billable restarts.
+   error='บางงานกู้ QA อัตโนมัติไม่สำเร็จ: '+String(e.message||e);
+  }
+ }));
+}
 async function refresh(silent=false,resetOlder=false){
  if(!root.StoryStudioAccess?.isReady?.()){schedule();return}
  try{
@@ -138,7 +158,8 @@ async function refresh(silent=false,resetOlder=false){
   jobs=Array.isArray(response.jobs)?response.jobs:[];
   if(resetOlder){olderJobs=[];nextJobCursor=null}
   if(!olderJobs.length)nextJobCursor=response.nextCursor||null;
-  if(!silent){error='';render()}
+  await recoverLegacyQA(jobs);
+  render();
  }catch(e){if(!silent){error='อ่านสถานะ AWS ไม่สำเร็จ: '+String(e.message||e);render()}}
  finally{schedule()}
 }
@@ -152,6 +173,7 @@ async function loadOlderJobs(){
    if(!seen.has(job.jobId)){olderJobs.push(job);seen.add(job.jobId)}
   }
   nextJobCursor=response.nextCursor||null;
+  await recoverLegacyQA(olderJobs);
  }catch(e){error='โหลดรายการงานเก่าจาก AWS ไม่สำเร็จ: '+String(e.message||e)}
  finally{loadingOlder=false;render()}
 }
@@ -354,6 +376,8 @@ function jobRow(job){
   row.append(dom('small','ระบบเก็บ Checkpoint แล้ว · จะลอง API อีกครั้งหลัง '+when+
     ' · ปิดเว็บได้','multi-json-muted'));
  }
+ if(job.qaAutoRecoveryAvailable)
+  row.append(dom('small','พบคิว QA เก่าที่ค้าง ระบบกำลังกู้และสอนเฉพาะฉากที่ยังไม่ผ่านให้อัตโนมัติ','multi-json-muted'));
  if(job.error)row.append(dom('small','AWS: '+job.error,'multi-json-error'));
  if(job.lastProviderReason && job.error){
   const cause={
