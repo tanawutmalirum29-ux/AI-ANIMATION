@@ -17,7 +17,11 @@ ROLES = (
 )
 DURATION_ROLES = {"scene-director", "timeline-editor"}
 SUBTITLE_ROLES = {"timeline-editor"}
-TTS_MODELS = {"gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"}
+TTS_MODELS = {
+    "gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts",
+    "gemini-3.1-flash-tts-preview",
+    "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts",
+}
 TTS_VOICES = {"Kore", "Puck", "Aoede", "Charon", "Fenrir", "Leda", "Orus", "Zephyr"}
 
 
@@ -120,23 +124,37 @@ def _speech(body):
         return _error(503, "ไม่พบ AI แม่ที่เลือกสำหรับพากย์")
     if body.get("provider") != "gemini":
         return _error(422, "โมเดลนี้ไม่รองรับเสียงพูดโดยตรง เลือก AI แม่ Gemini TTS หรือพากย์ด้วยระบบ")
-    model = body.get("ttsModel") or "gemini-2.5-flash-preview-tts"
+    model = body.get("ttsModel") or "gemini-3.8-flash-lite-tts"
     voice = body.get("voice") or "Kore"
     text = body.get("text")
     if model not in TTS_MODELS or voice not in TTS_VOICES:
         return _error(400, "โมเดล TTS หรือเสียงที่เลือกไม่รองรับ")
     if not isinstance(text, str) or not 1 <= len(text.strip()) <= 175:
         return _error(400, "บทพากย์ต้องมี 1–175 ตัวอักษรต่อคลิป")
-    endpoint = ("https://generativelanguage.googleapis.com/v1beta/models/"
-                + quote(model, safe="-._") + ":generateContent")
-    payload = {
-        "contents": [{"parts": [{"text": "Read this Thai narration naturally and faithfully, "
-                                          "without adding any words: " + text.strip()}]}],
-        "generationConfig": {
-            "responseModalities": ["AUDIO"],
-            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}},
-        },
-    }
+    interactions = model.startswith("gemini-3.8-") or model.startswith("gemini-3.1-")
+    if interactions:
+        # Gemini 3.8 REST returns WAV bytes in steps[].content[] with type=audio;
+        # output_audio is an SDK convenience property, not a required REST field.
+        endpoint = "https://generativelanguage.googleapis.com/v1beta/interactions"
+        payload = {
+            "model": model,
+            "input": [{"type": "user_input", "content": [
+                {"type": "text", "text": text.strip()}]}],
+            "response_format": {"type": "audio"},
+            "generation_config": {"speech_config": [{"voice": voice}]},
+        }
+    else:
+        # Older Gemini 2.5 TTS uses generateContent and returns inlineData PCM.
+        endpoint = ("https://generativelanguage.googleapis.com/v1beta/models/"
+                    + quote(model, safe="-._") + ":generateContent")
+        payload = {
+            "contents": [{"parts": [{"text": "Read this Thai narration naturally and faithfully, "
+                                              "without adding any words: " + text.strip()}]}],
+            "generationConfig": {
+                "responseModalities": ["AUDIO"],
+                "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}},
+            },
+        }
     # _post_json has a 180 KB response ceiling for normal chat; raw audio needs
     # a separately bounded response (Lambda's response limit still applies).
     import urllib.request
@@ -158,10 +176,22 @@ def _speech(body):
         return _error(502, "Gemini TTS ไม่พร้อม (HTTP " + str(exc.code) + ")")
     except Exception:
         return _error(503, "เชื่อมต่อ Gemini TTS ไม่สำเร็จ")
-    parts = [part for candidate in result.get("candidates", [])
-             for entry in candidate.get("content", {}).get("parts", [])
-             for part in [entry.get("inlineData")] if isinstance(part, dict)]
-    audio = next((x for x in parts if str(x.get("mimeType", "")).startswith("audio/")), None)
+    if interactions:
+        # Raw REST schema: {"steps":[{"type":"model_output","content":[
+        # {"type":"audio","data":"base64..."}]}]}; never treat JSON
+        # reasoning or text as binary audio.
+        parts = [part for step in result.get("steps", [])
+                 if isinstance(step, dict) and step.get("type") == "model_output"
+                 for part in step.get("content", [])
+                 if isinstance(part, dict) and part.get("type") == "audio"]
+        audio = next(({"data": x.get("data", ""),
+                       "mimeType": x.get("mime_type", "audio/wav")}
+                      for x in reversed(parts) if isinstance(x.get("data"), str)), None)
+    else:
+        parts = [part for candidate in result.get("candidates", [])
+                 for entry in candidate.get("content", {}).get("parts", [])
+                 for part in [entry.get("inlineData")] if isinstance(part, dict)]
+        audio = next((x for x in parts if str(x.get("mimeType", "")).startswith("audio/")), None)
     if not audio:
         return _error(502, "AI แม่ไม่ได้ส่งไฟล์เสียงกลับมา")
     try:
