@@ -1,0 +1,47 @@
+name: AI Mother Visual Director and iPad Split QA
+on:
+  pull_request:
+    paths:
+      - 'studio-pro.css'
+      - 'studio-ai-workspace.js'
+      - 'studio-mother-production.js'
+      - 'index.html'
+      - 'autodub/teacher_vision.py'
+      - 'autodub/handler.py'
+      - 'tests/mother-visual-director.test.cjs'
+      - 'tests/test_mother_vision.py'
+      - 'tests/mother-vision-layout-browser.cjs'
+      - '.github/workflows/mother-visual-ipad-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'studio-pro.css'
+      - 'studio-mother-production.js'
+      - 'autodub/teacher_vision.py'
+      - '.github/workflows/mother-visual-ipad-qa.yml'
+permissions:
+  contents: read
+jobs:
+  visual-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static parse and isolated review tests
+        run: |
+          node --check studio-mother-production.js
+          node --check studio-ai-workspace.js
+          python3 -m py_compile autodub/teacher_vision.py autodub/handler.py
+          node --test tests/mother-visual-director.test.cjs tests/mother-production.test.cjs
+          python3 -m unittest discover -s tests -p 'test_mother_vision.py'
+      - name: Install browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install chromium --with-deps
+      - name: Browser iPad landscape regression
+        run: |
+          node tests/mother-vision-layout-browser.cjs
+          node tests/production-browser-smoke.cjs

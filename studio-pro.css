@@ -434,3 +434,26 @@ header#top .sep{width:1px;height:20px;background:var(--pro-edge);margin:0 2px;fl
  body.export-focus #videoDialog .export-scope-choice label,
  body.export-focus #videoDialog .export-pipeline-choice legend{font-size:10px!important}
 }
+
+
+/* AI-assisted landscape workspace: the timeline belongs under the preview.
+ * Give the inspector its own full-height right column (including the former
+ * empty timeline area). Portrait/phone and dedicated AI-only modes retain
+ * their independent, vertically stacked layouts. */
+@media (min-width:821px) and (orientation:landscape){
+ html:not(.ai-only) body:not(.export-focus){
+  grid-template-columns:minmax(360px,1fr) clamp(490px,40vw,710px);
+  grid-template-rows:44px minmax(0,1fr) clamp(238px,33dvh,365px);
+  grid-template-areas:"top top" "pre studio" "tl studio";
+ }
+ html:not(.ai-only) body:not(.export-focus) #studioWorkspace{
+  min-height:0;max-height:none;
+  border-left:1px solid var(--pro-edge);
+ }
+ html:not(.ai-only) body:not(.export-focus) #tl{
+  min-width:0;width:100%;
+  overflow:hidden;
+  border-right:1px solid var(--pro-edge);
+ }
+ html:not(.ai-only) body:not(.export-focus) #studioToolBody{min-width:0}
+}
