@@ -155,10 +155,6 @@ def handle(body, owner):
     provider = body.get("provider")
     if provider not in ("gemini", "openrouter"):
         return _resp(422, {"error": "โมเดลที่เลือกยังไม่รองรับการมองภาพพรีวิวจริง"})
-    from teacher_production import _connection
-    cfg = _connection(body)
-    if not cfg:
-        return _resp(503, {"error": "การเชื่อมต่อ AI แม่ไม่พร้อมใช้งาน"})
     frame = body.get("frame")
     if not isinstance(frame, str) or not frame.startswith("data:image/jpeg;base64,"):
         return _resp(400, {"error": "ต้องส่งเฟรม JPEG จากพรีวิวจริง"})
@@ -181,6 +177,10 @@ def handle(body, owner):
         "notes": str(scene.get("notes") or "")[:150],
         "locks": scene.get("locks") if isinstance(scene.get("locks"), dict) else {},
     }
+    from teacher_production import _connection
+    cfg = _connection(body)
+    if not cfg:
+        return _resp(503, {"error": "การเชื่อมต่อ AI แม่ไม่พร้อมใช้งาน"})
     context = json.dumps(metadata, ensure_ascii=False)[:4800]
     instruction = str(body.get("instruction") or "ปรับองค์ประกอบให้สื่อเรื่องชัดขึ้น")[:450]
     try:
