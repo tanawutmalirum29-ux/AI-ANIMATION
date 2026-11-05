@@ -23,7 +23,7 @@ for(const s of scenes){
  assert.equal(planner.plan({episodes:[{scenes:[s]}]},'assets',assets).ops.length,0,'no duplicate automatic assets in '+s.id);
 }
 assert.ok(scenes.find(s=>s.id==='tpz-s06').customAssets.find(a=>a.eventKind==='school-barricade').motionKeys.length>=3);
-assert.ok(scenes.find(s=>s.id==='tpz-s07').customAssets.find(a=>a.eventKind==='school-window').motionKeys.some(k=>k.opacity===0));
+assert.equal(scenes.find(s=>s.id==='tpz-s07').worldEffects.windowCrackAt,2.1,'crack now appears on fixed hallway window rather than a floating rectangle');
 const blank={episodes:[{scenes:[{id:'new-school',duration:5,voiceover:'',productionEvents:['school-barricade','school-alarm'],productionPlacements:{'school-barricade':{x:25,y:80,scale:.4}},customAssets:[]}]}]};
 const planned=planner.plan(blank,'assets',assets);
 assert.equal(planned.ops.length,1);
