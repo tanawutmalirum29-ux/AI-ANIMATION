@@ -10,6 +10,27 @@
  const TYPES=Object.freeze(['school-front','school-yard','school-hall','school-room','school-stairs','school-landing','school-roof']);
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number.isFinite(+v)?+v:a));
  const num=v=>(Math.round(v*100)/100).toString();
+ // Coordinates are world units (height = 90), shared by drawing and contacts.
+ // Door size stays physical when the video aspect changes.
+ function layout(set,width=50.625){
+  const W=clamp(width,20,400),kind=set?.worldArt;
+  if(!TYPES.includes(kind))return null;
+  return {width:W,kind,floor:78,depth:5,
+   door:['school-room','school-landing','school-roof'].includes(kind)?{x:W*.95-11,y:47.5,w:11,h:30.5,floor:78}:null,
+   stairs:kind==='school-stairs'?{start:81,rise:1.2,tread:W*.04,count:24}:null};
+ }
+ function surfaceAt(set,width,x,ground={}){
+  const geometry=layout(set,width);if(!geometry)return null;
+  if(geometry.stairs){const s=geometry.stairs;return s.start-clamp(Math.floor((x+1e-7)/s.tread),0,s.count)*s.rise;}
+  return geometry.floor+clamp(ground.lane??.6,0,1)*geometry.depth;
+ }
+ function groundPlacement(set,width,actor,place,soles){
+  if(actor.ground?.mode!=='surface'||!layout(set,width)||!soles.length||['jump','sleep','sit','typing'].includes(actor.pose))return null;
+  const contacts=soles.map(p=>{const x=place.x+p.x*place.fc*place.k,y=surfaceAt(set,width,x,actor.ground);return {...p,x,y,root:y-p.y*place.k};});
+  // Touch at least one actual sole point; no sole can penetrate its tread.
+  const y=Math.min(...contacts.map(p=>p.root));
+  return {y,contacts:contacts.map(p=>({...p,clearance:p.root-y})),support:contacts.filter(p=>p.root-y<.06)};
+ }
  function doorState(scene,local){
   const keys=(scene?.schoolDoorKeys||[]).filter(k=>Number.isFinite(k?.t)&&Number.isFinite(k?.open)).slice().sort((a,b)=>a.t-b.t);
   if(!keys.length)return 0;
@@ -17,9 +38,9 @@
   for(let i=1;i<keys.length;i++)if(local<=keys[i].t){const u=clamp((local-keys[i-1].t)/Math.max(.001,keys[i].t-keys[i-1].t),0,1);return clamp(keys[i-1].open+(keys[i].open-keys[i-1].open)*u,0,1);}
   return clamp(keys.at(-1).open,0,1);
  }
- function doorHandle(set,scene,local){
-  const roof=set?.worldArt==='school-roof',x=roof?72:77,y=roof?34:38,w=roof?19:17,h=roof?45:41;
-  return {x:x+w*(1-doorState(scene,local)*.79)-1.65,y:(y+h*.59)/.9};
+ function doorHandle(set,scene,local,width=50.625){
+  const d=layout(set,width)?.door;if(!d)return null;
+  return {x:(d.x+d.w*(1-doorState(scene,local)*.79)-1.1)*100/width,y:(d.y+d.h*.59)/.9};
  }
  function render(set,layer,width,local=0,scene={}){
   if(layer!=='back'||!TYPES.includes(set?.worldArt))return '';
@@ -29,13 +50,15 @@
   const L=(x,y,u,v,c,t=.7)=>'<line x1="'+X(x)+'" y1="'+num(y)+'" x2="'+X(u)+'" y2="'+num(v)+'" stroke="'+c+'" stroke-width="'+num(t)+'" stroke-linecap="round"/>';
   const P=(pts,c)=>'<polygon points="'+pts.map(p=>X(p[0])+','+num(p[1])).join(' ')+'" fill="'+c+'"/>';
   const E=(x,y,rx,ry,c)=>'<ellipse cx="'+X(x)+'" cy="'+num(y)+'" rx="'+X(rx)+'" ry="'+num(ry)+'" fill="'+c+'"/>';
-  const doorOpen=()=>doorState(scene,local);
-  function door(x,y,w,h,open){
+  const geometry=layout(set,W),doorOpen=()=>doorState(scene,local);
+  function door(d,open){
+   const {x,y,w,h}=d,p=v=>v*100/W;
    const shut=1-open*.79;
-   return R(x-1,y-2,w+2,h+3,'#d1c4a5',.45)+R(x,y,w,h,'#1c3037')+
-     R(x+.7,y+.9,w*shut-1.1,h-1.7,'#46655c',.3)+
-     R(x+1.8,y+3.5,w*shut-3,h*.35,'#66867a',.3,.8)+
-     (shut>.31?E(x+w*shut-1.65,y+h*.59,.55,.63,'#e2c182'):'');
+   return '<g data-school-door="true" data-door-floor="'+d.floor+'" data-door-height="'+h+'">'+R(p(x-.65),y-.8,p(w+1.3),h+.8,'#d1c4a5',.4)+R(p(x),y,p(w),h,'#1c3037')+
+     R(p(x+.3),y+.4,p(w*shut-.6),h-.7,'#46655c',.3)+
+     R(p(x+.9),y+2,p(Math.max(.15,w*shut-1.8)),h*.33,'#66867a',.3,.8)+
+     (shut>.31?E(p(x+w*shut-1.1),y+h*.59,p(.32),.42,'#e2c182'):'')+
+     R(p(x-.8),d.floor,p(w+1.6),.35,'#a2aaa0')+'</g>';
   }
   const kind=set.worldArt;
   const id='school-depth-'+kind;
@@ -90,24 +113,24 @@
    for(const x of [12,54]){
     out+=R(x,68,24,2.7,'#a38a6a',.5)+R(x+2,71,1.7,8,'#6b6057')+
          R(x+20,71,1.7,8,'#6b6057');}
-   out+=door(77,38,17,41,doorOpen());
+   out+=door(geometry.door,doorOpen());
    out+=R(8,54,18,6,'#d5cdab',.4)+L(10,56,23,56,'#879583',.35)+L(10,58,20,58,'#879583',.35);
    for(let x of [12,34,55])out+=L(x,79,x-12,90,'#5f6e65',.25);
   }
   if(kind==='school-stairs'){
    out+=R(0,0,100,90,'#253b48')+R(0,16,100,65,'#3d5359')+R(7,23,27,24,'#9baeb0')+R(9,25,23,20,'#647f8e')+
         L(20.5,25,20.5,45,'#c4cdbd',.7)+P([[0,81],[96,52.2],[100,52.2],[100,90],[0,90]],'#697d7e');
-   for(let i=0;i<24;i++){
-    const y=81-i*1.2,x=i*4;
+   for(let i=0;i<geometry.stairs.count;i++){
+    const y=geometry.stairs.start-i*geometry.stairs.rise,x=i*4;
     out+=L(x,y,x+4,y,'#a8b4a8',.55)+L(x+4,y,x+4,y-1.2,'#3c5360',.5);
    }
    for(let x of [4,24,44,64,84])out+=L(x,80-x*.3,x,67-x*.3,'#8eaaa6',.7);
    out+=L(0,67,96,38.2,'#c9c7ad',1.1)+R(75,20,23,32,'#1c303e')+R(72,17,28,3,'#697e7d');
   }
   if(kind==='school-landing'){
-   out+=R(0,0,100,18,'#556e76')+R(0,18,100,62,'#6d8788')+R(0,80,100,10,'#526b70')+
+   out+=R(0,0,100,18,'#556e76')+R(0,18,100,60,'#6d8788')+R(0,78,100,12,'#526b70')+
         R(10,25,26,29,'#c7cfb9')+R(12,27,22,25,'#7b99a1')+L(23,27,23,52,'#ccd5c7',.6)+
-        R(77,30,17,4,'#6c8f77',.3)+L(82,32,89,32,'#e2dfc2',.5)+door(77,38,17,41,doorOpen());
+        R(77,40,17,3,'#6c8f77',.3)+L(82,41.5,89,41.5,'#e2dfc2',.5)+door(geometry.door,doorOpen());
    for(let x of [0,25,50,75])out+=L(x,81,x-15,90,'#879c98',.3);
   }
   if(kind==='school-roof'){
@@ -119,8 +142,9 @@
    out+=R(0,64,100,7,'#a2ada6')+R(0,70,100,20,'#687975')+
         R(0,64,100,1.6,'#c4c8b7');
    for(let x of [0,23,46,69,92])out+=L(x,75,x+8,90,'#7f8f87',.4);
-   out+=door(72,34,19,45,doorOpen())+
-        R(0,78,100,2,'#4f6666');
+   const d=geometry.door;
+   out+=R((d.x-2)*100/W,d.y-4,(d.w+4)*100/W,d.h+4,'#778b87')+
+        R((d.x-2.5)*100/W,d.y-4.8,(d.w+5)*100/W,1.2,'#a6b3a7')+door(d,doorOpen());
   }
   out+=R(0,0,100,90,'url(#'+id+')');
   // Story event is drawn as a crack on the existing corridor window, not a floating square.
@@ -130,5 +154,5 @@
   }
   return out;
  }
- return Object.freeze({TYPES,render,doorState,doorHandle});
+ return Object.freeze({TYPES,render,doorState,doorHandle,layout,surfaceAt,groundPlacement});
 });

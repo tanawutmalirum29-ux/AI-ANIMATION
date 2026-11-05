@@ -63,7 +63,7 @@ assert.ok(timedActors.every(a=>a.motionKeys.every((k,i,q)=>i===0||k.t>=q[i-1].t)
 const barricade=scenes.find(s=>s.id==='tpz-s06').customAssets.find(a=>a.eventKind==='school-barricade');
 assert.equal(barricade.front,false,'barricade must sit behind actor silhouettes');
 assert.ok(barricade.scale<=.45,'avoid oversized desk covering actors');
-assert.ok(barricade.motionKeys.at(-1).x===79,'barricade stops in front of closed door');
+assert.ok(barricade.motionKeys.at(-1).x===82,'barricade stops in front of closed door');
 const validPoses=new Set(['phone','stand','walk','run','sit','point','wave','think','talk','cheer','jump','typing','carry','openDoor','handshake','sad','surprised']);
 const validFaces=new Set(['neutral','happy','sad','surprised','angry','think','sleep','talk']);
 assert.ok(scenes.every(s=>s.actors.every(a=>validPoses.has(a.pose)&&validFaces.has(a.face))),'supported rigs and expressions');

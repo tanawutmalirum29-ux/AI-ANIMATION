@@ -12,13 +12,22 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,decodeUR
   await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor');
   await page.evaluate(data=>{S=normalize(data);fix();selEp=0;sel=7;T=starts()[7]+3;render();switchStudioTool('motion');},fixture);
   const report=await page.evaluate(()=>{
-   const results={moving:[],grips:[],contacts:[],retimed:[],sparse:false};
+   const results={moving:[],grips:[],contacts:[],retimed:[],groundSamples:0,doors:[],sparse:false};
    for(const aspect of ['9:16','16:9']){
     S.project.aspect=aspect;const W=aspect==='9:16'?50.625:160;
     for(const s of ep().scenes){
      if(StoryMotion.audit(s).length)throw Error('Unresolved motion warnings '+s.id);
      for(const actor of s.actors){
       const at=t=>actorAtTime(actor,s,t,s.duration),a=at(s.duration-.8),b=at(s.duration-.05),ch=S.characters.find(c=>c.id===actor.char);
+      for(let t=.1;t<s.duration;t+=.25){
+       const frame=at(t);if(t<(actor.appearAt||0))continue;
+       if(!frame._ground)throw Error('Missing ground binding '+s.id+' '+actor.char);
+       const place=actorPlacement(ch,frame,W),points=d6SolePoints(ch,frame,frame._phaseTime),set=locSet(S,s.location);
+       const clearance=points.map(p=>StorySchoolWorld.surfaceAt(set,W,place.x+p.x*place.fc*place.k,frame.ground)-(frame.y*.9+p.y*place.k));
+       if(Math.min(...clearance)<-.001||Math.min(...clearance)>.001)throw Error('Soles float or penetrate '+s.id+' '+actor.char+' '+t);
+       results.groundSamples++;
+       if(frame.cinematicReach){const hand=rigKeys(ch,frame,frame._phaseTime)[4];if(Math.hypot(hand[0]-frame.cinematicReach.x,hand[1]-frame.cinematicReach.y)>.15)throw Error('Unreachable door or desk '+s.id);}
+      }
       if(!actor.intentionalHold&&actor.gait==='distance'){
        if(Math.hypot(a.x-b.x,a.y-b.y)<.1)throw Error('Stops before cut '+s.id+' '+actor.char);
        if(!['run','walk'].includes(b.pose))throw Error('Unexpected standing pose '+s.id);
@@ -26,7 +35,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,decodeUR
        results.moving.push(aspect+' '+s.id+' '+actor.char);
       }
       if(actor.handTarget){
-       const t=1.4,frame=at(t),points=rigKeys(ch,frame,frame._phaseTime),target=frame.cinematicReach;
+       const t=Math.max(1.4,(actor.handTarget.start||0)+.2),frame=at(t),points=rigKeys(ch,frame,frame._phaseTime),target=frame.cinematicReach;
        const error=target?Math.hypot(points[4][0]-target.x,points[4][1]-target.y):Infinity;
        if(error>.12)throw Error('Hand misses contact '+aspect+' '+s.id+' '+actor.char+' by '+error);
        results.contacts.push({aspect,scene:s.id,actor:actor.char,error});
@@ -40,6 +49,8 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,decodeUR
      const longer={...s,duration:s.duration*1.7};
      for(const actor of s.actors){const a=actorAtTime(actor,s,s.duration*.6,s.duration),b=actorAtTime(actor,longer,longer.duration*.6,longer.duration);for(const field of ['x','y','_phaseTime'])if(Math.abs(a[field]-b[field])>.0001)throw Error('Retiming mismatch '+s.id+' '+field);}
      const set=locSet(S,s.location);if(StorySchoolWorld.render(set,'back',W,s.duration*.6,s)!==StorySchoolWorld.render(set,'back',W,longer.duration*.6,longer))throw Error('Door retiming mismatch');
+     const door=StorySchoolWorld.layout(set,W).door;
+     if(door){for(const actor of s.actors){const ch=S.characters.find(c=>c.id===actor.char),frame=actorAtTime({...actor,pose:'stand',motionKeys:[],handTarget:null},s,0,s.duration),keys=d6Keys(ch,frame,0),place=actorPlacement(ch,frame,W),height=(-keys[0][1]+8.7)*place.k,ratio=door.h/height;if(ratio<1.05||ratio>1.5)throw Error('Wrong door/person scale '+s.id+' '+ratio);results.doors.push({aspect,scene:s.id,actor:actor.char,ratio});}}
      if(StoryAssetCore.sceneMarkup(s,'back',W,s.duration*.6)!==StoryAssetCore.sceneMarkup(longer,'back',W,longer.duration*.6))throw Error('Asset retiming mismatch');
      results.retimed.push(aspect+' '+s.id);
     }
@@ -48,7 +59,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,decodeUR
    const keyed={...source,motionKeys:[{t:0,x:10,y:88},{t:2,x:50},{t:4,bodyYaw:40}]};if(actorAtTime(keyed,{duration:5},3,5).x!==50)throw Error('Sparse key resets x');results.sparse=true;
    S.project.aspect='9:16';return results;
   });
-  fs.writeFileSync(path.join(out,'motion-report.json'),JSON.stringify(report,null,2));console.log('PASS',report.moving.length,'moving paths;',report.grips.length,'held props;',report.contacts.length,'hand contacts;',report.retimed.length,'retimed scenes');
+  fs.writeFileSync(path.join(out,'motion-report.json'),JSON.stringify(report,null,2));console.log('PASS',report.moving.length,'moving paths;',report.grips.length,'held props;',report.contacts.length,'hand contacts;',report.retimed.length,'retimed scenes;',report.groundSamples,'sole contacts;',report.doors.length,'door/person proportions');
   for(const [w,h]of [[320,740],[375,600],[390,844],[568,320],[768,1024],[1024,1366],[1440,1000],[1920,1080]]){await page.setViewportSize({width:w,height:h});await page.evaluate(()=>{fit();StoryMotionStudio.open();});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'responsive at '+w);const layout=await page.evaluate(()=>{const nav=document.querySelector('#studioToolNav'),groups=document.querySelector('.ux-groups'),panel=document.querySelector('#studioToolBody'),box=nav.getBoundingClientRect();return {together:nav.parentElement===groups.parentElement&&nav.parentElement.id==='studioWorkspace',overlap:box.bottom>panel.getBoundingClientRect().top+1,wrapped:[...nav.querySelectorAll('button[data-tool]:not([hidden])')].some(b=>b.getBoundingClientRect().bottom>box.bottom+1),usable:panel.getBoundingClientRect().height>70};});assert.ok(layout.together&&!layout.overlap&&!layout.wrapped&&layout.usable,'tool layout '+w+'x'+h+' '+JSON.stringify(layout));await page.screenshot({path:path.join(out,'ui-'+w+'.png')});}
   await page.setViewportSize({width:1440,height:1000});
   const old=JSON.parse(JSON.stringify(fixture));for(const s of old.episodes[0].scenes)delete s.choreography;old.episodes[0].scenes[0].audioClips=[{id:'keep',data:'data:audio/wav;base64,AA==',kind:'voice',duration:2,at:0}];
@@ -57,7 +68,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,decodeUR
   const compareUndo=async()=>{const after=await page.evaluate(()=>JSON.stringify(S));if(after!==before){fs.writeFileSync(path.join(out,'undo-before.json'),before);fs.writeFileSync(path.join(out,'undo-after.json'),after);throw Error('Undo mismatch; snapshots saved');}};
   await page.getByText('แก้งานซอมบี้โรงเรียนเดิม / เปิดบทปรับปรุง',{exact:true}).click();await page.getByRole('button',{name:'ตรวจแผนปรับภาพงานเดิม',exact:true}).click();
   const apply=page.getByRole('button',{name:'ใช้การปรับภาพที่ตรวจแล้ว',exact:true});await apply.waitFor({state:'visible'});assert.equal(await page.evaluate(()=>JSON.stringify(S)),before,'review must not mutate');await apply.click();
-  assert.equal(await page.evaluate(()=>sc().audioClips[0].data),'data:audio/wav;base64,AA==');assert.equal(await page.evaluate(()=>sc().choreography.revision),3);
+  assert.equal(await page.evaluate(()=>sc().audioClips[0].data),'data:audio/wav;base64,AA==');assert.equal(await page.evaluate(()=>sc().choreography.revision),4);
   await page.evaluate(()=>undo());await compareUndo();
   const episodes=await page.evaluate(()=>S.episodes.length);await page.getByRole('button',{name:'เพิ่มตอนบทปรับปรุง',exact:true}).click();assert.equal(await page.evaluate(()=>S.episodes.length),episodes+1);assert.ok(await page.evaluate(()=>sc().actors.every(a=>S.characters.some(c=>c.id===a.char))));await page.evaluate(()=>undo());await compareUndo();
   console.log('PASS repair preview, audio preservation, append, Undo and 320–1920px layouts');
@@ -76,7 +87,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,decodeUR
     if(!LAST_VIDEO||!EXPORT_JOB_OUTCOME)throw Error(document.querySelector('#videoStatus').textContent);
     const bytes=new Uint8Array(await LAST_VIDEO.blob.arrayBuffer());let encoded='';for(let i=0;i<bytes.length;i+=16384)encoded+=String.fromCharCode(...bytes.subarray(i,i+16384));return {data:btoa(encoded),name:LAST_VIDEO.filename};
    });
-   const source=path.join(out,'school.browser.'+result.name.split('.').pop()),video=path.join(out,narrated?'school-revision-3-narrated.mp4':'school-revision-3-silent.mp4');fs.writeFileSync(source,Buffer.from(result.data,'base64'));
+   const source=path.join(out,'school.browser.'+result.name.split('.').pop()),video=path.join(out,narrated?'school-revision-4-narrated.mp4':'school-revision-4-silent.mp4');fs.writeFileSync(source,Buffer.from(result.data,'base64'));
    encodeMP4(source,video,{expectedFps:30,expectedDuration:62,expectedAudio:!!narrated,timeout:120000});const qa=QA.inspect(video,{expectedFps:30,expectedAspect:9/16,expectedDuration:62,expectedAudio:!!narrated,scenes:fixture.episodes[0].scenes});assert.deepEqual(qa.issues.filter(i=>i.severity==='error'),[]);fs.writeFileSync(video+'.qa.json',JSON.stringify(qa,null,2));console.log('PASS actual browser export',qa.width,qa.height,qa.fps,qa.duration);
   }
   assert.deepEqual(errors,[]);console.log('PASS school browser regression');

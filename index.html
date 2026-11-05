@@ -1026,14 +1026,21 @@ function actorAtTime(source,scn,local,dur){
   const [ar,br]=String(S.project.aspect||'16:9').split(':').map(Number),W=90*ar/br*nm(scn.camera?.world,1);
   base=StoryMotion.gait(source,base,clock.time,W);
   base=StoryMotion.keyPose(source,base,clock.time);
+  base=smartActingFrame(source,base,local,dur);
+  const set=locSet(S,scn.location),ch=S.characters.find(c=>c.id===source.char);
   if(Number.isFinite(source.handTarget?.referenceWidth)){
-   const refWidth=source.handTarget.referenceWidth,contactTime=clampN(clock.time,source.handTarget.start||0,source.handTarget.end??clock.duration),h=source.handTarget.door&&window.StorySchoolWorld?.doorHandle(locSet(S,scn.location),scn,contactTime);
-   const contact={...source,handTarget:{...source.handTarget,...(h||{})}},ref=StoryMotion.target(scn,contact,contactTime,refWidth,window.StoryAssetCore?.assetFrame),actual=StoryMotion.target(scn,contact,contactTime,W,window.StoryAssetCore?.assetFrame);
+   const refWidth=source.handTarget.referenceWidth,contactTime=clampN(clock.time,source.handTarget.start||0,source.handTarget.end??clock.duration);
+   const contact=w=>({...source,handTarget:{...source.handTarget,...(source.handTarget.door&&window.StorySchoolWorld?.doorHandle(set,scn,contactTime,w)||{})}}),ref=StoryMotion.target(scn,contact(refWidth),contactTime,refWidth,window.StoryAssetCore?.assetFrame),actual=StoryMotion.target(scn,contact(W),contactTime,W,window.StoryAssetCore?.assetFrame);
    if(ref&&actual&&refWidth>0)base.x=(actual.x+base.x*refWidth/100-ref.x)*100/W;
   }
-  const handle=source.handTarget?.door&&window.StorySchoolWorld?.doorHandle(locSet(S,scn.location),scn,clock.time);
-  const target=StoryMotion.target(scn,handle?{...source,handTarget:{...source.handTarget,...handle}}:source,clock.time,W,window.StoryAssetCore?.assetFrame),ch=S.characters.find(c=>c.id===source.char);
+  if(ch&&base.ground?.mode==='surface'&&ch.rig?.style!=='creature'){
+   const place=actorPlacement(ch,base,W),ground=window.StorySchoolWorld?.groundPlacement(set,W,base,place,d6SolePoints(ch,base,base._phaseTime||0));
+   if(ground){base.y=ground.y/.9;base._ground=ground;}
+  }
+  const handle=source.handTarget?.door&&window.StorySchoolWorld?.doorHandle(set,scn,clock.time,W);
+  const target=StoryMotion.target(scn,handle?{...source,handTarget:{...source.handTarget,...handle}}:source,clock.time,W,window.StoryAssetCore?.assetFrame);
   if(target&&ch&&window.StoryCinematic){const place=actorPlacement(ch,base,W);base.cinematicReach={x:(target.x-place.x)/(place.fc*place.k),y:(target.y-base.y*.9)/place.k,weight:1};}
+  return base;
  }
  return smartActingFrame(source,base,local,dur);
 }
@@ -1041,6 +1048,7 @@ function actorPlacement(ch,a,W){
  const fc=a.facing==='left'?-1:1,portraitFactor=clampN(Math.pow(W/160,.12),.83,1);
  const rg=isObj(ch&&ch.rig)?ch.rig:{};
  let base=Math.max(.1,nm(a.scale,1)*nm(rg.scale,1))*portraitFactor*clampN(.6+nm(a.y,90)/250,.72,1.05);
+ if(a.ground?.mode==='surface')base=Math.max(.1,nm(a.scale,1)*nm(rg.scale,1))*.86*(.94+.04*clampN(nm(a.ground.lane,.6),0,1));
  if(rg.style==='creature'){
   const sp=CREATURE_SPECIES.includes(rg.species)?rg.species:'cat';
   const localWidth=(sp==='bird'||sp==='duck'||sp==='chicken'||sp==='owl')?18:28;
@@ -1063,7 +1071,8 @@ const reveal=Number.isFinite(a.appearAt)?clampN((motionTime-a.appearAt)/.18,0,1)
 const {fc,k,x}=actorPlacement(ch,a,W);
 const clipId='actor-exit-'+String(scn.id+'-'+actorIndex).replace(/[^a-zA-Z0-9_-]/g,'_');
 const clip=Number.isFinite(a.clipX)?`<defs><clipPath id="${clipId}"><rect width="${f2(clampN(a.clipX,0,100)*W/100)}" height="90"/></clipPath></defs><g clip-path="url(#${clipId})">`:"";
-o+=clip+`<g opacity="${f2(reveal)}" transform="translate(${f2(x)} ${f2(a.y/100*90)}) scale(${f2(fc*k)} ${f2(k)})">${d6Wardrobe(ch,a,a._phaseTime||0)}${typeof window.STUDIO_INTERACTION_HELD_SVG==='function'?window.STUDIO_INTERACTION_HELD_SVG(ch,a,scn,loc):''}</g>`+(clip?'</g>':'')}
+const shadow=a._ground?a._ground.support.filter((p,i,all)=>all.findIndex(q=>q.foot===p.foot)===i).map(p=>`<ellipse data-ground-shadow="${actorIndex}" cx="${f2(p.x)}" cy="${f2(p.y)}" rx="${f2(k*2.3)}" ry=".23" fill="#000" opacity=".2"/>`).join(''):'';
+o+=clip+shadow+`<g data-actor="${String(ch.id).replace(/[^a-zA-Z0-9_-]/g,'_')}" opacity="${f2(reveal)}" transform="translate(${f2(x)} ${f2(a.y/100*90)}) scale(${f2(fc*k)} ${f2(k)})">${d6Wardrobe(ch,a,a._phaseTime||0,!!a._ground)}${typeof window.STUDIO_INTERACTION_HELD_SVG==='function'?window.STUDIO_INTERACTION_HELD_SVG(ch,a,scn,loc):''}</g>`+(clip?'</g>':'')}
 return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 90" preserveAspectRatio="xMidYMid meet">${o}</svg>`}
 const rigPreview=c=>d6Preview(c,'threeQuarter');
 function addActorTo(s,a){const A=s.actors||(s.actors=[]);A.push(a);if(a.char&&!(s.characters||[]).includes(a.char))s.characters=[...(s.characters||[]),a.char]}
@@ -1078,6 +1087,10 @@ const D6_VIEW_YAW={front:0,threeQuarter:45,side:90,backThreeQuarter:135,back:180
 const d6Lerp=(p,q,t)=>p+(q-p)*t;
 function d6BodyYaw(a){const standard=D6_VIEW_YAW[a.view]??90;const base=nm(a.bodyYaw,standard);return clampN(d6Lerp(base,nm(a.toBodyYaw,base),clampN(nm(a._pr,0),0,1)),0,180)}
 function d6HeadYaw(a){const start=nm(a.headYaw,0);return clampN(d6Lerp(start,nm(a.toHeadYaw,start),clampN(nm(a._pr,0),0,1)),-80,80)}
+function d6SolePoints(ch,a,loc){
+ const keys=d6Keys(ch,a,loc),angles=rigAngles(a,loc),len=2.1+2.9*Math.abs(Math.sin(d6BodyYaw(a)*RAD));
+ return [10,13].flatMap(foot=>{const r=angles[foot===10?'ankleR':'ankleL']*.8*RAD,c=Math.cos(r),s=Math.sin(r),k=keys[foot];return [[-1.9,1.875],[len-.2,1.875],[len+.5,.975]].map(([x,y])=>({foot,x:k[0]+x*c-y*s,y:k[1]+x*s+y*c}));});
+}
 function d6Keys(ch,a,loc){
  const yaw=d6BodyYaw(a),f=frontRigKeys(ch,a,loc),s=sideRigKeys(ch,a,loc);
  const side=Math.abs(Math.sin(yaw*RAD)),back=yaw>90;

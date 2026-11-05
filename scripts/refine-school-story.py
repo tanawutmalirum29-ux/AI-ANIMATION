@@ -11,7 +11,8 @@ barricade = copy.deepcopy(next(x for s in scenes for x in s['customAssets'] if x
 
 def actor(char, x, y=89, pose='stand', facing='right', view='threeQuarter', **extra):
     return {**dict(char=char, x=x, y=y, pose=pose, facing=facing, view=view,
-                   face='surprised', scale=.82, smartActing=False, allowCrop=True, poseTransitions=True), **extra}
+                   face='surprised', scale=.82, smartActing=False, allowCrop=True, poseTransitions=True,
+                   ground=dict(mode='surface',lane=.6)), **extra}
 
 def key(t, x, y=89, pose='run', **extra):
     return dict(t=t, x=x, y=y, pose=pose, easing='linear', **extra)
@@ -57,13 +58,13 @@ for i, s in enumerate(scenes):
     s.update(duration=d, location=locations[i], actors=[], props=[], customAssets=[],
              productionEvents=[], productionPlacements={}, productionMotionOverrides={},
              interactions=[], interactionInitialHold=[], atmosphere='none',
-             choreography=dict(mode='fit-scene', duration=d, revision=3),
+             choreography=dict(mode='fit-scene', duration=d, revision=4),
              voiceover=lines[i], subtitle=[],
              transition=dict(type='cut', duration=0),
              camera=dict(type='static', world=1, **{'from':1.025, 'to':1.025}),
              lighting=dict(exposure=1.02, glow=.03, vignette=.13, focusX=50, focusY=40, flicker=0),
              light={'color':'#263b4d', 'opacity':.08},
-             notes='School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.')
+             notes='School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.')
     s.pop('schoolDoorKeys', None)
     s.pop('worldEffects', None)
     speaker=s['voiceDirection']['voiceProfileId']
@@ -86,26 +87,28 @@ s=scenes[3]
 s['actors']=[travel('mind',[(0,50,90),(4,2,90)],facing='left',allowCrop=True),travel('nont',[(0,94,91),(4,43,91)],facing='left',allowCrop=True)]
 
 s=scenes[4]
-s['actors']=[actor('teacher',69,89,'openDoor',view='side',intentionalHold=True,handTarget=dict(door=True,x=92.3,y=69.1,start=0,end=4.2)),
-             travel('nont',[(0,94,91),(.2,94,91),(2.8,28,91),(5,28,91)],facing='left',allowCrop=True,intentionalHold=True),
-             travel('mind',[(0,108,86),(1,108,86),(3.4,44,86),(5,44,86)],facing='left',allowCrop=True,intentionalHold=True)]
-for a in s['actors'][1:]:a['motionKeys'][-2]['pose']='stand';a['motionKeys'][-1]['pose']='stand'
-s['actors'][0]['motionKeys']=[key(0,69,89,'openDoor'),key(2.4,69,89,'walk'),key(4.1,80.4,89,'openDoor'),key(5,80.4,89,'openDoor')]
-s['actors'][0]['gait']='distance'
-s['schoolDoorKeys']=[dict(t=0,open=.85),dict(t=2.4,open=.85),dict(t=4.1,open=0),dict(t=5,open=0)]
+s['actors']=[actor('teacher',10,89,'stand',view='side',intentionalHold=True,ground=dict(mode='surface',lane=.2)),
+             travel('mind',[(0,94,90),(1.7,28,90),(5,28,90)],facing='left',intentionalHold=True),
+             travel('nont',[(0,108,91),(.45,108,91),(1.8,66,91),(3,80.6,91),(3.15,80.6,91),(4.85,46,91),(5,46,91)],facing='left',intentionalHold=True,handTarget=dict(door=True,start=1.8,end=3.05),ground=dict(mode='surface',lane=.8))]
+s['actors'][1]['motionKeys'][1]['pose']='stand';s['actors'][1]['motionKeys'][2]['pose']='stand'
+for k in s['actors'][2]['motionKeys']:
+    if 1.8 <= k['t'] <= 3: k.update(pose='openDoor',facing='right')
+    elif 3.15 <= k['t'] < 4.85: k.update(pose='walk',facing='left')
+    elif k['t'] >= 4.85: k.update(pose='stand',facing='left')
+s['schoolDoorKeys']=[dict(t=0,open=.85),dict(t=1.8,open=.85),dict(t=3,open=0),dict(t=5,open=0)]
 
 s=scenes[5]
 barricade['asset']['shapes'][0].update(y=8,h=17)
 barricade['asset']['shapes'][1].update(y=25,h=69)
 barricade['asset']['shapes'][2].update(y=25,h=69)
 barricade['asset']['shapes'][3].update(y=0,h=8)
-barricade.update(x=45,y=88,scale=.38,front=False,motionKeys=[dict(t=0,x=45,y=88),dict(t=4.3,x=79,y=88),dict(t=5,x=79,y=88)])
+barricade.update(x=66,y=90,scale=.32,front=False,motionKeys=[dict(t=0,x=66,y=90),dict(t=4.3,x=82,y=90),dict(t=5,x=82,y=90)])
 s['customAssets']=[barricade];s['productionEvents']=['school-barricade']
-s['productionPlacements']={'school-barricade':dict(x=45,y=88,scale=.38,front=False)}
-s['actors']=[travel('nont',[(0,27,90),(4.3,61,90),(5,61,90)],pose='walk',intentionalHold=True,handTarget=dict(asset='school-barricade',anchor=dict(x=9,y=9))),
-             travel('mind',[(0,47,87),(4.3,81,87),(5,81,87)],pose='walk',intentionalHold=True,handTarget=dict(asset='school-barricade',anchor=dict(x=86,y=9))),
-             actor('teacher',19,87,'point',intentionalHold=True)]
-for a in s['actors'][:2]:a['motionKeys'][-2]['pose']='carry';a['motionKeys'][-1]['pose']='carry'
+s['productionPlacements']={'school-barricade':dict(x=66,y=90,scale=.32,front=False)}
+s['actors']=[travel('nont',[(0,46,90),(4.3,62,90),(5,62,90)],pose='walk',intentionalHold=True,handTarget=dict(asset='school-barricade',anchor=dict(x=9,y=9)),ground=dict(mode='surface',lane=.8)),
+             actor('mind',28,87,'surprised',intentionalHold=True),
+             actor('teacher',10,87,'stand',intentionalHold=True,ground=dict(mode='surface',lane=.2))]
+s['actors'][0]['motionKeys'][-2]['pose']='carry';s['actors'][0]['motionKeys'][-1]['pose']='carry'
 s['schoolDoorKeys']=[dict(t=0,open=0),dict(t=5,open=0)]
 
 s=scenes[6]
@@ -124,22 +127,24 @@ s['lighting'].update(exposure=.9,vignette=.2)
 s['light']=dict(color='#101c2f',opacity=.2)
 
 s=scenes[8]
-s['actors']=[actor('nont',80,89,'openDoor',view='side',intentionalHold=True,handTarget=dict(door=True,x=92.3,y=69.1)),
-             travel('teacher',[(0,36,90),(2.3,52,90),(5,52,90)],pose='walk',intentionalHold=True,override=dict(shoulderL=-65,elbowL=-38)),
-             actor('mind',20,89,'surprised',intentionalHold=True)]
+s['actors']=[actor('nont',80,89,'openDoor',view='side',intentionalHold=True,handTarget=dict(door=True),ground=dict(mode='surface',lane=.8)),
+             travel('teacher',[(0,36,90),(2.3,52,90),(5,52,90)],pose='walk',intentionalHold=True,override=dict(shoulderL=-65,elbowL=-38),ground=dict(mode='surface',lane=.1)),
+             actor('mind',26,89,'surprised',intentionalHold=True)]
 s['actors'][1]['motionKeys'][1]['pose']='stand';s['actors'][1]['motionKeys'][2]['pose']='stand'
 held(s,'teacher','flashlight','left',light=dict(intensity=.55,range=40,cone=20))
 s['schoolDoorKeys']=[dict(t=0,open=0),dict(t=5,open=0)]
 
 s=scenes[9]
-s['actors']=[actor('teacher',80,89,'openDoor',view='side',intentionalHold=True,handTarget=dict(door=True,x=92.3,y=69.1,start=0,end=2.7),override=dict(shoulderL=-65,elbowL=-38)),
-             travel('nont',[(0,30,91),(2.6,30,91),(5,111,91)],allowCrop=True,clipX=94),
-             travel('mind',[(0,14,87),(3,14,87),(5,93,87)],allowCrop=True,clipX=94)]
-for a in s['actors'][1:]:a['motionKeys'][0]['pose']='stand'
-s['actors'][0]['motionKeys']=[key(0,80,89,'openDoor'),key(2.8,80,89,'stand'),key(5,80,89,'stand')]
-held(s,'teacher','key',appearAt=.3)
+s['actors']=[travel('teacher',[(0,52,89),(.8,52,89),(1.8,80,89),(3.1,80,89),(3.7,71,89),(5,71,89)],pose='walk',intentionalHold=True,handTarget=dict(door=True,start=1.8,end=3.1),override=dict(shoulderL=-65,elbowL=-38),ground=dict(mode='surface',lane=.1)),
+             travel('nont',[(0,80,91),(.9,39,91),(3.3,39,91),(5,111,91)],allowCrop=True,clipX=95,ground=dict(mode='surface',lane=.8)),
+             travel('mind',[(0,26,87),(3.5,26,87),(5,93,87)],allowCrop=True,clipX=95)]
+s['actors'][0]['motionKeys'][0]['pose']='stand'
+s['actors'][0]['motionKeys'][2]['pose']='openDoor';s['actors'][0]['motionKeys'][3]['pose']='walk';s['actors'][0]['motionKeys'][4]['pose']='stand';s['actors'][0]['motionKeys'][5]['pose']='stand'
+s['actors'][1]['motionKeys'][0].update(pose='walk',facing='left');s['actors'][1]['motionKeys'][1].update(pose='stand',facing='right')
+s['actors'][2]['motionKeys'][0]['pose']='stand'
+held(s,'teacher','key',appearAt=1.8)
 held(s,'teacher','flashlight','left',light=dict(intensity=.45,range=40,cone=20))
-s['schoolDoorKeys']=[dict(t=0,open=0),dict(t=2.2,open=0),dict(t=3.3,open=.9),dict(t=5,open=.9)]
+s['schoolDoorKeys']=[dict(t=0,open=0),dict(t=2.5,open=0),dict(t=3.4,open=.9),dict(t=5,open=.9)]
 
 s=scenes[10]
 s['actors']=[actor('nont',24,90,'wave',intentionalHold=True),actor('mind',50,89,'phone',view='side',intentionalHold=True),actor('teacher',76,87,'point',view='side',intentionalHold=True,override=dict(shoulderR=-112,elbowR=-12))]
@@ -148,8 +153,14 @@ held(s,'teacher','flashlight',light=dict(intensity=.7,range=50,cone=17,keys=[dic
 s['schoolDoorKeys']=[dict(t=0,open=.8),dict(t=1,open=0),dict(t=6,open=0)]
 
 s=scenes[11]
-s['actors']=[actor('mind',36,90,'phone',view='side',intentionalHold=True),actor('teacher',60,88,'point',view='side',intentionalHold=True),actor('nont',12,91,'surprised',view='side',intentionalHold=True),travel('zombie',[(0,90,86),(4.2,90,86),(7,78,86)],pose='walk',facing='left',appearAt=4.2,scale=.76)]
-s['actors'][0]['motionKeys']=[key(0,36,90,'phone',headYaw=0),key(1.3,36,90,'phone',headYaw=-20),key(2.2,36,90,'surprised',bodyYaw=45),key(7,36,90,'surprised',bodyYaw=45)]
+s['actors']=[travel('mind',[(0,50,90),(1.3,50,90),(3.2,36,90),(7,36,90)],pose='walk',intentionalHold=True),
+             travel('teacher',[(0,76,88),(1.5,76,88),(3.2,60,88),(7,60,88)],pose='walk',intentionalHold=True),
+             travel('nont',[(0,24,91),(1.5,24,91),(3.2,12,91),(7,12,91)],pose='walk',intentionalHold=True),
+             travel('zombie',[(0,90,86),(4.2,90,86),(7,78,86)],pose='walk',facing='left',appearAt=4.2,scale=.76)]
+for a,pose in zip(s['actors'][:3],['phone','point','surprised']):
+    a['motionKeys'][0]['pose']=pose
+    a['motionKeys'][-2]['pose']='surprised' if a['char']=='mind' else pose
+    a['motionKeys'][-1]['pose']=a['motionKeys'][-2]['pose']
 held(s,'mind','phone')
 held(s,'teacher','flashlight',light=dict(intensity=.55,range=42,cone=18,keys=[dict(t=0,angle=-30),dict(t=3.4,angle=0),dict(t=7,angle=0)]))
 s['schoolDoorKeys']=[dict(t=0,open=0),dict(t=3.2,open=0),dict(t=4.2,open=.72),dict(t=7,open=.72)]
@@ -164,14 +175,14 @@ for s in scenes:
 for loc in p['locations']:
     loc['set']['light']='none'
     # Correct obsolete anchors outside the frame and away from the drawn doors.
-    if loc['id']=='classroom':loc['set']['anchors']=dict(door=dict(x=86,y=88),window=dict(x=65,y=88),desk=dict(x=45,y=88))
-    if loc['id']=='rooftop':loc['set']['anchors']=dict(roofDoor=dict(x=83,y=88),signal=dict(x=24,y=90))
+    if loc['id']=='classroom':loc['set']['anchors']=dict(door=dict(x=84,y=87),window=dict(x=65,y=87),desk=dict(x=66,y=90))
+    if loc['id']=='rooftop':loc['set']['anchors']=dict(roofDoor=dict(x=84,y=87),signal=dict(x=24,y=90))
 p['locations']=[loc for loc in p['locations'] if loc['id']!='roof-landing']
 p['locations'].append(dict(id='roof-landing',name='ชานพักก่อนประตูดาดฟ้า',promptBlock='Interior upper stair landing. The locked roof door is ahead; characters have not reached the roof yet.',set=dict(worldArt='school-landing',light='none',bg=['#344d5d','#182a37'],floor='#657776',floorY=83,props=[],anchors=dict(roofDoor=dict(x=86,y=88)))))
 p['project']['title']='ซอมบี้บุกโรงเรียนทวีธาภิเศก — นาทีระทึก'
-p['project']['storyRevision']=3
+p['project']['storyRevision']=4
 p['project']['fps']=30
-p['project']['styleSuffix']='Original fictional Thai school thriller. Reviewed choreography revision 3: uninterrupted chase, grounded school sets, wrist-attached flashlight and key, motivated stops, consistent overcast morning, no gore.'
+p['project']['styleSuffix']='Original fictional Thai school thriller. Revision 4: physical door proportions, sole contacts on floors and stair treads, continuous blocking across adjacent shots, wrist-attached props, no gore.'
 for rule in p.get('rules',[]):
     if rule['id']=='run-timing': rule['text']='Distance-based gait continues to the scene cut, unless intentionalHold is set. Shared authored timing fits the final scene duration.'
     if rule['id']=='door-motion': rule['text']='Doors use schoolDoorKeys in the shared choreography clock. Classroom closes in scene 5; landing door is locked in scene 9, unlocked in scene 10; roof door opens at the finale.'

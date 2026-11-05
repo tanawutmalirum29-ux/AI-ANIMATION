@@ -5,14 +5,14 @@
     "aspect": "9:16",
     "fps": 30,
     "subMax": 19,
-    "styleSuffix": "Original fictional Thai school thriller. Reviewed choreography revision 3: uninterrupted chase, grounded school sets, wrist-attached flashlight and key, motivated stops, consistent overcast morning, no gore.",
+    "styleSuffix": "Original fictional Thai school thriller. Revision 4: physical door proportions, sole contacts on floors and stair treads, continuous blocking across adjacent shots, wrist-attached props, no gore.",
     "uiBoxStyle": {
       "bg": "#172b35",
       "color": "#fff8e4",
       "position": "bottom",
       "font": "system-ui"
     },
-    "storyRevision": 3
+    "storyRevision": 4
   },
   "voiceProfiles": [
     {
@@ -261,16 +261,16 @@
         "light": "none",
         "anchors": {
           "door": {
-            "x": 86,
-            "y": 88
+            "x": 84,
+            "y": 87
           },
           "window": {
             "x": 65,
-            "y": 88
+            "y": 87
           },
           "desk": {
-            "x": 45,
-            "y": 88
+            "x": 66,
+            "y": 90
           }
         },
         "props": [],
@@ -317,8 +317,8 @@
         "light": "none",
         "anchors": {
           "roofDoor": {
-            "x": 83,
-            "y": 88
+            "x": 84,
+            "y": 87
           },
           "signal": {
             "x": 24,
@@ -455,6 +455,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -487,14 +491,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -573,6 +577,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "intentionalHold": true,
               "motionKeys": [
                 {
@@ -610,6 +618,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -642,14 +654,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 4,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -728,6 +740,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -759,6 +775,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -791,14 +811,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -877,6 +897,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -908,6 +932,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -940,14 +968,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 4,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -959,8 +987,8 @@
           "duration": 5,
           "characters": [
             "teacher",
-            "nont",
-            "mind"
+            "mind",
+            "nont"
           ],
           "location": "classroom",
           "subtitle": [],
@@ -1017,9 +1045,9 @@
           "actors": [
             {
               "char": "teacher",
-              "x": 69,
+              "x": 10,
               "y": 89,
-              "pose": "openDoor",
+              "pose": "stand",
               "facing": "right",
               "view": "side",
               "face": "surprised",
@@ -1027,50 +1055,58 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
-              "intentionalHold": true,
-              "handTarget": {
-                "door": true,
-                "x": 92.3,
-                "y": 69.1,
-                "start": 0,
-                "end": 4.2,
-                "referenceWidth": 50.625
+              "ground": {
+                "mode": "surface",
+                "lane": 0.2
               },
+              "intentionalHold": true
+            },
+            {
+              "char": "mind",
+              "x": 94,
+              "y": 90,
+              "pose": "run",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
+              "intentionalHold": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 69,
-                  "y": 89,
-                  "pose": "openDoor",
+                  "x": 94,
+                  "y": 90,
+                  "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 2.4,
-                  "x": 69,
-                  "y": 89,
-                  "pose": "walk",
-                  "easing": "linear"
-                },
-                {
-                  "t": 4.1,
-                  "x": 80.4,
-                  "y": 89,
-                  "pose": "openDoor",
+                  "t": 1.7,
+                  "x": 28,
+                  "y": 90,
+                  "pose": "stand",
                   "easing": "linear"
                 },
                 {
                   "t": 5,
-                  "x": 80.4,
-                  "y": 89,
-                  "pose": "openDoor",
+                  "x": 28,
+                  "y": 90,
+                  "pose": "stand",
                   "easing": "linear"
                 }
               ],
-              "gait": "distance"
+              "gait": "distance",
+              "stride": 7
             },
             {
               "char": "nont",
-              "x": 94,
+              "x": 108,
               "y": 91,
               "pose": "run",
               "facing": "left",
@@ -1080,81 +1116,71 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.8
+              },
               "intentionalHold": true,
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "x": 94,
-                  "y": 91,
-                  "pose": "run",
-                  "easing": "linear"
-                },
-                {
-                  "t": 0.2,
-                  "x": 94,
-                  "y": 91,
-                  "pose": "run",
-                  "easing": "linear"
-                },
-                {
-                  "t": 2.8,
-                  "x": 28,
-                  "y": 91,
-                  "pose": "stand",
-                  "easing": "linear"
-                },
-                {
-                  "t": 5,
-                  "x": 28,
-                  "y": 91,
-                  "pose": "stand",
-                  "easing": "linear"
-                }
-              ],
-              "gait": "distance",
-              "stride": 7
-            },
-            {
-              "char": "mind",
-              "x": 108,
-              "y": 86,
-              "pose": "run",
-              "facing": "left",
-              "view": "side",
-              "face": "surprised",
-              "scale": 0.82,
-              "smartActing": false,
-              "allowCrop": true,
-              "poseTransitions": true,
-              "intentionalHold": true,
+              "handTarget": {
+                "door": true,
+                "start": 1.8,
+                "end": 3.05,
+                "referenceWidth": 50.625
+              },
               "motionKeys": [
                 {
                   "t": 0,
                   "x": 108,
-                  "y": 86,
+                  "y": 91,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 1,
+                  "t": 0.45,
                   "x": 108,
-                  "y": 86,
+                  "y": 91,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 3.4,
-                  "x": 44,
-                  "y": 86,
+                  "t": 1.8,
+                  "x": 66,
+                  "y": 91,
+                  "pose": "openDoor",
+                  "easing": "linear",
+                  "facing": "right"
+                },
+                {
+                  "t": 3,
+                  "x": 80.6,
+                  "y": 91,
+                  "pose": "openDoor",
+                  "easing": "linear",
+                  "facing": "right"
+                },
+                {
+                  "t": 3.15,
+                  "x": 80.6,
+                  "y": 91,
+                  "pose": "walk",
+                  "easing": "linear",
+                  "facing": "left"
+                },
+                {
+                  "t": 4.85,
+                  "x": 46,
+                  "y": 91,
                   "pose": "stand",
-                  "easing": "linear"
+                  "easing": "linear",
+                  "facing": "left"
                 },
                 {
                   "t": 5,
-                  "x": 44,
-                  "y": 86,
+                  "x": 46,
+                  "y": 91,
                   "pose": "stand",
-                  "easing": "linear"
+                  "easing": "linear",
+                  "facing": "left"
                 }
               ],
               "gait": "distance",
@@ -1173,14 +1199,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -1192,11 +1218,11 @@
               "open": 0.85
             },
             {
-              "t": 2.4,
+              "t": 1.8,
               "open": 0.85
             },
             {
-              "t": 4.1,
+              "t": 3,
               "open": 0
             },
             {
@@ -1268,7 +1294,7 @@
           "actors": [
             {
               "char": "nont",
-              "x": 27,
+              "x": 46,
               "y": 90,
               "pose": "walk",
               "facing": "right",
@@ -1278,6 +1304,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.8
+              },
               "intentionalHold": true,
               "handTarget": {
                 "asset": "school-barricade",
@@ -1290,21 +1320,21 @@
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 27,
+                  "x": 46,
                   "y": 90,
                   "pose": "walk",
                   "easing": "linear"
                 },
                 {
                   "t": 4.3,
-                  "x": 61,
+                  "x": 62,
                   "y": 90,
                   "pose": "carry",
                   "easing": "linear"
                 },
                 {
                   "t": 5,
-                  "x": 61,
+                  "x": 62,
                   "y": 90,
                   "pose": "carry",
                   "easing": "linear"
@@ -1315,56 +1345,9 @@
             },
             {
               "char": "mind",
-              "x": 47,
+              "x": 28,
               "y": 87,
-              "pose": "walk",
-              "facing": "right",
-              "view": "side",
-              "face": "surprised",
-              "scale": 0.82,
-              "smartActing": false,
-              "allowCrop": true,
-              "poseTransitions": true,
-              "intentionalHold": true,
-              "handTarget": {
-                "asset": "school-barricade",
-                "anchor": {
-                  "x": 86,
-                  "y": 9
-                },
-                "referenceWidth": 50.625
-              },
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "x": 47,
-                  "y": 87,
-                  "pose": "walk",
-                  "easing": "linear"
-                },
-                {
-                  "t": 4.3,
-                  "x": 81,
-                  "y": 87,
-                  "pose": "carry",
-                  "easing": "linear"
-                },
-                {
-                  "t": 5,
-                  "x": 81,
-                  "y": 87,
-                  "pose": "carry",
-                  "easing": "linear"
-                }
-              ],
-              "gait": "distance",
-              "stride": 6
-            },
-            {
-              "char": "teacher",
-              "x": 19,
-              "y": 87,
-              "pose": "point",
+              "pose": "surprised",
               "facing": "right",
               "view": "threeQuarter",
               "face": "surprised",
@@ -1372,6 +1355,28 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
+              "intentionalHold": true
+            },
+            {
+              "char": "teacher",
+              "x": 10,
+              "y": 87,
+              "pose": "stand",
+              "facing": "right",
+              "view": "threeQuarter",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.2
+              },
               "intentionalHold": true
             }
           ],
@@ -1432,27 +1437,27 @@
                   }
                 ]
               },
-              "x": 45,
-              "y": 88,
-              "scale": 0.38,
+              "x": 66,
+              "y": 90,
+              "scale": 0.32,
               "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-barricade",
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 45,
-                  "y": 88
+                  "x": 66,
+                  "y": 90
                 },
                 {
                   "t": 4.3,
-                  "x": 79,
-                  "y": 88
+                  "x": 82,
+                  "y": 90
                 },
                 {
                   "t": 5,
-                  "x": 79,
-                  "y": 88
+                  "x": 82,
+                  "y": 90
                 }
               ]
             }
@@ -1462,9 +1467,9 @@
           ],
           "productionPlacements": {
             "school-barricade": {
-              "x": 45,
-              "y": 88,
-              "scale": 0.38,
+              "x": 66,
+              "y": 90,
+              "scale": 0.32,
               "front": false
             }
           },
@@ -1476,14 +1481,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -1573,6 +1578,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -1611,6 +1620,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -1649,6 +1662,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -1688,14 +1705,14 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [],
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -1778,6 +1795,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "override": {
                 "shoulderL": -65,
                 "elbowL": -38
@@ -1813,6 +1834,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -1844,6 +1869,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "motionKeys": [
                 {
                   "t": 0,
@@ -1907,7 +1936,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [
@@ -1920,7 +1949,7 @@
           "choreography": {
             "mode": "fit-scene",
             "duration": 6,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#101c2f",
@@ -2000,11 +2029,13 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.8
+              },
               "intentionalHold": true,
               "handTarget": {
                 "door": true,
-                "x": 92.3,
-                "y": 69.1,
                 "referenceWidth": 50.625
               }
             },
@@ -2020,6 +2051,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.1
+              },
               "intentionalHold": true,
               "override": {
                 "shoulderL": -65,
@@ -2053,7 +2088,7 @@
             },
             {
               "char": "mind",
-              "x": 20,
+              "x": 26,
               "y": 89,
               "pose": "surprised",
               "facing": "right",
@@ -2063,6 +2098,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "intentionalHold": true
             }
           ],
@@ -2091,7 +2130,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [
@@ -2104,7 +2143,7 @@
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -2184,9 +2223,9 @@
           "actors": [
             {
               "char": "teacher",
-              "x": 80,
+              "x": 52,
               "y": 89,
-              "pose": "openDoor",
+              "pose": "walk",
               "facing": "right",
               "view": "side",
               "face": "surprised",
@@ -2194,13 +2233,15 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.1
+              },
               "intentionalHold": true,
               "handTarget": {
                 "door": true,
-                "x": 92.3,
-                "y": 69.1,
-                "start": 0,
-                "end": 2.7,
+                "start": 1.8,
+                "end": 3.1,
                 "referenceWidth": 50.625
               },
               "override": {
@@ -2210,30 +2251,53 @@
               "motionKeys": [
                 {
                   "t": 0,
+                  "x": 52,
+                  "y": 89,
+                  "pose": "stand",
+                  "easing": "linear"
+                },
+                {
+                  "t": 0.8,
+                  "x": 52,
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 1.8,
                   "x": 80,
                   "y": 89,
                   "pose": "openDoor",
                   "easing": "linear"
                 },
                 {
-                  "t": 2.8,
+                  "t": 3.1,
                   "x": 80,
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.7,
+                  "x": 71,
                   "y": 89,
                   "pose": "stand",
                   "easing": "linear"
                 },
                 {
                   "t": 5,
-                  "x": 80,
+                  "x": 71,
                   "y": 89,
                   "pose": "stand",
                   "easing": "linear"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 6
             },
             {
               "char": "nont",
-              "x": 30,
+              "x": 80,
               "y": 91,
               "pose": "run",
               "facing": "right",
@@ -2243,18 +2307,31 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
-              "clipX": 94,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.8
+              },
+              "clipX": 95,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 30,
+                  "x": 80,
                   "y": 91,
-                  "pose": "stand",
-                  "easing": "linear"
+                  "pose": "walk",
+                  "easing": "linear",
+                  "facing": "left"
                 },
                 {
-                  "t": 2.6,
-                  "x": 30,
+                  "t": 0.9,
+                  "x": 39,
+                  "y": 91,
+                  "pose": "stand",
+                  "easing": "linear",
+                  "facing": "right"
+                },
+                {
+                  "t": 3.3,
+                  "x": 39,
                   "y": 91,
                   "pose": "run",
                   "easing": "linear"
@@ -2272,7 +2349,7 @@
             },
             {
               "char": "mind",
-              "x": 14,
+              "x": 26,
               "y": 87,
               "pose": "run",
               "facing": "right",
@@ -2282,18 +2359,22 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
-              "clipX": 94,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
+              "clipX": 95,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 14,
+                  "x": 26,
                   "y": 87,
                   "pose": "stand",
                   "easing": "linear"
                 },
                 {
-                  "t": 3,
-                  "x": 14,
+                  "t": 3.5,
+                  "x": 26,
                   "y": 87,
                   "pose": "run",
                   "easing": "linear"
@@ -2317,7 +2398,7 @@
               "y": 80,
               "scale": 0.75,
               "front": false,
-              "appearAt": 0.3
+              "appearAt": 1.8
             },
             {
               "kind": "flashlight",
@@ -2343,7 +2424,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [
@@ -2361,7 +2442,7 @@
           "choreography": {
             "mode": "fit-scene",
             "duration": 5,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -2373,11 +2454,11 @@
               "open": 0
             },
             {
-              "t": 2.2,
+              "t": 2.5,
               "open": 0
             },
             {
-              "t": 3.3,
+              "t": 3.4,
               "open": 0.9
             },
             {
@@ -2459,6 +2540,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "intentionalHold": true
             },
             {
@@ -2473,6 +2558,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "intentionalHold": true
             },
             {
@@ -2487,6 +2576,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "intentionalHold": true,
               "override": {
                 "shoulderR": -112,
@@ -2583,7 +2676,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [
@@ -2601,7 +2694,7 @@
           "choreography": {
             "mode": "fit-scene",
             "duration": 6,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",
@@ -2686,9 +2779,9 @@
           "actors": [
             {
               "char": "mind",
-              "x": 36,
+              "x": 50,
               "y": 90,
-              "pose": "phone",
+              "pose": "walk",
               "facing": "right",
               "view": "side",
               "face": "surprised",
@@ -2696,47 +2789,49 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "intentionalHold": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 36,
+                  "x": 50,
                   "y": 90,
                   "pose": "phone",
-                  "easing": "linear",
-                  "headYaw": 0
+                  "easing": "linear"
                 },
                 {
                   "t": 1.3,
-                  "x": 36,
+                  "x": 50,
                   "y": 90,
-                  "pose": "phone",
-                  "easing": "linear",
-                  "headYaw": -20
+                  "pose": "walk",
+                  "easing": "linear"
                 },
                 {
-                  "t": 2.2,
+                  "t": 3.2,
                   "x": 36,
                   "y": 90,
                   "pose": "surprised",
-                  "easing": "linear",
-                  "bodyYaw": 45
+                  "easing": "linear"
                 },
                 {
                   "t": 7,
                   "x": 36,
                   "y": 90,
                   "pose": "surprised",
-                  "easing": "linear",
-                  "bodyYaw": 45
+                  "easing": "linear"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 6
             },
             {
               "char": "teacher",
-              "x": 60,
+              "x": 76,
               "y": 88,
-              "pose": "point",
+              "pose": "walk",
               "facing": "right",
               "view": "side",
               "face": "surprised",
@@ -2744,13 +2839,49 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
-              "intentionalHold": true
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
+              "intentionalHold": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 76,
+                  "y": 88,
+                  "pose": "point",
+                  "easing": "linear"
+                },
+                {
+                  "t": 1.5,
+                  "x": 76,
+                  "y": 88,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.2,
+                  "x": 60,
+                  "y": 88,
+                  "pose": "point",
+                  "easing": "linear"
+                },
+                {
+                  "t": 7,
+                  "x": 60,
+                  "y": 88,
+                  "pose": "point",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 6
             },
             {
               "char": "nont",
-              "x": 12,
+              "x": 24,
               "y": 91,
-              "pose": "surprised",
+              "pose": "walk",
               "facing": "right",
               "view": "side",
               "face": "surprised",
@@ -2758,7 +2889,43 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
-              "intentionalHold": true
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
+              "intentionalHold": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 24,
+                  "y": 91,
+                  "pose": "surprised",
+                  "easing": "linear"
+                },
+                {
+                  "t": 1.5,
+                  "x": 24,
+                  "y": 91,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.2,
+                  "x": 12,
+                  "y": 91,
+                  "pose": "surprised",
+                  "easing": "linear"
+                },
+                {
+                  "t": 7,
+                  "x": 12,
+                  "y": 91,
+                  "pose": "surprised",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 6
             },
             {
               "char": "zombie",
@@ -2772,6 +2939,10 @@
               "smartActing": false,
               "allowCrop": true,
               "poseTransitions": true,
+              "ground": {
+                "mode": "surface",
+                "lane": 0.6
+              },
               "appearAt": 4.2,
               "motionKeys": [
                 {
@@ -2846,7 +3017,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "notes": "School story revision 4. Soles bind to the floor or exact stair tread. Door height, handle and floor share world geometry. Authored y is a fallback; ground.mode resolves the final foot position. Motion fits the final scene duration.",
           "productionMotionOverrides": {},
           "interactions": [],
           "interactionInitialHold": [
@@ -2864,7 +3035,7 @@
           "choreography": {
             "mode": "fit-scene",
             "duration": 7,
-            "revision": 3
+            "revision": 4
           },
           "light": {
             "color": "#263b4d",

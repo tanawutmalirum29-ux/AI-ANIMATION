@@ -51,6 +51,31 @@ test('append remaps references, preserves current work and cannot collide',()=>{
  const state=copy(template),before=copy(state);const index=R.append(state,template,'new');assert.equal(index,1);assert.deepEqual(state.episodes[0],before.episodes[0]);assert.deepEqual(state.project,before.project);
  const s=state.episodes[1].scenes[7];assert.equal(s.actors[0].char,'new-teacher');assert.equal(s.interactionInitialHold[0].actor,'new-teacher');assert.ok(state.locations.some(l=>l.id===s.location));assert.ok(state.voiceProfiles.some(v=>v.id===s.voiceDirection.voiceProfileId));assert.throws(()=>R.append(state,template,'new'),/ซ้ำ/);
 });
+test('revision 4 upgrades an appended revision 3 episode without losing its voices or IDs',()=>{
+ const state=copy(template);R.append(state,template,'school-example');const episode=state.episodes[1];
+ for(const s of episode.scenes)s.choreography.revision=3;
+ episode.scenes[0].audioClips=[{id:'keep',kind:'voice',data:'original',duration:3}];const before=copy(state);
+ const review=R.plan(state,template);assert.equal(review.changes.length,12);R.apply(state,review);
+ assert.deepEqual(state.episodes[0],before.episodes[0]);assert.deepEqual(state.characters,before.characters);assert.deepEqual(state.voiceProfiles,before.voiceProfiles);
+ assert.deepEqual(episode.scenes[0].audioClips,before.episodes[1].scenes[0].audioClips);
+ for(const scene of episode.scenes){assert.equal(scene.choreography.revision,4);assert.ok(scene.location.startsWith('school-example-tpz-v4-'));assert.ok(scene.actors.every(a=>a.char.startsWith('school-example-')));assert.ok(scene.interactionInitialHold.every(h=>scene.actors.some(a=>a.char===h.actor)));}
+ assert.equal(R.plan(state,template).changes.length,0);
+});
+test('school surfaces match treads, preserve physical door proportions and leave flying actors alone',()=>{
+ const W=require('../studio-school-world.js'),set={worldArt:'school-stairs'};
+ assert.equal(W.surfaceAt(set,50,1),81);assert.equal(W.surfaceAt(set,50,3),79.8);assert.equal(W.surfaceAt(set,50,49),52.2);
+ assert.equal(W.layout({worldArt:'school-room'},50).door.h,W.layout({worldArt:'school-room'},160).door.h);
+ assert.equal(W.layout({worldArt:'school-room'},50).door.w,W.layout({worldArt:'school-room'},160).door.w);
+ const place={x:2,k:.5,fc:1},feet=[{x:-1,y:0,foot:10},{x:1,y:-3,foot:13}],a={ground:{mode:'surface'},pose:'stand'};
+ const result=W.groundPlacement(set,50,a,place,feet);assert.ok(result.contacts.every(c=>c.clearance>=0));assert.equal(Math.min(...result.contacts.map(c=>c.clearance)),0);
+ assert.equal(W.groundPlacement(set,50,{...a,pose:'jump'},place,feet),null);assert.equal(W.groundPlacement(set,50,{pose:'stand'},place,feet),null);
+});
+test('blocking preserves standing positions at the classroom, landing and roof cuts',()=>{
+ const scenes=template.episodes[0].scenes;
+ for(const [left,right]of [[4,5],[8,9],[10,11]]){
+  for(const actor of scenes[left].actors){const next=scenes[right].actors.find(a=>a.char===actor.char);assert.ok(next,'character remains in the next shot');const end=M.sample(M.keysOf(actor),scenes[left].choreography.duration,actor),start=M.sample(M.keysOf(next),0,next);assert.ok(Math.abs(end.x-start.x)<.01,actor.char+' must not teleport across cut '+left);}
+ }
+});
 test('revised story audits cleanly and held lights expose time-varying state',()=>{
  for(const scene of template.episodes[0].scenes)assert.deepEqual(M.audit(scene),[],scene.id);
  const prop=template.episodes[0].scenes[7].props.find(p=>p.kind==='flashlight');assert.notEqual(M.light(prop,0).angle,M.light(prop,3).angle);assert.equal(M.light({...prop,light:{enabled:false}},0).intensity,0);
