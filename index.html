@@ -5180,6 +5180,28 @@ function autoSoundApply(scope='episode'){
  return {applied,scenes:result.length};
 }
 window.StoryStudioBridge={
+ // Capture the actual composed/export-style frame; never send project media
+ // automatically. Only an explicit owner click invokes external visual review.
+ capturePreviewFrame:async()=>{
+  if(playing)throw Error('หยุดเล่นพรีวิวก่อนส่งเฟรมให้ AI แม่ตรวจ');
+  const scene=sc();if(!scene)throw Error('ยังไม่ได้เลือกฉาก');
+  const oldT=T,oldSel=sel;
+  const ratio=String(S.project?.aspect||'9:16').split(':').map(Number);
+  const aspect=ratio.length===2&&ratio[0]>0&&ratio[1]>0?ratio[0]/ratio[1]:9/16;
+  const height=320,width=Math.round(height*aspect);
+  const cv=document.createElement('canvas');cv.width=width;cv.height=height;
+  const ctx=cv.getContext('2d',{alpha:false});
+  if(!ctx)throw Error('เบราว์เซอร์ไม่รองรับ Canvas สำหรับตรวจเฟรม');
+  try{
+   T=starts()[sel]+Math.min(Math.max(.1,scene.duration/2),Math.max(.1,scene.duration-.05));
+   await renderVideoFrame(ctx,T,{w:width,h:height,captions:false,
+    turbo:false,previous:new Map()});
+   let jpeg=cv.toDataURL('image/jpeg',.56);
+   if(jpeg.length>145000)jpeg=cv.toDataURL('image/jpeg',.32);
+   if(jpeg.length>145000)throw Error('รูปพรีวิวเกินขนาดที่รองรับ กรุณาลดรายละเอียดฉาก');
+   return jpeg;
+  }finally{T=oldT;sel=oldSel;draw();}
+ },
  narrate:async(scope='episode',options={})=>{
   if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตพากย์ไม่ถูกต้อง');
   if(AUTODUB_RUNNING)throw Error('ระบบพากย์กำลังทำงานอยู่');
