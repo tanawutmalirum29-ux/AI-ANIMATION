@@ -8,9 +8,9 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const guide=JSON.parse(read('training-lab/EXTERNAL_WRITER_GUIDE_V2.json'));
 const curriculum=JSON.parse(read('training-lab/datasets/production-role-curriculum-v2.json'));
 
-test('twelve namespaced production positions coexist with all six V1 stage IDs',()=>{
- assert.equal(registry.roles.length,12);
- assert.equal(new Set(registry.roles.map(x=>x.id)).size,12);
+test('eleven mother positions keep six V1 stage IDs and a separate voice module',()=>{
+ assert.equal(registry.roles.length,11);
+ assert.equal(new Set(registry.roles.map(x=>x.id)).size,11);
  assert.deepEqual(registry.roles.map(x=>x.output),registry.types);
  assert.equal(registry.legacyStages.length,6);
  assert.deepEqual(registry.legacyStages.map(x=>x.id),
@@ -18,31 +18,33 @@ test('twelve namespaced production positions coexist with all six V1 stage IDs',
  assert.deepEqual(oldCore.roles.map(x=>x.id),
   ['composition','assets','motion','voice','structure','qa']);
  assert.ok(registry.roles.every(r=>r.status==='role-defined-not-trained-model'));
+ assert.deepEqual(registry.voiceRole.engines,['system','mother']);
+ assert.ok(!registry.roles.some(r=>r.id==='audio-director'));
 });
 test('read-only scene routing keeps narrator input and pre-existing project unchanged',()=>{
  const input=storyOnly.convert(guide.exampleImportable);
  const original=JSON.stringify(input),hash=registry.signature(input);
  const plan=registry.createPlan(input);
  assert.equal(plan.scenes,4);
- assert.equal(plan.roles,12);
- assert.equal(plan.tasks.length,48);
+ assert.equal(plan.roles,11);
+ assert.equal(plan.tasks.length,44);
  assert.equal(plan.sourceHash,hash);
  assert.equal(plan.executable,false);
  assert.deepEqual(plan.tasks.filter(x=>x.sceneId==='s2').map(x=>x.order),
-  Array.from({length:12},(_,i)=>i+1));
+  Array.from({length:11},(_,i)=>i+1));
  assert.equal(plan.tasks.find(x=>x.sceneId==='s2'&&x.roleId==='motion-director')
   .requires[0],'layout-director');
  assert.equal(JSON.stringify(input),original,'plan must not edit voiceover or JSON');
  assert.notEqual(registry.signature({...input,episodes:[{...input.episodes[0],
   scenes:[{...input.episodes[0].scenes[0],voiceover:'ข้อความใหม่'},...input.episodes[0].scenes.slice(1)]}]}),hash);
 });
-test('all twelve training fixtures refer to active roles but remain unverified examples',()=>{
+test('archived twelve training fixtures preserve audio as a separate legacy role',()=>{
  assert.equal(curriculum.examples.length,12);
  assert.equal(curriculum.notWeightTraining,true);
  assert.equal(curriculum.notApprovedSamples,true);
  assert.equal(curriculum.sourceScript.type,'story-only');
  assert.deepEqual(new Set(curriculum.examples.map(e=>e.roleId)),
-  new Set(registry.roles.map(r=>r.id)));
+  new Set([...registry.roles.map(r=>r.id),'audio-director']));
  assert.ok(curriculum.examples.every(e=>e.input&&e.expected&&
   Array.isArray(e.acceptance)&&e.acceptance.length>=2));
  const imported=storyOnly.convert(curriculum.sourceScript);
