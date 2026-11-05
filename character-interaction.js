@@ -13,8 +13,9 @@ function sceneOffset(scene){const i=ep().scenes.indexOf(scene);return i>=0?start
 function localTime(scene){return clamp(T-sceneOffset(scene),0,scene.duration||4)}
 function events(scene){return (Array.isArray(scene.interactions)?scene.interactions:[]).filter(e=>e&&TYPES[e.type]).slice().sort((a,b)=>Number(a.at)-Number(b.at))}
 function stateAt(scene,index,loc){
+ loc=window.StoryMotion?.clock(scene,loc).time??loc;
  const prop=Array.isArray(scene.props)?scene.props[index]:null;if(!prop)return {hidden:false,x:null,y:null,scale:1};
- const v={hidden:false,actor:null,hand:'right',x:prop.x??50,y:prop.y??85,scale:1,kind:prop.kind,color:prop.color||'',size:prop.scale||1};
+ const v={hidden:false,visible:!(Number.isFinite(prop.appearAt)&&loc<prop.appearAt||Number.isFinite(prop.disappearAt)&&loc>=prop.disappearAt),actor:null,hand:'right',x:prop.x??50,y:prop.y??85,scale:1,kind:prop.kind,color:prop.color||'',size:prop.scale||1};
  const init=(scene.interactionInitialHold||[]).find(it=>it.propIndex===index);
  if(init){v.hidden=true;v.actor=init.actor;v.hand=init.hand||'right'}
  let opened=0;
@@ -28,21 +29,34 @@ function stateAt(scene,index,loc){
 }
 window.STUDIO_INTERACTION_PROP_STATE=function(scene,p,index){
  if(!p)return null;const v=stateAt(scene,index,localTime(scene));
- if(v.hidden)return null;
+ if(v.hidden||!v.visible)return null;
  return Object.assign({},p,{x:v.x,y:v.y,_openScale:v.openScale});
 };
 window.STUDIO_INTERACTION_HELD_SVG=function(character,actor,scene,local){
- const props=scene.props||[],wrist=rigKeys(character,actor,actor._phaseTime||local);let result='';
+ const props=scene.props||[],wrist=rigKeys(character,actor,Number.isFinite(actor._phaseTime)?actor._phaseTime:local);let result='';
  props.forEach((p,i)=>{
   const v=stateAt(scene,i,local);
-  if(!v.hidden||v.actor!==actor.char||typeof PROPS[p.kind]!=='function')return;
+  if(!v.hidden||!v.visible||v.actor!==actor.char||typeof PROPS[p.kind]!=='function')return;
   const hand=v.hand==='left'?7:4,pt=wrist[hand];
   if(!pt)return;
   const fill=p.color?colOK(p.color,''):'',cfg=typeof HELD_PROPS!=='undefined'?HELD_PROPS[p.kind]:null;
   if(cfg){
    /* v37: new handheld pack — grip point (gx,gy) of the prop is pinned to the wrist, optional tilt r */
    const size=clamp((p.scale||1)*(cfg.s||1),.12,2.6);
-   result+='<g data-held-prop="'+i+'" transform="translate('+f2(pt[0])+' '+f2(pt[1])+') rotate('+f2(cfg.r||0)+') scale('+f2(size)+') translate('+f2(-(cfg.gx||0))+' '+f2(-(cfg.gy||0))+')">'+PROPS[p.kind](fill)+'</g>';
+   const t=window.StoryMotion?.clock(scene,local).time??local;
+   const lamp=window.StoryMotion?.light(p,t);
+   const elbow=wrist[hand===7?6:3];
+   const forearm=(p.followForearm===true||p.kind==='flashlight'&&p.followForearm!==false)&&elbow?Math.atan2(pt[1]-elbow[1],pt[0]-elbow[0])*180/Math.PI:0;
+   const angle=(cfg.r||0)+forearm+(lamp?.angle||0);
+   let svg=PROPS[p.kind](fill);
+   if(p.kind==='flashlight'&&lamp){
+    const id='held-light-'+String(scene.id+'-'+actor.char+'-'+i).replace(/[^a-zA-Z0-9_-]/g,'_');
+    const end=8+lamp.range,spread=lamp.range*Math.tan(lamp.cone*Math.PI/180/2);
+    svg='<defs><linearGradient id="'+id+'"><stop stop-color="#fff4bc" stop-opacity="'+lamp.intensity+'"/><stop offset=".6" stop-color="#fff4bc" stop-opacity="'+f2(lamp.intensity*.26)+'"/><stop offset="1" stop-color="#fff4bc" stop-opacity="0"/></linearGradient></defs>'+
+      '<path data-flashlight-beam="'+i+'" d="M8 -2L'+f2(end)+' '+f2(-2-spread)+'Q'+f2(end+2)+' -2 '+f2(end)+' '+f2(-2+spread)+'Z" fill="url(#'+id+')"/>'+
+      '<rect x="-5.2" y="-3.3" width="10" height="3.8" rx="1.2" fill="'+(fill||'#364654')+'"/><path d="M4 -3.8L7.5 -4.4L7.5 .6L4 0Z" fill="#adb8ba"/><path d="M7.5 -4.1V.3" stroke="'+(lamp.intensity?'#fff4c0':'#7d8b8f')+'" stroke-width="1.1"/>';
+   }
+   result+='<g data-held-prop="'+i+'" data-grip-x="'+f2(pt[0])+'" data-grip-y="'+f2(pt[1])+'" data-held-angle="'+f2(angle)+'" transform="translate('+f2(pt[0])+' '+f2(pt[1])+') rotate('+f2(angle)+') scale('+f2(size)+') translate('+f2(-(cfg.gx||0))+' '+f2(-(cfg.gy||0))+')">'+svg+'</g>';
    return;
   }
   const size=clamp((p.scale||1)*.27,.08,.52);
@@ -53,8 +67,10 @@ window.STUDIO_INTERACTION_HELD_SVG=function(character,actor,scene,local){
 };
 function activeHeld(scene){
  const at=Math.max(0,(Number(scene.duration)||4)-.001),output=[];
- (scene.props||[]).forEach((p,index)=>{const state=stateAt(scene,index,at);if(state.hidden&&state.actor&&p.kind){
-  output.push({actor:state.actor,hand:state.hand,prop:{kind:p.kind,x:50,y:85,scale:p.scale||1,front:false,...(p.color?{color:p.color}:{})}});
+ (scene.props||[]).forEach((p,index)=>{const state=stateAt(scene,index,at);if(state.hidden&&state.visible&&state.actor&&p.kind){
+  const prop={...duplicate(p),x:50,y:85,front:false};delete prop.appearAt;delete prop.disappearAt;
+  if(p.kind==='flashlight'&&window.StoryMotion){const lamp=StoryMotion.light(p,StoryMotion.clock(scene,at).time);prop.angle=lamp.angle;prop.light={...prop.light,...lamp};delete prop.light.angle;delete prop.light.keys;}
+  output.push({actor:state.actor,hand:state.hand,prop});
  }});
  return output;
 }

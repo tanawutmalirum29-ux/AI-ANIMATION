@@ -257,6 +257,7 @@
        ' กับตัวละครจากเฟรมส่งออกจริง; อย่าแก้ฉากอัตโนมัติจากระยะโดยประมาณ',
       source:'generated-asset-position',confidence:'needs-visual-review'});
     }
+    if(typeof globalThis!=='undefined'&&globalThis.StoryMotion)for(const finding of globalThis.StoryMotion.audit(scene))sceneIssues.push({...finding,kind:finding.code,event:finding.code,title:'การเคลื่อนไหวและสิ่งของ',episode:ei+1,scene:si+1,sceneId:scene.id,source:'authored-choreography',confidence:'needs-visual-review'});
     scenes.push({episode:ei+1,scene:si+1,sceneId:scene.id,coverage:data,issues:sceneIssues.length});
     issues.push(...sceneIssues);
    });

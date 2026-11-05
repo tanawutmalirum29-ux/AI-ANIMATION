@@ -5,24 +5,40 @@ on:
     paths:
       - 'studio-production-assets.js'
       - 'studio-school-world.js'
+      - 'studio-motion*.js'
+      - 'studio-school-repair.js'
+      - 'character-interaction.js'
+      - 'studio-timing-auditor.js'
       - 'studio-asset-core.js'
       - 'index.html'
       - 'amplify.yml'
       - 'examples/taweetha-zombie-siege.json'
       - 'tests/taweetha-zombie-smoke.cjs'
+      - 'tests/motion-runtime.test.cjs'
+      - 'tests/school-motion-browser.cjs'
       - '.github/workflows/taweetha-zombie-qa.yml'
   pull_request:
     paths:
       - 'studio-production-assets.js'
+      - 'studio-school-world.js'
+      - 'studio-motion*.js'
+      - 'studio-school-repair.js'
+      - 'studio-asset-core.js'
+      - 'character-interaction.js'
+      - 'studio-timing-auditor.js'
+      - 'index.html'
+      - 'amplify.yml'
       - 'examples/taweetha-zombie-siege.json'
       - 'tests/taweetha-zombie-smoke.cjs'
+      - 'tests/motion-runtime.test.cjs'
+      - 'tests/school-motion-browser.cjs'
       - '.github/workflows/taweetha-zombie-qa.yml'
 permissions:
   contents: read
 jobs:
   storyboard-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,6 +49,24 @@ jobs:
           node --check studio-production-assets.js
           node --check studio-school-world.js
           node --check studio-asset-core.js
+          node --check studio-motion-runtime.js
+          node --check studio-motion-studio.js
+          node --check studio-school-repair.js
           node --check tests/taweetha-zombie-smoke.cjs
           node tests/taweetha-zombie-smoke.cjs
+          node --test tests/motion-runtime.test.cjs
           node training-lab/validate-story.cjs examples/taweetha-zombie-siege.json
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install chromium --with-deps
+      - run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - name: Check motion, mobile tools, Undo and actual 62-second export
+        run: node tests/school-motion-browser.cjs
+        env:
+          SCHOOL_OUTPUT_DIR: ${{ runner.temp }}/school-motion-evidence
+          SCHOOL_RENDER_VIDEO: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: school-motion-evidence
+          path: ${{ runner.temp }}/school-motion-evidence
+          retention-days: 7

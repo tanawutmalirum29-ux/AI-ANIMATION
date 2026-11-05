@@ -861,7 +861,7 @@ const FACE_OPTS=[['','ตามท่า'],['neutral','ปกติ'],['happy','
 function rigAngles(a,loc){const P=POSES[a.pose]||POSES.stand,o={};JOINTS.forEach(j=>o[j]=0);Object.assign(o,P.b);if(P.a)Object.assign(o,P.a(loc));
 if(isObj(a.override))for(const[k,v]of Object.entries(a.override))if(JLIM[k]&&typeof v==='number'&&isFinite(v))o[k]=v;
 JOINTS.forEach(j=>{o[j]=clampN(o[j],JLIM[j][0],JLIM[j][1])});
-if(a.endPose&&POSES[a.endPose]&&typeof a._pr==='number'){const e=rigAngles({pose:a.endPose,override:a.endOverride},loc),k=a._pr*a._pr*(3-2*a._pr);JOINTS.forEach(j=>o[j]+=(e[j]-o[j])*k)}return o}
+if(a.endPose&&POSES[a.endPose]&&typeof a._pr==='number'){const e=rigAngles({pose:a.endPose,override:a.endOverride},loc),u=nm(a._posePr,a._pr),k=u*u*(3-2*u);JOINTS.forEach(j=>o[j]+=(e[j]-o[j])*k)}return o}
 
 const arcPts=(r,a0,a1,n)=>Array.from({length:n+1},(_,i)=>{const a=(a0+(a1-a0)*i/n)*RAD;return[r*C_(a),r*S_(a)]});
 function faceSVG(k,loc,ink,robot,blink){
@@ -960,7 +960,7 @@ function sceneEntryTurn(a,scn,local,face){
 function actorAtTimeBase(source,scn,local,dur){
  const a=resolveActor(source,scn),nodes=Array.isArray(a.route)?a.route:[];
  if(nodes.length<2){const pr=dur>0?clampN(local/dur,0,1):0,x0=nm(a.x,50),y0=nm(a.y,90),x1=nm(a.toX,x0),y1=nm(a.toY,y0);
- const res=Object.assign({},a,{x:x0+(x1-x0)*pr,y:y0+(y1-y0)*pr,_pr:pr,_phaseTime:local,_phaseLen:dur,facing:a.facing==='auto'?(x1<x0?'left':'right'):(a.facing||'right')});const tn=sceneEntryTurn(a,scn,local,res.facing);if(tn){res.facing=tn.facing;res.bodyYaw=tn.bodyYaw;res.headYaw=tn.headYaw;res.toHeadYaw=tn.headYaw}return res}
+ const res=Object.assign({},a,{x:x0+(x1-x0)*pr,y:y0+(y1-y0)*pr,_pr:pr,_posePr:window.StoryMotion?.poseProgress(a,pr,dur)??pr,_phaseTime:local,_phaseLen:dur,facing:a.facing==='auto'?(x1<x0?'left':'right'):(a.facing||'right')});const tn=sceneEntryTurn(a,scn,local,res.facing);if(tn){res.facing=tn.facing;res.bodyYaw=tn.bodyYaw;res.headYaw=tn.headYaw;res.toHeadYaw=tn.headYaw}return res}
  const set=locSet(S,scn.location),q=nodes.map(n=>typeof n==='string'?{at:n}:n).map(n=>{
  const at=n.at?anchorOf(set,n.at):null;
  return Object.assign({},n,{x:n.x===undefined?nm(at&&at.x,nm(a.x,50)):n.x,y:n.y===undefined?nm(at&&at.y,nm(a.y,90)):n.y,
@@ -974,9 +974,9 @@ function actorAtTimeBase(source,scn,local,dur){
  const k=phase.d>0?clampN(t/phase.d,0,1):1,from=phase.kind==='move'?phase.from:phase.node,to=phase.kind==='move'?phase.to:phase.node;
  const x=from.x+(to.x-from.x)*k,y=from.y+(to.y-from.y)*k,
  beginning=from.pose||a.pose||'walk',ending=to.pose||a.endPose||beginning,
- fromPose=phase.kind==='move'?(from.travelPose||'walk'):beginning,
+ fromPose=phase.kind==='move'?(from.travelPose||(['walk','run','sneak'].includes(from.pose)?from.pose:['walk','run','sneak'].includes(a.pose)?a.pose:'walk')):beginning,
  easing=phase.kind==='move'?clampN((k-.72)/.28,0,1):1;
- const result=Object.assign({},a,{x,y,pose:fromPose,endPose:ending,_pr:easing,_phaseTime:t+Math.max(0,local-dur),_phaseLen:phase.d,
+ const result=Object.assign({},a,{x,y,pose:fromPose,endPose:ending,_pr:easing,_posePr:window.StoryMotion?.poseProgress({pose:fromPose,endPose:ending,...(a.poseBlend?{poseBlend:a.poseBlend}:{})},k,phase.d)??easing,_phaseTime:t+Math.max(0,local-dur),_phaseLen:phase.d,
  facing:to.facing||a.facing||'auto',view:to.view||from.view||a.view||'side'});
  if(result.facing==='auto')result.facing=to.x<from.x?'left':'right';
  if(phase.kind==='move'&&(from.facing==='left'||from.facing==='right')&&(result.facing==='left'||result.facing==='right')&&from.facing!==result.facing&&!Number.isFinite(a.bodyYaw)&&!Number.isFinite(a.toBodyYaw)&&result.view==='side'){
@@ -1006,7 +1006,8 @@ function applyMotionFrames(source,base,local,dur){
  if(t<keys[0].t)high=low=keys[0];if(t>keys[keys.length-1].t)low=high=keys[keys.length-1];
  const q=high.t>low.t?clampN((t-low.t)/(high.t-low.t),0,1):0;
  const ease=low.easing==='linear'?q:q*q*(3-2*q);
- const output={...base,endPose:'',_pr:0};
+ const output={...base,endPose:'',_pr:0,_posePr:0};
+ if(window.StoryMotion){const frame=StoryMotion.sample(keys,t,{...base,x:nm(source.x,base.x),y:nm(source.y,base.y)});for(const field of MOTION_FIELDS)if(Number.isFinite(frame[field]))output[field]=field==='x'&&source.allowCrop?clampN(frame[field],-100,200):motionClamp(field,frame[field]);for(const field of ['pose','view','facing','face'])if(typeof frame[field]==='string')output[field]=frame[field];output.override={...base.override};for(const field of JOINTS)if(Number.isFinite(frame.override?.[field]))output.override[field]=clampN(frame.override[field],...JLIM[field]);return output;}
  for(const field of MOTION_FIELDS){const a=Number.isFinite(low[field])?low[field]:base[field],b=Number.isFinite(high[field])?high[field]:a;
    if(Number.isFinite(a))output[field]=motionClamp(field,a+(b-a)*ease)}
  output.pose=low.pose||base.pose||'stand';
@@ -1017,7 +1018,25 @@ function applyMotionFrames(source,base,local,dur){
  output.override=overrides;
  return output;
 }
-function actorAtTime(source,scn,local,dur){const base=applyMotionFrames(source,actorAtTimeBase(source,scn,local,dur),local,dur);return smartActingFrame(source,base,local,dur)}
+function actorAtTime(source,scn,local,dur){
+ const clock=window.StoryMotion?.clock({...scn,duration:dur},local)||{time:local,duration:dur};
+ let base=applyMotionFrames(source,actorAtTimeBase(source,scn,clock.time,clock.duration),clock.time,clock.duration);
+ base._motionTime=clock.time;
+ if(window.StoryMotion){
+  const [ar,br]=String(S.project.aspect||'16:9').split(':').map(Number),W=90*ar/br*nm(scn.camera?.world,1);
+  base=StoryMotion.gait(source,base,clock.time,W);
+  base=StoryMotion.keyPose(source,base,clock.time);
+  if(Number.isFinite(source.handTarget?.referenceWidth)){
+   const refWidth=source.handTarget.referenceWidth,contactTime=clampN(clock.time,source.handTarget.start||0,source.handTarget.end??clock.duration),h=source.handTarget.door&&window.StorySchoolWorld?.doorHandle(locSet(S,scn.location),scn,contactTime);
+   const contact={...source,handTarget:{...source.handTarget,...(h||{})}},ref=StoryMotion.target(scn,contact,contactTime,refWidth,window.StoryAssetCore?.assetFrame),actual=StoryMotion.target(scn,contact,contactTime,W,window.StoryAssetCore?.assetFrame);
+   if(ref&&actual&&refWidth>0)base.x=(actual.x+base.x*refWidth/100-ref.x)*100/W;
+  }
+  const handle=source.handTarget?.door&&window.StorySchoolWorld?.doorHandle(locSet(S,scn.location),scn,clock.time);
+  const target=StoryMotion.target(scn,handle?{...source,handTarget:{...source.handTarget,...handle}}:source,clock.time,W,window.StoryAssetCore?.assetFrame),ch=S.characters.find(c=>c.id===source.char);
+  if(target&&ch&&window.StoryCinematic){const place=actorPlacement(ch,base,W);base.cinematicReach={x:(target.x-place.x)/(place.fc*place.k),y:(target.y-base.y*.9)/place.k,weight:1};}
+ }
+ return smartActingFrame(source,base,local,dur);
+}
 function actorPlacement(ch,a,W){
  const fc=a.facing==='left'?-1:1,portraitFactor=clampN(Math.pow(W/160,.12),.83,1);
  const rg=isObj(ch&&ch.rig)?ch.rig:{};
@@ -1037,11 +1056,14 @@ function actorPlacement(ch,a,W){
 function rigScene(acts,loc,dur,scn){
 const[ar,br]=String(S.project.aspect||'16:9').split(':').map(Number),W=f2(90*(ar&&br?ar/br:16/9)*clampN(nm(scn.camera&&scn.camera.world,1),1,3.5));
 const list=acts.map((a,i)=>[actorAtTime(a,scn,loc,dur),i]).filter(([a])=>isObj(a)).sort((p,q)=>nm(p[0].y,90)-nm(q[0].y,90)||p[1]-q[1]);let o='';
-for(const[a]of list){const ch=S.characters.find(c=>c.id===a.char);if(!ch)continue;
-if(Number.isFinite(a.appearAt)&&loc<a.appearAt)continue;
-const reveal=Number.isFinite(a.appearAt)?clampN((loc-a.appearAt)/.28,0,1):1;
+for(const[a,actorIndex]of list){const ch=S.characters.find(c=>c.id===a.char);if(!ch)continue;
+const motionTime=Number.isFinite(a._motionTime)?a._motionTime:loc;
+if(Number.isFinite(a.appearAt)&&motionTime<a.appearAt||Number.isFinite(a.disappearAt)&&motionTime>=a.disappearAt)continue;
+const reveal=Number.isFinite(a.appearAt)?clampN((motionTime-a.appearAt)/.18,0,1):1;
 const {fc,k,x}=actorPlacement(ch,a,W);
-o+=`<g opacity="${f2(reveal)}" transform="translate(${f2(x)} ${f2(a.y/100*90)}) scale(${f2(fc*k)} ${f2(k)})">${d6Wardrobe(ch,a,a._phaseTime||0)}${typeof window.STUDIO_INTERACTION_HELD_SVG==='function'?window.STUDIO_INTERACTION_HELD_SVG(ch,a,scn,loc):''}</g>`}
+const clipId='actor-exit-'+String(scn.id+'-'+actorIndex).replace(/[^a-zA-Z0-9_-]/g,'_');
+const clip=Number.isFinite(a.clipX)?`<defs><clipPath id="${clipId}"><rect width="${f2(clampN(a.clipX,0,100)*W/100)}" height="90"/></clipPath></defs><g clip-path="url(#${clipId})">`:"";
+o+=clip+`<g opacity="${f2(reveal)}" transform="translate(${f2(x)} ${f2(a.y/100*90)}) scale(${f2(fc*k)} ${f2(k)})">${d6Wardrobe(ch,a,a._phaseTime||0)}${typeof window.STUDIO_INTERACTION_HELD_SVG==='function'?window.STUDIO_INTERACTION_HELD_SVG(ch,a,scn,loc):''}</g>`+(clip?'</g>':'')}
 return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 90" preserveAspectRatio="xMidYMid meet">${o}</svg>`}
 const rigPreview=c=>d6Preview(c,'threeQuarter');
 function addActorTo(s,a){const A=s.actors||(s.actors=[]);A.push(a);if(a.char&&!(s.characters||[]).includes(a.char))s.characters=[...(s.characters||[]),a.char]}
@@ -5269,4 +5291,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./studio-ai-core.js"></script><script src="./studio-production-roles.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-school-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-cloud-teach.js"></script><script src="./studio-multi-json.js"></script><script src="./studio-thai-editor.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./studio-mother-chat.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script><script src="./studio-cinematic-core.js"></script><script src="./studio-cinematic-planner.js"></script><script src="./studio-video-reference.js"></script><script src="./studio-cinematic-studio.js"></script><link rel="stylesheet" href="./studio-cinematic.css"><link rel="stylesheet" href="./studio-navigation.css"><script src="./studio-navigation.js"></script></body></html>
+</script><script src="./studio-motion-runtime.js"></script><script src="./studio-ai-core.js"></script><script src="./studio-production-roles.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-school-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-cloud-teach.js"></script><script src="./studio-multi-json.js"></script><script src="./studio-thai-editor.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./studio-mother-chat.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script><script src="./studio-cinematic-core.js"></script><script src="./studio-cinematic-planner.js"></script><script src="./studio-video-reference.js"></script><script src="./studio-cinematic-studio.js"></script><link rel="stylesheet" href="./studio-cinematic.css"><link rel="stylesheet" href="./studio-navigation.css"><script src="./studio-school-repair.js"></script><script src="./studio-motion-studio.js"></script><script src="./studio-navigation.js"></script></body></html>

@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const doc=document, q=s=>doc.querySelector(s);
-const groups={visual:{label:'1 · ฉากและภาพ',tools:['scene','characters','library'],hint:'เริ่มจากเลือกฉาก แล้วจัดตัวละครและภาพประกอบ ตรวจผลได้ในพรีวิว'},director:{label:'กำกับภาพ',tools:['cinematic','map','cinema','interaction'],hint:'สร้าง Blueprint หรือตั้งค่ากล้อง เอฟเฟกต์ และเหตุการณ์ของฉาก'},sound:{label:'2 · เสียง',tools:['record','voices','audio'],hint:'เลือกโทนเสียง → อัดเสียงพากย์ → จัดเวลาและระดับเสียง'},finish:{label:'3 · ตรวจและส่งออก',tools:['smart','export'],hint:'ตรวจงานและเล่นพรีวิวให้ครบ ก่อนเลือกรูปแบบวิดีโอและส่งออก'},assist:{label:'ผู้ช่วย AI',tools:['ai'],hint:'เลือกงานที่ต้องการให้ AI ช่วย แล้วตรวจผลก่อนนำไปใช้'}};
+const groups={visual:{label:'1 · ฉากและภาพ',tools:['scene','characters','library'],hint:'เริ่มจากเลือกฉาก แล้วจัดตัวละครและภาพประกอบ ตรวจผลได้ในพรีวิว'},director:{label:'กำกับภาพ',tools:['cinematic','motion','map','cinema','interaction'],hint:'สร้าง Blueprint หรือตั้งค่ากล้อง เอฟเฟกต์ และเหตุการณ์ของฉาก'},sound:{label:'2 · เสียง',tools:['record','voices','audio'],hint:'เลือกโทนเสียง → อัดเสียงพากย์ → จัดเวลาและระดับเสียง'},finish:{label:'3 · ตรวจและส่งออก',tools:['smart','export'],hint:'ตรวจงานและเล่นพรีวิวให้ครบ ก่อนเลือกรูปแบบวิดีโอและส่งออก'},assist:{label:'ผู้ช่วย AI',tools:['ai'],hint:'เลือกงานที่ต้องการให้ AI ช่วย แล้วตรวจผลก่อนนำไปใช้'}};
 let group='visual';
 const node=(tag,cls,text)=>{const n=doc.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
 const button=(label,fn,cls='')=>{const n=node('button',cls,label);n.type='button';n.onclick=fn;return n};

@@ -81,6 +81,7 @@
  }
  function sceneMarkup(scene,layer,W,local=0){
   if(!scene||!Array.isArray(scene.customAssets))return '';
+  if(typeof globalThis!=='undefined'&&globalThis.StoryMotion)local=globalThis.StoryMotion.clock(scene,local).time;
   const arr=scene.customAssets.filter(x=>isObj(x)&&!!x.front===(layer==='front')).slice(0,40);
   return arr.map(item=>{
    try{

@@ -5,13 +5,14 @@
     "aspect": "9:16",
     "fps": 30,
     "subMax": 19,
-    "styleSuffix": "Original 2D Thai school survival thriller. Fictional events, stylized architecture, safe vector SVG characters, no gore, suspenseful warm-to-cold lighting, visual motion synced to dialogue, no image watermarks. Improved depth staging: full-bleed school worlds, scale-correct rig cast, clean layering, no rotating doors or oversized floating background.",
+    "styleSuffix": "Original fictional Thai school thriller. Reviewed choreography revision 3: uninterrupted chase, grounded school sets, wrist-attached flashlight and key, motivated stops, consistent overcast morning, no gore.",
     "uiBoxStyle": {
       "bg": "#172b35",
       "color": "#fff8e4",
       "position": "bottom",
       "font": "system-ui"
-    }
+    },
+    "storyRevision": 3
   },
   "voiceProfiles": [
     {
@@ -92,7 +93,7 @@
       "id": "nont",
       "name": "นนท์",
       "role": "นักเรียน ม.ปลาย ผู้สังเกตความผิดปกติ",
-      "voice": "Non-speaking rig character (narration only).",
+      "voice": "Use the assigned voice profile for authored dialogue; no automatic lip sync.",
       "rig": {
         "style": "human",
         "skin": "#d5a27e",
@@ -104,13 +105,14 @@
         "scale": 0.81,
         "costume": "school"
       },
-      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. นนท์; นักเรียน ม.ปลาย ผู้สังเกตความผิดปกติ. Keep costume and proportions unchanged; no gore."
+      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. นนท์; นักเรียน ม.ปลาย ผู้สังเกตความผิดปกติ. Keep costume and proportions unchanged; no gore.",
+      "voiceProfileId": "nont"
     },
     {
       "id": "mind",
       "name": "มายด์",
       "role": "นักเรียน ม.ปลาย ใจกล้า คิดไว",
-      "voice": "Non-speaking rig character (narration only).",
+      "voice": "Use the assigned voice profile for authored dialogue; no automatic lip sync.",
       "rig": {
         "style": "human",
         "skin": "#d9a786",
@@ -123,13 +125,14 @@
         "costume": "school",
         "trim": "#a5b6cb"
       },
-      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. มายด์; นักเรียน ม.ปลาย ใจกล้า คิดไว. Keep costume and proportions unchanged; no gore. Distinct ponytail, pale blue trim; visually different from Nont."
+      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. มายด์; นักเรียน ม.ปลาย ใจกล้า คิดไว. Keep costume and proportions unchanged; no gore. Distinct ponytail, pale blue trim; visually different from Nont.",
+      "voiceProfileId": "mind"
     },
     {
       "id": "teacher",
       "name": "ครูภาคิน",
       "role": "ครูผู้ช่วยนักเรียนหนีขึ้นจุดปลอดภัย",
-      "voice": "Non-speaking rig character (narration only).",
+      "voice": "Use the assigned voice profile for authored dialogue; no automatic lip sync.",
       "rig": {
         "style": "human",
         "skin": "#c38e6f",
@@ -142,13 +145,14 @@
         "costume": "uniform",
         "eyewear": "glasses"
       },
-      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ครูภาคิน; ครูผู้ช่วยนักเรียนหนีขึ้นจุดปลอดภัย. Keep costume and proportions unchanged; no gore. Khaki teacher uniform, glasses; no white student uniform."
+      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ครูภาคิน; ครูผู้ช่วยนักเรียนหนีขึ้นจุดปลอดภัย. Keep costume and proportions unchanged; no gore. Khaki teacher uniform, glasses; no white student uniform.",
+      "voiceProfileId": "teacher"
     },
     {
       "id": "zombie",
       "name": "ผู้ติดเชื้อ",
       "role": "ตัวร้ายซอมบี้สมมติ ไม่ใช่บุคคลจริง",
-      "voice": "Non-speaking rig character (narration only).",
+      "voice": "Use the assigned voice profile for authored dialogue; no automatic lip sync.",
       "rig": {
         "style": "human",
         "skin": "#7f9b7b",
@@ -160,7 +164,8 @@
         "scale": 0.82,
         "costume": "basic"
       },
-      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ผู้ติดเชื้อ; ตัวร้ายซอมบี้สมมติ ไม่ใช่บุคคลจริง. Keep costume and proportions unchanged; no gore."
+      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ผู้ติดเชื้อ; ตัวร้ายซอมบี้สมมติ ไม่ใช่บุคคลจริง. Keep costume and proportions unchanged; no gore.",
+      "voiceProfileId": "narrator"
     }
   ],
   "locations": [
@@ -175,7 +180,7 @@
         ],
         "floor": "#627565",
         "floorY": 83,
-        "light": "dim",
+        "light": "none",
         "anchors": {
           "entry": {
             "x": 18,
@@ -201,7 +206,7 @@
         ],
         "floor": "#647664",
         "floorY": 83,
-        "light": "dim",
+        "light": "none",
         "anchors": {
           "yard": {
             "x": 18,
@@ -227,7 +232,7 @@
         ],
         "floor": "#63726d",
         "floorY": 83,
-        "light": "dim",
+        "light": "none",
         "anchors": {
           "classDoor": {
             "x": 18,
@@ -253,19 +258,19 @@
         ],
         "floor": "#7e7771",
         "floorY": 83,
-        "light": "dim",
+        "light": "none",
         "anchors": {
           "door": {
-            "x": 18,
-            "y": 90
+            "x": 86,
+            "y": 88
           },
           "window": {
-            "x": 63,
-            "y": 90
+            "x": 65,
+            "y": 88
           },
           "desk": {
-            "x": 108,
-            "y": 90
+            "x": 45,
+            "y": 88
           }
         },
         "props": [],
@@ -283,7 +288,7 @@
         ],
         "floor": "#5e6a66",
         "floorY": 83,
-        "light": "dim",
+        "light": "none",
         "anchors": {
           "stairs": {
             "x": 18,
@@ -309,19 +314,41 @@
         ],
         "floor": "#536363",
         "floorY": 83,
-        "light": "night",
+        "light": "none",
         "anchors": {
           "roofDoor": {
-            "x": 18,
-            "y": 90
+            "x": 83,
+            "y": 88
           },
           "signal": {
-            "x": 63,
+            "x": 24,
             "y": 90
           }
         },
         "props": [],
         "worldArt": "school-roof"
+      }
+    },
+    {
+      "id": "roof-landing",
+      "name": "ชานพักก่อนประตูดาดฟ้า",
+      "promptBlock": "Interior upper stair landing. The locked roof door is ahead; characters have not reached the roof yet.",
+      "set": {
+        "worldArt": "school-landing",
+        "light": "none",
+        "bg": [
+          "#344d5d",
+          "#182a37"
+        ],
+        "floor": "#657776",
+        "floorY": 83,
+        "props": [],
+        "anchors": {
+          "roofDoor": {
+            "x": 86,
+            "y": 88
+          }
+        }
       }
     }
   ],
@@ -340,7 +367,7 @@
     },
     {
       "id": "door-motion",
-      "text": "Authored door motion per scene is in productionMotionOverrides: closing in scene 5, locked in scenes 6/9 and opening in scenes 10/12. No accidental opening during a locked-door beat."
+      "text": "Doors use schoolDoorKeys in the shared choreography clock. Classroom closes in scene 5; landing door is locked in scene 9, unlocked in scene 10; roof door opens at the finale."
     },
     {
       "id": "world-visual",
@@ -348,7 +375,7 @@
     },
     {
       "id": "run-timing",
-      "text": "Character running uses authored motionKeys with actual travel time and ending stand pose. Zombie at finale appears only once the rooftop door begins opening."
+      "text": "Distance-based gait continues to the scene cut, unless intentionalHold is set. Shared authored timing fits the final scene duration."
     }
   ],
   "episodes": [
@@ -360,68 +387,99 @@
         {
           "id": "tpz-s01",
           "duration": 5,
-          "characters": [],
+          "characters": [
+            "zombie"
+          ],
           "location": "front-gate",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-1",
-              "text": "เช้าผิดปกติ",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-1-1",
+              "text": "กริ่งเช้าดังขึ้น",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "narrator",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-1-2",
+              "text": "คนหน้าประตูเดินเซ",
+              "start": 2.65,
+              "end": 4.88,
               "speaker": "narrator",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "เช้าวันนั้น เสียงกริ่งดังที่ทวีธาภิเศก ก่อนเงาประหลาดปรากฏหน้าประตู",
+          "voiceover": "กริ่งเช้าดังขึ้น แต่คนหน้าประตูกลับเดินเซเข้ามา",
           "voiceDirection": {
             "speaker": "ผู้บรรยายระทึกขวัญ",
             "voiceProfileId": "narrator",
             "emotion": "mysterious",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "measured",
+            "pace": "measured, concise",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Establish fictional school facade and gateway, morning sky turning cold.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
-            "type": "static",
+            "type": "dolly",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.08
           },
           "transition": {
-            "type": "fadeblack",
-            "duration": 0.4
+            "type": "cut",
+            "duration": 0
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
-          "actors": [],
+          "actors": [
+            {
+              "char": "zombie",
+              "x": 84,
+              "y": 83,
+              "pose": "walk",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.56,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 84,
+                  "y": 83,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 76,
+                  "y": 83,
+                  "pose": "walk",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 6
+            }
+          ],
           "props": [],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "กริ่งเข้าเรียนเบา 0:00; บรรยากาศเช้า 0:00",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -429,11 +487,23 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Establish fictional school facade and gateway, morning sky turning cold. | SFX PLAN: กริ่งเข้าเรียนเบา 0:00; บรรยากาศเช้า 0:00 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          }
         },
         {
           "id": "tpz-s02",
-          "duration": 5,
+          "duration": 4,
           "characters": [
             "nont",
             "zombie"
@@ -442,37 +512,40 @@
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-2",
-              "text": "คนหน้าประตูนั่นใคร?",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-2-1",
+              "text": "ได้ยินผมไหม?",
+              "start": 0.15,
+              "end": 1.88,
+              "speaker": "nont",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-2-2",
+              "text": "เดี๋ยว... ถอยก่อน!",
+              "start": 2.15,
+              "end": 3.88,
               "speaker": "nont",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "เฮ้... คนหน้าประตูนั่น เดินแปลก ๆ ว่ะ",
+          "voiceover": "พี่ครับ ได้ยินผมไหม? เดี๋ยว... ถอยก่อน!",
           "voiceDirection": {
             "speaker": "นนท์ นักเรียนชาย",
             "voiceProfileId": "nont",
             "emotion": "urgent",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
+            "pace": "urgent but clear",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Nont points at an infected silhouette approaching the gate; no physical contact.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -480,75 +553,88 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "nont",
-              "x": 25,
+              "x": 32,
               "y": 89,
               "pose": "point",
-              "view": "threeQuarter",
               "facing": "right",
+              "view": "threeQuarter",
               "face": "surprised",
-              "scale": 0.85
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 32,
+                  "y": 89,
+                  "pose": "point",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.5,
+                  "x": 32,
+                  "y": 89,
+                  "pose": "surprised",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4,
+                  "x": 25,
+                  "y": 89,
+                  "pose": "surprised",
+                  "easing": "linear"
+                }
+              ]
             },
             {
               "char": "zombie",
               "x": 76,
-              "y": 89,
+              "y": 87,
               "pose": "walk",
-              "view": "threeQuarter",
               "facing": "left",
-              "face": "angry",
-              "endPose": "stand",
-              "scale": 0.85,
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
               "motionKeys": [
                 {
                   "t": 0,
                   "x": 76,
-                  "y": 89,
-                  "pose": "stand"
-                },
-                {
-                  "t": 0.5,
-                  "x": 76,
-                  "y": 89,
+                  "y": 87,
                   "pose": "walk",
                   "easing": "linear"
                 },
                 {
-                  "t": 4.6,
-                  "x": 63,
-                  "y": 89,
+                  "t": 4,
+                  "x": 57,
+                  "y": 87,
                   "pose": "walk",
                   "easing": "linear"
-                },
-                {
-                  "t": 4.85,
-                  "x": 63,
-                  "y": 89,
-                  "pose": "stand"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 6
             }
           ],
           "props": [],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "ฝีเท้าช้า 0:01; เสียงครางต่ำ 0:03",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -556,50 +642,65 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Nont points at an infected silhouette approaching the gate; no physical contact. | SFX PLAN: ฝีเท้าช้า 0:01; เสียงครางต่ำ 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 4,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          }
         },
         {
           "id": "tpz-s03",
           "duration": 5,
           "characters": [
-            "zombie",
-            "nont"
+            "nont",
+            "zombie"
           ],
           "location": "courtyard",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-3",
-              "text": "หนี! มันเข้ามาแล้ว",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-3-1",
+              "text": "เขาพุ่งเข้ามา!",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "narrator",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-3-2",
+              "text": "นนท์วิ่งหนีเข้าตึก",
+              "start": 2.65,
+              "end": 4.88,
               "speaker": "narrator",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "สิ่งนั้นพุ่งเข้าลานกลาง เสียงกรีดร้องดังขึ้น ทุกคนเริ่มวิ่งหนี",
+          "voiceover": "เขาพุ่งเข้ามา! นนท์วิ่งหนีเข้าตึกเรียนทันที",
           "voiceDirection": {
             "speaker": "ผู้บรรยายระทึกขวัญ",
             "voiceProfileId": "narrator",
             "emotion": "mysterious",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "measured",
+            "pace": "measured, concise",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Zombie rushes across central yard; students move away, no blood.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
-            "type": "static",
+            "type": "follow",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.06,
+            "to": 1.06
           },
           "transition": {
             "type": "cut",
@@ -607,104 +708,82 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
-              "char": "zombie",
-              "x": 77,
-              "y": 87,
+              "char": "nont",
+              "x": 63,
+              "y": 91,
               "pose": "run",
-              "view": "threeQuarter",
               "facing": "left",
-              "face": "angry",
-              "endPose": "stand",
-              "scale": 0.85,
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 77,
-                  "y": 90,
-                  "pose": "stand"
-                },
-                {
-                  "t": 0.35,
-                  "x": 77,
-                  "y": 90,
+                  "x": 63,
+                  "y": 91,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 2.5,
-                  "x": 53,
-                  "y": 90,
+                  "t": 5,
+                  "x": 5,
+                  "y": 91,
                   "pose": "run",
                   "easing": "linear"
-                },
-                {
-                  "t": 2.65,
-                  "x": 53,
-                  "y": 90,
-                  "pose": "stand"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 7
             },
             {
-              "char": "nont",
-              "x": 25,
-              "y": 89,
+              "char": "zombie",
+              "x": 99,
+              "y": 87,
               "pose": "run",
-              "view": "threeQuarter",
               "facing": "left",
+              "view": "side",
               "face": "surprised",
-              "endPose": "stand",
-              "scale": 0.85,
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 25,
-                  "y": 89,
-                  "pose": "stand"
-                },
-                {
-                  "t": 0.3,
-                  "x": 25,
-                  "y": 89,
+                  "x": 99,
+                  "y": 87,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 2.2,
-                  "x": 13,
-                  "y": 89,
+                  "t": 5,
+                  "x": 40,
+                  "y": 87,
                   "pose": "run",
                   "easing": "linear"
-                },
-                {
-                  "t": 2.4,
-                  "x": 13,
-                  "y": 89,
-                  "pose": "stand"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 7
             }
           ],
           "props": [],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "ฝีเท้าวิ่ง 0:01; กรีดร้องไกล 0:02",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -712,11 +791,23 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Zombie rushes across central yard; students move away, no blood. | SFX PLAN: ฝีเท้าวิ่ง 0:01; กรีดร้องไกล 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          }
         },
         {
           "id": "tpz-s04",
-          "duration": 5,
+          "duration": 4,
           "characters": [
             "mind",
             "nont"
@@ -725,37 +816,40 @@
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-4",
-              "text": "ขึ้นชั้นสอง เร็ว!",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-4-1",
+              "text": "นนท์ ทางนี้!",
+              "start": 0.15,
+              "end": 1.88,
+              "speaker": "mind",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-4-2",
+              "text": "ครูรออยู่ในห้อง",
+              "start": 2.15,
+              "end": 3.88,
               "speaker": "mind",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "นนท์! มีซอมบี้เต็มทางเดิน รีบขึ้นชั้นสอง!",
+          "voiceover": "นนท์ ทางนี้! ครูรออยู่ในห้อง รีบมา!",
           "voiceDirection": {
             "speaker": "มายด์ นักเรียนหญิง",
             "voiceProfileId": "mind",
             "emotion": "urgent",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
+            "pace": "urgent but clear",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Mind warns Nont in corridor; run towards stairway, keep characters clear.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -763,256 +857,82 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "mind",
-              "x": 24,
-              "y": 89,
-              "pose": "point",
-              "view": "front",
-              "facing": "right",
+              "x": 50,
+              "y": 90,
+              "pose": "run",
+              "facing": "left",
+              "view": "side",
               "face": "surprised",
-              "scale": 0.85
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 50,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4,
+                  "x": 2,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
             },
             {
               "char": "nont",
-              "x": 76,
-              "y": 89,
+              "x": 94,
+              "y": 91,
               "pose": "run",
-              "view": "threeQuarter",
-              "facing": "right",
+              "facing": "left",
+              "view": "side",
               "face": "surprised",
-              "endPose": "stand",
-              "scale": 0.85,
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 76,
-                  "y": 89,
-                  "pose": "stand"
-                },
-                {
-                  "t": 0.2,
-                  "x": 76,
-                  "y": 89,
+                  "x": 94,
+                  "y": 91,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 2,
-                  "x": 87,
-                  "y": 89,
+                  "t": 4,
+                  "x": 43,
+                  "y": 91,
                   "pose": "run",
                   "easing": "linear"
-                },
-                {
-                  "t": 2.3,
-                  "x": 87,
-                  "y": 89,
-                  "pose": "stand"
                 }
-              ]
-            }
-          ],
-          "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-alarm-v1",
-                "name": "ไฟเตือนสีแดงกระพริบ",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 50,
-                    "r": 32,
-                    "fill": "#7d2c37"
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 48,
-                    "r": 24,
-                    "fill": "#ef4d48"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 37,
-                    "y": 67,
-                    "w": 27,
-                    "h": 9,
-                    "fill": "#5c6369",
-                    "rx": 2
-                  },
-                  {
-                    "type": "line",
-                    "x1": 12,
-                    "y1": 51,
-                    "x2": 2,
-                    "y2": 51,
-                    "stroke": "#f08b75",
-                    "strokeWidth": 3
-                  },
-                  {
-                    "type": "line",
-                    "x1": 87,
-                    "y1": 51,
-                    "x2": 98,
-                    "y2": 51,
-                    "stroke": "#f08b75",
-                    "strokeWidth": 3
-                  }
-                ]
-              },
-              "x": 49,
-              "y": 29,
-              "scale": 0.16,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-alarm",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "opacity": 0.2
-                },
-                {
-                  "t": 0.8,
-                  "opacity": 1
-                },
-                {
-                  "t": 1.5,
-                  "opacity": 0.15
-                },
-                {
-                  "t": 2.6,
-                  "opacity": 1
-                },
-                {
-                  "t": 3.5,
-                  "opacity": 0.2
-                },
-                {
-                  "t": 5,
-                  "opacity": 1
-                }
-              ]
-            }
-          ],
-          "productionEvents": [
-            "school-alarm"
-          ],
-          "productionPlacements": {
-            "school-alarm": {
-              "x": 49,
-              "y": 29,
-              "scale": 0.16,
-              "front": false
-            }
-          },
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "สัญญาณเตือนเบา 0:00; ฝีเท้าวิ่ง 0:02",
-              "rendered": false
-            }
-          ],
-          "sfx": [],
-          "audio": null,
-          "audioClips": [],
-          "image": null,
-          "video": null,
-          "art": "",
-          "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Mind warns Nont in corridor; run towards stairway, keep characters clear. | SFX PLAN: สัญญาณเตือนเบา 0:00; ฝีเท้าวิ่ง 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
-        },
-        {
-          "id": "tpz-s05",
-          "duration": 5,
-          "characters": [
-            "teacher"
-          ],
-          "location": "classroom",
-          "subtitle": [],
-          "subtitleCues": [
-            {
-              "id": "cue-5",
-              "text": "ปิดประตูเดี๋ยวนี้!",
-              "start": 1.3,
-              "end": 4.65,
-              "speaker": "teacher",
-              "emotion": "suspense"
-            }
-          ],
-          "voiceover": "เข้าห้องเดี๋ยวนี้! ปิดประตู แล้วออกห่างจากหน้าต่าง!",
-          "voiceDirection": {
-            "speaker": "ครูภาคิน",
-            "voiceProfileId": "teacher",
-            "emotion": "urgent",
-            "tone": "Natural Thai animated thriller dialogue",
-            "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
-            "pause": "short natural pauses, no dead air",
-            "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
-          },
-          "imagePrompt": "Teacher directs pupils into room with door to the right. Keep exit clearly visible.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
-          "camera": {
-            "type": "static",
-            "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
-          },
-          "transition": {
-            "type": "cut",
-            "duration": 0
-          },
-          "atmosphere": "none",
-          "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
-            "focusX": 50,
-            "focusY": 42,
-            "flicker": 0
-          },
-          "actors": [
-            {
-              "char": "teacher",
-              "x": 34,
-              "y": 89,
-              "pose": "point",
-              "view": "threeQuarter",
-              "facing": "right",
-              "face": "surprised",
-              "scale": 0.85
+              ],
+              "gait": "distance",
+              "stride": 7
             }
           ],
           "props": [],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "เสียงประตูเปิด 0:00; คำสั่งครู 0:01",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -1020,19 +940,263 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Teacher directs pupils into room with door to the right. Keep exit clearly visible. | SFX PLAN: เสียงประตูเปิด 0:00; คำสั่งครู 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
           "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 4,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          }
+        },
+        {
+          "id": "tpz-s05",
+          "duration": 5,
+          "characters": [
+            "teacher",
+            "nont",
+            "mind"
+          ],
+          "location": "classroom",
+          "subtitle": [],
+          "subtitleCues": [
+            {
+              "id": "cue-5-1",
+              "text": "เข้ามาเร็ว!",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "teacher",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-5-2",
+              "text": "ดันโต๊ะขวางประตู!",
+              "start": 2.65,
+              "end": 4.88,
+              "speaker": "teacher",
+              "emotion": "suspense"
+            }
+          ],
+          "voiceover": "เข้ามาเร็ว! ช่วยกันดันโต๊ะขวางประตู!",
+          "voiceDirection": {
+            "speaker": "ครูภาคิน",
+            "voiceProfileId": "teacher",
+            "emotion": "urgent",
+            "tone": "Natural Thai animated thriller dialogue",
+            "delivery": "Read exactly this scene text, one voice profile per scene",
+            "pace": "urgent but clear",
+            "pause": "short natural pauses, no dead air",
+            "accent": "standard Thai",
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
+          },
+          "imagePrompt": "Teacher directs pupils into room with door to the right. Keep exit clearly visible.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
+          "camera": {
+            "type": "static",
+            "world": 1,
+            "from": 1.025,
+            "to": 1.025
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "atmosphere": "none",
+          "lighting": {
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
+            "focusX": 50,
+            "focusY": 40,
+            "flicker": 0
+          },
+          "actors": [
+            {
+              "char": "teacher",
+              "x": 69,
+              "y": 89,
+              "pose": "openDoor",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "handTarget": {
+                "door": true,
+                "x": 92.3,
+                "y": 69.1,
+                "start": 0,
+                "end": 4.2,
+                "referenceWidth": 50.625
+              },
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 69,
+                  "y": 89,
+                  "pose": "openDoor",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.4,
+                  "x": 69,
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4.1,
+                  "x": 80.4,
+                  "y": 89,
+                  "pose": "openDoor",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 80.4,
+                  "y": 89,
+                  "pose": "openDoor",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance"
+            },
+            {
+              "char": "nont",
+              "x": 94,
+              "y": 91,
+              "pose": "run",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 94,
+                  "y": 91,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 0.2,
+                  "x": 94,
+                  "y": 91,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.8,
+                  "x": 28,
+                  "y": 91,
+                  "pose": "stand",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 28,
+                  "y": 91,
+                  "pose": "stand",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
+            },
+            {
+              "char": "mind",
+              "x": 108,
+              "y": 86,
+              "pose": "run",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 108,
+                  "y": 86,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 1,
+                  "x": 108,
+                  "y": 86,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.4,
+                  "x": 44,
+                  "y": 86,
+                  "pose": "stand",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 44,
+                  "y": 86,
+                  "pose": "stand",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
+            }
+          ],
+          "props": [],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
+          "productionSoundCues": [],
+          "sfx": [],
+          "audio": null,
+          "audioClips": [],
+          "image": null,
+          "video": null,
+          "art": "",
+          "uiBox": null,
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          },
           "schoolDoorKeys": [
             {
               "t": 0,
-              "open": 0.76
+              "open": 0.85
             },
             {
-              "t": 2.5,
-              "open": 0.76
+              "t": 2.4,
+              "open": 0.85
             },
             {
-              "t": 3.55,
+              "t": 4.1,
               "open": 0
             },
             {
@@ -1046,43 +1210,47 @@
           "duration": 5,
           "characters": [
             "nont",
-            "mind"
+            "mind",
+            "teacher"
           ],
           "location": "classroom",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-6",
-              "text": "โต๊ะกั้นประตู!",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-6-1",
+              "text": "โต๊ะขวางไว้ได้",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "narrator",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-6-2",
+              "text": "แต่เสียงมาจากหน้าต่าง",
+              "start": 2.65,
+              "end": 4.88,
               "speaker": "narrator",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "นนท์กับมายด์ลากโต๊ะขวางประตู ขณะที่เสียงทุบดังขึ้นเรื่อย ๆ",
+          "voiceover": "โต๊ะขวางไว้ได้ แต่เสียงทุบกลับดังมาจากหน้าต่าง",
           "voiceDirection": {
             "speaker": "ผู้บรรยายระทึกขวัญ",
             "voiceProfileId": "narrator",
             "emotion": "mysterious",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "measured",
+            "pace": "measured, concise",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Barricade desk slides from x72 to x54 across door, visible physical motion.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -1090,33 +1258,121 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "nont",
-              "x": 26,
-              "y": 89,
-              "pose": "carry",
-              "view": "threeQuarter",
+              "x": 27,
+              "y": 90,
+              "pose": "walk",
               "facing": "right",
-              "face": "think",
-              "scale": 0.85
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "handTarget": {
+                "asset": "school-barricade",
+                "anchor": {
+                  "x": 9,
+                  "y": 9
+                },
+                "referenceWidth": 50.625
+              },
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 27,
+                  "y": 90,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4.3,
+                  "x": 61,
+                  "y": 90,
+                  "pose": "carry",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 61,
+                  "y": 90,
+                  "pose": "carry",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 6
             },
             {
               "char": "mind",
-              "x": 76,
-              "y": 89,
-              "pose": "carry",
-              "view": "front",
+              "x": 47,
+              "y": 87,
+              "pose": "walk",
               "facing": "right",
-              "face": "think",
-              "scale": 0.85
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "handTarget": {
+                "asset": "school-barricade",
+                "anchor": {
+                  "x": 86,
+                  "y": 9
+                },
+                "referenceWidth": 50.625
+              },
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 47,
+                  "y": 87,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4.3,
+                  "x": 81,
+                  "y": 87,
+                  "pose": "carry",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 81,
+                  "y": 87,
+                  "pose": "carry",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 6
+            },
+            {
+              "char": "teacher",
+              "x": 19,
+              "y": 87,
+              "pose": "point",
+              "facing": "right",
+              "view": "threeQuarter",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true
             }
           ],
           "props": [],
@@ -1132,7 +1388,7 @@
                   {
                     "type": "rect",
                     "x": 6,
-                    "y": 29,
+                    "y": 8,
                     "w": 88,
                     "h": 17,
                     "fill": "#a67d56",
@@ -1141,25 +1397,25 @@
                   {
                     "type": "rect",
                     "x": 12,
-                    "y": 46,
+                    "y": 25,
                     "w": 9,
-                    "h": 48,
+                    "h": 69,
                     "fill": "#6f5a4f",
                     "rx": 0
                   },
                   {
                     "type": "rect",
                     "x": 80,
-                    "y": 46,
+                    "y": 25,
                     "w": 9,
-                    "h": 48,
+                    "h": 69,
                     "fill": "#6f5a4f",
                     "rx": 0
                   },
                   {
                     "type": "rect",
                     "x": 10,
-                    "y": 23,
+                    "y": 0,
                     "w": 80,
                     "h": 8,
                     "fill": "#d5af7c",
@@ -1176,31 +1432,26 @@
                   }
                 ]
               },
-              "x": 53,
+              "x": 45,
               "y": 88,
-              "scale": 0.43,
+              "scale": 0.38,
               "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-barricade",
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 67,
+                  "x": 45,
                   "y": 88
                 },
                 {
-                  "t": 0.9,
-                  "x": 67,
-                  "y": 88
-                },
-                {
-                  "t": 2.85,
-                  "x": 53,
+                  "t": 4.3,
+                  "x": 79,
                   "y": 88
                 },
                 {
                   "t": 5,
-                  "x": 53,
+                  "x": 79,
                   "y": 88
                 }
               ]
@@ -1211,19 +1462,13 @@
           ],
           "productionPlacements": {
             "school-barricade": {
-              "x": 53,
+              "x": 45,
               "y": 88,
-              "scale": 0.43,
+              "scale": 0.38,
               "front": false
             }
           },
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "โต๊ะครูดพื้น 0:01; ทุบประตู 0:03",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -1231,30 +1476,18 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Barricade desk slides from x72 to x54 across door, visible physical motion. | SFX PLAN: โต๊ะครูดพื้น 0:01; ทุบประตู 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
-          "productionMotionOverrides": {
-            "school-barricade": [
-              {
-                "t": 0,
-                "x": 67,
-                "y": 88
-              },
-              {
-                "t": 0.9,
-                "x": 67,
-                "y": 88
-              },
-              {
-                "t": 2.85,
-                "x": 53,
-                "y": 88
-              },
-              {
-                "t": 5,
-                "x": 53,
-                "y": 88
-              }
-            ]
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
           },
           "schoolDoorKeys": [
             {
@@ -1271,43 +1504,48 @@
           "id": "tpz-s07",
           "duration": 5,
           "characters": [
-            "mind"
+            "mind",
+            "nont",
+            "teacher"
           ],
           "location": "hallway",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-7",
-              "text": "หน้าต่างแตก!",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-7-1",
+              "text": "กระจกจะแตกแล้ว!",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "mind",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-7-2",
+              "text": "ไปบันไดหลัง เร็ว!",
+              "start": 2.65,
+              "end": 4.88,
               "speaker": "mind",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "กระจกแตกแล้ว! ประตูหลังยังว่างอยู่ รีบตามฉันมา!",
+          "voiceover": "กระจกจะแตกแล้ว! ไปบันไดหลัง เร็ว!",
           "voiceDirection": {
             "speaker": "มายด์ นักเรียนหญิง",
             "voiceProfileId": "mind",
             "emotion": "urgent",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
+            "pace": "urgent but clear",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "School corridor window visibly cracks mid-scene; Mind turns towards the rear stairs.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -1315,65 +1553,134 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "mind",
-              "x": 36,
+              "x": 37,
               "y": 90,
               "pose": "run",
-              "view": "front",
-              "facing": "right",
+              "facing": "left",
+              "view": "side",
               "face": "surprised",
-              "endPose": "stand",
-              "scale": 0.85,
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 36,
+                  "x": 37,
                   "y": 90,
-                  "pose": "stand"
+                  "pose": "surprised",
+                  "easing": "linear"
                 },
                 {
-                  "t": 0.5,
-                  "x": 36,
+                  "t": 1.4,
+                  "x": 37,
                   "y": 90,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 3.25,
-                  "x": 62,
+                  "t": 5,
+                  "x": -8,
                   "y": 90,
                   "pose": "run",
                   "easing": "linear"
-                },
-                {
-                  "t": 3.5,
-                  "x": 62,
-                  "y": 90,
-                  "pose": "stand"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 7
+            },
+            {
+              "char": "nont",
+              "x": 64,
+              "y": 91,
+              "pose": "run",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 64,
+                  "y": 91,
+                  "pose": "surprised",
+                  "easing": "linear"
+                },
+                {
+                  "t": 1.7,
+                  "x": 64,
+                  "y": 91,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 16,
+                  "y": 91,
+                  "pose": "run",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
+            },
+            {
+              "char": "teacher",
+              "x": 91,
+              "y": 87,
+              "pose": "run",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 91,
+                  "y": 87,
+                  "pose": "surprised",
+                  "easing": "linear"
+                },
+                {
+                  "t": 1.9,
+                  "x": 91,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 44,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
             }
           ],
           "props": [],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "กระจกแตกร้าว 0:02; เท้าวิ่ง 0:03",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -1381,53 +1688,69 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: School corridor window visibly cracks mid-scene; Mind turns towards the rear stairs. | SFX PLAN: กระจกแตกร้าว 0:02; เท้าวิ่ง 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          },
           "worldEffects": {
-            "windowCrackAt": 2.1
+            "windowCrackAt": 1.2
           }
         },
         {
           "id": "tpz-s08",
-          "duration": 5,
+          "duration": 6,
           "characters": [
+            "teacher",
             "nont",
-            "teacher"
+            "mind"
           ],
           "location": "stairwell",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-8",
-              "text": "แสงสุดท้ายในบันได",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-8-1",
+              "text": "ไฟดับทั้งชั้น",
+              "start": 0.15,
+              "end": 2.88,
+              "speaker": "narrator",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-8-2",
+              "text": "ตามแสงไฟฉายขึ้นไป",
+              "start": 3.15,
+              "end": 5.88,
               "speaker": "narrator",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "ทั้งสามวิ่งฝ่าบันไดมืด แสงไฟฉายส่ายหาทางขึ้นด้านบน",
+          "voiceover": "ไฟดับทั้งชั้น ครูยกไฟฉายนำทุกคนขึ้นบันได",
           "voiceDirection": {
             "speaker": "ผู้บรรยายระทึกขวัญ",
             "voiceProfileId": "narrator",
             "emotion": "mysterious",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "measured",
+            "pace": "measured, concise",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Dark stairwell, physically visible animated flashlight beam and moving survivor.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -1435,188 +1758,148 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.95,
-            "glow": 0.08,
+            "exposure": 0.9,
+            "glow": 0.03,
             "vignette": 0.2,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
-              "char": "nont",
-              "x": 26,
-              "y": 87,
+              "char": "teacher",
+              "x": 40,
+              "y": 77,
               "pose": "run",
-              "view": "threeQuarter",
               "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "endPose": "stand",
-              "scale": 0.85,
+              "scale": 0.73,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "override": {
+                "shoulderL": -65,
+                "elbowL": -38
+              },
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 26,
-                  "y": 87,
-                  "pose": "stand"
-                },
-                {
-                  "t": 0.5,
-                  "x": 26,
-                  "y": 87,
+                  "x": 40,
+                  "y": 77,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 3.4,
-                  "x": 44,
-                  "y": 87,
+                  "t": 6,
+                  "x": 92,
+                  "y": 60,
                   "pose": "run",
                   "easing": "linear"
-                },
-                {
-                  "t": 3.65,
-                  "x": 44,
-                  "y": 87,
-                  "pose": "stand"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 7
             },
             {
-              "char": "teacher",
-              "x": 73,
-              "y": 87,
+              "char": "nont",
+              "x": 18,
+              "y": 84,
               "pose": "run",
-              "view": "threeQuarter",
               "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "endPose": "stand",
-              "scale": 0.85,
+              "scale": 0.73,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 73,
-                  "y": 87,
-                  "pose": "stand"
-                },
-                {
-                  "t": 0.75,
-                  "x": 73,
-                  "y": 87,
+                  "x": 18,
+                  "y": 84,
                   "pose": "run",
                   "easing": "linear"
                 },
                 {
-                  "t": 3.6,
-                  "x": 84,
-                  "y": 87,
+                  "t": 6,
+                  "x": 70,
+                  "y": 67,
                   "pose": "run",
                   "easing": "linear"
-                },
-                {
-                  "t": 3.85,
-                  "x": 84,
-                  "y": 87,
-                  "pose": "stand"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 7
+            },
+            {
+              "char": "mind",
+              "x": 1,
+              "y": 90,
+              "pose": "run",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.73,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 1,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 6,
+                  "x": 53,
+                  "y": 73,
+                  "pose": "run",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
             }
           ],
-          "props": [],
-          "customAssets": [
+          "props": [
             {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-flashlight-v1",
-                "name": "ไฟฉายส่องทาง",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
+              "kind": "flashlight",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false,
+              "light": {
+                "intensity": 0.65,
+                "range": 56,
+                "cone": 24,
+                "keys": [
                   {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        19,
-                        43
-                      ],
-                      [
-                        95,
-                        14
-                      ],
-                      [
-                        95,
-                        84
-                      ]
-                    ],
-                    "fill": "#ede5a4"
+                    "t": 0,
+                    "angle": -10
                   },
                   {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 39,
-                    "w": 25,
-                    "h": 22,
-                    "fill": "#454f55",
-                    "rx": 5
+                    "t": 2,
+                    "angle": 8
                   },
                   {
-                    "type": "rect",
-                    "x": 30,
-                    "y": 37,
-                    "w": 10,
-                    "h": 25,
-                    "fill": "#c8c6b6",
-                    "rx": 2
+                    "t": 4,
+                    "angle": -5
                   },
                   {
-                    "type": "circle",
-                    "cx": 39,
-                    "cy": 49,
-                    "r": 5,
-                    "fill": "#fff5c7"
+                    "t": 6,
+                    "angle": -12
                   }
                 ]
-              },
-              "x": 40,
-              "y": 62,
-              "scale": 0.31,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-flashlight",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "rotate": -22
-                },
-                {
-                  "t": 2.7,
-                  "rotate": 8
-                },
-                {
-                  "t": 5,
-                  "rotate": 24
-                }
-              ]
+              }
             }
           ],
-          "productionEvents": [
-            "school-flashlight"
-          ],
-          "productionPlacements": {
-            "school-flashlight": {
-              "x": 40,
-              "y": 62,
-              "scale": 0.31,
-              "front": false
-            }
-          },
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "หอบหายใจ 0:00; ฝีเท้าบนบันได 0:01",
-              "rendered": false
-            }
-          ],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -1624,50 +1907,72 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Dark stairwell, physically visible animated flashlight beam and moving survivor. | SFX PLAN: หอบหายใจ 0:00; ฝีเท้าบนบันได 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [
+            {
+              "propIndex": 0,
+              "actor": "teacher",
+              "hand": "left"
+            }
+          ],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 6,
+            "revision": 3
+          },
+          "light": {
+            "color": "#101c2f",
+            "opacity": 0.2
+          }
         },
         {
           "id": "tpz-s09",
           "duration": 5,
           "characters": [
             "nont",
-            "teacher"
+            "teacher",
+            "mind"
           ],
-          "location": "rooftop",
+          "location": "roof-landing",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-9",
-              "text": "ประตูล็อก!",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-9-1",
+              "text": "ประตูล็อกอยู่!",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "nont",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-9-2",
+              "text": "ครูมีกุญแจไหม?",
+              "start": 2.65,
+              "end": 4.88,
               "speaker": "nont",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "ประตูดาดฟ้าล็อก! ครูครับ มีกุญแจไหม?",
+          "voiceover": "ล็อกอยู่! ครูครับ มีกุญแจดาดฟ้าไหม?",
           "voiceDirection": {
             "speaker": "นนท์ นักเรียนชาย",
             "voiceProfileId": "nont",
             "emotion": "urgent",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
+            "pace": "urgent but clear",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Nont tries sealed rooftop door, Teacher approaches. Door still closed.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -1675,75 +1980,110 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.78,
-            "glow": 0.2,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "nont",
-              "x": 31,
+              "x": 80,
               "y": 89,
-              "pose": "surprised",
-              "view": "threeQuarter",
+              "pose": "openDoor",
               "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "scale": 0.85
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "handTarget": {
+                "door": true,
+                "x": 92.3,
+                "y": 69.1,
+                "referenceWidth": 50.625
+              }
             },
             {
               "char": "teacher",
-              "x": 77,
-              "y": 89,
+              "x": 36,
+              "y": 90,
               "pose": "walk",
-              "view": "threeQuarter",
-              "facing": "left",
+              "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "endPose": "stand",
-              "scale": 0.85,
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "override": {
+                "shoulderL": -65,
+                "elbowL": -38
+              },
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 77,
-                  "y": 89,
-                  "pose": "stand"
-                },
-                {
-                  "t": 1.1,
-                  "x": 77,
-                  "y": 89,
+                  "x": 36,
+                  "y": 90,
                   "pose": "walk",
                   "easing": "linear"
                 },
                 {
-                  "t": 3.7,
-                  "x": 61,
-                  "y": 89,
-                  "pose": "walk",
+                  "t": 2.3,
+                  "x": 52,
+                  "y": 90,
+                  "pose": "stand",
                   "easing": "linear"
                 },
                 {
-                  "t": 4.1,
-                  "x": 61,
-                  "y": 89,
-                  "pose": "stand"
+                  "t": 5,
+                  "x": 52,
+                  "y": 90,
+                  "pose": "stand",
+                  "easing": "linear"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 6
+            },
+            {
+              "char": "mind",
+              "x": 20,
+              "y": 89,
+              "pose": "surprised",
+              "facing": "right",
+              "view": "threeQuarter",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true
             }
           ],
-          "props": [],
+          "props": [
+            {
+              "kind": "flashlight",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false,
+              "light": {
+                "intensity": 0.55,
+                "range": 40,
+                "cone": 20
+              }
+            }
+          ],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "เสียงลูกบิดกระทบ 0:01; ลมหอบ 0:02",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -1751,8 +2091,25 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Nont tries sealed rooftop door, Teacher approaches. Door still closed. | SFX PLAN: เสียงลูกบิดกระทบ 0:01; ลมหอบ 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
           "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [
+            {
+              "propIndex": 0,
+              "actor": "teacher",
+              "hand": "left"
+            }
+          ],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          },
           "schoolDoorKeys": [
             {
               "t": 0,
@@ -1768,43 +2125,48 @@
           "id": "tpz-s10",
           "duration": 5,
           "characters": [
-            "teacher"
+            "teacher",
+            "nont",
+            "mind"
           ],
-          "location": "rooftop",
+          "location": "roof-landing",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-10",
-              "text": "เปิดได้แล้ว!",
-              "start": 1.3,
-              "end": 4.65,
+              "id": "cue-10-1",
+              "text": "ถอยนิดหนึ่ง...",
+              "start": 0.15,
+              "end": 2.38,
+              "speaker": "teacher",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-10-2",
+              "text": "เปิดแล้ว ขึ้นไปเลย!",
+              "start": 2.65,
+              "end": 4.88,
               "speaker": "teacher",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "มี! หลบหน่อย ทุกคนรีบขึ้นไป แล้วปิดประตู!",
+          "voiceover": "มี! ถอยนิดหนึ่ง... เปิดแล้ว ขึ้นไปเลย!",
           "voiceDirection": {
             "speaker": "ครูภาคิน",
             "voiceProfileId": "teacher",
             "emotion": "urgent",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
+            "pace": "urgent but clear",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Teacher raises brass key, rooftop door opens on animation. Motion continuity.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -1812,118 +2174,168 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.78,
-            "glow": 0.2,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "teacher",
-              "x": 35,
+              "x": 80,
               "y": 89,
               "pose": "openDoor",
-              "view": "threeQuarter",
               "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "scale": 0.85
-            }
-          ],
-          "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-key-v1",
-                "name": "พวงกุญแจดาดฟ้า",
-                "category": "prop",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "circle",
-                    "cx": 32,
-                    "cy": 30,
-                    "r": 17,
-                    "fill": "#cfb56c"
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 32,
-                    "cy": 30,
-                    "r": 8,
-                    "fill": "#263d48"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 43,
-                    "y": 28,
-                    "w": 35,
-                    "h": 12,
-                    "fill": "#c6aa5e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 71,
-                    "y": 38,
-                    "w": 8,
-                    "h": 24,
-                    "fill": "#c6aa5e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 60,
-                    "y": 38,
-                    "w": 7,
-                    "h": 18,
-                    "fill": "#c6aa5e",
-                    "rx": 0
-                  }
-                ]
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "handTarget": {
+                "door": true,
+                "x": 92.3,
+                "y": 69.1,
+                "start": 0,
+                "end": 2.7,
+                "referenceWidth": 50.625
               },
-              "x": 46,
-              "y": 59,
-              "scale": 0.15,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-key",
+              "override": {
+                "shoulderL": -65,
+                "elbowL": -38
+              },
               "motionKeys": [
                 {
                   "t": 0,
-                  "opacity": 0
+                  "x": 80,
+                  "y": 89,
+                  "pose": "openDoor",
+                  "easing": "linear"
                 },
                 {
-                  "t": 2,
-                  "opacity": 1
+                  "t": 2.8,
+                  "x": 80,
+                  "y": 89,
+                  "pose": "stand",
+                  "easing": "linear"
                 },
                 {
                   "t": 5,
-                  "opacity": 1
+                  "x": 80,
+                  "y": 89,
+                  "pose": "stand",
+                  "easing": "linear"
                 }
               ]
-            }
-          ],
-          "productionEvents": [
-            "school-key"
-          ],
-          "productionPlacements": {
-            "school-key": {
-              "x": 46,
-              "y": 59,
-              "scale": 0.15,
-              "front": false
-            }
-          },
-          "productionSoundCues": [
+            },
             {
-              "at": 0,
-              "description": "กุญแจไขล็อก 0:01; ประตูเหล็กเปิด 0:03",
-              "rendered": false
+              "char": "nont",
+              "x": 30,
+              "y": 91,
+              "pose": "run",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "clipX": 94,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 30,
+                  "y": 91,
+                  "pose": "stand",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.6,
+                  "x": 30,
+                  "y": 91,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 111,
+                  "y": 91,
+                  "pose": "run",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
+            },
+            {
+              "char": "mind",
+              "x": 14,
+              "y": 87,
+              "pose": "run",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "clipX": 94,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 14,
+                  "y": 87,
+                  "pose": "stand",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3,
+                  "x": 14,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 5,
+                  "x": 93,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                }
+              ],
+              "gait": "distance",
+              "stride": 7
             }
           ],
+          "props": [
+            {
+              "kind": "key",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false,
+              "appearAt": 0.3
+            },
+            {
+              "kind": "flashlight",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false,
+              "light": {
+                "intensity": 0.45,
+                "range": 40,
+                "cone": 20
+              }
+            }
+          ],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -1931,23 +2343,46 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Teacher raises brass key, rooftop door opens on animation. Motion continuity. | SFX PLAN: กุญแจไขล็อก 0:01; ประตูเหล็กเปิด 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [
+            {
+              "propIndex": 0,
+              "actor": "teacher",
+              "hand": "right"
+            },
+            {
+              "propIndex": 1,
+              "actor": "teacher",
+              "hand": "left"
+            }
+          ],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 5,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          },
           "schoolDoorKeys": [
             {
               "t": 0,
               "open": 0
             },
             {
-              "t": 2.6,
+              "t": 2.2,
               "open": 0
             },
             {
-              "t": 4.2,
-              "open": 0.84
+              "t": 3.3,
+              "open": 0.9
             },
             {
               "t": 5,
-              "open": 0.84
+              "open": 0.9
             }
           ]
         },
@@ -1956,43 +2391,47 @@
           "duration": 6,
           "characters": [
             "nont",
-            "mind"
+            "mind",
+            "teacher"
           ],
           "location": "rooftop",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-11",
-              "text": "ขอความช่วยเหลือ!",
-              "start": 1.3,
-              "end": 5.65,
+              "id": "cue-11-1",
+              "text": "โทรขอความช่วยเหลือ",
+              "start": 0.15,
+              "end": 2.88,
+              "speaker": "narrator",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-11-2",
+              "text": "ส่งสัญญาณจากดาดฟ้า",
+              "start": 3.15,
+              "end": 5.88,
               "speaker": "narrator",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "บนดาดฟ้า ทุกคนเปิดไฟฉุกเฉิน และโบกเสื้อส่งสัญญาณขอความช่วยเหลือ",
+          "voiceover": "ถึงดาดฟ้าแล้ว มายด์โทรขอความช่วยเหลือ นนท์รีบโบกมือส่งสัญญาณ",
           "voiceDirection": {
             "speaker": "ผู้บรรยายระทึกขวัญ",
             "voiceProfileId": "narrator",
             "emotion": "mysterious",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "measured",
+            "pace": "measured, concise",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Roof beacon pulses visibly, Nont and Mind wave to the distant skyline.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
             "type": "static",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.025
           },
           "transition": {
             "type": "cut",
@@ -2000,138 +2439,143 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.78,
-            "glow": 0.2,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "nont",
-              "x": 26,
-              "y": 89,
+              "x": 24,
+              "y": 90,
               "pose": "wave",
-              "view": "threeQuarter",
               "facing": "right",
+              "view": "threeQuarter",
               "face": "surprised",
-              "scale": 0.85
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true
             },
             {
               "char": "mind",
-              "x": 75,
+              "x": 50,
               "y": 89,
-              "pose": "wave",
-              "view": "front",
+              "pose": "phone",
               "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "scale": 0.85
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true
+            },
+            {
+              "char": "teacher",
+              "x": 76,
+              "y": 87,
+              "pose": "point",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
+              "override": {
+                "shoulderR": -112,
+                "elbowR": -12
+              }
             }
           ],
-          "props": [],
-          "customAssets": [
+          "props": [
             {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-sos-v1",
-                "name": "ไฟสัญญาณขอความช่วยเหลือ",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
+              "kind": "phone",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false
+            },
+            {
+              "kind": "flashlight",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false,
+              "light": {
+                "intensity": 0.7,
+                "range": 50,
+                "cone": 17,
+                "keys": [
                   {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 40,
-                    "r": 33,
-                    "fill": "#c44345"
+                    "t": 0.0,
+                    "intensity": 0.7,
+                    "angle": -10
                   },
                   {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 40,
-                    "r": 23,
-                    "fill": "#ffb56e"
+                    "t": 0.6,
+                    "intensity": 0.08,
+                    "angle": -10
                   },
                   {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 40,
-                    "r": 10,
-                    "fill": "#fff0af"
+                    "t": 1.2,
+                    "intensity": 0.7,
+                    "angle": -10
                   },
                   {
-                    "type": "rect",
-                    "x": 46,
-                    "y": 68,
-                    "w": 8,
-                    "h": 28,
-                    "fill": "#667a78",
-                    "rx": 0
+                    "t": 1.7999999999999998,
+                    "intensity": 0.08,
+                    "angle": -10
                   },
                   {
-                    "type": "rect",
-                    "x": 31,
-                    "y": 92,
-                    "w": 38,
-                    "h": 6,
-                    "fill": "#394e51",
-                    "rx": 0
+                    "t": 2.4,
+                    "intensity": 0.7,
+                    "angle": -10
+                  },
+                  {
+                    "t": 3.0,
+                    "intensity": 0.08,
+                    "angle": -10
+                  },
+                  {
+                    "t": 3.5999999999999996,
+                    "intensity": 0.7,
+                    "angle": -10
+                  },
+                  {
+                    "t": 4.2,
+                    "intensity": 0.08,
+                    "angle": -10
+                  },
+                  {
+                    "t": 4.8,
+                    "intensity": 0.7,
+                    "angle": -10
+                  },
+                  {
+                    "t": 5.3999999999999995,
+                    "intensity": 0.08,
+                    "angle": -10
+                  },
+                  {
+                    "t": 6.0,
+                    "intensity": 0.7,
+                    "angle": -10
                   }
                 ]
-              },
-              "x": 65,
-              "y": 48,
-              "scale": 0.23,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-sos",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "opacity": 0.2
-                },
-                {
-                  "t": 0.96,
-                  "opacity": 1
-                },
-                {
-                  "t": 1.8,
-                  "opacity": 0.15
-                },
-                {
-                  "t": 3.12,
-                  "opacity": 1
-                },
-                {
-                  "t": 4.2,
-                  "opacity": 0.2
-                },
-                {
-                  "t": 6,
-                  "opacity": 1
-                }
-              ]
+              }
             }
           ],
-          "productionEvents": [
-            "school-sos"
-          ],
-          "productionPlacements": {
-            "school-sos": {
-              "x": 65,
-              "y": 48,
-              "scale": 0.23,
-              "front": false
-            }
-          },
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "ลมบนดาดฟ้า 0:00; ไฟเตือนดังติ๊ด 0:02",
-              "rendered": false
-            }
-          ],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -2139,10 +2583,37 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Roof beacon pulses visibly, Nont and Mind wave to the distant skyline. | SFX PLAN: ลมบนดาดฟ้า 0:00; ไฟเตือนดังติ๊ด 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
+          "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [
+            {
+              "propIndex": 0,
+              "actor": "mind",
+              "hand": "right"
+            },
+            {
+              "propIndex": 1,
+              "actor": "teacher",
+              "hand": "right"
+            }
+          ],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 6,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          },
           "schoolDoorKeys": [
             {
               "t": 0,
+              "open": 0.8
+            },
+            {
+              "t": 1,
               "open": 0
             },
             {
@@ -2153,46 +2624,51 @@
         },
         {
           "id": "tpz-s12",
-          "duration": 6,
+          "duration": 7,
           "characters": [
             "mind",
+            "teacher",
+            "nont",
             "zombie"
           ],
           "location": "rooftop",
           "subtitle": [],
           "subtitleCues": [
             {
-              "id": "cue-12",
-              "text": "ข้างหลังพวกเรา...",
-              "start": 1.3,
-              "end": 5.65,
+              "id": "cue-12-1",
+              "text": "อย่าเพิ่งวางสาย...",
+              "start": 0.15,
+              "end": 3.38,
+              "speaker": "mind",
+              "emotion": "suspense"
+            },
+            {
+              "id": "cue-12-2",
+              "text": "ประตูข้างหลังกำลังเปิด!",
+              "start": 3.65,
+              "end": 6.88,
               "speaker": "mind",
               "emotion": "suspense"
             }
           ],
-          "voiceover": "เดี๋ยวนะ... เสียงครางนั่นมาจากข้างหลังเราเหรอ?",
+          "voiceover": "อย่าเพิ่งวางสาย... ประตูข้างหลัง กำลังเปิดเอง!",
           "voiceDirection": {
             "speaker": "มายด์ นักเรียนหญิง",
             "voiceProfileId": "mind",
             "emotion": "urgent",
             "tone": "Natural Thai animated thriller dialogue",
             "delivery": "Read exactly this scene text, one voice profile per scene",
-            "pace": "urgent but intelligible",
+            "pace": "urgent but clear",
             "pause": "short natural pauses, no dead air",
             "accent": "standard Thai",
-            "notes": "Apply voice clip actual duration before final render. No prerecorded speech is embedded."
+            "notes": "Generate this revised line. Visual choreography follows the final scene duration; do not reuse old speech as the revised narration."
           },
           "imagePrompt": "Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
-            "type": "static",
+            "type": "dolly",
             "world": 1,
-            "from": 1,
-            "to": 1,
-            "panX": 0,
-            "panY": 0,
-            "rotation": 0,
-            "startX": 0,
-            "endX": 100
+            "from": 1.025,
+            "to": 1.07
           },
           "transition": {
             "type": "cut",
@@ -2200,75 +2676,169 @@
           },
           "atmosphere": "none",
           "lighting": {
-            "exposure": 0.78,
-            "glow": 0.2,
-            "vignette": 0.2,
+            "exposure": 1.02,
+            "glow": 0.03,
+            "vignette": 0.13,
             "focusX": 50,
-            "focusY": 42,
+            "focusY": 40,
             "flicker": 0
           },
           "actors": [
             {
               "char": "mind",
-              "x": 27,
-              "y": 89,
-              "pose": "surprised",
-              "view": "front",
+              "x": 36,
+              "y": 90,
+              "pose": "phone",
               "facing": "right",
+              "view": "side",
               "face": "surprised",
-              "scale": 0.85
-            },
-            {
-              "char": "zombie",
-              "x": 83,
-              "y": 88,
-              "pose": "walk",
-              "view": "threeQuarter",
-              "facing": "left",
-              "face": "angry",
-              "endPose": "stand",
-              "scale": 0.79,
-              "appearAt": 4.05,
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 83,
-                  "y": 88,
-                  "pose": "stand"
+                  "x": 36,
+                  "y": 90,
+                  "pose": "phone",
+                  "easing": "linear",
+                  "headYaw": 0
                 },
                 {
-                  "t": 4.05,
-                  "x": 83,
-                  "y": 88,
-                  "pose": "walk"
+                  "t": 1.3,
+                  "x": 36,
+                  "y": 90,
+                  "pose": "phone",
+                  "easing": "linear",
+                  "headYaw": -20
                 },
                 {
-                  "t": 5.85,
-                  "x": 69,
-                  "y": 88,
+                  "t": 2.2,
+                  "x": 36,
+                  "y": 90,
+                  "pose": "surprised",
+                  "easing": "linear",
+                  "bodyYaw": 45
+                },
+                {
+                  "t": 7,
+                  "x": 36,
+                  "y": 90,
+                  "pose": "surprised",
+                  "easing": "linear",
+                  "bodyYaw": 45
+                }
+              ]
+            },
+            {
+              "char": "teacher",
+              "x": 60,
+              "y": 88,
+              "pose": "point",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true
+            },
+            {
+              "char": "nont",
+              "x": 12,
+              "y": 91,
+              "pose": "surprised",
+              "facing": "right",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.82,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "intentionalHold": true
+            },
+            {
+              "char": "zombie",
+              "x": 90,
+              "y": 86,
+              "pose": "walk",
+              "facing": "left",
+              "view": "side",
+              "face": "surprised",
+              "scale": 0.76,
+              "smartActing": false,
+              "allowCrop": true,
+              "poseTransitions": true,
+              "appearAt": 4.2,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 90,
+                  "y": 86,
                   "pose": "walk",
                   "easing": "linear"
                 },
                 {
-                  "t": 6,
-                  "x": 69,
-                  "y": 88,
-                  "pose": "stand"
+                  "t": 4.2,
+                  "x": 90,
+                  "y": 86,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 7,
+                  "x": 78,
+                  "y": 86,
+                  "pose": "walk",
+                  "easing": "linear"
                 }
-              ]
+              ],
+              "gait": "distance",
+              "stride": 6
             }
           ],
-          "props": [],
+          "props": [
+            {
+              "kind": "phone",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false
+            },
+            {
+              "kind": "flashlight",
+              "x": 50,
+              "y": 80,
+              "scale": 0.75,
+              "front": false,
+              "light": {
+                "intensity": 0.55,
+                "range": 42,
+                "cone": 18,
+                "keys": [
+                  {
+                    "t": 0,
+                    "angle": -30
+                  },
+                  {
+                    "t": 3.4,
+                    "angle": 0
+                  },
+                  {
+                    "t": 7,
+                    "angle": 0
+                  }
+                ]
+              }
+            }
+          ],
           "customAssets": [],
           "productionEvents": [],
           "productionPlacements": {},
-          "productionSoundCues": [
-            {
-              "at": 0,
-              "description": "เสียงครางจากด้านหลัง 0:02; ดนตรีหยุดฉับพลัน 0:05",
-              "rendered": false
-            }
-          ],
+          "productionSoundCues": [],
           "sfx": [],
           "audio": null,
           "audioClips": [],
@@ -2276,24 +2846,46 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact. | SFX PLAN: เสียงครางจากด้านหลัง 0:02; ดนตรีหยุดฉับพลัน 0:05 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "School story revision 3. Authored motion fits scene duration; action continues to the cut unless intentionalHold is set. Sound cues are a plan until audio is generated.",
           "productionMotionOverrides": {},
+          "interactions": [],
+          "interactionInitialHold": [
+            {
+              "propIndex": 0,
+              "actor": "mind",
+              "hand": "right"
+            },
+            {
+              "propIndex": 1,
+              "actor": "teacher",
+              "hand": "right"
+            }
+          ],
+          "choreography": {
+            "mode": "fit-scene",
+            "duration": 7,
+            "revision": 3
+          },
+          "light": {
+            "color": "#263b4d",
+            "opacity": 0.08
+          },
           "schoolDoorKeys": [
             {
               "t": 0,
               "open": 0
             },
             {
-              "t": 3.3,
+              "t": 3.2,
               "open": 0
             },
             {
-              "t": 4.1,
-              "open": 0.75
+              "t": 4.2,
+              "open": 0.72
             },
             {
-              "t": 6,
-              "open": 0.75
+              "t": 7,
+              "open": 0.72
             }
           ]
         }

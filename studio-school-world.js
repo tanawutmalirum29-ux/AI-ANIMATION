@@ -7,28 +7,29 @@
  if(root)root.StorySchoolWorld=api;
 })(typeof window!=='undefined'?window:typeof globalThis!=='undefined'?globalThis:null,function(){
  'use strict';
- const TYPES=Object.freeze(['school-front','school-yard','school-hall','school-room','school-stairs','school-roof']);
+ const TYPES=Object.freeze(['school-front','school-yard','school-hall','school-room','school-stairs','school-landing','school-roof']);
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number.isFinite(+v)?+v:a));
  const num=v=>(Math.round(v*100)/100).toString();
+ function doorState(scene,local){
+  const keys=(scene?.schoolDoorKeys||[]).filter(k=>Number.isFinite(k?.t)&&Number.isFinite(k?.open)).slice().sort((a,b)=>a.t-b.t);
+  if(!keys.length)return 0;
+  if(local<=keys[0].t)return clamp(keys[0].open,0,1);
+  for(let i=1;i<keys.length;i++)if(local<=keys[i].t){const u=clamp((local-keys[i-1].t)/Math.max(.001,keys[i].t-keys[i-1].t),0,1);return clamp(keys[i-1].open+(keys[i].open-keys[i-1].open)*u,0,1);}
+  return clamp(keys.at(-1).open,0,1);
+ }
+ function doorHandle(set,scene,local){
+  const roof=set?.worldArt==='school-roof',x=roof?72:77,y=roof?34:38,w=roof?19:17,h=roof?45:41;
+  return {x:x+w*(1-doorState(scene,local)*.79)-1.65,y:(y+h*.59)/.9};
+ }
  function render(set,layer,width,local=0,scene={}){
   if(layer!=='back'||!TYPES.includes(set?.worldArt))return '';
+  if(typeof globalThis!=='undefined'&&globalThis.StoryMotion)local=globalThis.StoryMotion.clock(scene,local).time;
   const W=clamp(width,20,400), X=v=>num(W*v/100);
   const R=(x,y,w,h,c,rx=0,opacity=1)=>'<rect x="'+X(x)+'" y="'+num(y)+'" width="'+X(w)+'" height="'+num(h)+'" rx="'+num(rx)+'" fill="'+c+'" opacity="'+num(opacity)+'"/>';
   const L=(x,y,u,v,c,t=.7)=>'<line x1="'+X(x)+'" y1="'+num(y)+'" x2="'+X(u)+'" y2="'+num(v)+'" stroke="'+c+'" stroke-width="'+num(t)+'" stroke-linecap="round"/>';
   const P=(pts,c)=>'<polygon points="'+pts.map(p=>X(p[0])+','+num(p[1])).join(' ')+'" fill="'+c+'"/>';
   const E=(x,y,rx,ry,c)=>'<ellipse cx="'+X(x)+'" cy="'+num(y)+'" rx="'+X(rx)+'" ry="'+num(ry)+'" fill="'+c+'"/>';
-  const doorOpen=()=>{const keys=Array.isArray(scene.schoolDoorKeys)?scene.schoolDoorKeys:[];
-   if(!keys.length)return 0;
-   const ks=keys.filter(k=>Number.isFinite(k?.t)&&Number.isFinite(k?.open)).sort((a,b)=>a.t-b.t);
-   if(!ks.length)return 0;
-   const t=clamp(local,0,1000);
-   if(t<=ks[0].t)return clamp(ks[0].open,0,1);
-   for(let i=1;i<ks.length;i++)if(t<=ks[i].t){
-    const u=clamp((t-ks[i-1].t)/Math.max(.001,ks[i].t-ks[i-1].t),0,1);
-    return clamp(ks[i-1].open+(ks[i].open-ks[i-1].open)*u,0,1);
-   }
-   return clamp(ks[ks.length-1].open,0,1);
-  };
+  const doorOpen=()=>doorState(scene,local);
   function door(x,y,w,h,open){
    const shut=1-open*.79;
    return R(x-1,y-2,w+2,h+3,'#d1c4a5',.45)+R(x,y,w,h,'#1c3037')+
@@ -37,7 +38,8 @@
      (shut>.31?E(x+w*shut-1.65,y+h*.59,.55,.63,'#e2c182'):'');
   }
   const kind=set.worldArt;
-  let out=R(0,0,100,90,kind==='school-roof'?'#243d57':'#8ba7a1');
+  const id='school-depth-'+kind;
+  let out='<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#182d40" stop-opacity="0"/><stop offset="1" stop-color="#182d40" stop-opacity=".3"/></linearGradient></defs>'+R(0,0,100,90,'#8ba7a1');
   if(kind==='school-front'){
    out+=R(0,0,100,26,'#a6c4be')+R(0,72,100,18,'#737d71')+
         R(2,22,96,54,'#aabeb0')+R(0,20,100,3,'#48635b')+
@@ -51,6 +53,8 @@
         R(0,78,100,12,'#64756e');
    for(let x of [4,13,22,78,87,96])out+=R(x,65,1.7,16,'#4a615b');
    out+=R(0,65,34,1.6,'#68827a')+R(66,65,34,1.6,'#68827a')+R(32,79,36,3,'#c1bba5');
+   out+=R(31,16,38,5,'#e3d6b9',.7)+L(36,18.4,64,18.4,'#5b6d62',.55);
+   for(let x of [10,88])out+=R(x,69,1,10,'#695d4c')+E(x,65,7,7,'#52795c');
   }
   if(kind==='school-yard'){
    out+=R(0,0,100,34,'#a2beb6')+R(0,31,100,46,'#809a8e')+
@@ -74,6 +78,8 @@
         R(47,56,6,14,'#233d43')+
         L(27,24,38,35,'#c0cbb8',.45)+L(73,24,62,35,'#c0cbb8',.45);
    for(let x of [13,32,68,87])out+=L(x,79,x*.76+12,90,'#8e9d94',.38);
+   out+=R(36,13,28,1.3,'#e4e6cc',.35)+R(38,14.3,24,1,'#becfc2',.3,.45)+R(35,30,30,3,'#486e66',.3);
+   for(let i=0;i<5;i++)out+=L(0,74+i*3.8,100,74+i*3.8,'#a4b4a7',.22);
   }
   if(kind==='school-room'){
    out+=R(0,0,100,16,'#9eb8aa')+R(0,16,100,61,'#bac5b5')+
@@ -85,21 +91,27 @@
     out+=R(x,68,24,2.7,'#a38a6a',.5)+R(x+2,71,1.7,8,'#6b6057')+
          R(x+20,71,1.7,8,'#6b6057');}
    out+=door(77,38,17,41,doorOpen());
+   out+=R(8,54,18,6,'#d5cdab',.4)+L(10,56,23,56,'#879583',.35)+L(10,58,20,58,'#879583',.35);
+   for(let x of [12,34,55])out+=L(x,79,x-12,90,'#5f6e65',.25);
   }
   if(kind==='school-stairs'){
-   out+=R(0,0,100,19,'#839b96')+R(0,19,100,58,'#9baea7')+
-        R(0,77,100,13,'#647a79')+
-        R(37,21,27,23,'#ced8c8')+R(39,23,23,19,'#537681')+
-        R(40,24,21,17,'#334e5d');
-   for(let i=0;i<6;i++){
-    const y=71-i*4.1,x=4+i*5.8;
-    out+=R(x,y,36,3.8,i%2?'#657975':'#738780')+L(x,y+3.8,x+36,y+3.8,'#3d5559',.6);
+   out+=R(0,0,100,90,'#253b48')+R(0,16,100,65,'#3d5359')+R(7,23,27,24,'#9baeb0')+R(9,25,23,20,'#647f8e')+
+        L(20.5,25,20.5,45,'#c4cdbd',.7)+P([[0,81],[96,52.2],[100,52.2],[100,90],[0,90]],'#697d7e');
+   for(let i=0;i<24;i++){
+    const y=81-i*1.2,x=i*4;
+    out+=L(x,y,x+4,y,'#a8b4a8',.55)+L(x+4,y,x+4,y-1.2,'#3c5360',.5);
    }
-   out+=L(4,77,40,50,'#ddc9a1',1.1)+L(10,77,45,50,'#5e7271',.6)+
-        R(51,58,41,18,'#83938c')+R(52,62,39,2.5,'#5c7374');
+   for(let x of [4,24,44,64,84])out+=L(x,80-x*.3,x,67-x*.3,'#8eaaa6',.7);
+   out+=L(0,67,96,38.2,'#c9c7ad',1.1)+R(75,20,23,32,'#1c303e')+R(72,17,28,3,'#697e7d');
+  }
+  if(kind==='school-landing'){
+   out+=R(0,0,100,18,'#556e76')+R(0,18,100,62,'#6d8788')+R(0,80,100,10,'#526b70')+
+        R(10,25,26,29,'#c7cfb9')+R(12,27,22,25,'#7b99a1')+L(23,27,23,52,'#ccd5c7',.6)+
+        R(77,30,17,4,'#6c8f77',.3)+L(82,32,89,32,'#e2dfc2',.5)+door(77,38,17,41,doorOpen());
+   for(let x of [0,25,50,75])out+=L(x,81,x-15,90,'#879c98',.3);
   }
   if(kind==='school-roof'){
-   out+=R(0,0,100,45,'#243c53')+R(0,45,100,15,'#2d465a');
+   out+=R(0,0,100,45,'#819daa')+R(0,45,100,15,'#6e8998')+E(21,16,27,4,'#adbfc0')+E(70,24,34,3,'#9fb5ba');
    for(let i=0;i<15;i++){
     const x=i*7.8,y=52-(i%4)*2.5;
     out+=R(x,y,5.4,13,'#243a4a');
@@ -110,6 +122,7 @@
    out+=door(72,34,19,45,doorOpen())+
         R(0,78,100,2,'#4f6666');
   }
+  out+=R(0,0,100,90,'url(#'+id+')');
   // Story event is drawn as a crack on the existing corridor window, not a floating square.
   if(kind==='school-hall'&&Number.isFinite(scene?.worldEffects?.windowCrackAt)&&local>=scene.worldEffects.windowCrackAt){
    out+=L(87,29,90,37,'#d6e5de',.9)+L(90,37,84,43,'#d6e5de',.65)+
@@ -117,5 +130,5 @@
   }
   return out;
  }
- return Object.freeze({TYPES,render});
+ return Object.freeze({TYPES,render,doorState,doorHandle});
 });

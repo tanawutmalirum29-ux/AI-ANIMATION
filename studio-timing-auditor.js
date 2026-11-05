@@ -36,17 +36,18 @@
   return {...k,t:rounded(clamp(k.t,0,oldDuration)*newDuration/oldDuration)};
  });
  function hasTimedEvents(scene){
+  const fit=scene.choreography?.mode==='fit-scene'&&scene.choreography.duration>0;
   const timed=x=>x&&typeof x==='object'&&
    ['at','time','start','end','duration'].some(k=>typeof x[k]==='number'&&x[k]>0);
   return !!(scene.video||
-   (scene.actors||[]).some(a=>a&&(typeof a.to==='number'&&a.to>0||
-     typeof a.at==='number'&&a.at>0))||
+   (!fit&&(scene.actors||[]).some(a=>a&&(typeof a.to==='number'&&a.to>0||
+     typeof a.at==='number'&&a.at>0)))||
    (scene.graphicCards||[]).some(timed)||(scene.sfx||[]).some(timed)||
    // Actual timed poses / SVG events may finish after narration: never chop them.
-   (scene.actors||[]).some(a=>!autoActor(a)&&Array.isArray(a?.motionKeys)&&
-     a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0))||
-   (scene.customAssets||[]).some(a=>!autoAsset(a)&&Array.isArray(a?.motionKeys)&&
-     a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0))||
+   (!fit&&(scene.actors||[]).some(a=>!autoActor(a)&&Array.isArray(a?.motionKeys)&&
+     a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0)))||
+   (!fit&&(scene.customAssets||[]).some(a=>!autoAsset(a)&&Array.isArray(a?.motionKeys)&&
+     a.motionKeys.some(k=>Number.isFinite(k?.t)&&k.t>0)))||
    (scene.cinematicFx&&timed(scene.cinematicFx))||
    /\[(?:HOLD|PAUSE|ค้างภาพ)\]/i.test(String(scene.notes||'')));
  }
@@ -117,7 +118,7 @@
      // own assets preserves bridge/toolbox/flashes/flood beats and avoids the
      // 5-second dead-air gaps measured in the user's newest video exports.
      // Authored/manual keyframes are never re-timed by this automatic path.
-     if(kind==='shorten'){
+     if(kind==='shorten'&&s.choreography?.mode!=='fit-scene'){
       if((s.customAssets||[]).some(a=>autoAsset(a)&&Array.isArray(a.motionKeys)&&a.motionKeys.length)){
        patch.customAssets=s.customAssets.map(a=>autoAsset(a)&&Array.isArray(a.motionKeys)?
         {...a,motionKeys:retimeKeys(a.motionKeys,old,updated)}:a);

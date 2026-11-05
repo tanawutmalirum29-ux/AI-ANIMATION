@@ -23,7 +23,7 @@ for(const s of scenes){
  assert.equal(planner.plan({episodes:[{scenes:[s]}]},'assets',assets).ops.length,0,'no duplicate automatic assets in '+s.id);
 }
 assert.ok(scenes.find(s=>s.id==='tpz-s06').customAssets.find(a=>a.eventKind==='school-barricade').motionKeys.length>=3);
-assert.equal(scenes.find(s=>s.id==='tpz-s07').worldEffects.windowCrackAt,2.1,'crack now appears on fixed hallway window rather than a floating rectangle');
+assert.equal(scenes.find(s=>s.id==='tpz-s07').worldEffects.windowCrackAt,1.2,'crack now appears on fixed hallway window rather than a floating rectangle');
 const blank={episodes:[{scenes:[{id:'new-school',duration:5,voiceover:'',productionEvents:['school-barricade','school-alarm'],productionPlacements:{'school-barricade':{x:25,y:80,scale:.4}},customAssets:[]}]}]};
 const planned=planner.plan(blank,'assets',assets);
 assert.equal(planned.ops.length,1);
@@ -35,7 +35,7 @@ blank.episodes[0].scenes[0].customAssets=planned.ops[0].patch.customAssets;
 assert.equal(planner.plan(blank,'assets',assets).ops.length,0);
 
 const world = require('../studio-school-world.js');
-const expectedWorld=['school-front','school-yard','school-hall','school-room','school-stairs','school-roof'];
+const expectedWorld=['school-front','school-yard','school-hall','school-room','school-stairs','school-landing','school-roof'];
 assert.deepEqual([...world.TYPES],expectedWorld);
 for(const location of doc.locations){
  const svg=world.render(location.set,'back',50.625,2.5,{});
@@ -63,8 +63,8 @@ assert.ok(timedActors.every(a=>a.motionKeys.every((k,i,q)=>i===0||k.t>=q[i-1].t)
 const barricade=scenes.find(s=>s.id==='tpz-s06').customAssets.find(a=>a.eventKind==='school-barricade');
 assert.equal(barricade.front,false,'barricade must sit behind actor silhouettes');
 assert.ok(barricade.scale<=.45,'avoid oversized desk covering actors');
-assert.ok(barricade.motionKeys.at(-1).x===53,'barricade stops in front of closed door');
-const validPoses=new Set(['stand','walk','run','sit','point','wave','think','talk','cheer','jump','typing','carry','openDoor','handshake','sad','surprised']);
+assert.ok(barricade.motionKeys.at(-1).x===79,'barricade stops in front of closed door');
+const validPoses=new Set(['phone','stand','walk','run','sit','point','wave','think','talk','cheer','jump','typing','carry','openDoor','handshake','sad','surprised']);
 const validFaces=new Set(['neutral','happy','sad','surprised','angry','think','sleep','talk']);
 assert.ok(scenes.every(s=>s.actors.every(a=>validPoses.has(a.pose)&&validFaces.has(a.face))),'supported rigs and expressions');
 assert.ok(doc.characters.find(x=>x.id==='mind').rig.hairStyle==='ponytail','Mind must look different from Nont');
