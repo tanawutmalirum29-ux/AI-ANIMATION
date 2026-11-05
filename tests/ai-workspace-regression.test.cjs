@@ -150,7 +150,7 @@ test('narration preview has a local speech option when no actual voice clip exis
 });
 
 
-test('twelve-role production runs V1 engines safely and keeps two ~60s episodes',async()=>{
+test('eleven-stage production never calls dubbing and retains pre-existing voice clips',async()=>{
  const core=require('../studio-ai-core.js');
  const auditor=require('../studio-timing-auditor.js');
   const planner=require('../studio-production-planner.js');
@@ -171,7 +171,7 @@ test('twelve-role production runs V1 engines safely and keeps two ~60s episodes'
  const original=Array.from({length:6},(_,i)=>({
   id:'s'+i,duration:20,voiceover:'รถไฟมาถึงสถานี เวลาเที่ยงคืน',
   subtitle:['รถไฟมาถึงสถานี'],subtitleCues:[{id:'c'+i,text:'รถไฟมาถึงสถานี',start:0,end:20}],
-  audioClips:[]
+  audioClips:[{id:'v'+i,data:'data:audio/test',kind:'voice',duration:20,at:0,rate:1}]
  }));
  const state={project:{title:'Episode QA',aiWorkspace:{}},episodes:[{id:'e1',title:'ต้นฉบับยาวเกิน',scenes:structuredClone(original)}],characters:[]};
  const applied=[];
@@ -189,13 +189,7 @@ test('twelve-role production runs V1 engines safely and keeps two ~60s episodes'
  }};
  const bridge={get:()=>state,persist(){},episodeIndex:()=>0,sceneIndex:()=>0,
   auditTiming:(scope,opts)=>auditor.audit(state,{...opts,scope,episodeIndex:0}),
-  narrate:async scope=>{
-   assert.equal(scope,'all');
-   for(const scene of state.episodes.flatMap(e=>e.scenes)){
-    scene.audioClips=[{id:'v'+scene.id,data:'data:audio/test',kind:'voice',duration:20,at:0,rate:1}];
-   }
-   return {ok:true,made:6,failed:0};
-  }
+  narrate:async()=>{throw Error('สิบเอ็ดขั้นห้ามพากย์อัตโนมัติ');}
  };
  const win={StoryAIWorkspaceCore:core,StoryTimingAuditor:auditor,StudioAPI:editor,
     StoryProductionPlanner:planner,StoryProductionAssets:assets,StoryVisualQA:visualQA,
@@ -218,7 +212,7 @@ test('twelve-role production runs V1 engines safely and keeps two ~60s episodes'
  assert.equal(state.project.aiWorkspace.production.stage,'needs_attention','missing independent SVG workers cannot be marked ready');
  assert.equal(state.project.aiWorkspace.production.pendingDub,false);
  assert.deepEqual(state.project.aiWorkspace.tasks.find(x=>x.role==='production').steps.map(x=>x.id),require('../studio-production-roles.js').roles.map(x=>x.id));
-  assert.equal(state.project.aiWorkspace.production.handoffs.length,13,'all twelve stage handoffs plus completion');
+  assert.equal(state.project.aiWorkspace.production.handoffs.length,12,'all eleven stage handoffs plus completion');
  assert.equal(win.__productionTest.state().busy,false);
 });
 

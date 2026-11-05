@@ -4948,6 +4948,7 @@ function switchStudioTool(id){if(!STUDIO_WORKSPACE_READY)return;STUDIO_CURRENT_T
 }
 /* ===== Auto Dub: พากย์อัตโนมัติฟรี (Lambda + Edge TTS) ===== */
 let AUTODUB_RUNNING=false,AUTODUB_CANCEL=false,AUTODUB_SCOPE='scene',AUTODUB_SKIP=true,AUTODUB_SMART=true,AUTODUB_GAP=.16;
+let AUTODUB_ENGINE='system',AUTODUB_MOTHER_CONNECTION='auto';
 const AUTODUB_LS={url:'storyStudio.autodub.url',key:'storyStudio.autodub.key'};
 const AUTODUB_MALE_TYPES=['male','deep','senior','villain'];
 function autoDubCfg(){const access=window.StoryStudioAccess;if(access?.enabled)return{url:access.apiUrl,key:'',session:true};let url='',key='';try{url=localStorage.getItem(AUTODUB_LS.url)||'';key=localStorage.getItem(AUTODUB_LS.key)||''}catch(e){}return{url:url.trim(),key:key.trim(),session:false}}
@@ -4955,11 +4956,17 @@ function autoDubSave(url,key){if(window.StoryStudioAccess?.enabled)return;try{lo
 function autoDubVoiceFor(scene,speaker){const id=speakerVoiceProfileId(scene,speaker)||sceneVoiceProfileId(scene),p=getVoiceProfile(id);return AUTODUB_MALE_TYPES.includes(p?.type)?'th-TH-NiwatNeural':'th-TH-PremwadeeNeural'}
 async function autoDubFetch(cfg,text,voice,options={}){
  let j=null;
- if(cfg.session){j=await window.StoryStudioAccess.request({text,voice,...(options.rate?{rate:options.rate}:{})})}
+ if(options.engine==='mother'){
+  const mother=window.StoryMotherProduction?.voiceChoice(options.connectionId);
+  if(!mother)throw new Error('ไม่พบ AI แม่ Gemini ที่พร้อมสร้างเสียง · ใช้พากย์ระบบแทนได้');
+  j=await window.StoryStudioAccess.request({action:'teacher.production.speech',
+    provider:mother.provider,connectionId:mother.id,text,voice:'Kore'});
+ }
+ else if(cfg.session){j=await window.StoryStudioAccess.request({text,voice,...(options.rate?{rate:options.rate}:{})})}
  else{const r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json','x-dub-key':cfg.key},body:JSON.stringify({text,voice,...(options.rate?{rate:options.rate}:{})})});try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&j.error)||('HTTP '+r.status))}
  if(!j?.audio)throw new Error((j&&j.error)||'ไม่พบไฟล์เสียงจาก AI');
  const bin=atob(j.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
- return new Blob([u],{type:'audio/mpeg'})}
+ return new Blob([u],{type:j.mimeType==='audio/wav'?'audio/wav':'audio/mpeg'})}
 function autoDubJobs(scope,skipExisting){
  const jobs=[],eps=scope==='all'?S.episodes.map((E,i)=>i):[selEp],director=window.StoryNarrationDirector;
  for(const ei of eps)S.episodes[ei].scenes.forEach((scene,si)=>{
@@ -4998,7 +5005,11 @@ async function autoDubTest(){
 async function autoDubRun(){
  if(AUTODUB_RUNNING)return;
  const cfg=autoDubCfg();
- if(!cfg.url||(!cfg.session&&!cfg.key)){setVoiceStatus('ยังไม่พบการเชื่อมต่อ AI — หากยังไม่ได้ติดตั้งเว็บไซต์ให้ดูขั้นตอน AWS ใน README');return {ok:false,error:'ยังไม่ได้เชื่อมบริการพากย์ Edge TTS'}}
+ if(AUTODUB_ENGINE==='mother'&&!window.StoryMotherProduction?.voiceChoice(AUTODUB_MOTHER_CONNECTION)){
+  const message='ต้องเชื่อม AI แม่ Gemini ที่รองรับ TTS ก่อนใช้โหมดพากย์ AI แม่';
+  setVoiceStatus(message);return {ok:false,error:message};
+ }
+ if(AUTODUB_ENGINE!=='mother'&&(!cfg.url||(!cfg.session&&!cfg.key))){setVoiceStatus('ยังไม่พบการเชื่อมต่อ AI — หากยังไม่ได้ติดตั้งเว็บไซต์ให้ดูขั้นตอน AWS ใน README');return {ok:false,error:'ยังไม่ได้เชื่อมบริการพากย์ Edge TTS'}}
  const keepEp=selEp,keepSel=sel,keepScene=AUDIO_DESK_SCENE,keepPast=past.length,before=JSON.stringify(S);
  // สร้างช่วงเวลาซับให้ฉากที่ยังไม่มี (ต้องมี cue เพื่อรู้เวลาเริ่มพูด)
  const targets=AUTODUB_SCOPE==='all'?S.episodes.flatMap((E,ei)=>E.scenes.map((s,si)=>[ei,si])):S.episodes[selEp].scenes.map((s,si)=>[selEp,si]).filter(([,si])=>AUTODUB_SCOPE!=='scene'||si===sel);
@@ -5018,10 +5029,10 @@ async function autoDubRun(){
    setVoiceStatus('กำลังสร้างเสียง '+(n+1)+'/'+jobs.length+' · ตอน '+(ei+1)+' ฉาก '+(si+1));
    const speaker=jobs[n].speaker||cue.speaker||scene.voiceDirection?.speaker||'';
    let blob=null;
-   for(let attempt=0;attempt<2&&!blob;attempt++){try{blob=await autoDubFetch(cfg,text,autoDubVoiceFor(scene,speaker),AUTODUB_SMART?{rate:'+6%'}:{})}catch(e){lastErr=e.message;await new Promise(r=>setTimeout(r,1200))}}
+   for(let attempt=0;attempt<2&&!blob;attempt++){try{blob=await autoDubFetch(cfg,text,autoDubVoiceFor(scene,speaker),{...(AUTODUB_SMART?{rate:'+6%'}:{}),engine:AUTODUB_ENGINE,connectionId:AUTODUB_MOTHER_CONNECTION})}catch(e){lastErr=e.message;await new Promise(r=>setTimeout(r,1200))}}
    if(!blob){failed++;continue}
    selEp=ei;sel=si;AUDIO_DESK_SCENE=si;
-   await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+'.mp3',{type:'audio/mpeg'}),'voice',{speakerId:speaker,cueId:cue.id,smartTrim:AUTODUB_SMART});
+   await addAudioFile(new File([blob],'auto-e'+(ei+1)+'-s'+(si+1)+'-'+cue.id+(blob.type==='audio/wav'?'.wav':'.mp3'),{type:blob.type}),'voice',{speakerId:speaker,cueId:cue.id,smartTrim:AUTODUB_SMART});
    past.length=keepPast; // ไม่สะสมสแนปชอตทีละคลิป (กันหน่วยความจำเต็ม) — รวมเป็น undo ครั้งเดียวตอนจบ
    const sc2=S.episodes[ei].scenes[si],clip=(sc2.audioClips||[]).at(-1);
    if(clip&&clip.kind==='voice'&&(clip.cueId===cue.id||jobs[n].narrator)){clip.cueId=cue.id;clip.autoDub=true;clip.cueIds=(cueIds||[cue.id]).slice();made++;const room=Math.max(.2,(+cue.end||0)-(+cue.start||0));if(!AUTODUB_SMART&&(clip.duration>room+.3||(+clip.at||0)+clip.duration>sc2.duration+.05))long.push('ตอน '+(ei+1)+' ฉาก '+(si+1)+' ('+clip.duration.toFixed(1)+' วิ / ช่อง '+room.toFixed(1)+' วิ)')}else failed++;
@@ -5169,11 +5180,15 @@ function autoSoundApply(scope='episode'){
  return {applied,scenes:result.length};
 }
 window.StoryStudioBridge={
- narrate:async(scope='episode')=>{
+ narrate:async(scope='episode',options={})=>{
   if(!['scene','episode','all'].includes(scope))throw Error('ขอบเขตพากย์ไม่ถูกต้อง');
   if(AUTODUB_RUNNING)throw Error('ระบบพากย์กำลังทำงานอยู่');
-  const prev=AUTODUB_SCOPE;AUTODUB_SCOPE=scope;
-  try{return await autoDubRun()}finally{AUTODUB_SCOPE=prev}
+  const previous={scope:AUTODUB_SCOPE,engine:AUTODUB_ENGINE,connection:AUTODUB_MOTHER_CONNECTION};
+  AUTODUB_SCOPE=scope;AUTODUB_ENGINE=options.engine==='mother'?'mother':'system';
+  AUTODUB_MOTHER_CONNECTION=options.connectionId||'auto';
+  try{return await autoDubRun()}finally{
+   AUTODUB_SCOPE=previous.scope;AUTODUB_ENGINE=previous.engine;AUTODUB_MOTHER_CONNECTION=previous.connection;
+  }
  },
  auditTiming:(scope='episode',opts={})=>{
   if(!window.StoryTimingAuditor)throw Error('ยังไม่โหลดระบบตรวจเวลาจริง');
@@ -5304,4 +5319,4 @@ if(!S){try{const old=JSON.parse(localStorage.getItem(PREVIOUS_LS));if(old&&old.e
 if(!S||!Array.isArray(S.episodes)||!S.episodes.length)S=blank();fix();setupStudioWorkspace();
 render();$('#motionQuick').addEventListener('click',()=>toggleMotionEditor());$('#motionOverlay').addEventListener('pointerdown',startMotionDrag);addEventListener('pointermove',moveMotionDrag,{passive:false});addEventListener('pointerup',endMotionDrag);addEventListener('pointercancel',endMotionDrag);openProjectDB();requestAnimationFrame(loop);if(window.StoryStudioAccess?.enabled){try{localStorage.removeItem(AUTODUB_LS.url);localStorage.removeItem(AUTODUB_LS.key)}catch(e){}window.StoryStudioAccess.boot()}
 new ResizeObserver(fit).observe($('#stageWrap'));addEventListener('resize',fit);syncJumpTop();
-</script><script src="./studio-motion-runtime.js"></script><script src="./studio-ai-core.js"></script><script src="./studio-production-roles.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-school-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-cloud-teach.js"></script><script src="./studio-multi-json.js"></script><script src="./studio-thai-editor.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./studio-mother-chat.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script><script src="./studio-cinematic-core.js"></script><script src="./studio-cinematic-planner.js"></script><script src="./studio-video-reference.js"></script><script src="./studio-cinematic-studio.js"></script><link rel="stylesheet" href="./studio-cinematic.css"><link rel="stylesheet" href="./studio-navigation.css"><script src="./studio-school-repair.js"></script><script src="./studio-motion-studio.js"></script><script src="./studio-navigation.js"></script></body></html>
+</script><script src="./studio-motion-runtime.js"></script><script src="./studio-ai-core.js"></script><script src="./studio-production-roles.js"></script><script src="./studio-mother-production.js"></script><script src="./studio-timing-auditor.js"></script><script src="./studio-visual-qa.js"></script><script src="./studio-coastal-world.js"></script><script src="./studio-school-world.js"></script><script src="./studio-production-assets.js"></script><script src="./studio-production-planner.js"></script><script src="./studio-layout-ml.js"></script><script src="./studio-shot-ml.js"></script><script src="./studio-ai-workspace.js"></script><script src="./studio-story-foundation.js"></script><script src="./studio-story-coach.js"></script><script src="./studio-story-coach-ui.js"></script><script src="./studio-story-only.js"></script><script src="./studio-story-only-ui.js"></script><script src="./studio-auto-teach.js"></script><script src="./studio-cloud-teach.js"></script><script src="./studio-multi-json.js"></script><script src="./studio-thai-editor.js"></script><script src="./studio-student-learning.js"></script><script src="./studio-teacher.js"></script><script src="./studio-mother-chat.js"></script><script src="./animated-map.js"></script><script src="./cinematic-fx.js"></script><script src="./character-interaction.js"></script><script src="./studio-pro.js"></script><script src="./studio-update.js"></script><script src="./cloud-export-client.js"></script><script src="./studio-ai-mode.js"></script><script src="./studio-cinematic-core.js"></script><script src="./studio-cinematic-planner.js"></script><script src="./studio-video-reference.js"></script><script src="./studio-cinematic-studio.js"></script><link rel="stylesheet" href="./studio-cinematic.css"><link rel="stylesheet" href="./studio-navigation.css"><script src="./studio-school-repair.js"></script><script src="./studio-motion-studio.js"></script><script src="./studio-navigation.js"></script></body></html>

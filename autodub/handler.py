@@ -363,6 +363,12 @@ def handler(event, context):
         import cloud_jobs
         return cloud_jobs.handle(action, body, str(user["sub"]))
 
+    if action.startswith("teacher.production."):
+        if not oauth_mode or not user or user.get("role") != "admin":
+            return _resp(403, {"error": "ให้ AI แม่ผลิตหรือพากย์ได้เฉพาะ GitHub แอดมิน"})
+        import teacher_production
+        return teacher_production.handle(action, body, str(user["sub"]))
+
     if action.startswith("teacher."):
         if not secured:
             return _resp(401, {"error": "ต้องเปิดใช้รหัสผ่านเว็บไซต์ก่อนใช้ AI ครู"})

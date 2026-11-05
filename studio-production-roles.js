@@ -1,4 +1,4 @@
-/* AI Mother V2 production role registry — routing and handoff contracts ONLY.
+/* AI Mother V3 — 11 visual/story production roles, voice as a separate module.
  * Keeps all V1 six-stage IDs and all trained/script-review modules unchanged.
  * A registered role is NOT a trained weight, inference endpoint or finished renderer.
  */
@@ -9,7 +9,7 @@ if(typeof module==='object'&&module.exports)module.exports=api;
 if(root)root.StoryProductionRoles=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
 'use strict';
-const VERSION='mother-production-roles-v2';
+const VERSION='mother-production-roles-v3';
 const roles=Object.freeze([
  {id:'story-analyst',name:'AI-1 Story Analyst',task:'อ่านบทและแยกตัวละคร สถานที่ อารมณ์ วัตถุ และเหตุการณ์',output:'story-beats',support:'existing-script-review-advisory'},
  {id:'continuity-keeper',name:'AI-2 Continuity Keeper',task:'รักษาลำดับเหตุการณ์ รูปลักษณ์ ทรัพย์สิน และความสัมพันธ์ข้ามฉาก',output:'continuity-bible',support:'existing-continuity-coach-advisory'},
@@ -20,15 +20,15 @@ const roles=Object.freeze([
  {id:'prop-artist',name:'AI-7 Prop Artist',task:'วาดวัตถุจริงที่มีจุดจับ/ตำแหน่ง/สถานะ ไม่ใช้รูปทรงแทนผิดชนิด',output:'prop-svg',support:'existing-templates-only'},
  {id:'layout-director',name:'AI-8 Layout Director',task:'จัดสเกล ความลึก ระยะห่างและตรวจวัตถุหลุดเฟรม',output:'layout-plan',support:'existing-composition-rules'},
  {id:'motion-director',name:'AI-9 Motion Director',task:'สร้างลำดับท่าทางและ keyframes สำหรับการกระทำต่อเนื่อง',output:'motion-keys',support:'existing-basic-keyframes'},
- {id:'audio-director',name:'AI-10 Audio Director',task:'พากย์และจัดเสียงเอฟเฟกต์ให้ตรงจังหวะและเจตนาของบท',output:'audio-cues',support:'existing-tts-and-sound'},
- {id:'timeline-editor',name:'AI-11 Timeline Editor',task:'ประกอบภาพ เสียง ซับ และเวลาตามเสียงจริง; ไม่ตัดคำ/เสียง',output:'timeline',support:'existing-timing-auditor'},
- {id:'quality-inspector',name:'AI-12 Quality Inspector',task:'ตรวจ Scene Graph เทียบต้นฉบับและขอหลักฐานเฟรม/เสียงก่อนรับวิดีโอ',output:'qa-report',support:'existing-json-qa-not-pixel-qa'}
+ {id:'timeline-editor',name:'AI-10 Timeline Editor',task:'ประกอบภาพ เสียง ซับ และเวลาตามเสียงจริง; ไม่ตัดคำ/เสียง',output:'timeline',support:'existing-timing-auditor'},
+ {id:'quality-inspector',name:'AI-11 Quality Inspector',task:'ตรวจ Scene Graph เทียบต้นฉบับและขอหลักฐานเฟรม/เสียงก่อนรับวิดีโอ',output:'qa-report',support:'existing-json-qa-not-pixel-qa'}
 ].map(x=>Object.freeze({...x,status:'role-defined-not-trained-model'})));
+const voiceRole=Object.freeze({id:'voice-module',name:'พากย์เสียงแยกต่างหาก',engines:['system','mother']});
 const legacyStages=Object.freeze([
  {id:'composition',newRole:'layout-director'},
  {id:'assets',newRole:'environment-artist'},
  {id:'motion',newRole:'motion-director'},
- {id:'voice',newRole:'audio-director'},
+ {id:'voice',newRole:'separate-voice-module'},
  {id:'timing',newRole:'timeline-editor'},
  {id:'qa',newRole:'quality-inspector'}
 ].map(x=>Object.freeze(x)));
@@ -41,7 +41,7 @@ const preserved=Object.freeze([
 ]);
 const types=Object.freeze(['story-beats','continuity-bible','scene-breakdown','shot-plan',
  'environment-svg','character-rig','prop-svg','layout-plan','motion-keys',
- 'audio-cues','timeline','qa-report']);
+ 'timeline','qa-report']);
 function signature(project){
  const source=(project?.episodes||[]).map(ep=>[ep.id,(ep.scenes||[]).map(
   sc=>[sc.id,sc.voiceover||sc.text||'',sc.notes||''])]);
@@ -72,7 +72,7 @@ function createPlan(project){
  if(seen.size>400)throw Error('เกิน 400 ฉากในแผนเดียว');
  return {version:VERSION,motherRole:'production-orchestrator',sourceHash:hash,
   scenes:seen.size,roles:roles.length,tasks,
-  executable:false,reason:'role routing only: 12 independent inference/QA workers not yet implemented'};
+  executable:false,reason:'role plan only: worker dispatch is managed by StoryMotherProduction; dubbing is separate'};
 }
-return Object.freeze({VERSION,roles,legacyStages,preserved,types,signature,createPlan});
+return Object.freeze({VERSION,roles,voiceRole,legacyStages,preserved,types,signature,createPlan});
 });

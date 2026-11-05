@@ -12,14 +12,14 @@ import time
 
 # Curated from the product code. This is not a live GitHub search, and must
 # be updated if the app changes. Treat missing features as unknown.
-KNOWLEDGE_VERSION = "2026-11-03-production-v2"
+KNOWLEDGE_VERSION = "2026-11-05-production-11-mother-pool"
 # Live repository evidence is opt-in and read-only for the authenticated owner.
 FEATURES = [
     {"name": "Story Studio", "detail": "นำเข้า JSON เรื่อง/ฉากแล้วพรีวิวและแก้ไขโปรเจกต์อนิเมชัน"},
     {"name": "AI Mother", "detail": "เชื่อมผู้ให้บริการ Gemini/OpenRouter หรือ compatible ด้วยคีย์เจ้าของที่เก็บใน AWS; ตรวจบทและเสนอคำแก้"},
     {"name": "AI Child — Thai repetition", "detail": "เรียนรู้ตัวอย่างคำซ้ำ/เจตนาจากบทเรียนที่เจ้าของอนุมัติ; โมเดล CPU ให้คำแนะนำ ไม่ใช่ LLM แต่งเรื่อง"},
     {"name": "AI Child — narrative", "detail": "รับบทเรียนตรวจความต่อเนื่อง/ความชัด/จังหวะที่ AI แม่สอน, ผ่าน QA ก่อนใช้ฝึก CPU แบบจำแนกประเภท"},
-    {"name": "Twelve-role production V2", "detail": "AI Mother manages 12 defined roles: story analysis, continuity, scene splitting, shots, environments, characters, props, layout, motion, audio, timeline, QA. Registry/planning only; not twelve trained models or finished SVG workers"},
+    {"name": "AI Mother production V3", "detail": "11 stages with owner-selected connected AI Mothers distributing scene review batches. Voice is separate: system Edge TTS or real Gemini TTS where eligible. Mother suggestions are bounded/validated; independent SVG/rig render workers are not implied."},
     {"name": "Six production helpers", "detail": "จัดองค์ประกอบ, SVG, motion, voice, timing, QA; เป็นขั้นตอนงาน/บทบาท ไม่ใช่โมเดล LLM 6 ตัวที่ฝึกแยก"},
     {"name": "Cloud Background Jobs", "detail": "มีโค้ดสำหรับ Step Functions และ Checkpoint; ต้องติดตั้งบริการ AWS ครั้งแรกก่อนจึงใช้จริงได้"},
     {"name": "Export", "detail": "ส่งออกวิดีโอและ JSON ผ่านสตูดิโอ; เสียง/วิดีโอต้องทดสอบจากผลงานจริงก่อนยืนยันว่าไม่มีปัญหา"},
@@ -31,7 +31,7 @@ PRODUCTION_ROLE_IDS = [
     "story-analyst", "continuity-keeper", "scene-director",
     "storyboard-director", "environment-artist", "character-artist",
     "prop-artist", "layout-director", "motion-director",
-    "audio-director", "timeline-editor", "quality-inspector"
+    "timeline-editor", "quality-inspector"
 ]
 LEGACY_STAGE_IDS = ["composition", "assets", "motion", "voice", "timing", "qa"]
 PRESERVED_SCRIPT_SYSTEMS = [

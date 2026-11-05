@@ -1,0 +1,51 @@
+name: AI Mother Production and Voice QA
+on:
+  pull_request:
+    paths:
+      - 'studio-mother-production.js'
+      - 'studio-production-roles.js'
+      - 'studio-ai-workspace.js'
+      - 'index.html'
+      - 'autodub/teacher.py'
+      - 'autodub/teacher_production.py'
+      - 'autodub/handler.py'
+      - 'tests/mother-production.test.cjs'
+      - 'tests/test_mother_production.py'
+      - '.github/workflows/ai-mother-production-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'studio-mother-production.js'
+      - 'studio-production-roles.js'
+      - 'autodub/teacher_production.py'
+      - 'tests/mother-production.test.cjs'
+      - '.github/workflows/ai-mother-production-qa.yml'
+permissions:
+  contents: read
+jobs:
+  mother-production-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse UI and backend
+        run: |
+          node --check studio-mother-production.js
+          node --check studio-ai-workspace.js
+          node --check studio-production-roles.js
+          python3 -m py_compile autodub/teacher.py autodub/teacher_production.py autodub/handler.py
+      - name: Test owner permissions, pool routing and voice separation
+        run: |
+          node --test tests/mother-production.test.cjs tests/production-roles-v2.test.cjs tests/production-twelve-run.test.cjs tests/ai-workspace-regression.test.cjs
+          python3 -m unittest discover -s tests -p 'test_mother_production.py'
+      - name: Install Chromium for AI workspace browser regression
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install chromium --with-deps
+      - name: Run 11-stage and independent dubbing browser tests
+        run: |
+          node tests/production-browser-smoke.cjs
+          node tests/local-ai-workspace-smoke.cjs

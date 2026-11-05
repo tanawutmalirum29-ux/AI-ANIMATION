@@ -54,8 +54,8 @@ rm -rf "$HERE/build" "$HERE/autodub.zip";mkdir -p "$HERE/build"
 python3 -m pip install --quiet --upgrade --target "$HERE/build" --platform manylinux2014_x86_64 --python-version 3.12 --implementation cp --only-binary=:all: edge-tts cryptography
 cp "$HERE/handler.py" "$HERE/build/"
 cp "$HERE/github_oauth.py" "$HERE/guest_access.py" "$HERE/member_ai.py" "$HERE/member_keys.py" "$HERE/owner_inspection.py" "$HERE/build/"
-cp "$HERE/github_assets.py" "$HERE/build/"
-cp "$HERE/teacher.py" "$HERE/teacher_connections.py" "$HERE/teacher_advisor.py" "$HERE/cloud_jobs.py" "$HERE/cloud_upload.py" "$HERE/thai_editor.py" "$HERE/thai_editor_starter_v1.json" "$HERE/build/"
+cp "$HERE/github_assets.py" "$HERE/owner_key_vault.py" "$HERE/build/"
+cp "$HERE/teacher.py" "$HERE/teacher_connections.py" "$HERE/teacher_advisor.py" "$HERE/teacher_production.py" "$HERE/cloud_jobs.py" "$HERE/cloud_upload.py" "$HERE/thai_editor.py" "$HERE/thai_editor_starter_v1.json" "$HERE/build/"
 cp "$HERE/student_learning.py" "$HERE/build/"
 cp "$HERE/story_auto_train.py" "$HERE/build/"
 python3 - "$HERE" <<'PY'
