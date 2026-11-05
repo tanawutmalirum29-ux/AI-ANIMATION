@@ -7,6 +7,10 @@ on:
       - feature/cinematic-fx-v1
     paths:
       - index.html
+      - studio-pro.js
+      - studio-pro.css
+      - studio-navigation.js
+      - studio-navigation.css
       - animated-map.js
       - animated-map.css
       - cinematic-fx.js
@@ -108,6 +112,10 @@ on:
   pull_request:
     paths:
       - index.html
+      - studio-pro.js
+      - studio-pro.css
+      - studio-navigation.js
+      - studio-navigation.css
       - narration-director.js
       - studio-sound-assistant.js
       - site-auth.js
