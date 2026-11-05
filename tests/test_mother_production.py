@@ -1,5 +1,9 @@
 """Offline tests: no AWS credentials or provider calls."""
-import importlib
+import base64
+import io
+import wave
+import urllib.request
+from unittest.mock import patch
 import json
 import sys
 import types
@@ -75,6 +79,44 @@ class MotherProductionTest(unittest.TestCase):
             self.assertNotIn("audio", json.loads(response["body"]))
         finally:
             production._connection = old
+
+    def test_new_gemini_interactions_tts_decodes_real_wav(self):
+        # Simulate a real unary WAV response, without calling Google or AWS.
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as sound:
+            sound.setnchannels(1)
+            sound.setsampwidth(2)
+            sound.setframerate(24000)
+            sound.writeframes(b"\\x00\\x00" * 500)
+        wav = buf.getvalue()
+        payload = {"steps": [{"type": "model_output", "content": [
+            {"type": "audio", "data": base64.b64encode(wav).decode("ascii"),
+             "mime_type": "audio/wav"}]}]}
+        urls = []
+        requests = []
+        class Opener:
+            def open(self, request, timeout):
+                urls.append(request.full_url)
+                requests.append(json.loads(request.data))
+                return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+        previous = production._connection
+        production._connection = lambda body: {"key": "TEST-NOT-A-REAL-KEY"}
+        try:
+            with patch.object(urllib.request, "build_opener", return_value=Opener()):
+                response = production._speech({
+                    "provider": "gemini", "connectionId": "key-test",
+                    "text": "สวัสดีทุกคน"})
+            self.assertEqual(response["statusCode"], 200)
+            data = json.loads(response["body"])
+            self.assertEqual(data["model"], "gemini-3.8-flash-lite-tts")
+            self.assertEqual(base64.b64decode(data["audio"]), wav)
+            self.assertEqual(urls, ["https://generativelanguage.googleapis.com/v1beta/interactions"])
+            self.assertEqual(requests[0]["input"][0]["content"][0]["text"], "สวัสดีทุกคน")
+            self.assertEqual(requests[0]["response_format"], {"type": "audio"})
+            self.assertEqual(requests[0]["generation_config"]["speech_config"], [{"voice": "Kore"}])
+        finally:
+            production._connection = previous
 
 
 if __name__ == "__main__":
