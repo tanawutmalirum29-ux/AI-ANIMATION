@@ -1,4 +1,4 @@
-// Mobile workspace QA: tool tabs stay directly under the preview while ONLY the tool panel scrolls.
+// Mobile workspace QA: task groups and tabs stay together; short screens use page scrolling.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -29,16 +29,20 @@ const path = require('node:path');
    await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
    await page.locator('#studioToolNav button[data-tool="scene"]').waitFor();
    const compact=width<=820||(height>width&&width<=1100);
-   await page.waitForFunction(expected=>document.querySelector('#studioToolNav').parentElement.id===(expected?'':'studioWorkspace')||
-    (expected&&document.querySelector('#studioToolNav').parentElement===document.body),compact);
-   if(compact){
+   await page.waitForFunction(()=>document.querySelector('#studioToolNav').parentElement.id==='studioWorkspace');
+   if(compact&&height<=700){
+    assert.ok(await page.locator('#studioToolBody').evaluate(el=>el.clientHeight>=240),'short screen retains usable controls');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight),'short screen scrolls instead of compressing tools');
+    await page.locator('#studioToolNav button[data-tool=characters]').click();
+    assert.equal(await page.locator('#studioToolNav button[data-tool=characters]').getAttribute('aria-current'),'page');
+   }else if(compact){
     const initial=await page.evaluate(()=>{
      const nav=document.querySelector('#studioToolNav'),pre=document.querySelector('#pre'),body=document.querySelector('#studioToolBody');
-     return {navParent:nav.parentElement.tagName,nav:nav.getBoundingClientRect().toJSON(),pre:pre.getBoundingClientRect().toJSON(),
+     return {navParent:nav.parentElement.id,groups:document.querySelector('.ux-groups').getBoundingClientRect().toJSON(),nav:nav.getBoundingClientRect().toJSON(),pre:pre.getBoundingClientRect().toJSON(),
       body:body.getBoundingClientRect().toJSON(),overflow:getComputedStyle(body).overflowY};
     });
-    assert.equal(initial.navParent,'BODY','nav is a direct fixed-stack child, not a child of scrollable tools');
-    assert.ok(Math.abs(initial.nav.top-initial.pre.bottom)<4,'nav directly follows the preview');
+    assert.equal(initial.navParent,'studioWorkspace','nav and groups share the workspace outside scrollable tools');
+    assert.ok(Math.abs(initial.nav.top-initial.groups.bottom)<4,'tabs directly follow their task group');
     assert.ok(initial.nav.bottom<=height+1,'nav remains on screen');
     assert.equal(initial.overflow,'auto','only the editor content should scroll vertically');
     await page.locator('#studioToolNav button[data-tool="characters"]').click();

@@ -10,7 +10,7 @@ const isAdmin=()=>root.StoryStudioAccess?.isAdmin?.()===true;
 const home=node('main','ux-home');home.id='studioHome';home.setAttribute('aria-label','หน้าเริ่มต้น');
 const nav=node('nav','ux-groups');nav.setAttribute('aria-label','ขั้นตอนสร้างวิดีโอ');
 const hint=node('p','ux-hint');hint.id='workspaceGuide';
-function selectGroup(id){group=id;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.group===id)));q('#studioToolNav').dataset.group=id;for(const b of q('#studioToolNav').querySelectorAll('[data-tool]'))b.hidden=!groups[id].tools.includes(b.dataset.tool);hint.textContent=groups[id].hint;}
+function selectGroup(id){group=id;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.group===id)));q('#studioToolNav').dataset.group=id;for(const b of q('#studioToolNav').querySelectorAll('[data-tool]'))b.hidden=!groups[id].tools.includes(b.dataset.tool);hint.textContent=groups[id].hint;requestAnimationFrame(()=>{const bar=q('#studioToolNav'),active=bar.querySelector('button.on');if(!active||active.hidden)return;const left=active.offsetLeft;if(left<bar.scrollLeft)bar.scrollLeft=left;else if(left+active.offsetWidth>bar.scrollLeft+bar.clientWidth)bar.scrollLeft=left+active.offsetWidth-bar.clientWidth;});}
 function editor(tool='scene'){
  doc.body.classList.remove('ux-home-open');home.hidden=true;
  if(root.StoryAIMode?.isAi())root.StoryAIMode.set('full');
@@ -56,6 +56,7 @@ function init(){
  if(new URLSearchParams(location.search).get('mode')==='ai')return;
  if(root.StoryAIMode?.isAi())root.StoryAIMode.set('full');
  doc.body.classList.add('ux-ready');doc.body.append(home);
+ q('#studioWorkspace').prepend(q('#studioToolNav'));
  for(const [id,g] of Object.entries(groups)){const b=button(g.label,()=>editor(g.tools[0]));b.dataset.group=id;nav.append(b)}
  q('#studioToolNav').before(nav);q('#studioToolTitle').after(hint);q('#studioToolTitle').tabIndex=-1;
  const original=root.switchStudioTool;

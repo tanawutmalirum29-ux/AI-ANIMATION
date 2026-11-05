@@ -317,6 +317,8 @@ function syncProToolNavDock(){
  const workspace=document.getElementById('studioWorkspace');
  const timeline=document.getElementById('tl');
  if(!nav||!workspace||!timeline)return;
+ // Task navigation keeps its groups and tabs together inside the workspace.
+ if(document.body.classList.contains('ux-ready'))return;
  if(MOBILE_DOCK_QUERY.matches){
   if(nav.parentElement!==document.body)document.body.insertBefore(nav,timeline);
  }else if(nav.parentElement!==workspace){
