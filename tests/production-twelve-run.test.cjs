@@ -6,19 +6,21 @@ const roles=require('../studio-production-roles.js');
 const owner=source('studio-ai-workspace.js');
 const member=source('member-portal.js');
 
-test('owner executes exactly the twelve ordered V2 role IDs',()=>{
+test('owner executes eleven production stages, with voice as separate selectable engine',()=>{
  const steps=[...owner.matchAll(/await step\('([^']+)',async/g)].map(x=>x[1]);
- assert.equal(steps.length,12);
+ assert.equal(steps.length,11);
  assert.deepEqual(steps,roles.roles.map(x=>x.id));
  assert.match(owner,/runProduction12:\(\)=>runCoordinatedProduction\(\)/);
  assert.match(owner,/getProductionSteps:/);
- assert.match(owner,/stages\.length!==12/);
+ assert.match(owner,/stages\.length!==11/);
  assert.match(owner,/unavailable/);
  assert.match(owner,/planSummary:\{ready,failures,unavailable/);
  assert.match(owner,/applyProductionPlan\('assets',ensureBackup\)/);
  assert.match(owner,/applyProductionPlan\('motion',ensureBackup\)/);
  assert.match(owner,/applyProductionPlan\('composition',ensureBackup\)/);
- assert.match(owner,/bridge\.narrate\('all'\)/);
+ assert.doesNotMatch(owner,/await step\('audio-director'/);
+ assert.match(owner,/engine:voiceEngine,connectionId:motherVoiceConnectionId/);
+ assert.match(owner,/StoryMotherProduction\.runRole/);
  assert.match(owner,/applyTiming\('all',1,true\)/);
  assert.match(owner,/StoryVisualQA\?\.inspect/);
 });
