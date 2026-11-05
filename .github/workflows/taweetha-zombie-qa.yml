@@ -1,0 +1,32 @@
+name: School Zombie Storyboard QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'studio-production-assets.js'
+      - 'examples/taweetha-zombie-siege.json'
+      - 'tests/taweetha-zombie-smoke.cjs'
+      - '.github/workflows/taweetha-zombie-qa.yml'
+  pull_request:
+    paths:
+      - 'studio-production-assets.js'
+      - 'examples/taweetha-zombie-siege.json'
+      - 'tests/taweetha-zombie-smoke.cjs'
+      - '.github/workflows/taweetha-zombie-qa.yml'
+permissions:
+  contents: read
+jobs:
+  storyboard-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate code and embedded animation project
+        run: |
+          node --check studio-production-assets.js
+          node --check tests/taweetha-zombie-smoke.cjs
+          node tests/taweetha-zombie-smoke.cjs
+          node training-lab/validate-story.cjs examples/taweetha-zombie-siege.json

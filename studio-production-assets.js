@@ -40,6 +40,23 @@ function beats(kind,duration){
  if(kind==='school-key')return[{t:0,opacity:0},{t:at(.4),opacity:1},{t:d,opacity:1}];
  return [];
 }
-function item(scene,kind){const t=templates[kind];if(!t)return null;const p=scene?.productionPlacements?.[kind]||{};const bounded=(v,lo,hi,def)=>Number.isFinite(Number(v))&&v!==null&&v!==''?Math.max(lo,Math.min(hi,Number(v))):def;return {asset:{version:1,id:'auto-'+kind+'-v1',name:t.name,category:t.category,description:'Auto draft; inspect visuals before publishing.',shapes:t.shapes.map(s=>({...s}))},x:bounded(p.x,0,100,t.x),y:bounded(p.y,0,100,t.y),scale:bounded(p.scale,.12,3,t.scale),front:typeof p.front==='boolean'?p.front:t.front,producer:'studio-production-v1',eventKind:kind,motionKeys:beats(kind,scene?.duration)};}
+function beatsForScene(scene,kind){
+ const override=scene?.productionMotionOverrides?.[kind];
+ if(!Array.isArray(override)||override.length<2||override.length>24)return beats(kind,scene?.duration);
+ const dur=Math.max(1,Math.min(80,Number(scene?.duration)||7));
+ let previous=-1;
+ const safe=[];
+ for(const key of override){
+  const t=Number(key?.t);
+  if(!Number.isFinite(t)||t<previous||t<0||t>dur)return beats(kind,scene?.duration);
+  const row={t};
+  for(const [name,lo,hi] of [['x',0,100],['y',0,100],['scale',.12,3],['rotate',-180,180],['opacity',0,1]]){
+   if(key[name]!==undefined){const v=Number(key[name]);if(!Number.isFinite(v))return beats(kind,scene?.duration);row[name]=Math.max(lo,Math.min(hi,v));}
+  }
+  safe.push(row);previous=t;
+ }
+ return safe;
+}
+function item(scene,kind){const t=templates[kind];if(!t)return null;const p=scene?.productionPlacements?.[kind]||{};const bounded=(v,lo,hi,def)=>Number.isFinite(Number(v))&&v!==null&&v!==''?Math.max(lo,Math.min(hi,Number(v))):def;return {asset:{version:1,id:'auto-'+kind+'-v1',name:t.name,category:t.category,description:'Auto draft; inspect visuals before publishing.',shapes:t.shapes.map(s=>({...s}))},x:bounded(p.x,0,100,t.x),y:bounded(p.y,0,100,t.y),scale:bounded(p.scale,.12,3,t.scale),front:typeof p.front==='boolean'?p.front:t.front,producer:'studio-production-v1',eventKind:kind,motionKeys:beatsForScene(scene,kind)};}
 return Object.freeze({templates,events,beats,item});
 });

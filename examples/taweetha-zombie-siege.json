@@ -325,6 +325,10 @@
     {
       "id": "visual",
       "text": "Do not replace event props with generic buildings; retain props placement and keyframes and do not generate gore."
+    },
+    {
+      "id": "door-motion",
+      "text": "Authored door motion per scene is in productionMotionOverrides: closing in scene 5, locked in scenes 6/9 and opening in scenes 10/12. No accidental opening during a locked-door beat."
     }
   ],
   "episodes": [
@@ -342,7 +346,7 @@
           "subtitleCues": [
             {
               "id": "cue-1",
-              "text": "เช้าที่ไม่เหมือนเดิม",
+              "text": "เช้าผิดปกติ",
               "start": 1.3,
               "end": 4.65,
               "speaker": "narrator",
@@ -783,7 +787,7 @@
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             },
             {
               "char": "zombie",
@@ -1354,7 +1358,7 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "left",
-              "face": "serious",
+              "face": "think",
               "toX": 13,
               "endPose": "stand"
             }
@@ -1700,7 +1704,7 @@
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             },
             {
               "char": "nont",
@@ -1709,7 +1713,7 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious",
+              "face": "think",
               "toX": 87,
               "endPose": "stand"
             }
@@ -2046,7 +2050,7 @@
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             }
           ],
           "props": [],
@@ -2248,15 +2252,15 @@
               "motionKeys": [
                 {
                   "t": 0,
-                  "rotate": 0
+                  "rotate": -25
                 },
                 {
-                  "t": 2.4,
-                  "rotate": 0
+                  "t": 2.8,
+                  "rotate": -13
                 },
                 {
                   "t": 5,
-                  "rotate": -25
+                  "rotate": 0
                 }
               ]
             }
@@ -2293,7 +2297,23 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Teacher directs pupils into room with door to the right. Keep exit clearly visible. | SFX PLAN: เสียงประตูเปิด 0:00; คำสั่งครู 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "BLOCKING: Teacher directs pupils into room with door to the right. Keep exit clearly visible. | SFX PLAN: เสียงประตูเปิด 0:00; คำสั่งครู 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {
+            "school-door": [
+              {
+                "t": 0,
+                "rotate": -25
+              },
+              {
+                "t": 2.8,
+                "rotate": -13
+              },
+              {
+                "t": 5,
+                "rotate": 0
+              }
+            ]
+          }
         },
         {
           "id": "tpz-s06",
@@ -2307,7 +2327,7 @@
           "subtitleCues": [
             {
               "id": "cue-6",
-              "text": "โต๊ะต้องรับแรงให้ไหว",
+              "text": "โต๊ะกั้นประตู!",
               "start": 1.3,
               "end": 4.65,
               "speaker": "narrator",
@@ -2356,19 +2376,19 @@
               "char": "nont",
               "x": 23,
               "y": 89,
-              "pose": "push",
+              "pose": "carry",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             },
             {
               "char": "mind",
               "x": 76,
               "y": 89,
-              "pose": "push",
+              "pose": "carry",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             }
           ],
           "props": [],
@@ -2573,12 +2593,8 @@
                   "rotate": 0
                 },
                 {
-                  "t": 2.4,
-                  "rotate": 0
-                },
-                {
                   "t": 5,
-                  "rotate": -25
+                  "rotate": 0
                 }
               ]
             },
@@ -2698,7 +2714,19 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Barricade desk slides from x72 to x54 across door, visible physical motion. | SFX PLAN: โต๊ะครูดพื้น 0:01; ทุบประตู 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "BLOCKING: Barricade desk slides from x72 to x54 across door, visible physical motion. | SFX PLAN: โต๊ะครูดพื้น 0:01; ทุบประตู 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {
+            "school-door": [
+              {
+                "t": 0,
+                "rotate": 0
+              },
+              {
+                "t": 5,
+                "rotate": 0
+              }
+            ]
+          }
         },
         {
           "id": "tpz-s07",
@@ -2763,7 +2791,7 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious",
+              "face": "think",
               "toX": 62,
               "endPose": "stand"
             }
@@ -3142,7 +3170,7 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious",
+              "face": "think",
               "toX": 44,
               "endPose": "stand"
             },
@@ -3153,7 +3181,7 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious",
+              "face": "think",
               "toX": 84,
               "endPose": "stand"
             }
@@ -3459,7 +3487,7 @@
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             },
             {
               "char": "teacher",
@@ -3468,7 +3496,7 @@
               "pose": "walk",
               "view": "threeQuarter",
               "facing": "left",
-              "face": "serious",
+              "face": "think",
               "toX": 61,
               "endPose": "stand"
             }
@@ -3657,12 +3685,8 @@
                   "rotate": 0
                 },
                 {
-                  "t": 2.4,
-                  "rotate": 0
-                },
-                {
                   "t": 5,
-                  "rotate": -25
+                  "rotate": 0
                 }
               ]
             }
@@ -3699,7 +3723,19 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Nont tries sealed rooftop door, Teacher approaches. Door still closed. | SFX PLAN: เสียงลูกบิดกระทบ 0:01; ลมหอบ 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "BLOCKING: Nont tries sealed rooftop door, Teacher approaches. Door still closed. | SFX PLAN: เสียงลูกบิดกระทบ 0:01; ลมหอบ 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {
+            "school-door": [
+              {
+                "t": 0,
+                "rotate": 0
+              },
+              {
+                "t": 5,
+                "rotate": 0
+              }
+            ]
+          }
         },
         {
           "id": "tpz-s10",
@@ -3764,7 +3800,7 @@
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             }
           ],
           "props": [],
@@ -4138,7 +4174,7 @@
               "pose": "wave",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             },
             {
               "char": "mind",
@@ -4147,7 +4183,7 @@
               "pose": "wave",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "think"
             }
           ],
           "props": [],
@@ -4450,7 +4486,7 @@
               "pose": "surprised",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "serious"
+              "face": "surprised"
             },
             {
               "char": "zombie",
@@ -4648,12 +4684,12 @@
                   "rotate": 0
                 },
                 {
-                  "t": 2.88,
+                  "t": 3.7,
                   "rotate": 0
                 },
                 {
                   "t": 6,
-                  "rotate": -25
+                  "rotate": -19
                 }
               ]
             },
@@ -4840,7 +4876,23 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact. | SFX PLAN: เสียงครางจากด้านหลัง 0:02; ดนตรีหยุดฉับพลัน 0:05 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "BLOCKING: Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact. | SFX PLAN: เสียงครางจากด้านหลัง 0:02; ดนตรีหยุดฉับพลัน 0:05 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {
+            "school-door": [
+              {
+                "t": 0,
+                "rotate": 0
+              },
+              {
+                "t": 3.7,
+                "rotate": 0
+              },
+              {
+                "t": 6,
+                "rotate": -19
+              }
+            ]
+          }
         }
       ],
       "cliffhanger": "มีเสียงครางดังขึ้นบนดาดฟ้า"
