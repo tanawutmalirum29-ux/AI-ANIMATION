@@ -120,7 +120,7 @@ async function runRole(roleId,bridge,{scope='episode',instruction='',ensureBacku
   }catch(err){warnings.push('ชุด '+(index+1)+': '+String(err.message||err).slice(0,130));}
  }
  const reviewerCount=new Set(outcomes.filter(Boolean).map(x=>x.connection.id)).size;
- return {reviewed:outcomes.filter(Boolean).reduce((n,x)=>n+(x?1:0),0)*LIMIT,
+ return {reviewed:outcomes.reduce((n,x,i)=>n+(x?batch[i].length:0),0),
   batches:batch.length,proposals,applied,mothers:reviewerCount,
   failures:outcomes.filter(x=>!x).length,warnings,
   reviews:outcomes.filter(Boolean).map(x=>({
