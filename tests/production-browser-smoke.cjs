@@ -10,27 +10,21 @@ const path=require('node:path');
   page.on('dialog',x=>x.accept());
   await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   await page.getByRole('button',{name:'ผู้ช่วย AI',exact:true}).click();
-  assert.equal(await page.getByRole('heading',{name:'AI Production · 12 ตำแหน่ง'}).count(),1);
+  assert.equal(await page.getByRole('heading',{name:'AI Production · 11 ตำแหน่ง + พากย์'}).count(),1);
   const setup=await page.evaluate(()=>{
    const s=StoryStudioBridge.get().episodes[0].scenes[0];
    s.duration=9;s.voiceover='หนึ่งวาบ สองวาบ สามวาบ ลำแสงสัญญาณส่องผ่านฝน';
    s.subtitle=['หนึ่งวาบ สองวาบ สามวาบ'];
    s.subtitleCues=[];s.customAssets=[];s.actors=[];s.props=[];s.image=null;s.video=null;
+   s.audioClips=[{id:'test-voice',kind:'voice',at:0,duration:3,rate:1,
+      data:'data:audio/wav;base64,AAAA',autoDub:false}];
    StoryStudioBridge.persist();
    window.__dubCalls=0;
-   StoryStudioBridge.narrate=async scope=>{
-    window.__dubCalls++;
-    if(scope!=='all')throw Error('Expected all');
-    const scene=StoryStudioBridge.get().episodes[0].scenes[0];
-    scene.audioClips=[{id:'test-voice',kind:'voice',at:0,duration:3,
-      rate:1,data:'data:audio/wav;base64,AAAA',autoDub:true,cueId:'narration-'+scene.id+'-part1'}];
-    StoryStudioBridge.persist();
-    return {ok:true,made:1,failed:0};
-   };
+   StoryStudioBridge.narrate=async()=>{window.__dubCalls++;throw Error('สิบเอ็ดขั้นไม่ควรพากย์');};
    return {id:s.id,voice:s.voiceover};
   });
   const run=async()=>{
-   await page.getByRole('button',{name:'เริ่มประมวลผล 12 ขั้น · ปุ่มเดียว'}).click();
+   await page.getByRole('button',{name:'เริ่มประมวลผล 11 ขั้น · ปุ่มเดียว'}).click();
    await page.waitForFunction(()=>{
     const tasks=StoryStudioBridge.get().project.aiWorkspace?.tasks||[];
     return tasks.some(t=>t.role==='production'&&['done','failed'].includes(t.status));
@@ -47,17 +41,17 @@ const path=require('node:path');
   const first=await run();
   assert.equal(first.status,'done',JSON.stringify(first));
   assert.deepEqual(first.steps.map(x=>x.id),require('../studio-production-roles.js').roles.map(x=>x.id));
-  assert.equal(first.steps.length,12);
+  assert.equal(first.steps.length,11);
   assert.ok(first.steps.some(x=>x.status==='unavailable'),'untrained worker must not be reported as done');
   assert.ok(first.assets.includes('beacon'),'light signal must exist in stage output');
   assert.equal(first.voice,setup.voice,'original narration unchanged');
   assert.equal(first.audio,1,'recorded voice preserved');
-  assert.equal(first.dubCalls,1);
+  assert.equal(first.dubCalls,0);
   assert.ok(!first.steps.some(x=>x.status==='failed'),JSON.stringify(first.steps));
   const second=await run();
   assert.equal(second.status,'done');
   assert.equal(second.assets.filter(x=>x==='beacon').length,1,'idempotent asset generation');
-  assert.equal(second.dubCalls,1,'second run must not synthesize voice that already exists');
+  assert.equal(second.dubCalls,0,'re-run never triggers voice automatically');
   // A disconnected TTS gateway must not produce false success or block QA.
   await page.evaluate(()=>{
    const st=StoryStudioBridge.get();
@@ -68,10 +62,10 @@ const path=require('node:path');
   const offline=await run();
   assert.equal(offline.status,'done','workflow reaches QA even when TTS is offline');
   assert.equal(offline.audio,0,'no fake voice recordings are inserted');
-  assert.equal(offline.steps.find(x=>x.id==='audio-director').status,'warning');
+  assert.ok(!offline.steps.some(x=>x.id==='audio-director'),'voice is a separate module');
   assert.equal(offline.steps.find(x=>x.id==='timeline-editor').status,'skipped');
   assert.equal(offline.steps.find(x=>x.id==='quality-inspector').status,'warning');
   assert.deepEqual(errors,[],'no uncaught page JS errors');
-  console.log('PASS: 12-stage one button with six existing execution engines, voice before timing, persistent tasks, re-run safe, mobile viewport');
+  console.log('PASS: 11-stage production, separate dubbing, persistent tasks, re-run safe, mobile viewport');
  }finally{await browser.close();}
 })().catch(err=>{console.error(err);process.exit(1)});
