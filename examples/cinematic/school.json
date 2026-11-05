@@ -1,0 +1,278 @@
+{
+  "version": 1,
+  "project": {
+    "title": "E · อาคารเรียน / หน้าต่าง / ประตู",
+    "aspect": "9:16",
+    "fps": 30
+  },
+  "characters": [
+    {
+      "id": "cine-student",
+      "name": "นักเรียนตัวอย่าง",
+      "promptBlock": "Original student, ivory school uniform, navy trousers, short dark hair.",
+      "rig": {
+        "style": "human",
+        "costume": "school",
+        "shirt": "#e9e8da",
+        "pants": "#37475c",
+        "hair": "#252b36",
+        "hairStyle": "short",
+        "skin": "#d9ad8c"
+      }
+    }
+  ],
+  "locations": [],
+  "rules": [],
+  "episodes": [
+    {
+      "id": "cinematic-school",
+      "title": "E · อาคารเรียน / หน้าต่าง / ประตู",
+      "scenes": [
+        {
+          "id": "cine-school",
+          "duration": 12,
+          "cinematicPlan": {
+            "schema": "story-cinematic/1",
+            "title": "E · อาคารเรียน / หน้าต่าง / ประตู",
+            "duration": 12,
+            "world": {
+              "width": 3600,
+              "height": 1800,
+              "groundY": 1150,
+              "environment": "school"
+            },
+            "camera": {
+              "mode": "path",
+              "keys": [
+                {
+                  "t": 0,
+                  "x": 1600,
+                  "y": 790,
+                  "zoom": 0.65,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 4,
+                  "x": 1680,
+                  "y": 780,
+                  "zoom": 1,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 8,
+                  "x": 1710,
+                  "y": 710,
+                  "zoom": 2.2,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 12,
+                  "x": 1790,
+                  "y": 740,
+                  "zoom": 1.7,
+                  "roll": 0,
+                  "easing": "smooth"
+                }
+              ]
+            },
+            "actors": [
+              {
+                "id": "lead",
+                "char": "cine-student",
+                "height": 200,
+                "z": -0.03,
+                "stride": 160,
+                "keys": [
+                  {
+                    "t": 0,
+                    "x": 1710,
+                    "y": 830,
+                    "pose": "stand",
+                    "view": "front",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 8,
+                    "x": 1710,
+                    "y": 830,
+                    "pose": "stand",
+                    "view": "front",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 10,
+                    "x": 1710,
+                    "y": 830,
+                    "pose": "surprised",
+                    "view": "backThreeQuarter",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 12,
+                    "x": 1710,
+                    "y": 830,
+                    "pose": "stand",
+                    "view": "back",
+                    "facing": "right",
+                    "easing": "linear"
+                  }
+                ]
+              }
+            ],
+            "objects": [
+              {
+                "id": "school",
+                "kind": "building",
+                "x": 1700,
+                "y": 1150,
+                "z": 0,
+                "width": 1100,
+                "height": 850,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#4b696a"
+              },
+              {
+                "id": "window",
+                "kind": "window",
+                "x": 1690,
+                "y": 850,
+                "z": -0.01,
+                "width": 280,
+                "height": 300,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door",
+                "kind": "door",
+                "x": 1900,
+                "y": 850,
+                "z": -0.02,
+                "width": 150,
+                "height": 290,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "front-tree",
+                "kind": "tree",
+                "x": 1300,
+                "y": 1350,
+                "z": -0.25,
+                "width": 220,
+                "height": 900,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#243f3c"
+              }
+            ],
+            "interactions": [
+              {
+                "type": "open",
+                "object": "door",
+                "t": 9,
+                "duration": 2,
+                "value": 1
+              }
+            ],
+            "lighting": {
+              "preset": "night",
+              "keys": [
+                {
+                  "t": 0,
+                  "intensity": 0.55,
+                  "fog": 0.15,
+                  "angle": -20
+                },
+                {
+                  "t": 6,
+                  "intensity": 0.55,
+                  "fog": 0.15,
+                  "angle": -20
+                },
+                {
+                  "t": 6.15,
+                  "intensity": 0.2,
+                  "fog": 0.15,
+                  "angle": -20
+                },
+                {
+                  "t": 6.3,
+                  "intensity": 0.6,
+                  "fog": 0.15,
+                  "angle": -20
+                },
+                {
+                  "t": 12,
+                  "intensity": 0.6,
+                  "fog": 0.15,
+                  "angle": -20
+                }
+              ]
+            },
+            "shots": [
+              {
+                "start": 0,
+                "end": 4,
+                "label": "ภาพกว้างอาคาร"
+              },
+              {
+                "start": 4,
+                "end": 8,
+                "label": "เคลื่อนเข้าหาหน้าต่าง"
+              },
+              {
+                "start": 8,
+                "end": 12,
+                "label": "หันกลับมองประตู"
+              }
+            ],
+            "source": {
+              "kind": "reviewed-template",
+              "template": "school",
+              "reviewed": true
+            },
+            "unknowns": []
+          },
+          "characters": [
+            "cine-student"
+          ],
+          "actors": [],
+          "props": [],
+          "camera": {
+            "type": "static",
+            "world": 1,
+            "from": 1,
+            "to": 1
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "voiceover": "",
+          "subtitle": [],
+          "audioClips": []
+        }
+      ]
+    }
+  ]
+}

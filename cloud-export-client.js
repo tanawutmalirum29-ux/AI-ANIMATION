@@ -29,13 +29,14 @@
   cancel.disabled=!busy;
  }
  function setBusy(v){busy=!!v;controls();cancel.disabled=!busy}
- function showDownload(url,ext){
+ function showDownload(url,ext,qaUrl){
   if(!result)return;
   result.replaceChildren();result.hidden=false;
   const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';
   link.textContent='↓ ดาวน์โหลดวิดีโอ'+(ext==='zip'?'ทุกตอน (ZIP)':' MP4');
   link.style.cssText='display:inline-flex;padding:12px 16px;border-radius:10px;background:#e2c28c;color:#18263d;font-weight:700;text-decoration:none';
   result.append(link);
+  if(qaUrl){const report=document.createElement('a');report.href=qaUrl;report.target='_blank';report.rel='noopener noreferrer';report.textContent='ดาวน์โหลดรายงานตรวจวิดีโอ / เสียง';report.style.cssText='display:block;padding:12px';result.append(report);}
  }
  function api(payload){return root.StoryStudioAccess.request(payload)}
  function fail(err){
@@ -52,7 +53,7 @@
     try{localStorage.setItem(storeKey,JSON.stringify({...finished,finished:true}))}catch(e){}
     setBusy(false);$('videoProgress').value=100;
     status('เรนเดอร์บนเซิร์ฟเวอร์สำเร็จ · ดาวน์โหลดไฟล์ได้ด้านล่าง (ลิงก์มีอายุ 15 นาที)');
-    showDownload(info.downloadUrl,info.extension);return;
+    showDownload(info.downloadUrl,info.extension,info.qaUrl);return;
    }
    if(['FAILED','FAULT','TIMED_OUT','STOPPED'].includes(info.state)){
     pendingJob(null);fail(info.error||'AWS หยุดงานส่งออก ('+info.state+')');return;

@@ -1,0 +1,13 @@
+.cine-studio{padding:16px;max-width:100%;min-width:0;color:#dfe7f6;font:14px/1.65 system-ui,sans-serif}
+.cine-studio h2{font-size:20px;margin:0 0 8px}.cine-studio p{overflow-wrap:anywhere}
+.cine-studio label{display:flex;flex-direction:column;gap:6px;margin:14px 0;font-weight:600}
+.cine-studio label:has(input[type=checkbox]){flex-direction:row;align-items:flex-start}
+.cine-studio :is(textarea,select,input[type=file]){width:100%;max-width:100%;box-sizing:border-box;font:inherit;min-width:0;padding:10px;border:1px solid #52627e;border-radius:8px;background:#111b2c;color:#e4ebf7}
+.cine-studio textarea{resize:vertical}.cine-studio input[type=checkbox]{width:20px;height:20px;flex:none}
+.cine-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.cine-studio button{min-height:44px;white-space:normal;padding:8px 12px;border-radius:8px;font:600 13px/1.5 system-ui,sans-serif}
+.cine-studio button.cine-primary{background:#b9c5ff!important;color:#172345!important}
+.cine-studio details{margin:16px 0;padding:12px;border:1px solid #44536b;border-radius:10px}.cine-studio summary{cursor:pointer;min-height:30px;font-weight:650}
+.cine-shot{display:flex;gap:12px;flex-wrap:wrap;border-left:3px solid #a7b8ec;padding:8px 12px;margin:8px 0;background:#233148;border-radius:0 8px 8px 0}
+.cine-shot strong{color:#bacbff}.cine-issues p{padding:8px 12px;background:#3c332b;border:1px solid #705c43;border-radius:8px;color:#f1d4a9;font-size:12px}
+.cine-status{color:#bee1d3}.cine-note{font-size:12px;color:#b4bfd1}.cine-studio pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.cine-studio progress{width:100%;accent-color:#b9c5ff}
+@media(max-width:820px){.cine-studio :is(textarea,select){font-size:16px}.cine-studio{padding:12px}.cine-actions button{flex:1 1 140px}}

@@ -1,0 +1,397 @@
+{
+  "version": 1,
+  "project": {
+    "title": "C · วิ่งผ่านทางเดิน / กล้องติดตาม",
+    "aspect": "9:16",
+    "fps": 30
+  },
+  "characters": [
+    {
+      "id": "cine-student",
+      "name": "นักเรียนตัวอย่าง",
+      "promptBlock": "Original student, ivory school uniform, navy trousers, short dark hair.",
+      "rig": {
+        "style": "human",
+        "costume": "school",
+        "shirt": "#e9e8da",
+        "pants": "#37475c",
+        "hair": "#252b36",
+        "hairStyle": "short",
+        "skin": "#d9ad8c"
+      }
+    }
+  ],
+  "locations": [],
+  "rules": [],
+  "episodes": [
+    {
+      "id": "cinematic-run",
+      "title": "C · วิ่งผ่านทางเดิน / กล้องติดตาม",
+      "scenes": [
+        {
+          "id": "cine-run",
+          "duration": 12,
+          "cinematicPlan": {
+            "schema": "story-cinematic/1",
+            "title": "C · วิ่งผ่านทางเดิน / กล้องติดตาม",
+            "duration": 12,
+            "world": {
+              "width": 5200,
+              "height": 1800,
+              "groundY": 1150,
+              "environment": "school"
+            },
+            "camera": {
+              "mode": "follow",
+              "follow": "lead",
+              "keys": [
+                {
+                  "t": 0,
+                  "x": 700,
+                  "y": 950,
+                  "zoom": 1.1,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 12,
+                  "x": 4300,
+                  "y": 950,
+                  "zoom": 1.1,
+                  "roll": 0,
+                  "easing": "smooth"
+                }
+              ]
+            },
+            "actors": [
+              {
+                "id": "lead",
+                "char": "cine-student",
+                "height": 260,
+                "z": 0,
+                "stride": 190,
+                "keys": [
+                  {
+                    "t": 0,
+                    "x": 700,
+                    "y": 1150,
+                    "pose": "run",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 10,
+                    "x": 4000,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 12,
+                    "x": 4000,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  }
+                ]
+              }
+            ],
+            "objects": [
+              {
+                "id": "door0",
+                "kind": "door",
+                "x": 450,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window0",
+                "kind": "window",
+                "x": 720,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door1",
+                "kind": "door",
+                "x": 1050,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window1",
+                "kind": "window",
+                "x": 1320,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door2",
+                "kind": "door",
+                "x": 1650,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window2",
+                "kind": "window",
+                "x": 1920,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door3",
+                "kind": "door",
+                "x": 2250,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window3",
+                "kind": "window",
+                "x": 2520,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door4",
+                "kind": "door",
+                "x": 2850,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window4",
+                "kind": "window",
+                "x": 3120,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door5",
+                "kind": "door",
+                "x": 3450,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window5",
+                "kind": "window",
+                "x": 3720,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door6",
+                "kind": "door",
+                "x": 4050,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window6",
+                "kind": "window",
+                "x": 4320,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door7",
+                "kind": "door",
+                "x": 4650,
+                "y": 1150,
+                "z": 0.45,
+                "width": 150,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "window7",
+                "kind": "window",
+                "x": 4920,
+                "y": 1000,
+                "z": 0.45,
+                "width": 220,
+                "height": 200,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              }
+            ],
+            "interactions": [
+              {
+                "type": "open",
+                "object": "door5",
+                "t": 7,
+                "duration": 0.45,
+                "value": 1
+              }
+            ],
+            "lighting": {
+              "preset": "night",
+              "keys": [
+                {
+                  "t": 0,
+                  "intensity": 0.6,
+                  "fog": 0.15,
+                  "angle": -15
+                },
+                {
+                  "t": 12,
+                  "intensity": 0.6,
+                  "fog": 0.15,
+                  "angle": -15
+                }
+              ]
+            },
+            "shots": [
+              {
+                "start": 0,
+                "end": 10,
+                "label": "กล้องติดตามด้านข้าง"
+              },
+              {
+                "start": 10,
+                "end": 12,
+                "label": "หยุดและมองทางเดิน"
+              }
+            ],
+            "source": {
+              "kind": "reviewed-template",
+              "template": "run",
+              "reviewed": true
+            },
+            "unknowns": []
+          },
+          "characters": [
+            "cine-student"
+          ],
+          "actors": [],
+          "props": [],
+          "camera": {
+            "type": "static",
+            "world": 1,
+            "from": 1,
+            "to": 1
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "voiceover": "",
+          "subtitle": [],
+          "audioClips": []
+        }
+      ]
+    }
+  ]
+}

@@ -8,8 +8,9 @@ const path=require('node:path');
  try{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
-  await page.locator('#studioToolNav [data-tool="export"]').click();
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:'3 · ตรวจและส่งออก',exact:true}).click();
+   await page.locator('#studioToolNav [data-tool="export"]').click();
   const report=await page.evaluate(async()=>{
    const pipeline=document.querySelector('#videoPipeline');
    const initial={value:pipeline.value,hasTurbo:Array.from(pipeline.options).some(o=>o.value==='turbo'),

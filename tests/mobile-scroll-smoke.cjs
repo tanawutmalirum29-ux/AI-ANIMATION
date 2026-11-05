@@ -26,7 +26,7 @@ const path = require('node:path');
    const ctx=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true});
    const page=await ctx.newPage(),errors=[];
    page.on('pageerror',e=>errors.push(String(e)));
-   await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+   await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
    await page.locator('#studioToolNav button[data-tool="scene"]').waitFor();
    const compact=width<=820||(height>width&&width<=1100);
    await page.waitForFunction(expected=>document.querySelector('#studioToolNav').parentElement.id===(expected?'':'studioWorkspace')||

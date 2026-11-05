@@ -209,7 +209,18 @@ def _export_action(action, body, owner=None):
                         "ResponseContentDisposition": 'attachment; filename="story-studio.' + ext + '"',
                         "ResponseContentType": mime
                     }, ExpiresIn=900)
-                    return _resp(200, {"jobId": ident, "state": "SUCCEEDED", "downloadUrl": url, "extension": ext})
+                    reply = {"jobId": ident, "state": "SUCCEEDED", "downloadUrl": url, "extension": ext}
+                    # Same owner check as the video; reports are never public objects.
+                    try:
+                        s3.head_object(Bucket=bucket, Key=key("render-qa.json"))
+                        reply["qaUrl"] = s3.generate_presigned_url("get_object", Params={
+                            "Bucket": bucket, "Key": key("render-qa.json"),
+                            "ResponseContentDisposition": 'attachment; filename="render-qa.json"',
+                            "ResponseContentType": "application/json"
+                        }, ExpiresIn=900)
+                    except ClientError:
+                        pass  # Older jobs and per-episode ZIPs need no standalone report.
+                    return _resp(200, reply)
                 except ClientError:
                     pass
             state = "FAILED"

@@ -1,0 +1,822 @@
+{
+  "schema": "video-reference/1",
+  "method": "sampled-frame-difference",
+  "semanticModel": false,
+  "cutThreshold": 0.12,
+  "duration": 63.249705,
+  "filename": "2-v14044g50000dbhlft7og65vlj6ml9mg.mp4",
+  "width": 576,
+  "height": 1024,
+  "fps": "30/1",
+  "audioPresent": true,
+  "sampleInterval": 0.5,
+  "sha256": "2a590248aee28fbf54154979bf4f801552e321a39627ab4c9fc261163441d096",
+  "limitations": [
+    "จุดเปลี่ยนภาพเป็นข้อเสนอจากความต่างพิกเซล แฟลชหรือกล้องเร็วอาจเป็นผลบวกลวง",
+    "เวลาคลาดเคลื่อนได้ตามช่วงสุ่มเฟรม; ช็อตสั้นอาจไม่ถูกตรวจพบ",
+    "ยังไม่ตรวจตัวละคร สิ่งของ ท่าทาง ความลึก หรือกล้องแบบ semantic",
+    "ข้อมูลภาพอยู่ในเครื่อง ไม่อัปโหลดวิดีโอ"
+  ],
+  "shots": [
+    {
+      "id": "shot-1",
+      "start": 0,
+      "end": 2,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-2",
+      "start": 2,
+      "end": 10.5,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.1534,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-3",
+      "start": 10.5,
+      "end": 12.5,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.1333,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-4",
+      "start": 12.5,
+      "end": 13.5,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.2954,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-5",
+      "start": 13.5,
+      "end": 26,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.2651,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-6",
+      "start": 26,
+      "end": 35,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.1703,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-7",
+      "start": 35,
+      "end": 59,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.1584,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    },
+    {
+      "id": "shot-8",
+      "start": 59,
+      "end": 63.249705,
+      "boundary": {
+        "source": "pixel-difference",
+        "score": 0.1606,
+        "reviewed": false
+      },
+      "scene": null,
+      "characters": null,
+      "objects": null,
+      "camera": null,
+      "depth": null,
+      "lighting": null,
+      "actions": null,
+      "style": null,
+      "uncertainties": [
+        "ต้องตรวจรายละเอียดภาพและเหตุการณ์โดยผู้ใช้หรือโมเดลที่รองรับ"
+      ]
+    }
+  ],
+  "samples": [
+    {
+      "time": 0,
+      "delta": 0,
+      "luma": 0.475
+    },
+    {
+      "time": 0.5,
+      "delta": 0.0364,
+      "luma": 0.4764
+    },
+    {
+      "time": 1,
+      "delta": 0.0406,
+      "luma": 0.4764
+    },
+    {
+      "time": 1.5,
+      "delta": 0.0188,
+      "luma": 0.4749
+    },
+    {
+      "time": 2,
+      "delta": 0.1534,
+      "luma": 0.5882
+    },
+    {
+      "time": 2.5,
+      "delta": 0.0233,
+      "luma": 0.5897
+    },
+    {
+      "time": 3,
+      "delta": 0.0172,
+      "luma": 0.5895
+    },
+    {
+      "time": 3.5,
+      "delta": 0.0522,
+      "luma": 0.6089
+    },
+    {
+      "time": 4,
+      "delta": 0.0273,
+      "luma": 0.6067
+    },
+    {
+      "time": 4.5,
+      "delta": 0.0163,
+      "luma": 0.6077
+    },
+    {
+      "time": 5,
+      "delta": 0.1115,
+      "luma": 0.6491
+    },
+    {
+      "time": 5.5,
+      "delta": 0.0033,
+      "luma": 0.6475
+    },
+    {
+      "time": 6,
+      "delta": 0.003,
+      "luma": 0.6472
+    },
+    {
+      "time": 6.5,
+      "delta": 0.0072,
+      "luma": 0.651
+    },
+    {
+      "time": 7,
+      "delta": 0.0037,
+      "luma": 0.6491
+    },
+    {
+      "time": 7.5,
+      "delta": 0.1041,
+      "luma": 0.5683
+    },
+    {
+      "time": 8,
+      "delta": 0.0155,
+      "luma": 0.5664
+    },
+    {
+      "time": 8.5,
+      "delta": 0.0154,
+      "luma": 0.5628
+    },
+    {
+      "time": 9,
+      "delta": 0.0271,
+      "luma": 0.5596
+    },
+    {
+      "time": 9.5,
+      "delta": 0.0164,
+      "luma": 0.5589
+    },
+    {
+      "time": 10,
+      "delta": 0.0172,
+      "luma": 0.5582
+    },
+    {
+      "time": 10.5,
+      "delta": 0.1333,
+      "luma": 0.5849
+    },
+    {
+      "time": 11,
+      "delta": 0.0253,
+      "luma": 0.5885
+    },
+    {
+      "time": 11.5,
+      "delta": 0.0263,
+      "luma": 0.5907
+    },
+    {
+      "time": 12,
+      "delta": 0.0249,
+      "luma": 0.5919
+    },
+    {
+      "time": 12.5,
+      "delta": 0.2954,
+      "luma": 0.423
+    },
+    {
+      "time": 13,
+      "delta": 0.0212,
+      "luma": 0.4078
+    },
+    {
+      "time": 13.5,
+      "delta": 0.2651,
+      "luma": 0.4947
+    },
+    {
+      "time": 14,
+      "delta": 0.0213,
+      "luma": 0.4931
+    },
+    {
+      "time": 14.5,
+      "delta": 0.0199,
+      "luma": 0.4925
+    },
+    {
+      "time": 15,
+      "delta": 0.0175,
+      "luma": 0.4928
+    },
+    {
+      "time": 15.5,
+      "delta": 0.0309,
+      "luma": 0.4923
+    },
+    {
+      "time": 16,
+      "delta": 0.0277,
+      "luma": 0.495
+    },
+    {
+      "time": 16.5,
+      "delta": 0.0102,
+      "luma": 0.4962
+    },
+    {
+      "time": 17,
+      "delta": 0.0342,
+      "luma": 0.5073
+    },
+    {
+      "time": 17.5,
+      "delta": 0.0142,
+      "luma": 0.5031
+    },
+    {
+      "time": 18,
+      "delta": 0.0221,
+      "luma": 0.4973
+    },
+    {
+      "time": 18.5,
+      "delta": 0.0143,
+      "luma": 0.4991
+    },
+    {
+      "time": 19,
+      "delta": 0.0801,
+      "luma": 0.5242
+    },
+    {
+      "time": 19.5,
+      "delta": 0.0214,
+      "luma": 0.5264
+    },
+    {
+      "time": 20,
+      "delta": 0.0999,
+      "luma": 0.5047
+    },
+    {
+      "time": 20.5,
+      "delta": 0.0108,
+      "luma": 0.5021
+    },
+    {
+      "time": 21,
+      "delta": 0.0099,
+      "luma": 0.5011
+    },
+    {
+      "time": 21.5,
+      "delta": 0.0097,
+      "luma": 0.5007
+    },
+    {
+      "time": 22,
+      "delta": 0.0074,
+      "luma": 0.5004
+    },
+    {
+      "time": 22.5,
+      "delta": 0.0307,
+      "luma": 0.4955
+    },
+    {
+      "time": 23,
+      "delta": 0.0168,
+      "luma": 0.4954
+    },
+    {
+      "time": 23.5,
+      "delta": 0.0267,
+      "luma": 0.4878
+    },
+    {
+      "time": 24,
+      "delta": 0.0187,
+      "luma": 0.4864
+    },
+    {
+      "time": 24.5,
+      "delta": 0.0652,
+      "luma": 0.5151
+    },
+    {
+      "time": 25,
+      "delta": 0.0279,
+      "luma": 0.5191
+    },
+    {
+      "time": 25.5,
+      "delta": 0.0168,
+      "luma": 0.5201
+    },
+    {
+      "time": 26,
+      "delta": 0.1703,
+      "luma": 0.358
+    },
+    {
+      "time": 26.5,
+      "delta": 0.0037,
+      "luma": 0.3579
+    },
+    {
+      "time": 27,
+      "delta": 0.0083,
+      "luma": 0.3559
+    },
+    {
+      "time": 27.5,
+      "delta": 0.0077,
+      "luma": 0.3565
+    },
+    {
+      "time": 28,
+      "delta": 0.0041,
+      "luma": 0.3561
+    },
+    {
+      "time": 28.5,
+      "delta": 0.0579,
+      "luma": 0.324
+    },
+    {
+      "time": 29,
+      "delta": 0.0104,
+      "luma": 0.327
+    },
+    {
+      "time": 29.5,
+      "delta": 0.0088,
+      "luma": 0.3269
+    },
+    {
+      "time": 30,
+      "delta": 0.0791,
+      "luma": 0.3806
+    },
+    {
+      "time": 30.5,
+      "delta": 0.007,
+      "luma": 0.3769
+    },
+    {
+      "time": 31,
+      "delta": 0.0053,
+      "luma": 0.3767
+    },
+    {
+      "time": 31.5,
+      "delta": 0.002,
+      "luma": 0.3763
+    },
+    {
+      "time": 32,
+      "delta": 0.0771,
+      "luma": 0.3336
+    },
+    {
+      "time": 32.5,
+      "delta": 0.0049,
+      "luma": 0.3332
+    },
+    {
+      "time": 33,
+      "delta": 0.0101,
+      "luma": 0.3365
+    },
+    {
+      "time": 33.5,
+      "delta": 0.011,
+      "luma": 0.3394
+    },
+    {
+      "time": 34,
+      "delta": 0.0082,
+      "luma": 0.3399
+    },
+    {
+      "time": 34.5,
+      "delta": 0.0033,
+      "luma": 0.3397
+    },
+    {
+      "time": 35,
+      "delta": 0.1584,
+      "luma": 0.1953
+    },
+    {
+      "time": 35.5,
+      "delta": 0.0164,
+      "luma": 0.201
+    },
+    {
+      "time": 36,
+      "delta": 0.017,
+      "luma": 0.2047
+    },
+    {
+      "time": 36.5,
+      "delta": 0.0163,
+      "luma": 0.2023
+    },
+    {
+      "time": 37,
+      "delta": 0.0192,
+      "luma": 0.1998
+    },
+    {
+      "time": 37.5,
+      "delta": 0.0129,
+      "luma": 0.1985
+    },
+    {
+      "time": 38,
+      "delta": 0.0743,
+      "luma": 0.2329
+    },
+    {
+      "time": 38.5,
+      "delta": 0.0886,
+      "luma": 0.3124
+    },
+    {
+      "time": 39,
+      "delta": 0.0056,
+      "luma": 0.3129
+    },
+    {
+      "time": 39.5,
+      "delta": 0.0106,
+      "luma": 0.3127
+    },
+    {
+      "time": 40,
+      "delta": 0.0145,
+      "luma": 0.3154
+    },
+    {
+      "time": 40.5,
+      "delta": 0.0601,
+      "luma": 0.2586
+    },
+    {
+      "time": 41,
+      "delta": 0.0029,
+      "luma": 0.2597
+    },
+    {
+      "time": 41.5,
+      "delta": 0.0018,
+      "luma": 0.2602
+    },
+    {
+      "time": 42,
+      "delta": 0.0331,
+      "luma": 0.228
+    },
+    {
+      "time": 42.5,
+      "delta": 0.0105,
+      "luma": 0.2302
+    },
+    {
+      "time": 43,
+      "delta": 0.0136,
+      "luma": 0.2319
+    },
+    {
+      "time": 43.5,
+      "delta": 0.0295,
+      "luma": 0.2388
+    },
+    {
+      "time": 44,
+      "delta": 0.0673,
+      "luma": 0.2166
+    },
+    {
+      "time": 44.5,
+      "delta": 0.0049,
+      "luma": 0.2189
+    },
+    {
+      "time": 45,
+      "delta": 0.0054,
+      "luma": 0.2203
+    },
+    {
+      "time": 45.5,
+      "delta": 0.0381,
+      "luma": 0.1938
+    },
+    {
+      "time": 46,
+      "delta": 0.0054,
+      "luma": 0.1938
+    },
+    {
+      "time": 46.5,
+      "delta": 0.0064,
+      "luma": 0.1944
+    },
+    {
+      "time": 47,
+      "delta": 0.0078,
+      "luma": 0.1948
+    },
+    {
+      "time": 47.5,
+      "delta": 0.0157,
+      "luma": 0.1914
+    },
+    {
+      "time": 48,
+      "delta": 0.0151,
+      "luma": 0.1915
+    },
+    {
+      "time": 48.5,
+      "delta": 0.021,
+      "luma": 0.1957
+    },
+    {
+      "time": 49,
+      "delta": 0.0111,
+      "luma": 0.1946
+    },
+    {
+      "time": 49.5,
+      "delta": 0.0516,
+      "luma": 0.2036
+    },
+    {
+      "time": 50,
+      "delta": 0.0055,
+      "luma": 0.2045
+    },
+    {
+      "time": 50.5,
+      "delta": 0.0334,
+      "luma": 0.2068
+    },
+    {
+      "time": 51,
+      "delta": 0.0076,
+      "luma": 0.2084
+    },
+    {
+      "time": 51.5,
+      "delta": 0.0064,
+      "luma": 0.2084
+    },
+    {
+      "time": 52,
+      "delta": 0.0443,
+      "luma": 0.209
+    },
+    {
+      "time": 52.5,
+      "delta": 0.0108,
+      "luma": 0.2092
+    },
+    {
+      "time": 53,
+      "delta": 0.006,
+      "luma": 0.2048
+    },
+    {
+      "time": 53.5,
+      "delta": 0.0407,
+      "luma": 0.2296
+    },
+    {
+      "time": 54,
+      "delta": 0.0113,
+      "luma": 0.2298
+    },
+    {
+      "time": 54.5,
+      "delta": 0.0087,
+      "luma": 0.231
+    },
+    {
+      "time": 55,
+      "delta": 0.0116,
+      "luma": 0.2317
+    },
+    {
+      "time": 55.5,
+      "delta": 0.0236,
+      "luma": 0.2215
+    },
+    {
+      "time": 56,
+      "delta": 0.0627,
+      "luma": 0.2026
+    },
+    {
+      "time": 56.5,
+      "delta": 0.0029,
+      "luma": 0.2031
+    },
+    {
+      "time": 57,
+      "delta": 0.0052,
+      "luma": 0.2036
+    },
+    {
+      "time": 57.5,
+      "delta": 0.0044,
+      "luma": 0.2036
+    },
+    {
+      "time": 58,
+      "delta": 0.0259,
+      "luma": 0.2212
+    },
+    {
+      "time": 58.5,
+      "delta": 0.0085,
+      "luma": 0.2208
+    },
+    {
+      "time": 59,
+      "delta": 0.1606,
+      "luma": 0.0715
+    },
+    {
+      "time": 59.5,
+      "delta": 0.0272,
+      "luma": 0.0978
+    },
+    {
+      "time": 60,
+      "delta": 0.0166,
+      "luma": 0.0827
+    },
+    {
+      "time": 60.5,
+      "delta": 0,
+      "luma": 0.0827
+    },
+    {
+      "time": 61,
+      "delta": 0.0001,
+      "luma": 0.0826
+    },
+    {
+      "time": 61.5,
+      "delta": 0.0005,
+      "luma": 0.0826
+    },
+    {
+      "time": 62,
+      "delta": 0,
+      "luma": 0.0826
+    },
+    {
+      "time": 62.5,
+      "delta": 0,
+      "luma": 0.0826
+    }
+  ]
+}

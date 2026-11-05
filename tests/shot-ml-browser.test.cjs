@@ -8,7 +8,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},acceptDownloads:true});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   await page.evaluate(()=>{
    const state=StoryStudioBridge.get(),scene=StoryStudioBridge.scene();
    state.project.aspect='9:16';
@@ -19,7 +19,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),
    scene.voiceover='ข้อความบทส่วนตัวต้องไม่อยู่ในไฟล์ฝึก';
    StoryStudioBridge.persist();
   });
-  await page.locator('#aiQuick').click();
+  await page.getByRole('button',{name:'ผู้ช่วย AI',exact:true}).click();
   const panel=page.locator('#aiWorkspacePanel');
   await panel.waitFor({state:'visible'});
   const ml=panel.locator('details').filter({hasText:'Shot ML · สอน AI เลือกมุมกล้อง'});

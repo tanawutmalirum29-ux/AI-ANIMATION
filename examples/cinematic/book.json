@@ -1,0 +1,323 @@
+{
+  "version": 1,
+  "project": {
+    "title": "B · เดิน หยิบ อ่าน วางหนังสือ",
+    "aspect": "9:16",
+    "fps": 30
+  },
+  "characters": [
+    {
+      "id": "cine-student",
+      "name": "นักเรียนตัวอย่าง",
+      "promptBlock": "Original student, ivory school uniform, navy trousers, short dark hair.",
+      "rig": {
+        "style": "human",
+        "costume": "school",
+        "shirt": "#e9e8da",
+        "pants": "#37475c",
+        "hair": "#252b36",
+        "hairStyle": "short",
+        "skin": "#d9ad8c"
+      }
+    }
+  ],
+  "locations": [],
+  "rules": [],
+  "episodes": [
+    {
+      "id": "cinematic-book",
+      "title": "B · เดิน หยิบ อ่าน วางหนังสือ",
+      "scenes": [
+        {
+          "id": "cine-book",
+          "duration": 12,
+          "cinematicPlan": {
+            "schema": "story-cinematic/1",
+            "title": "B · เดิน หยิบ อ่าน วางหนังสือ",
+            "duration": 12,
+            "world": {
+              "width": 3600,
+              "height": 1800,
+              "groundY": 1150,
+              "environment": "room"
+            },
+            "camera": {
+              "mode": "path",
+              "keys": [
+                {
+                  "t": 0,
+                  "x": 1020,
+                  "y": 945,
+                  "zoom": 1.2,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 3,
+                  "x": 1070,
+                  "y": 990,
+                  "zoom": 1.4,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 9,
+                  "x": 1070,
+                  "y": 990,
+                  "zoom": 1.4,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 12,
+                  "x": 1070,
+                  "y": 945,
+                  "zoom": 1.2,
+                  "roll": 0,
+                  "easing": "smooth"
+                }
+              ]
+            },
+            "actors": [
+              {
+                "id": "lead",
+                "char": "cine-student",
+                "height": 260,
+                "z": 0,
+                "stride": 160,
+                "keys": [
+                  {
+                    "t": 0,
+                    "x": 850,
+                    "y": 1150,
+                    "pose": "walk",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 3,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 4,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "carry",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 5,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "read",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 8,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "read",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 9,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "carry",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 10,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 12,
+                    "x": 1010,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  }
+                ]
+              }
+            ],
+            "objects": [
+              {
+                "id": "table",
+                "kind": "table",
+                "x": 1190,
+                "y": 1150,
+                "z": 0,
+                "width": 300,
+                "height": 130,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#ab805c"
+              },
+              {
+                "id": "book",
+                "kind": "book",
+                "x": 1060,
+                "y": 1003,
+                "z": -0.001,
+                "width": 52,
+                "height": 34,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0,
+                  "y": 0
+                }
+              },
+              {
+                "id": "window",
+                "kind": "window",
+                "x": 1330,
+                "y": 930,
+                "z": 1,
+                "width": 200,
+                "height": 320,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              },
+              {
+                "id": "door",
+                "kind": "door",
+                "x": 650,
+                "y": 1150,
+                "z": 1,
+                "width": 180,
+                "height": 420,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                }
+              }
+            ],
+            "interactions": [
+              {
+                "type": "pickup",
+                "actor": "lead",
+                "object": "book",
+                "t": 4,
+                "duration": 1
+              },
+              {
+                "type": "open",
+                "object": "book",
+                "t": 5,
+                "duration": 0.6,
+                "value": 1
+              },
+              {
+                "type": "open",
+                "object": "book",
+                "t": 8,
+                "duration": 0.6,
+                "value": 0
+              },
+              {
+                "type": "place",
+                "actor": "lead",
+                "object": "book",
+                "t": 10,
+                "duration": 1,
+                "x": 1060,
+                "y": 1003
+              }
+            ],
+            "lighting": {
+              "preset": "night",
+              "keys": [
+                {
+                  "t": 0,
+                  "intensity": 0.6,
+                  "fog": 0.15,
+                  "angle": -15
+                },
+                {
+                  "t": 12,
+                  "intensity": 0.6,
+                  "fog": 0.15,
+                  "angle": -15
+                }
+              ]
+            },
+            "shots": [
+              {
+                "start": 0,
+                "end": 3,
+                "label": "เดินเข้าหาโต๊ะ"
+              },
+              {
+                "start": 3,
+                "end": 5,
+                "label": "เอื้อมและหยิบ"
+              },
+              {
+                "start": 5,
+                "end": 9,
+                "label": "เปิดอ่านและปิดหนังสือ"
+              },
+              {
+                "start": 9,
+                "end": 12,
+                "label": "วางกลับบนโต๊ะ"
+              }
+            ],
+            "source": {
+              "kind": "reviewed-template",
+              "template": "book",
+              "reviewed": true
+            },
+            "unknowns": []
+          },
+          "characters": [
+            "cine-student"
+          ],
+          "actors": [],
+          "props": [],
+          "camera": {
+            "type": "static",
+            "world": 1,
+            "from": 1,
+            "to": 1
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "voiceover": "",
+          "subtitle": [],
+          "audioClips": []
+        }
+      ]
+    }
+  ]
+}

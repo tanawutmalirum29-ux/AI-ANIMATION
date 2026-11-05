@@ -177,6 +177,7 @@ function persist(mutator){
 }
 function status(message,fail=false){progress=message;lastError=fail?message:'';const node=rootElement?.querySelector('#aiWorkspaceStatus');if(node){node.textContent=message;node.dataset.error=String(!!fail)}}
 function setView(id){
+ if(id==='cinematic'){root.StoryCinematicStudio?.open();return;}
  if(view==='mother'&&id!=='mother')document.body.classList.remove('mother-preview');
  view=id;render();
 }
@@ -483,7 +484,13 @@ await step('layout-director',async()=>{
    const diag=root.StudioAPI?.validate?.();
    const errors=(diag?.issues||[]).filter(x=>x.level==='error');
    const over=timing.episodes.filter(x=>x.projected>65.01);
-   const visual=v?.issues||[];
+   const visual=[...(v?.issues||[])];
+   if(root.StoryCinematic){const [ar,br]=String(state.project?.aspect||'9:16').split(':').map(Number);
+    (state.episodes||[]).forEach((ep,ei)=>(ep.scenes||[]).forEach((scene,si)=>{
+     if(scene.cinematicPlan)for(const issue of root.StoryCinematic.qa(scene.cinematicPlan,ar/br,root.StoryCinematicStudio?.figure))
+      visual.push({episode:ei+1,scene:si+1,title:(issue.time??0)+'s · '+issue.message});
+    }));
+   }
    const needs=!!(errors.length||visual.length||voice.missing||over.length);
    const info=['เสียง '+voice.voiced+'/'+voice.expected+' ฉาก',
     'เสี่ยงภาพ '+visual.length+' จุด','ตอนเกิน 65 วิ '+over.length,'JSON error '+errors.length];
@@ -1126,7 +1133,7 @@ function render(){
     progress||'เปิด JSON ที่ AI ภายนอกเขียนไว้ แล้วตรวจความยาวฉาก/ตอนจากไฟล์จริงได้เลย'),
   commandDesk(),
   e('nav',{className:'ai-tabs','aria-label':'พื้นที่ทำงาน AI'},
-   ...[['story-only','เนื้อเรื่องล้วน'],['mother','คุยกับ AI แม่'],['editor','AI ลูกเกลาบท'],['batch','สอนหลาย JSON'],['teacher','AI ครู / API'],['chat','12 ขั้นการผลิต'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
+   ...[['cinematic','กำกับ Cinematic'],['story-only','เนื้อเรื่องล้วน'],['mother','คุยกับ AI แม่'],['editor','AI ลูกเกลาบท'],['batch','สอนหลาย JSON'],['teacher','AI ครู / API'],['chat','12 ขั้นการผลิต'],['tasks','ประวัติ'],['bible','ข้อมูลเรื่อง'],['projects','โปรเจกต์'],['assets','คลังรูป / GitHub']].map(([id,label])=>
     button(label,()=>setView(id),{className:view===id?'active':'','aria-current':view===id?'page':null}))),
   e('div',{id:'aiWorkspaceContent',className:'ai-workspace-content'})
  );

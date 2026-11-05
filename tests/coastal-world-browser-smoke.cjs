@@ -8,7 +8,7 @@ const assert=require('node:assert/strict'),path=require('node:path'),fs=require(
   const errors=[];pg.on('pageerror',e=>errors.push(e.message));
   const sample=JSON.parse(fs.readFileSync(path.resolve(__dirname,
    '../examples/coastal-gate-ml-training-one-episode.json'),'utf8'));
-  await pg.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await pg.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   const out=await pg.evaluate(data=>{
    const state=StoryStudioBridge.get(),scene=state.episodes[0].scenes[0];
    state.project.aspect=data.project.aspect;

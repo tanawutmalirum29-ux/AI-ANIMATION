@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {execFileSync,spawnSync} = require('node:child_process');
 const {chromium} = require('playwright');
+const renderQA = require('./render-qa.cjs');
 const root = path.resolve(__dirname, '..');
 const scratch = '/tmp/story-cloud-export';
 const jobId = process.env.STUDIO_JOB_ID || '';
@@ -19,15 +20,19 @@ function audioExpected(E) {
  const clips = [...(E.musicClips || []), ...(E.scenes||[]).flatMap(s=>s.audioClips||[])];
  return clips.some(c=>c && c.data && !c.mute && (c.volume===undefined || Number(c.volume)>0));
 }
-function remux(src,out,needAudio) {
+function remux(src,out,needAudio,qaOptions={}) {
  // Force a real encode instead of relabeling WebM as MP4. AAC audio is REQUIRED
  // when original episode has playable clips.
  run('ffmpeg',['-nostdin','-hide_banner','-loglevel','error','-y','-i',src,
   '-map','0:v:0','-map','0:a:0?', '-c:v','libx264','-preset','veryfast',
-  '-crf','23','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k',
+  '-crf','23','-pix_fmt','yuv420p','-r',String(qaOptions.expectedFps||24),'-c:a','aac','-b:a','128k',
   '-movflags','+faststart',...(needAudio?['-af','apad','-shortest']:[]),out]);
  const streams=run('ffprobe',['-v','error','-show_entries','stream=codec_type',
   '-of','csv=p=0',out]).trim().split(/\r?\n/);
+ const report=renderQA.inspect(out,{expectedAudio:needAudio,...qaOptions});
+ fs.writeFileSync(out+'.qa.json',JSON.stringify(report,null,2));
+ const errors=report.issues.filter(i=>i.severity==='error');
+ if(errors.length)fail('Rendered QA: '+errors[0].message);
  if(!streams.includes('video'))fail('Output video track missing');
  if(needAudio && !streams.includes('audio'))fail('Output audio track missing');
  if(fs.statSync(out).size<2048)fail('Output video is empty');
@@ -48,7 +53,7 @@ async function main(){
  const scope=['current','separate','combined'].includes(settings.scope)?settings.scope:'current';
  const index=Math.max(0,Math.min(input.project.episodes.length-1,Math.floor(Number(settings.episodeIndex)||0)));
  const resolution=[540,720,1080].includes(Number(settings.resolution))?Number(settings.resolution):720;
- const fps=[12,24].includes(Number(settings.fps))?Number(settings.fps):24;
+ const fps=[12,24,30].includes(Number(settings.fps))?Number(settings.fps):24;
  const expected=scope==='current'?audioExpected(input.project.episodes[index]):input.project.episodes.some(audioExpected);
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required',
   '--disable-background-timer-throttling','--disable-renderer-backgrounding']});
@@ -73,7 +78,7 @@ async function main(){
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try{
-   await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+   await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
    const outcome=await page.evaluate(async ({project,scope,index,resolution,fps,captions})=>{
     S=normalize(project);selEp=index;sel=0;T=0;playing=false;fix();render();
     openVideoExport();
@@ -112,19 +117,20 @@ async function main(){
      // ZIP is produced by the app in episode order, but enumeration order can vary.
      const matching=webms.find(x=>x.endsWith('-'+(i+1)+'.webm'));
      if(!matching)fail('Episode '+(i+1)+' missing');
-     remux(path.join(unpack,matching),path.join(converted,matching.replace(/\.webm$/i,'.mp4')),audioExpected(input.project.episodes[i]));
+     remux(path.join(unpack,matching),path.join(converted,matching.replace(/\.webm$/i,'.mp4')),audioExpected(input.project.episodes[i]),{expectedFps:fps,scenes:input.project.episodes[i].scenes});
     }
     outputFile=path.join(scratch,'result.zip');
     run('zip',['-q','-j',outputFile,...fs.readdirSync(converted).map(x=>path.join(converted,x))]);
    } else {
     outputFile=path.join(scratch,'result.mp4');
-    remux(source,outputFile,expected);
+    remux(source,outputFile,expected,{expectedFps:fps,scenes:scope==='current'?input.project.episodes[index].scenes:[]});
    }
   }finally{await new Promise(resolve=>server.close(resolve))}
  }finally{await browser.close()}
  const ext=scope==='separate'?'zip':'mp4';
  aws('s3','cp',outputFile,'s3://'+bucket+'/'+key+'/result.'+ext,
   '--content-type',scope==='separate'?'application/zip':'video/mp4','--only-show-errors');
+ if(scope!=='separate'&&exists(outputFile+'.qa.json'))aws('s3','cp',outputFile+'.qa.json','s3://'+bucket+'/'+key+'/render-qa.json','--content-type','application/json','--only-show-errors');
  console.log('Cloud export success',jobId,ext,fs.statSync(outputFile).size);
 }
 main().catch(err=>{

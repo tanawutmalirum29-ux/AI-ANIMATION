@@ -8,8 +8,8 @@ const fs=require('node:fs'),path=require('node:path');
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},acceptDownloads:true});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
-  await page.locator('#aiQuick').click();
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:'ผู้ช่วย AI',exact:true}).click();
   const panel=page.locator('#aiWorkspacePanel');
   await panel.waitFor({state:'visible'});
   const ml=panel.locator('details').filter({hasText:'ML Lab'});

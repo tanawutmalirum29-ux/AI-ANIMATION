@@ -1,0 +1,33 @@
+name: Cinematic blueprint and rendered QA
+on:
+  push:
+    branches: [main]
+    paths: ['studio-cinematic*', 'studio-video-reference.js', 'index.html', 'studio-production-planner.js', 'studio-timing-auditor.js', 'cloud-export/**', 'examples/cinematic/**', 'tests/cinematic-*', 'tests/test_cinematic_qa_access.py', '.github/workflows/cinematic-engine-qa.yml']
+  pull_request:
+    paths: ['studio-cinematic*', 'studio-video-reference.js', 'index.html', 'studio-production-planner.js', 'studio-timing-auditor.js', 'cloud-export/**', 'examples/cinematic/**', 'tests/cinematic-*', 'tests/test_cinematic_qa_access.py', '.github/workflows/cinematic-engine-qa.yml']
+permissions:
+  contents: read
+jobs:
+  cinematic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install chromium --with-deps
+      - run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - run: node --test tests/cinematic-core.test.cjs tests/cinematic-render-qa.test.cjs
+      - run: node tests/cinematic-preview-parity.cjs
+      - run: node tests/cinematic-browser-smoke.cjs
+        env:
+          CINEMATIC_OUTPUT_DIR: ${{ runner.temp }}/cinematic-evidence
+      - run: python3 tests/test_cinematic_qa_access.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinematic-render-evidence
+          path: ${{ runner.temp }}/cinematic-evidence
+          retention-days: 7

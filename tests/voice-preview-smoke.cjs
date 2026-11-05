@@ -14,7 +14,7 @@ const server=http.createServer((req,res)=>{const p=(req.url||'/').split('?')[0].
  try{
   const page=await browser.newPage();
   page.on('pageerror',e=>errors.push(e.stack||e.message));
-  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
   await page.locator('#sceneSwitchSelect').waitFor({timeout:15000});
   const out=await page.evaluate(async()=>{
    const wav=(sec=1.6,rate=16000)=>{const n=Math.floor(sec*rate),b=new ArrayBuffer(44+n*2),v=new DataView(b);

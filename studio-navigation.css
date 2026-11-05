@@ -31,22 +31,19 @@ body.ux-home-open #top :is(.ttl,.epsel,.undo-btn,.redo-btn,.export-btn,.sep){dis
 .ux-groups button[aria-pressed=true]{background:#b9c5ff;color:#18214d;border-color:#b9c5ff;font-weight:750}
 .ux-ready #studioToolNav{flex-wrap:wrap;overflow:visible;min-height:44px;padding:6px 10px;gap:6px}
 .ux-ready #studioToolNav button{min-height:36px;font-size:12px}
-.ux-ready #studioToolNav[data-group=visual] [data-tool]:not([data-tool=scene]):not([data-tool=characters]):not([data-tool=library]),
-.ux-ready #studioToolNav[data-group=sound] [data-tool]:not([data-tool=record]):not([data-tool=voices]):not([data-tool=audio]),
-.ux-ready #studioToolNav[data-group=finish] [data-tool]:not([data-tool=smart]):not([data-tool=export]),
-.ux-ready #studioToolNav[data-group=assist] [data-tool]:not([data-tool=ai]){display:none!important}
+.ux-ready #studioToolNav [data-tool][hidden]{display:none!important}
 .ux-hint{font-size:12px;line-height:1.6;color:#bac7df;margin:0;padding:6px 14px 12px;flex:none}
 .ux-ready #workspaceJumpTop,.ux-ready #pre #welcome,.ux-ready #pre :is(#aiQuick,#smartQuick,#directorQuick,#voiceQuick,#soundQuick,#videoQuick){display:none!important}
 .ux-preview-more{position:relative}.ux-preview-more summary{list-style:none;cursor:pointer;padding:7px 10px;font-size:12px;color:#d7e0f3;min-height:36px;border:1px solid #495570;border-radius:7px}
 .ux-preview-options{position:absolute;right:0;top:100%;z-index:30;display:flex;gap:8px;flex-wrap:wrap;width:220px;padding:12px;background:#202b40;border:1px solid #596786;border-radius:10px;box-shadow:0 12px 30px #0008}
 .ux-ready #pre .preview-toolbar{overflow:visible;z-index:5}.ux-ready #pre .preview-actions{overflow:visible;flex-wrap:wrap}
-@media(max-width:820px){.ux-cards{grid-template-columns:1fr}.ux-card{padding:20px}.ux-number{margin-bottom:12px}.ux-intro{margin-bottom:24px}.ux-role{display:none}.ux-ready header#top::before{display:none}.ux-ready header#top{gap:4px}.ux-ready header#top .ttl{min-width:0}.ux-groups{grid-template-columns:repeat(4,minmax(0,1fr));padding:6px;gap:4px}.ux-groups button{font-size:11px;padding:6px 3px}.ux-hint{padding:4px 10px 8px;font-size:11px}.ux-ready #studioToolNav{min-height:40px}.ux-ready #studioToolTitle{font-size:12px}.ux-ready input:not([type=range]):not([type=checkbox]):not([type=radio]),.ux-ready textarea,.ux-ready select{font-size:16px}}
+@media(max-width:820px){.ux-cards{grid-template-columns:1fr}.ux-card{padding:20px}.ux-number{margin-bottom:12px}.ux-intro{margin-bottom:24px}.ux-role{display:none}.ux-ready header#top::before{display:none}.ux-ready header#top{gap:4px}.ux-ready header#top .ttl{min-width:0}.ux-groups{grid-template-columns:repeat(5,minmax(0,1fr));padding:6px;gap:4px}.ux-groups button{font-size:11px;padding:6px 3px}.ux-hint{padding:4px 10px 8px;font-size:11px}.ux-ready #studioToolNav{min-height:40px}.ux-ready #studioToolTitle{font-size:12px}.ux-ready input:not([type=range]):not([type=checkbox]):not([type=radio]),.ux-ready textarea,.ux-ready select{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.ux-ready *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
 body.ux-ready.ux-home-open :is(#pre,#studioWorkspace,#tl,#mtabs,#lib,#ins,.ux-groups,.ux-hint,#studioToolNav,#studioToolTitle){display:none!important}
 body.ux-ready.export-focus header#top{display:flex!important;flex-shrink:0}
 @media(min-width:821px){
  body.ux-ready #studioWorkspace{display:flex;flex-direction:column;min-width:0}
- .ux-ready .ux-groups{grid-template-columns:repeat(4,minmax(0,1fr));padding:8px;gap:4px}
+ .ux-ready .ux-groups{grid-template-columns:repeat(5,minmax(0,1fr));padding:8px;gap:4px}
  .ux-ready .ux-groups button{padding:7px 3px;font-size:11px}
  .ux-ready #studioToolNav{display:flex;flex-direction:row;flex:none;border-right:0;border-bottom:1px solid #354059}
  .ux-ready #studioToolNav button{width:auto;flex:1;min-width:0;flex-direction:row;gap:6px}
@@ -55,3 +52,4 @@ body.ux-ready.export-focus header#top{display:flex!important;flex-shrink:0}
 }
 .ux-ready .ux-hint{order:-1}
 @media(min-width:821px){.ux-ready .ux-hint{order:0}}
+body.ux-ready.export-focus :is(.ux-groups,.ux-hint){display:none!important}

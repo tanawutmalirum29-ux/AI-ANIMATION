@@ -102,6 +102,8 @@
      if(String(s.voiceover||'').trim())kind='needs-dub';
      else if(old>25)kind='review';
     }
+    // Cinematic tracks share scene time; never trim/extend only the container.
+    if(s.cinematicPlan&&updated!==old){if(updated<old)shortened-=old-updated;else extended-=updated-old;updated=old;kind='review';}
     if(scope==='scene'&&sceneId&&s.id!==sceneId){updated=old;kind='other'}
     total+=old;nextTotal+=updated;
     const report={episode:ei+1,episodeId:ep.id,scene:si+1,sceneId:s.id,old:rounded(old),

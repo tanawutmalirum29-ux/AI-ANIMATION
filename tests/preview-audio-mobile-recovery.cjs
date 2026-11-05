@@ -38,7 +38,7 @@ const path=require('node:path');
     return original.apply(this,args);
    };
   });
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   await page.locator('#pp').waitFor({state:'visible'});
   await page.evaluate(new Function(wav+';window.makeTone=makeTone;'));
   const pre=await page.evaluate(()=>{
@@ -111,7 +111,7 @@ const path=require('node:path');
 
   const desktop=await browser.newPage();
   desktop.on('pageerror',e=>errors.push(e.message));
-  await desktop.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await desktop.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   await desktop.evaluate(new Function(wav+';window.makeTone=makeTone;'));
   const desktopResult=await desktop.evaluate(async()=>{
    const sc=StoryStudioBridge.get().episodes[0].scenes[0];

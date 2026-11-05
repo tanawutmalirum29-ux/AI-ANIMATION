@@ -21,7 +21,7 @@ const server=http.createServer((req,res)=>{
  try{
   const page=await browser.newPage({acceptDownloads:true,viewport:{width:1280,height:800}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
   const result=await page.evaluate(async()=>{
    const seconds=1.5,rate=16000,n=Math.floor(rate*seconds),b=new ArrayBuffer(44+n*2),view=new DataView(b);
    const w=(i,s)=>{for(let k=0;k<s.length;k++)view.setUint8(i+k,s.charCodeAt(k))};

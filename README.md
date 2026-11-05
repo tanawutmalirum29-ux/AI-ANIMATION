@@ -19,6 +19,10 @@
 ไฟล์เวิร์กโฟลว์คือ `studio-production-planner.js`, `studio-production-assets.js`, `studio-ai-workspace.js`; การวาด SVG ใช้เอนจินเดิม `studio-asset-core.js` ที่เพิ่มคีย์เฟรมแบบปลอดภัย. ดู [คู่มือ 6 ขั้นตอน](./training-lab/SIX_SPECIALISTS.md).
 
 
+## Cinematic Blueprint รุ่น 1
+
+เพิ่มเครื่องมือ **กำกับภาพ → กำกับ Cinematic** สำหรับฉาก 2.5D ที่ระบุ world coordinates, camera/actor/object keyframes, หยิบ–วางด้วย rig เดิม และ export 30 FPS พร้อมรายงานตรวจวิดีโอ/เสียงจริง ดู [ขอบเขต วิธีใช้งาน และข้อจำกัด](docs/CINEMATIC_ENGINE_TH.md) และ [ตัวอย่าง A–E](examples/cinematic/README.md) รุ่นนี้ยังไม่ใช่ semantic video understanding หรือระบบแปลงบทอิสระเป็นวิดีโอครบทุกกรณี
+
 ## เปิดเว็บและ Deploy บน AWS Amplify
 
 โค้ดเว็บหลักอยู่ที่ [index.html](./index.html) และมี [amplify.yml](./amplify.yml) สำหรับตั้งค่า Build สำเร็จรูป ไม่ต้องติดตั้ง npm หรือ Backend เพื่อเปิดหน้าแอป

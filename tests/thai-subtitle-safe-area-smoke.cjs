@@ -11,7 +11,7 @@ const path=require('node:path');
  try{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   const result=await page.evaluate(()=>{
    const originalAspect=S.project.aspect;
    S.project.aspect='9:16';

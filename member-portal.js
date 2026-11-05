@@ -212,7 +212,7 @@ function render(){
    history[role]=[];persist();render()
   }
  }));
- main.append(sectionHistory);host.append(main);
+ main.append(sectionHistory);main.append(button('กำกับฉาก Cinematic',()=>root.StoryCinematicStudio?.open()));host.append(main);
 }
 async function run(){
  if(busy||!access)return;

@@ -19,7 +19,7 @@ const server=http.createServer((req,res)=>{
  try{
   const page=await browser.newPage();
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
   await page.locator('#sceneSwitchSelect').waitFor();
   const result=await page.evaluate(async()=>{
    function wav(){

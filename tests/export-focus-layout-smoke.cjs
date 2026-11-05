@@ -24,7 +24,8 @@ const path = require('node:path');
    const page = await browser.newPage({viewport:{width,height}, hasTouch:width<=1024, isMobile:width<=820});
    const errors=[];
    page.on('pageerror', e=>errors.push(String(e)));
-   await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+   await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
+   await page.getByRole('button',{name:'3 · ตรวจและส่งออก',exact:true}).click();
    await page.locator('#studioToolNav [data-tool="export"]').click();
    await page.waitForFunction(()=>document.body.classList.contains('export-focus') && document.querySelector('#videoDialog').open);
    const state = await page.evaluate(()=>{

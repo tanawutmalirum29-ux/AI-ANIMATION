@@ -11,7 +11,7 @@ const stages=Object.freeze([
 ]);
 const clone=x=>JSON.parse(JSON.stringify(x));
 function eachScene(state,fn){(state?.episodes||[]).forEach((ep,ei)=>(ep.scenes||[]).forEach((sc,si)=>{if(sc&&typeof sc==='object')fn(sc,ei,si)}));}
-function canEdit(sc){return !sc.image&&!sc.video&&sc.productionManualLock!==true;}
+function canEdit(sc){return !sc.cinematicPlan&&!sc.image&&!sc.video&&sc.productionManualLock!==true;}
 function composition(state){
  const ops=[],warnings=[],details=[];
  const ratio=String(state?.project?.aspect||'16:9').split(':').map(Number);

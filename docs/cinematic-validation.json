@@ -1,0 +1,81 @@
+{
+  "environment": "Local Chromium + FFmpeg; not an AWS deployment result",
+  "audioFixture": "440Hz test tone, not synthesized speech",
+  "outputs": [
+    {
+      "scene": "street",
+      "width": 540,
+      "height": 960,
+      "fps": 30,
+      "duration": 12,
+      "audio": {
+        "present": true,
+        "maxVolumeDB": -22.1,
+        "silenceStarts": []
+      },
+      "errors": [],
+      "warnings": [],
+      "sha256": "f24851630f264e20bc20c0ce4e149469b37c7393ed3f5e78475723e58b441f61"
+    },
+    {
+      "scene": "book",
+      "width": 540,
+      "height": 960,
+      "fps": 30,
+      "duration": 12.0845,
+      "audio": {
+        "present": true,
+        "maxVolumeDB": -22.1,
+        "silenceStarts": []
+      },
+      "errors": [],
+      "warnings": [],
+      "sha256": "6697d4c0e67c4eb5bbb3eb7a5337af38fa381ff58ba06aaae881573a1bc78337"
+    },
+    {
+      "scene": "run",
+      "width": 540,
+      "height": 960,
+      "fps": 30,
+      "duration": 12.033333,
+      "audio": {
+        "present": true,
+        "maxVolumeDB": -22.1,
+        "silenceStarts": []
+      },
+      "errors": [],
+      "warnings": [],
+      "sha256": "3380d252273a45fe4469fa17c79dd7df1376094832f3182602adc45b0c7e43d8"
+    },
+    {
+      "scene": "forest",
+      "width": 540,
+      "height": 960,
+      "fps": 30,
+      "duration": 11.966667,
+      "audio": {
+        "present": true,
+        "maxVolumeDB": -22.2,
+        "silenceStarts": []
+      },
+      "errors": [],
+      "warnings": [],
+      "sha256": "9600867da96d4297dd948f267e9d0cee16fdf8f806bed22f1fffc5e3b5cd2ca7"
+    },
+    {
+      "scene": "school",
+      "width": 540,
+      "height": 960,
+      "fps": 30,
+      "duration": 12.012,
+      "audio": {
+        "present": true,
+        "maxVolumeDB": -22.1,
+        "silenceStarts": []
+      },
+      "errors": [],
+      "warnings": [],
+      "sha256": "d1124d32abe062154c9b0e1304183b2989b4fa0797f8600ddbf5e61d2132491c"
+    }
+  ]
+}

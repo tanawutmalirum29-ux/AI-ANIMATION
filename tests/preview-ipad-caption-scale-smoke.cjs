@@ -9,7 +9,7 @@ const path=require('node:path');
  try{
   const page=await browser.newPage({viewport:{width:820,height:1180},deviceScaleFactor:2});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
   const inspect=async(width,height)=>{
    await page.setViewportSize({width,height});
    return await page.evaluate(()=>{

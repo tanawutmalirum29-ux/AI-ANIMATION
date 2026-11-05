@@ -8,8 +8,8 @@ const path=require('node:path');
   const page=await browser.newPage({viewport:{width:390,height:844},acceptDownloads:true});
   const errors=[];page.on('pageerror',x=>errors.push(x.message));
   page.on('dialog',x=>x.accept());
-  await page.goto('file://'+path.resolve(__dirname,'../index.html'),{waitUntil:'domcontentloaded'});
-  await page.locator('#aiQuick').click();
+  await page.goto('file://'+path.resolve(__dirname,'../index.html')+'?workspace=editor',{waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:'ผู้ช่วย AI',exact:true}).click();
   assert.equal(await page.getByRole('heading',{name:'AI Production · 12 ตำแหน่ง'}).count(),1);
   const setup=await page.evaluate(()=>{
    const s=StoryStudioBridge.get().episodes[0].scenes[0];

@@ -1,0 +1,637 @@
+{
+  "version": 1,
+  "project": {
+    "title": "D · ไฟฉาย / หมอกหลายระยะ",
+    "aspect": "9:16",
+    "fps": 30
+  },
+  "characters": [
+    {
+      "id": "cine-student",
+      "name": "นักเรียนตัวอย่าง",
+      "promptBlock": "Original student, ivory school uniform, navy trousers, short dark hair.",
+      "rig": {
+        "style": "human",
+        "costume": "school",
+        "shirt": "#e9e8da",
+        "pants": "#37475c",
+        "hair": "#252b36",
+        "hairStyle": "short",
+        "skin": "#d9ad8c"
+      }
+    }
+  ],
+  "locations": [],
+  "rules": [],
+  "episodes": [
+    {
+      "id": "cinematic-forest",
+      "title": "D · ไฟฉาย / หมอกหลายระยะ",
+      "scenes": [
+        {
+          "id": "cine-forest",
+          "duration": 12,
+          "cinematicPlan": {
+            "schema": "story-cinematic/1",
+            "title": "D · ไฟฉาย / หมอกหลายระยะ",
+            "duration": 12,
+            "world": {
+              "width": 3600,
+              "height": 1800,
+              "groundY": 1150,
+              "environment": "forest"
+            },
+            "camera": {
+              "mode": "path",
+              "keys": [
+                {
+                  "t": 0,
+                  "x": 1100,
+                  "y": 940,
+                  "zoom": 1,
+                  "roll": 0,
+                  "easing": "smooth"
+                },
+                {
+                  "t": 12,
+                  "x": 1600,
+                  "y": 940,
+                  "zoom": 1.1,
+                  "roll": 0,
+                  "easing": "smooth"
+                }
+              ]
+            },
+            "actors": [
+              {
+                "id": "lead",
+                "char": "cine-student",
+                "height": 260,
+                "z": 0,
+                "stride": 160,
+                "keys": [
+                  {
+                    "t": 0,
+                    "x": 1100,
+                    "y": 1150,
+                    "pose": "walk",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 10,
+                    "x": 1600,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 12,
+                    "x": 1600,
+                    "y": 1150,
+                    "pose": "stand",
+                    "view": "side",
+                    "facing": "right",
+                    "easing": "linear"
+                  }
+                ]
+              }
+            ],
+            "objects": [
+              {
+                "id": "tree0",
+                "kind": "tree",
+                "x": 0,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree1",
+                "kind": "tree",
+                "x": 130,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree2",
+                "kind": "tree",
+                "x": 260,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree3",
+                "kind": "tree",
+                "x": 390,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree4",
+                "kind": "tree",
+                "x": 520,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree5",
+                "kind": "tree",
+                "x": 650,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree6",
+                "kind": "tree",
+                "x": 780,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree7",
+                "kind": "tree",
+                "x": 910,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree8",
+                "kind": "tree",
+                "x": 1040,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree9",
+                "kind": "tree",
+                "x": 1170,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree10",
+                "kind": "tree",
+                "x": 1300,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree11",
+                "kind": "tree",
+                "x": 1430,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree12",
+                "kind": "tree",
+                "x": 1560,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree13",
+                "kind": "tree",
+                "x": 1690,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree14",
+                "kind": "tree",
+                "x": 1820,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree15",
+                "kind": "tree",
+                "x": 1950,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree16",
+                "kind": "tree",
+                "x": 2080,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree17",
+                "kind": "tree",
+                "x": 2210,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree18",
+                "kind": "tree",
+                "x": 2340,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree19",
+                "kind": "tree",
+                "x": 2470,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree20",
+                "kind": "tree",
+                "x": 2600,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree21",
+                "kind": "tree",
+                "x": 2730,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree22",
+                "kind": "tree",
+                "x": 2860,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree23",
+                "kind": "tree",
+                "x": 2990,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree24",
+                "kind": "tree",
+                "x": 3120,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 500,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "tree25",
+                "kind": "tree",
+                "x": 3250,
+                "y": 1150,
+                "z": 1,
+                "width": 200,
+                "height": 580,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#2d5251"
+              },
+              {
+                "id": "tree26",
+                "kind": "tree",
+                "x": 3380,
+                "y": 1150,
+                "z": 0.4,
+                "width": 200,
+                "height": 660,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#284a45"
+              },
+              {
+                "id": "tree27",
+                "kind": "tree",
+                "x": 3510,
+                "y": 1150,
+                "z": 2.5,
+                "width": 200,
+                "height": 740,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#364f56"
+              },
+              {
+                "id": "near-tree",
+                "kind": "tree",
+                "x": 850,
+                "y": 1350,
+                "z": -0.25,
+                "width": 140,
+                "height": 780,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#173d39"
+              },
+              {
+                "id": "near-tree-right",
+                "kind": "tree",
+                "x": 1980,
+                "y": 1350,
+                "z": -0.25,
+                "width": 140,
+                "height": 780,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0.5,
+                  "y": 1
+                },
+                "color": "#173d39"
+              },
+              {
+                "id": "torch",
+                "kind": "flashlight",
+                "x": 1150,
+                "y": 1010,
+                "z": 0,
+                "width": 45,
+                "height": 18,
+                "rotation": 0,
+                "anchor": {
+                  "x": 0,
+                  "y": 0
+                }
+              }
+            ],
+            "interactions": [
+              {
+                "type": "pickup",
+                "actor": "lead",
+                "object": "torch",
+                "t": 0,
+                "duration": 0.1
+              }
+            ],
+            "lighting": {
+              "preset": "flashlight",
+              "keys": [
+                {
+                  "t": 0,
+                  "intensity": 0.9,
+                  "fog": 0.4,
+                  "angle": -15
+                },
+                {
+                  "t": 6,
+                  "intensity": 0.9,
+                  "fog": 0.5,
+                  "angle": -25
+                },
+                {
+                  "t": 12,
+                  "intensity": 0.9,
+                  "fog": 0.4,
+                  "angle": -10
+                }
+              ]
+            },
+            "shots": [
+              {
+                "start": 0,
+                "end": 12,
+                "label": "เดินถือไฟฉายผ่านต้นไม้และหมอก"
+              }
+            ],
+            "source": {
+              "kind": "reviewed-template",
+              "template": "forest",
+              "reviewed": true
+            },
+            "unknowns": []
+          },
+          "characters": [
+            "cine-student"
+          ],
+          "actors": [],
+          "props": [],
+          "camera": {
+            "type": "static",
+            "world": 1,
+            "from": 1,
+            "to": 1
+          },
+          "transition": {
+            "type": "cut",
+            "duration": 0
+          },
+          "voiceover": "",
+          "subtitle": [],
+          "audioClips": []
+        }
+      ]
+    }
+  ]
+}

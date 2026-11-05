@@ -61,7 +61,7 @@ function shift(scene,local,strength){
 }
 function layerOffsets(scene,local,w,h){
  const a=active(scene,local),zero={art:[0,0],set:[0,0],setf:[0,0]};
- if(!a||a.v.parallax<=.005)return zero;
+ if(scene.cinematicPlan||!a||a.v.parallax<=.005)return zero;
  const m=shift(scene,local,a.v.parallax*a.v.gate);
  return {art:[-m.x*w*.022,-m.y*h*.012],set:[-m.x*w*.012,-m.y*h*.007],
   setf:[m.x*w*.032,m.y*h*.02]};

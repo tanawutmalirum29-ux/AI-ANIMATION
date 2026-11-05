@@ -31,7 +31,7 @@ const assert=require('assert');
    return r.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},
     body:JSON.stringify(json.action==='verify'?{ok:true}:{audio:'RkFLRV9NUDM='})});
   });
-  await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.goto(url+'?workspace=editor',{waitUntil:'domcontentloaded'});
   await page.locator('#siteAccessGate').waitFor({state:'visible',timeout:20000});
   assert.equal(await page.evaluate(()=>window.StoryStudioAccess.enabled),true);
   await page.locator('#siteAccessPassword').fill('wrong');
@@ -52,7 +52,7 @@ const assert=require('assert');
   console.log('PASS: first login, incorrect password, no manual API key, session resume, logout');
   await page.close();
   const legacy=await browser.newPage();
-  await legacy.goto(url,{waitUntil:'domcontentloaded'});
+  await legacy.goto(url+'?workspace=editor',{waitUntil:'domcontentloaded'});
   assert.equal(await legacy.evaluate(()=>window.StoryStudioAccess.enabled),false);
   assert.equal(await legacy.locator('#siteAccessGate').count(),0);
   console.log('PASS: legacy studio works when no hosted API is configured');

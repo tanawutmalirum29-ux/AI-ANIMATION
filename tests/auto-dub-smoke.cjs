@@ -25,7 +25,7 @@ res.writeHead(200,{'Content-Type':p.endsWith('.js')?'application/javascript':p.e
    if(mode==='fail')await route.fulfill({status:502,headers:{...cors,'content-type':'application/json'},body:JSON.stringify({error:'down'})});
    else await route.fulfill({status:200,headers:{...cors,'content-type':'application/json'},body:JSON.stringify({audio:wavBase64()})});
   });
-  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
   await page.locator('#sceneSwitchSelect').waitFor({timeout:15000});
   const r=await page.evaluate(async({wav})=>{
    const out={};

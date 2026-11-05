@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const doc=document, q=s=>doc.querySelector(s);
-const groups={visual:{label:'1 · ฉากและภาพ',tools:['scene','characters','library'],hint:'เริ่มจากเลือกฉาก แล้วจัดตัวละครและภาพประกอบ ตรวจผลได้ในพรีวิว'},sound:{label:'2 · เสียง',tools:['record','voices','audio'],hint:'เลือกโทนเสียง → อัดเสียงพากย์ → จัดเวลาและระดับเสียง'},finish:{label:'3 · ตรวจและส่งออก',tools:['smart','export'],hint:'ตรวจงานและเล่นพรีวิวให้ครบ ก่อนเลือกรูปแบบวิดีโอและส่งออก'},assist:{label:'ผู้ช่วย AI',tools:['ai'],hint:'เลือกงานที่ต้องการให้ AI ช่วย แล้วตรวจผลก่อนนำไปใช้'}};
+const groups={visual:{label:'1 · ฉากและภาพ',tools:['scene','characters','library'],hint:'เริ่มจากเลือกฉาก แล้วจัดตัวละครและภาพประกอบ ตรวจผลได้ในพรีวิว'},director:{label:'กำกับภาพ',tools:['cinematic','map','cinema','interaction'],hint:'สร้าง Blueprint หรือตั้งค่ากล้อง เอฟเฟกต์ และเหตุการณ์ของฉาก'},sound:{label:'2 · เสียง',tools:['record','voices','audio'],hint:'เลือกโทนเสียง → อัดเสียงพากย์ → จัดเวลาและระดับเสียง'},finish:{label:'3 · ตรวจและส่งออก',tools:['smart','export'],hint:'ตรวจงานและเล่นพรีวิวให้ครบ ก่อนเลือกรูปแบบวิดีโอและส่งออก'},assist:{label:'ผู้ช่วย AI',tools:['ai'],hint:'เลือกงานที่ต้องการให้ AI ช่วย แล้วตรวจผลก่อนนำไปใช้'}};
 let group='visual';
 const node=(tag,cls,text)=>{const n=doc.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
 const button=(label,fn,cls='')=>{const n=node('button',cls,label);n.type='button';n.onclick=fn;return n};
@@ -10,7 +10,7 @@ const isAdmin=()=>root.StoryStudioAccess?.isAdmin?.()===true;
 const home=node('main','ux-home');home.id='studioHome';home.setAttribute('aria-label','หน้าเริ่มต้น');
 const nav=node('nav','ux-groups');nav.setAttribute('aria-label','ขั้นตอนสร้างวิดีโอ');
 const hint=node('p','ux-hint');hint.id='workspaceGuide';
-function selectGroup(id){group=id;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.group===id)));q('#studioToolNav').dataset.group=id;hint.textContent=groups[id].hint;}
+function selectGroup(id){group=id;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.group===id)));q('#studioToolNav').dataset.group=id;for(const b of q('#studioToolNav').querySelectorAll('[data-tool]'))b.hidden=!groups[id].tools.includes(b.dataset.tool);hint.textContent=groups[id].hint;}
 function editor(tool='scene'){
  doc.body.classList.remove('ux-home-open');home.hidden=true;
  if(root.StoryAIMode?.isAi())root.StoryAIMode.set('full');
@@ -60,6 +60,7 @@ function init(){
  q('#studioToolNav').before(nav);q('#studioToolTitle').after(hint);q('#studioToolTitle').tabIndex=-1;
  const original=root.switchStudioTool;
  root.switchStudioTool=function(id){
+  if(!home.hidden){home.hidden=true;doc.body.classList.remove('ux-home-open');}
   const result=original.apply(this,arguments);
   const key=Object.keys(groups).find(k=>groups[k].tools.includes(id));if(key)selectGroup(key);
   return result;
