@@ -5,7 +5,7 @@
     "aspect": "9:16",
     "fps": 30,
     "subMax": 19,
-    "styleSuffix": "Original 2D Thai school survival thriller. Fictional events, stylized architecture, safe vector SVG characters, no gore, suspenseful warm-to-cold lighting, visual motion synced to dialogue, no image watermarks.",
+    "styleSuffix": "Original 2D Thai school survival thriller. Fictional events, stylized architecture, safe vector SVG characters, no gore, suspenseful warm-to-cold lighting, visual motion synced to dialogue, no image watermarks. Improved depth staging: full-bleed school worlds, scale-correct rig cast, clean layering, no rotating doors or oversized floating background.",
     "uiBoxStyle": {
       "bg": "#172b35",
       "color": "#fff8e4",
@@ -96,12 +96,13 @@
       "rig": {
         "style": "human",
         "skin": "#d5a27e",
-        "hair": "#263240",
+        "hair": "#1f2e3d",
         "hairStyle": "short",
-        "shirt": "#e4e2d8",
-        "pants": "#323c50",
-        "shoes": "#263139",
-        "scale": 0.94
+        "shirt": "#e6e7df",
+        "pants": "#283952",
+        "shoes": "#202632",
+        "scale": 0.81,
+        "costume": "school"
       },
       "promptBlock": "Consistent Thai 2D survivor-horror cartoon. นนท์; นักเรียน ม.ปลาย ผู้สังเกตความผิดปกติ. Keep costume and proportions unchanged; no gore."
     },
@@ -113,14 +114,16 @@
       "rig": {
         "style": "human",
         "skin": "#d9a786",
-        "hair": "#2f252d",
-        "hairStyle": "short",
-        "shirt": "#eee8da",
-        "pants": "#42515c",
+        "hair": "#392735",
+        "hairStyle": "ponytail",
+        "shirt": "#f1ece2",
+        "pants": "#394962",
         "shoes": "#263139",
-        "scale": 0.95
+        "scale": 0.78,
+        "costume": "school",
+        "trim": "#a5b6cb"
       },
-      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. มายด์; นักเรียน ม.ปลาย ใจกล้า คิดไว. Keep costume and proportions unchanged; no gore."
+      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. มายด์; นักเรียน ม.ปลาย ใจกล้า คิดไว. Keep costume and proportions unchanged; no gore. Distinct ponytail, pale blue trim; visually different from Nont."
     },
     {
       "id": "teacher",
@@ -130,14 +133,16 @@
       "rig": {
         "style": "human",
         "skin": "#c38e6f",
-        "hair": "#292f38",
-        "hairStyle": "short",
-        "shirt": "#d9ccab",
-        "pants": "#303e45",
-        "shoes": "#263139",
-        "scale": 1.03
+        "hair": "#3c3d37",
+        "hairStyle": "sidepart",
+        "shirt": "#cdb48e",
+        "pants": "#685f53",
+        "shoes": "#453c33",
+        "scale": 0.85,
+        "costume": "uniform",
+        "eyewear": "glasses"
       },
-      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ครูภาคิน; ครูผู้ช่วยนักเรียนหนีขึ้นจุดปลอดภัย. Keep costume and proportions unchanged; no gore."
+      "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ครูภาคิน; ครูผู้ช่วยนักเรียนหนีขึ้นจุดปลอดภัย. Keep costume and proportions unchanged; no gore. Khaki teacher uniform, glasses; no white student uniform."
     },
     {
       "id": "zombie",
@@ -146,13 +151,14 @@
       "voice": "Non-speaking rig character (narration only).",
       "rig": {
         "style": "human",
-        "skin": "#8da58c",
-        "hair": "#394438",
-        "hairStyle": "short",
-        "shirt": "#596357",
-        "pants": "#3e4344",
+        "skin": "#7f9b7b",
+        "hair": "#394d3a",
+        "hairStyle": "spiky",
+        "shirt": "#4b6557",
+        "pants": "#424948",
         "shoes": "#263139",
-        "scale": 1.04
+        "scale": 0.82,
+        "costume": "basic"
       },
       "promptBlock": "Consistent Thai 2D survivor-horror cartoon. ผู้ติดเชื้อ; ตัวร้ายซอมบี้สมมติ ไม่ใช่บุคคลจริง. Keep costume and proportions unchanged; no gore."
     }
@@ -161,7 +167,7 @@
     {
       "id": "front-gate",
       "name": "ประตูโรงเรียนทวีธาภิเศก (ฉบับแต่ง)",
-      "promptBlock": "Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
+      "promptBlock": "Original fictional Thai school environment; fixed built-in school-world background, no floating facade or oversized props. Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
       "set": {
         "bg": [
           "#91b3ae",
@@ -180,13 +186,14 @@
             "y": 90
           }
         },
-        "props": []
+        "props": [],
+        "worldArt": "school-front"
       }
     },
     {
       "id": "courtyard",
       "name": "ลานกลางอาคาร",
-      "promptBlock": "Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
+      "promptBlock": "Original fictional Thai school environment; fixed built-in school-world background, no floating facade or oversized props. Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
       "set": {
         "bg": [
           "#90b1a5",
@@ -205,13 +212,14 @@
             "y": 90
           }
         },
-        "props": []
+        "props": [],
+        "worldArt": "school-yard"
       }
     },
     {
       "id": "hallway",
       "name": "ทางเดินหน้าอาคารเรียน",
-      "promptBlock": "Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
+      "promptBlock": "Original fictional Thai school environment; fixed built-in school-world background, no floating facade or oversized props. Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
       "set": {
         "bg": [
           "#718980",
@@ -230,13 +238,14 @@
             "y": 90
           }
         },
-        "props": []
+        "props": [],
+        "worldArt": "school-hall"
       }
     },
     {
       "id": "classroom",
       "name": "ห้องเรียนชั้นสอง",
-      "promptBlock": "Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
+      "promptBlock": "Original fictional Thai school environment; fixed built-in school-world background, no floating facade or oversized props. Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
       "set": {
         "bg": [
           "#929c88",
@@ -259,13 +268,14 @@
             "y": 90
           }
         },
-        "props": []
+        "props": [],
+        "worldArt": "school-room"
       }
     },
     {
       "id": "stairwell",
       "name": "บันไดหลังอาคาร",
-      "promptBlock": "Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
+      "promptBlock": "Original fictional Thai school environment; fixed built-in school-world background, no floating facade or oversized props. Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
       "set": {
         "bg": [
           "#697e7d",
@@ -284,13 +294,14 @@
             "y": 90
           }
         },
-        "props": []
+        "props": [],
+        "worldArt": "school-stairs"
       }
     },
     {
       "id": "rooftop",
       "name": "ดาดฟ้าอาคาร (สมมติ)",
-      "promptBlock": "Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
+      "promptBlock": "Original fictional Thai school environment; fixed built-in school-world background, no floating facade or oversized props. Fictional stylized environment inspired by a Thai school. 2D bounded vector visual stage, consistency across shots. No claims about the real layout.",
       "set": {
         "bg": [
           "#283f58",
@@ -309,7 +320,8 @@
             "y": 90
           }
         },
-        "props": []
+        "props": [],
+        "worldArt": "school-roof"
       }
     }
   ],
@@ -329,6 +341,14 @@
     {
       "id": "door-motion",
       "text": "Authored door motion per scene is in productionMotionOverrides: closing in scene 5, locked in scenes 6/9 and opening in scenes 10/12. No accidental opening during a locked-door beat."
+    },
+    {
+      "id": "world-visual",
+      "text": "All fictional-school locations use StorySchoolWorld full-screen vector backgrounds and no duplicated environment customAsset overlays. Doors interpolate physical opening width."
+    },
+    {
+      "id": "run-timing",
+      "text": "Character running uses authored motionKeys with actual travel time and ending stand pose. Zombie at finale appears only once the rooftop door begins opening."
     }
   ],
   "episodes": [
@@ -367,10 +387,10 @@
           },
           "imagePrompt": "Establish fictional school facade and gateway, morning sky turning cold.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
-            "type": "pan-right",
+            "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -392,321 +412,9 @@
           },
           "actors": [],
           "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-facade-v1",
-                "name": "อาคารเรียนทวีธา (ฉบับสมมติ)",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 4,
-                    "y": 19,
-                    "w": 92,
-                    "h": 71,
-                    "fill": "#b1c6b1",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 17,
-                    "w": 100,
-                    "h": 6,
-                    "fill": "#3b5d59",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 6,
-                    "y": 29,
-                    "w": 88,
-                    "h": 6,
-                    "fill": "#597a69",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 6,
-                    "y": 51,
-                    "w": 88,
-                    "h": 5,
-                    "fill": "#597a69",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 6,
-                    "y": 73,
-                    "w": 88,
-                    "h": 5,
-                    "fill": "#597a69",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 13,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 13,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 36,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 36,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 82,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 82,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 44,
-                    "y": 77,
-                    "w": 12,
-                    "h": 18,
-                    "fill": "#344a4c",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 43,
-                    "y": 90,
-                    "w": 14,
-                    "h": 5,
-                    "fill": "#7e8d89",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 28,
-                    "y": 19,
-                    "w": 44,
-                    "h": 8,
-                    "fill": "#e5d7af",
-                    "rx": 2
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 76,
-              "scale": 1.55,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-facade",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-gate-v1",
-                "name": "ประตูรั้วโรงเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 3,
-                    "y": 25,
-                    "w": 8,
-                    "h": 69,
-                    "fill": "#566465",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 89,
-                    "y": 25,
-                    "w": 8,
-                    "h": 69,
-                    "fill": "#566465",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 11,
-                    "y": 38,
-                    "w": 78,
-                    "h": 5,
-                    "fill": "#99aaa5",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 16,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 26,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 36,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 46,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 56,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 66,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 76,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 86,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 88,
-                    "w": 77,
-                    "h": 5,
-                    "fill": "#97a6a4",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 42,
-                    "r": 4,
-                    "fill": "#d8c16f"
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 93,
-              "scale": 0.8,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-gate",
-              "motionKeys": []
-            }
-          ],
-          "productionEvents": [
-            "school-facade",
-            "school-gate"
-          ],
-          "productionPlacements": {
-            "school-facade": {
-              "x": 50,
-              "y": 76,
-              "scale": 1.55,
-              "front": false
-            },
-            "school-gate": {
-              "x": 50,
-              "y": 93,
-              "scale": 0.8,
-              "front": false
-            }
-          },
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -721,7 +429,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Establish fictional school facade and gateway, morning sky turning cold. | SFX PLAN: กริ่งเข้าเรียนเบา 0:00; บรรยากาศเช้า 0:00 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Establish fictional school facade and gateway, morning sky turning cold. | SFX PLAN: กริ่งเข้าเรียนเบา 0:00; บรรยากาศเช้า 0:00 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
         },
         {
           "id": "tpz-s02",
@@ -759,7 +467,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -782,12 +490,13 @@
           "actors": [
             {
               "char": "nont",
-              "x": 21,
+              "x": 25,
               "y": 89,
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             },
             {
               "char": "zombie",
@@ -797,476 +506,42 @@
               "view": "threeQuarter",
               "facing": "left",
               "face": "angry",
-              "toX": 63,
-              "endPose": "stand"
-            }
-          ],
-          "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-facade-v1",
-                "name": "อาคารเรียนทวีธา (ฉบับสมมติ)",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 4,
-                    "y": 19,
-                    "w": 92,
-                    "h": 71,
-                    "fill": "#b1c6b1",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 17,
-                    "w": 100,
-                    "h": 6,
-                    "fill": "#3b5d59",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 6,
-                    "y": 29,
-                    "w": 88,
-                    "h": 6,
-                    "fill": "#597a69",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 6,
-                    "y": 51,
-                    "w": 88,
-                    "h": 5,
-                    "fill": "#597a69",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 6,
-                    "y": 73,
-                    "w": 88,
-                    "h": 5,
-                    "fill": "#597a69",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 13,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 13,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 36,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 36,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 82,
-                    "y": 38,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 82,
-                    "y": 60,
-                    "w": 12,
-                    "h": 11,
-                    "fill": "#263d50",
-                    "rx": 1
-                  },
-                  {
-                    "type": "rect",
-                    "x": 44,
-                    "y": 77,
-                    "w": 12,
-                    "h": 18,
-                    "fill": "#344a4c",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 43,
-                    "y": 90,
-                    "w": 14,
-                    "h": 5,
-                    "fill": "#7e8d89",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 28,
-                    "y": 19,
-                    "w": 44,
-                    "h": 8,
-                    "fill": "#e5d7af",
-                    "rx": 2
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 77,
-              "scale": 1.5,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-facade",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-gate-v1",
-                "name": "ประตูรั้วโรงเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 3,
-                    "y": 25,
-                    "w": 8,
-                    "h": 69,
-                    "fill": "#566465",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 89,
-                    "y": 25,
-                    "w": 8,
-                    "h": 69,
-                    "fill": "#566465",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 11,
-                    "y": 38,
-                    "w": 78,
-                    "h": 5,
-                    "fill": "#99aaa5",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 16,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 26,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 36,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 46,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 56,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 66,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 76,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 86,
-                    "y": 40,
-                    "w": 3,
-                    "h": 52,
-                    "fill": "#566a6b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 88,
-                    "w": 77,
-                    "h": 5,
-                    "fill": "#97a6a4",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 50,
-                    "cy": 42,
-                    "r": 4,
-                    "fill": "#d8c16f"
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 91,
-              "scale": 0.75,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-gate",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-zombie-v1",
-                "name": "เงาฝูงซอมบี้",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "circle",
-                    "cx": 51,
-                    "cy": 25,
-                    "r": 16,
-                    "fill": "#759476"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 37,
-                    "w": 20,
-                    "h": 35,
-                    "fill": "#334d47",
-                    "rx": 5
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        39,
-                        45
-                      ],
-                      [
-                        17,
-                        55
-                      ],
-                      [
-                        10,
-                        69
-                      ],
-                      [
-                        20,
-                        74
-                      ],
-                      [
-                        44,
-                        56
-                      ]
-                    ],
-                    "fill": "#718b6f"
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        62,
-                        45
-                      ],
-                      [
-                        81,
-                        39
-                      ],
-                      [
-                        92,
-                        46
-                      ],
-                      [
-                        86,
-                        54
-                      ],
-                      [
-                        60,
-                        56
-                      ]
-                    ],
-                    "fill": "#718b6f"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 39,
-                    "y": 68,
-                    "w": 9,
-                    "h": 30,
-                    "fill": "#2d3b41",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 54,
-                    "y": 68,
-                    "w": 9,
-                    "h": 30,
-                    "fill": "#2d3b41",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 45,
-                    "cy": 24,
-                    "r": 3,
-                    "fill": "#ddc68a"
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 58,
-                    "cy": 24,
-                    "r": 3,
-                    "fill": "#ddc68a"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 42,
-                    "y1": 34,
-                    "x2": 61,
-                    "y2": 35,
-                    "stroke": "#394638",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 78,
-              "y": 86,
-              "scale": 0.42,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-zombie",
+              "endPose": "stand",
+              "scale": 0.85,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 82,
-                  "opacity": 0.5
+                  "x": 76,
+                  "y": 89,
+                  "pose": "stand"
                 },
                 {
-                  "t": 2.5,
-                  "x": 71,
-                  "opacity": 1
+                  "t": 0.5,
+                  "x": 76,
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
                 },
                 {
-                  "t": 5,
+                  "t": 4.6,
                   "x": 63,
-                  "opacity": 1
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4.85,
+                  "x": 63,
+                  "y": 89,
+                  "pose": "stand"
                 }
               ]
             }
           ],
-          "productionEvents": [
-            "school-facade",
-            "school-gate",
-            "school-zombie"
-          ],
-          "productionPlacements": {
-            "school-facade": {
-              "x": 50,
-              "y": 77,
-              "scale": 1.5,
-              "front": false
-            },
-            "school-gate": {
-              "x": 50,
-              "y": 91,
-              "scale": 0.75,
-              "front": false
-            },
-            "school-zombie": {
-              "x": 78,
-              "y": 86,
-              "scale": 0.42,
-              "front": false
-            }
-          },
+          "props": [],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -1281,7 +556,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Nont points at an infected silhouette approaching the gate; no physical contact. | SFX PLAN: ฝีเท้าช้า 0:01; เสียงครางต่ำ 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Nont points at an infected silhouette approaching the gate; no physical contact. | SFX PLAN: ฝีเท้าช้า 0:01; เสียงครางต่ำ 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
         },
         {
           "id": "tpz-s03",
@@ -1319,7 +594,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -1343,13 +618,41 @@
             {
               "char": "zombie",
               "x": 77,
-              "y": 90,
+              "y": 87,
               "pose": "run",
               "view": "threeQuarter",
               "facing": "left",
               "face": "angry",
-              "toX": 53,
-              "endPose": "stand"
+              "endPose": "stand",
+              "scale": 0.85,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 77,
+                  "y": 90,
+                  "pose": "stand"
+                },
+                {
+                  "t": 0.35,
+                  "x": 77,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.5,
+                  "x": 53,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.65,
+                  "x": 53,
+                  "y": 90,
+                  "pose": "stand"
+                }
+              ]
             },
             {
               "char": "nont",
@@ -1358,272 +661,43 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "left",
-              "face": "think",
-              "toX": 13,
-              "endPose": "stand"
-            }
-          ],
-          "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-courtyard-v1",
-                "name": "ลานกลางอาคาร",
-                "category": "nature",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 69,
-                    "w": 100,
-                    "h": 31,
-                    "fill": "#5e7761",
-                    "rx": 0
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        33,
-                        68
-                      ],
-                      [
-                        67,
-                        68
-                      ],
-                      [
-                        85,
-                        99
-                      ],
-                      [
-                        15,
-                        99
-                      ]
-                    ],
-                    "fill": "#adb7a8"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 3,
-                    "y": 50,
-                    "w": 5,
-                    "h": 26,
-                    "fill": "#584f42",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 6,
-                    "cy": 43,
-                    "r": 18,
-                    "fill": "#355b46"
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 15,
-                    "cy": 37,
-                    "r": 13,
-                    "fill": "#447454"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 93,
-                    "y": 52,
-                    "w": 5,
-                    "h": 25,
-                    "fill": "#584f42",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 92,
-                    "cy": 44,
-                    "r": 15,
-                    "fill": "#3b6449"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 35,
-                    "y1": 75,
-                    "x2": 65,
-                    "y2": 75,
-                    "stroke": "#d2cba8",
-                    "strokeWidth": 1
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 84,
-              "scale": 1.4,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-courtyard",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-zombie-v1",
-                "name": "เงาฝูงซอมบี้",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "circle",
-                    "cx": 51,
-                    "cy": 25,
-                    "r": 16,
-                    "fill": "#759476"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 37,
-                    "w": 20,
-                    "h": 35,
-                    "fill": "#334d47",
-                    "rx": 5
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        39,
-                        45
-                      ],
-                      [
-                        17,
-                        55
-                      ],
-                      [
-                        10,
-                        69
-                      ],
-                      [
-                        20,
-                        74
-                      ],
-                      [
-                        44,
-                        56
-                      ]
-                    ],
-                    "fill": "#718b6f"
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        62,
-                        45
-                      ],
-                      [
-                        81,
-                        39
-                      ],
-                      [
-                        92,
-                        46
-                      ],
-                      [
-                        86,
-                        54
-                      ],
-                      [
-                        60,
-                        56
-                      ]
-                    ],
-                    "fill": "#718b6f"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 39,
-                    "y": 68,
-                    "w": 9,
-                    "h": 30,
-                    "fill": "#2d3b41",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 54,
-                    "y": 68,
-                    "w": 9,
-                    "h": 30,
-                    "fill": "#2d3b41",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 45,
-                    "cy": 24,
-                    "r": 3,
-                    "fill": "#ddc68a"
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 58,
-                    "cy": 24,
-                    "r": 3,
-                    "fill": "#ddc68a"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 42,
-                    "y1": 34,
-                    "x2": 61,
-                    "y2": 35,
-                    "stroke": "#394638",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 78,
-              "y": 85,
-              "scale": 0.5,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-zombie",
+              "face": "surprised",
+              "endPose": "stand",
+              "scale": 0.85,
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 82,
-                  "opacity": 0.5
+                  "x": 25,
+                  "y": 89,
+                  "pose": "stand"
                 },
                 {
-                  "t": 2.5,
-                  "x": 71,
-                  "opacity": 1
+                  "t": 0.3,
+                  "x": 25,
+                  "y": 89,
+                  "pose": "run",
+                  "easing": "linear"
                 },
                 {
-                  "t": 5,
-                  "x": 63,
-                  "opacity": 1
+                  "t": 2.2,
+                  "x": 13,
+                  "y": 89,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.4,
+                  "x": 13,
+                  "y": 89,
+                  "pose": "stand"
                 }
               ]
             }
           ],
-          "productionEvents": [
-            "school-courtyard",
-            "school-zombie"
-          ],
-          "productionPlacements": {
-            "school-courtyard": {
-              "x": 50,
-              "y": 84,
-              "scale": 1.4,
-              "front": false
-            },
-            "school-zombie": {
-              "x": 78,
-              "y": 85,
-              "scale": 0.5,
-              "front": false
-            }
-          },
+          "props": [],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -1638,7 +712,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Zombie rushes across central yard; students move away, no blood. | SFX PLAN: ฝีเท้าวิ่ง 0:01; กรีดร้องไกล 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Zombie rushes across central yard; students move away, no blood. | SFX PLAN: ฝีเท้าวิ่ง 0:01; กรีดร้องไกล 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
         },
         {
           "id": "tpz-s04",
@@ -1676,7 +750,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -1699,12 +773,13 @@
           "actors": [
             {
               "char": "mind",
-              "x": 25,
+              "x": 24,
               "y": 89,
               "pose": "point",
-              "view": "threeQuarter",
+              "view": "front",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             },
             {
               "char": "nont",
@@ -1713,161 +788,41 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think",
-              "toX": 87,
-              "endPose": "stand"
+              "face": "surprised",
+              "endPose": "stand",
+              "scale": 0.85,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 76,
+                  "y": 89,
+                  "pose": "stand"
+                },
+                {
+                  "t": 0.2,
+                  "x": 76,
+                  "y": 89,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2,
+                  "x": 87,
+                  "y": 89,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 2.3,
+                  "x": 87,
+                  "y": 89,
+                  "pose": "stand"
+                }
+              ]
             }
           ],
           "props": [],
           "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-corridor-v1",
-                "name": "โถงทางเดินโรงเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 11,
-                    "w": 100,
-                    "h": 78,
-                    "fill": "#b4c4b9",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 11,
-                    "w": 100,
-                    "h": 10,
-                    "fill": "#637f76",
-                    "rx": 0
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        0,
-                        90
-                      ],
-                      [
-                        100,
-                        90
-                      ],
-                      [
-                        75,
-                        66
-                      ],
-                      [
-                        25,
-                        66
-                      ]
-                    ],
-                    "fill": "#7e8884"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 24,
-                    "w": 19,
-                    "h": 52,
-                    "fill": "#466561",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 8,
-                    "y": 29,
-                    "w": 13,
-                    "h": 41,
-                    "fill": "#243b47",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 76,
-                    "y": 24,
-                    "w": 19,
-                    "h": 52,
-                    "fill": "#466561",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 79,
-                    "y": 29,
-                    "w": 13,
-                    "h": 41,
-                    "fill": "#243b47",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 33,
-                    "w": 18,
-                    "h": 40,
-                    "fill": "#5e7873",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 44,
-                    "y": 36,
-                    "w": 12,
-                    "h": 34,
-                    "fill": "#223744",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 24,
-                    "y": 22,
-                    "w": 4,
-                    "h": 55,
-                    "fill": "#73877e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 72,
-                    "y": 22,
-                    "w": 4,
-                    "h": 55,
-                    "fill": "#73877e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 15,
-                    "y1": 88,
-                    "x2": 48,
-                    "y2": 69,
-                    "stroke": "#d0d7c9",
-                    "strokeWidth": 1
-                  },
-                  {
-                    "type": "line",
-                    "x1": 85,
-                    "y1": 88,
-                    "x2": 52,
-                    "y2": 69,
-                    "stroke": "#d0d7c9",
-                    "strokeWidth": 1
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 76,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-corridor",
-              "motionKeys": []
-            },
             {
               "asset": {
                 "version": 1,
@@ -1919,9 +874,9 @@
                   }
                 ]
               },
-              "x": 50,
+              "x": 49,
               "y": 29,
-              "scale": 0.34,
+              "scale": 0.16,
               "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-alarm",
@@ -1954,20 +909,13 @@
             }
           ],
           "productionEvents": [
-            "school-corridor",
             "school-alarm"
           ],
           "productionPlacements": {
-            "school-corridor": {
-              "x": 50,
-              "y": 76,
-              "scale": 1.45,
-              "front": false
-            },
             "school-alarm": {
-              "x": 50,
+              "x": 49,
               "y": 29,
-              "scale": 0.34,
+              "scale": 0.16,
               "front": false
             }
           },
@@ -1985,7 +933,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Mind warns Nont in corridor; run towards stairway, keep characters clear. | SFX PLAN: สัญญาณเตือนเบา 0:00; ฝีเท้าวิ่ง 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Mind warns Nont in corridor; run towards stairway, keep characters clear. | SFX PLAN: สัญญาณเตือนเบา 0:00; ฝีเท้าวิ่ง 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
         },
         {
           "id": "tpz-s05",
@@ -2022,7 +970,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -2050,239 +998,14 @@
               "pose": "point",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             }
           ],
           "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-classroom-v1",
-                "name": "ห้องเรียนพร้อมกระดาน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 16,
-                    "w": 100,
-                    "h": 76,
-                    "fill": "#b9c8b6",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 86,
-                    "w": 100,
-                    "h": 14,
-                    "fill": "#65716b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 27,
-                    "w": 49,
-                    "h": 31,
-                    "fill": "#35594f",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 29,
-                    "w": 45,
-                    "h": 27,
-                    "fill": "#254539",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 70,
-                    "y": 22,
-                    "w": 23,
-                    "h": 39,
-                    "fill": "#e2d7ac",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 73,
-                    "y": 26,
-                    "w": 17,
-                    "h": 31,
-                    "fill": "#779a9f",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 81,
-                    "y1": 26,
-                    "x2": 81,
-                    "y2": 57,
-                    "stroke": "#dae7d4",
-                    "strokeWidth": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 19,
-                    "y": 73,
-                    "w": 25,
-                    "h": 8,
-                    "fill": "#867664",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 23,
-                    "y": 81,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#58534a",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 39,
-                    "y": 81,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#58534a",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 55,
-                    "y": 74,
-                    "w": 24,
-                    "h": 8,
-                    "fill": "#867664",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 82,
-                    "w": 3,
-                    "h": 16,
-                    "fill": "#58534a",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 74,
-                    "y": 82,
-                    "w": 3,
-                    "h": 16,
-                    "fill": "#58534a",
-                    "rx": 0
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 77,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-classroom",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-door-v1",
-                "name": "ประตูห้องเรียนและดาดฟ้า",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 3,
-                    "w": 90,
-                    "h": 94,
-                    "fill": "#567471",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 8,
-                    "w": 79,
-                    "h": 86,
-                    "fill": "#304e4d",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 20,
-                    "y": 17,
-                    "w": 53,
-                    "h": 48,
-                    "fill": "#547f77",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 76,
-                    "cy": 65,
-                    "r": 4,
-                    "fill": "#dbc176"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 12,
-                    "y1": 93,
-                    "x2": 87,
-                    "y2": 93,
-                    "stroke": "#a5b3a5",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 79,
-              "y": 71,
-              "scale": 0.65,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-door",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "rotate": -25
-                },
-                {
-                  "t": 2.8,
-                  "rotate": -13
-                },
-                {
-                  "t": 5,
-                  "rotate": 0
-                }
-              ]
-            }
-          ],
-          "productionEvents": [
-            "school-classroom",
-            "school-door"
-          ],
-          "productionPlacements": {
-            "school-classroom": {
-              "x": 50,
-              "y": 77,
-              "scale": 1.45,
-              "front": false
-            },
-            "school-door": {
-              "x": 79,
-              "y": 71,
-              "scale": 0.65,
-              "front": false
-            }
-          },
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -2297,23 +1020,26 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Teacher directs pupils into room with door to the right. Keep exit clearly visible. | SFX PLAN: เสียงประตูเปิด 0:00; คำสั่งครู 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
-          "productionMotionOverrides": {
-            "school-door": [
-              {
-                "t": 0,
-                "rotate": -25
-              },
-              {
-                "t": 2.8,
-                "rotate": -13
-              },
-              {
-                "t": 5,
-                "rotate": 0
-              }
-            ]
-          }
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Teacher directs pupils into room with door to the right. Keep exit clearly visible. | SFX PLAN: เสียงประตูเปิด 0:00; คำสั่งครู 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {},
+          "schoolDoorKeys": [
+            {
+              "t": 0,
+              "open": 0.76
+            },
+            {
+              "t": 2.5,
+              "open": 0.76
+            },
+            {
+              "t": 3.55,
+              "open": 0
+            },
+            {
+              "t": 5,
+              "open": 0
+            }
+          ]
         },
         {
           "id": "tpz-s06",
@@ -2351,7 +1077,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -2374,230 +1100,27 @@
           "actors": [
             {
               "char": "nont",
-              "x": 23,
+              "x": 26,
               "y": 89,
               "pose": "carry",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think"
+              "face": "think",
+              "scale": 0.85
             },
             {
               "char": "mind",
               "x": 76,
               "y": 89,
               "pose": "carry",
-              "view": "threeQuarter",
+              "view": "front",
               "facing": "right",
-              "face": "think"
+              "face": "think",
+              "scale": 0.85
             }
           ],
           "props": [],
           "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-classroom-v1",
-                "name": "ห้องเรียนพร้อมกระดาน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 16,
-                    "w": 100,
-                    "h": 76,
-                    "fill": "#b9c8b6",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 86,
-                    "w": 100,
-                    "h": 14,
-                    "fill": "#65716b",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 27,
-                    "w": 49,
-                    "h": 31,
-                    "fill": "#35594f",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 29,
-                    "w": 45,
-                    "h": 27,
-                    "fill": "#254539",
-                    "rx": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 70,
-                    "y": 22,
-                    "w": 23,
-                    "h": 39,
-                    "fill": "#e2d7ac",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 73,
-                    "y": 26,
-                    "w": 17,
-                    "h": 31,
-                    "fill": "#779a9f",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 81,
-                    "y1": 26,
-                    "x2": 81,
-                    "y2": 57,
-                    "stroke": "#dae7d4",
-                    "strokeWidth": 2
-                  },
-                  {
-                    "type": "rect",
-                    "x": 19,
-                    "y": 73,
-                    "w": 25,
-                    "h": 8,
-                    "fill": "#867664",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 23,
-                    "y": 81,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#58534a",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 39,
-                    "y": 81,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#58534a",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 55,
-                    "y": 74,
-                    "w": 24,
-                    "h": 8,
-                    "fill": "#867664",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 82,
-                    "w": 3,
-                    "h": 16,
-                    "fill": "#58534a",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 74,
-                    "y": 82,
-                    "w": 3,
-                    "h": 16,
-                    "fill": "#58534a",
-                    "rx": 0
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 78,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-classroom",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-door-v1",
-                "name": "ประตูห้องเรียนและดาดฟ้า",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 3,
-                    "w": 90,
-                    "h": 94,
-                    "fill": "#567471",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 8,
-                    "w": 79,
-                    "h": 86,
-                    "fill": "#304e4d",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 20,
-                    "y": 17,
-                    "w": 53,
-                    "h": 48,
-                    "fill": "#547f77",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 76,
-                    "cy": 65,
-                    "r": 4,
-                    "fill": "#dbc176"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 12,
-                    "y1": 93,
-                    "x2": 87,
-                    "y2": 93,
-                    "stroke": "#a5b3a5",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 80,
-              "y": 69,
-              "scale": 0.6,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-door",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "rotate": 0
-                },
-                {
-                  "t": 5,
-                  "rotate": 0
-                }
-              ]
-            },
             {
               "asset": {
                 "version": 1,
@@ -2653,51 +1176,45 @@
                   }
                 ]
               },
-              "x": 65,
-              "y": 83,
-              "scale": 0.6,
-              "front": true,
+              "x": 53,
+              "y": 88,
+              "scale": 0.43,
+              "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-barricade",
               "motionKeys": [
                 {
                   "t": 0,
-                  "x": 72
+                  "x": 67,
+                  "y": 88
                 },
                 {
-                  "t": 2.25,
-                  "x": 65
+                  "t": 0.9,
+                  "x": 67,
+                  "y": 88
+                },
+                {
+                  "t": 2.85,
+                  "x": 53,
+                  "y": 88
                 },
                 {
                   "t": 5,
-                  "x": 54
+                  "x": 53,
+                  "y": 88
                 }
               ]
             }
           ],
           "productionEvents": [
-            "school-classroom",
-            "school-door",
             "school-barricade"
           ],
           "productionPlacements": {
-            "school-classroom": {
-              "x": 50,
-              "y": 78,
-              "scale": 1.45,
-              "front": false
-            },
-            "school-door": {
-              "x": 80,
-              "y": 69,
-              "scale": 0.6,
-              "front": false
-            },
             "school-barricade": {
-              "x": 65,
-              "y": 83,
-              "scale": 0.6,
-              "front": true
+              "x": 53,
+              "y": 88,
+              "scale": 0.43,
+              "front": false
             }
           },
           "productionSoundCues": [
@@ -2714,19 +1231,41 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Barricade desk slides from x72 to x54 across door, visible physical motion. | SFX PLAN: โต๊ะครูดพื้น 0:01; ทุบประตู 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Barricade desk slides from x72 to x54 across door, visible physical motion. | SFX PLAN: โต๊ะครูดพื้น 0:01; ทุบประตู 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
           "productionMotionOverrides": {
-            "school-door": [
+            "school-barricade": [
               {
                 "t": 0,
-                "rotate": 0
+                "x": 67,
+                "y": 88
+              },
+              {
+                "t": 0.9,
+                "x": 67,
+                "y": 88
+              },
+              {
+                "t": 2.85,
+                "x": 53,
+                "y": 88
               },
               {
                 "t": 5,
-                "rotate": 0
+                "x": 53,
+                "y": 88
               }
             ]
-          }
+          },
+          "schoolDoorKeys": [
+            {
+              "t": 0,
+              "open": 0
+            },
+            {
+              "t": 5,
+              "open": 0
+            }
+          ]
         },
         {
           "id": "tpz-s07",
@@ -2763,7 +1302,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -2789,307 +1328,45 @@
               "x": 36,
               "y": 90,
               "pose": "run",
-              "view": "threeQuarter",
+              "view": "front",
               "facing": "right",
-              "face": "think",
-              "toX": 62,
-              "endPose": "stand"
-            }
-          ],
-          "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-corridor-v1",
-                "name": "โถงทางเดินโรงเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 11,
-                    "w": 100,
-                    "h": 78,
-                    "fill": "#b4c4b9",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 11,
-                    "w": 100,
-                    "h": 10,
-                    "fill": "#637f76",
-                    "rx": 0
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        0,
-                        90
-                      ],
-                      [
-                        100,
-                        90
-                      ],
-                      [
-                        75,
-                        66
-                      ],
-                      [
-                        25,
-                        66
-                      ]
-                    ],
-                    "fill": "#7e8884"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 24,
-                    "w": 19,
-                    "h": 52,
-                    "fill": "#466561",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 8,
-                    "y": 29,
-                    "w": 13,
-                    "h": 41,
-                    "fill": "#243b47",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 76,
-                    "y": 24,
-                    "w": 19,
-                    "h": 52,
-                    "fill": "#466561",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 79,
-                    "y": 29,
-                    "w": 13,
-                    "h": 41,
-                    "fill": "#243b47",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 33,
-                    "w": 18,
-                    "h": 40,
-                    "fill": "#5e7873",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 44,
-                    "y": 36,
-                    "w": 12,
-                    "h": 34,
-                    "fill": "#223744",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 24,
-                    "y": 22,
-                    "w": 4,
-                    "h": 55,
-                    "fill": "#73877e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 72,
-                    "y": 22,
-                    "w": 4,
-                    "h": 55,
-                    "fill": "#73877e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 15,
-                    "y1": 88,
-                    "x2": 48,
-                    "y2": 69,
-                    "stroke": "#d0d7c9",
-                    "strokeWidth": 1
-                  },
-                  {
-                    "type": "line",
-                    "x1": 85,
-                    "y1": 88,
-                    "x2": 52,
-                    "y2": 69,
-                    "stroke": "#d0d7c9",
-                    "strokeWidth": 1
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 75,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-corridor",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-window-v1",
-                "name": "กระจกหน้าต่างร้าว",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 11,
-                    "y": 14,
-                    "w": 78,
-                    "h": 72,
-                    "fill": "#8aabad",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 17,
-                    "y": 20,
-                    "w": 66,
-                    "h": 60,
-                    "fill": "#385969",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 48,
-                    "y1": 19,
-                    "x2": 60,
-                    "y2": 40,
-                    "stroke": "#d5e9eb",
-                    "strokeWidth": 3
-                  },
-                  {
-                    "type": "line",
-                    "x1": 60,
-                    "y1": 40,
-                    "x2": 44,
-                    "y2": 53,
-                    "stroke": "#d5e9eb",
-                    "strokeWidth": 2
-                  },
-                  {
-                    "type": "line",
-                    "x1": 44,
-                    "y1": 53,
-                    "x2": 67,
-                    "y2": 73,
-                    "stroke": "#d5e9eb",
-                    "strokeWidth": 2
-                  },
-                  {
-                    "type": "line",
-                    "x1": 44,
-                    "y1": 53,
-                    "x2": 29,
-                    "y2": 78,
-                    "stroke": "#d5e9eb",
-                    "strokeWidth": 2
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        65,
-                        39
-                      ],
-                      [
-                        79,
-                        45
-                      ],
-                      [
-                        70,
-                        57
-                      ]
-                    ],
-                    "fill": "#d7e1df"
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        27,
-                        45
-                      ],
-                      [
-                        41,
-                        52
-                      ],
-                      [
-                        29,
-                        67
-                      ]
-                    ],
-                    "fill": "#aabdc1"
-                  }
-                ]
-              },
-              "x": 76,
-              "y": 51,
-              "scale": 0.7,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-window",
+              "face": "surprised",
+              "endPose": "stand",
+              "scale": 0.85,
               "motionKeys": [
                 {
                   "t": 0,
-                  "opacity": 0
+                  "x": 36,
+                  "y": 90,
+                  "pose": "stand"
                 },
                 {
-                  "t": 2.7,
-                  "opacity": 0
+                  "t": 0.5,
+                  "x": 36,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
                 },
                 {
-                  "t": 2.9,
-                  "opacity": 1
+                  "t": 3.25,
+                  "x": 62,
+                  "y": 90,
+                  "pose": "run",
+                  "easing": "linear"
                 },
                 {
-                  "t": 5,
-                  "opacity": 1
+                  "t": 3.5,
+                  "x": 62,
+                  "y": 90,
+                  "pose": "stand"
                 }
               ]
             }
           ],
-          "productionEvents": [
-            "school-corridor",
-            "school-window"
-          ],
-          "productionPlacements": {
-            "school-corridor": {
-              "x": 50,
-              "y": 75,
-              "scale": 1.45,
-              "front": false
-            },
-            "school-window": {
-              "x": 76,
-              "y": 51,
-              "scale": 0.7,
-              "front": false
-            }
-          },
+          "props": [],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -3104,7 +1381,10 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: School corridor window visibly cracks mid-scene; Mind turns towards the rear stairs. | SFX PLAN: กระจกแตกร้าว 0:02; เท้าวิ่ง 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: School corridor window visibly cracks mid-scene; Mind turns towards the rear stairs. | SFX PLAN: กระจกแตกร้าว 0:02; เท้าวิ่ง 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "worldEffects": {
+            "windowCrackAt": 2.1
+          }
         },
         {
           "id": "tpz-s08",
@@ -3142,7 +1422,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -3170,9 +1450,37 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think",
-              "toX": 44,
-              "endPose": "stand"
+              "face": "surprised",
+              "endPose": "stand",
+              "scale": 0.85,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 26,
+                  "y": 87,
+                  "pose": "stand"
+                },
+                {
+                  "t": 0.5,
+                  "x": 26,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.4,
+                  "x": 44,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.65,
+                  "x": 44,
+                  "y": 87,
+                  "pose": "stand"
+                }
+              ]
             },
             {
               "char": "teacher",
@@ -3181,139 +1489,41 @@
               "pose": "run",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think",
-              "toX": 84,
-              "endPose": "stand"
+              "face": "surprised",
+              "endPose": "stand",
+              "scale": 0.85,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 73,
+                  "y": 87,
+                  "pose": "stand"
+                },
+                {
+                  "t": 0.75,
+                  "x": 73,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.6,
+                  "x": 84,
+                  "y": 87,
+                  "pose": "run",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.85,
+                  "x": 84,
+                  "y": 87,
+                  "pose": "stand"
+                }
+              ]
             }
           ],
           "props": [],
           "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-stairs-v1",
-                "name": "โถงบันไดหนีภัย",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 12,
-                    "w": 100,
-                    "h": 79,
-                    "fill": "#829692",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 13,
-                    "w": 100,
-                    "h": 8,
-                    "fill": "#4c665e",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 9,
-                    "y": 85,
-                    "w": 28,
-                    "h": 9,
-                    "fill": "#526d71",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 21,
-                    "y": 75,
-                    "w": 28,
-                    "h": 9,
-                    "fill": "#526d71",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 33,
-                    "y": 65,
-                    "w": 28,
-                    "h": 9,
-                    "fill": "#526d71",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 45,
-                    "y": 55,
-                    "w": 28,
-                    "h": 9,
-                    "fill": "#526d71",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 57,
-                    "y": 45,
-                    "w": 28,
-                    "h": 9,
-                    "fill": "#526d71",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 69,
-                    "y": 35,
-                    "w": 28,
-                    "h": 9,
-                    "fill": "#526d71",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 8,
-                    "y1": 85,
-                    "x2": 80,
-                    "y2": 25,
-                    "stroke": "#d5c9a2",
-                    "strokeWidth": 4
-                  },
-                  {
-                    "type": "line",
-                    "x1": 11,
-                    "y1": 93,
-                    "x2": 87,
-                    "y2": 32,
-                    "stroke": "#3a5355",
-                    "strokeWidth": 3
-                  },
-                  {
-                    "type": "rect",
-                    "x": 73,
-                    "y": 26,
-                    "w": 19,
-                    "h": 37,
-                    "fill": "#344d52",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 77,
-                    "y": 30,
-                    "w": 11,
-                    "h": 30,
-                    "fill": "#1a3341",
-                    "rx": 0
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 76,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-stairs",
-              "motionKeys": []
-            },
             {
               "asset": {
                 "version": 1,
@@ -3367,10 +1577,10 @@
                   }
                 ]
               },
-              "x": 49,
-              "y": 64,
-              "scale": 0.55,
-              "front": true,
+              "x": 40,
+              "y": 62,
+              "scale": 0.31,
+              "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-flashlight",
               "motionKeys": [
@@ -3390,21 +1600,14 @@
             }
           ],
           "productionEvents": [
-            "school-stairs",
             "school-flashlight"
           ],
           "productionPlacements": {
-            "school-stairs": {
-              "x": 50,
-              "y": 76,
-              "scale": 1.45,
-              "front": false
-            },
             "school-flashlight": {
-              "x": 49,
-              "y": 64,
-              "scale": 0.55,
-              "front": true
+              "x": 40,
+              "y": 62,
+              "scale": 0.31,
+              "front": false
             }
           },
           "productionSoundCues": [
@@ -3421,7 +1624,7 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Dark stairwell, physically visible animated flashlight beam and moving survivor. | SFX PLAN: หอบหายใจ 0:00; ฝีเท้าบนบันได 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Dark stairwell, physically visible animated flashlight beam and moving survivor. | SFX PLAN: หอบหายใจ 0:00; ฝีเท้าบนบันได 0:01 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
         },
         {
           "id": "tpz-s09",
@@ -3459,7 +1662,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -3484,10 +1687,11 @@
               "char": "nont",
               "x": 31,
               "y": 89,
-              "pose": "point",
+              "pose": "surprised",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             },
             {
               "char": "teacher",
@@ -3496,219 +1700,43 @@
               "pose": "walk",
               "view": "threeQuarter",
               "facing": "left",
-              "face": "think",
-              "toX": 61,
-              "endPose": "stand"
-            }
-          ],
-          "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-rooftop-v1",
-                "name": "ดาดฟ้าอาคารเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 64,
-                    "w": 100,
-                    "h": 34,
-                    "fill": "#748b86",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 63,
-                    "w": 100,
-                    "h": 7,
-                    "fill": "#adc1b2",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 87,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 43,
-                    "w": 75,
-                    "h": 4,
-                    "fill": "#829e98",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 23,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 77,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 91,
-                    "w": 90,
-                    "h": 7,
-                    "fill": "#536d6c",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 14,
-                    "y1": 85,
-                    "x2": 87,
-                    "y2": 85,
-                    "stroke": "#b9c8b9",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 79,
-              "scale": 1.42,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-rooftop",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-door-v1",
-                "name": "ประตูห้องเรียนและดาดฟ้า",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 3,
-                    "w": 90,
-                    "h": 94,
-                    "fill": "#567471",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 8,
-                    "w": 79,
-                    "h": 86,
-                    "fill": "#304e4d",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 20,
-                    "y": 17,
-                    "w": 53,
-                    "h": 48,
-                    "fill": "#547f77",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 76,
-                    "cy": 65,
-                    "r": 4,
-                    "fill": "#dbc176"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 12,
-                    "y1": 93,
-                    "x2": 87,
-                    "y2": 93,
-                    "stroke": "#a5b3a5",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 72,
-              "y": 67,
-              "scale": 0.7,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-door",
+              "face": "surprised",
+              "endPose": "stand",
+              "scale": 0.85,
               "motionKeys": [
                 {
                   "t": 0,
-                  "rotate": 0
+                  "x": 77,
+                  "y": 89,
+                  "pose": "stand"
                 },
                 {
-                  "t": 5,
-                  "rotate": 0
+                  "t": 1.1,
+                  "x": 77,
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 3.7,
+                  "x": 61,
+                  "y": 89,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 4.1,
+                  "x": 61,
+                  "y": 89,
+                  "pose": "stand"
                 }
               ]
             }
           ],
-          "productionEvents": [
-            "school-rooftop",
-            "school-door"
-          ],
-          "productionPlacements": {
-            "school-rooftop": {
-              "x": 50,
-              "y": 79,
-              "scale": 1.42,
-              "front": false
-            },
-            "school-door": {
-              "x": 72,
-              "y": 67,
-              "scale": 0.7,
-              "front": false
-            }
-          },
+          "props": [],
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -3723,19 +1751,18 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Nont tries sealed rooftop door, Teacher approaches. Door still closed. | SFX PLAN: เสียงลูกบิดกระทบ 0:01; ลมหอบ 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
-          "productionMotionOverrides": {
-            "school-door": [
-              {
-                "t": 0,
-                "rotate": 0
-              },
-              {
-                "t": 5,
-                "rotate": 0
-              }
-            ]
-          }
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Nont tries sealed rooftop door, Teacher approaches. Door still closed. | SFX PLAN: เสียงลูกบิดกระทบ 0:01; ลมหอบ 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {},
+          "schoolDoorKeys": [
+            {
+              "t": 0,
+              "open": 0
+            },
+            {
+              "t": 5,
+              "open": 0
+            }
+          ]
         },
         {
           "id": "tpz-s10",
@@ -3772,7 +1799,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -3797,205 +1824,15 @@
               "char": "teacher",
               "x": 35,
               "y": 89,
-              "pose": "point",
+              "pose": "openDoor",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             }
           ],
           "props": [],
           "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-rooftop-v1",
-                "name": "ดาดฟ้าอาคารเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 64,
-                    "w": 100,
-                    "h": 34,
-                    "fill": "#748b86",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 63,
-                    "w": 100,
-                    "h": 7,
-                    "fill": "#adc1b2",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 87,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 43,
-                    "w": 75,
-                    "h": 4,
-                    "fill": "#829e98",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 23,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 77,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 91,
-                    "w": 90,
-                    "h": 7,
-                    "fill": "#536d6c",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 14,
-                    "y1": 85,
-                    "x2": 87,
-                    "y2": 85,
-                    "stroke": "#b9c8b9",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 79,
-              "scale": 1.42,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-rooftop",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-door-v1",
-                "name": "ประตูห้องเรียนและดาดฟ้า",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 3,
-                    "w": 90,
-                    "h": 94,
-                    "fill": "#567471",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 8,
-                    "w": 79,
-                    "h": 86,
-                    "fill": "#304e4d",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 20,
-                    "y": 17,
-                    "w": 53,
-                    "h": 48,
-                    "fill": "#547f77",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 76,
-                    "cy": 65,
-                    "r": 4,
-                    "fill": "#dbc176"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 12,
-                    "y1": 93,
-                    "x2": 87,
-                    "y2": 93,
-                    "stroke": "#a5b3a5",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 72,
-              "y": 68,
-              "scale": 0.72,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-door",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "rotate": 0
-                },
-                {
-                  "t": 2.4,
-                  "rotate": 0
-                },
-                {
-                  "t": 5,
-                  "rotate": -25
-                }
-              ]
-            },
             {
               "asset": {
                 "version": 1,
@@ -4047,10 +1884,10 @@
                   }
                 ]
               },
-              "x": 53,
-              "y": 62,
-              "scale": 0.4,
-              "front": true,
+              "x": 46,
+              "y": 59,
+              "scale": 0.15,
+              "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-key",
               "motionKeys": [
@@ -4070,28 +1907,14 @@
             }
           ],
           "productionEvents": [
-            "school-rooftop",
-            "school-door",
             "school-key"
           ],
           "productionPlacements": {
-            "school-rooftop": {
-              "x": 50,
-              "y": 79,
-              "scale": 1.42,
-              "front": false
-            },
-            "school-door": {
-              "x": 72,
-              "y": 68,
-              "scale": 0.72,
-              "front": false
-            },
             "school-key": {
-              "x": 53,
-              "y": 62,
-              "scale": 0.4,
-              "front": true
+              "x": 46,
+              "y": 59,
+              "scale": 0.15,
+              "front": false
             }
           },
           "productionSoundCues": [
@@ -4108,7 +1931,25 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Teacher raises brass key, rooftop door opens on animation. Motion continuity. | SFX PLAN: กุญแจไขล็อก 0:01; ประตูเหล็กเปิด 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Teacher raises brass key, rooftop door opens on animation. Motion continuity. | SFX PLAN: กุญแจไขล็อก 0:01; ประตูเหล็กเปิด 0:03 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "schoolDoorKeys": [
+            {
+              "t": 0,
+              "open": 0
+            },
+            {
+              "t": 2.6,
+              "open": 0
+            },
+            {
+              "t": 4.2,
+              "open": 0.84
+            },
+            {
+              "t": 5,
+              "open": 0.84
+            }
+          ]
         },
         {
           "id": "tpz-s11",
@@ -4146,7 +1987,7 @@
             "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.02,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -4157,7 +1998,7 @@
             "type": "cut",
             "duration": 0
           },
-          "atmosphere": "wind",
+          "atmosphere": "none",
           "lighting": {
             "exposure": 0.78,
             "glow": 0.2,
@@ -4169,142 +2010,27 @@
           "actors": [
             {
               "char": "nont",
-              "x": 27,
+              "x": 26,
               "y": 89,
               "pose": "wave",
               "view": "threeQuarter",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             },
             {
               "char": "mind",
-              "x": 74,
+              "x": 75,
               "y": 89,
               "pose": "wave",
-              "view": "threeQuarter",
+              "view": "front",
               "facing": "right",
-              "face": "think"
+              "face": "surprised",
+              "scale": 0.85
             }
           ],
           "props": [],
           "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-rooftop-v1",
-                "name": "ดาดฟ้าอาคารเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 64,
-                    "w": 100,
-                    "h": 34,
-                    "fill": "#748b86",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 63,
-                    "w": 100,
-                    "h": 7,
-                    "fill": "#adc1b2",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 87,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 43,
-                    "w": 75,
-                    "h": 4,
-                    "fill": "#829e98",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 23,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 77,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 91,
-                    "w": 90,
-                    "h": 7,
-                    "fill": "#536d6c",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 14,
-                    "y1": 85,
-                    "x2": 87,
-                    "y2": 85,
-                    "stroke": "#b9c8b9",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 80,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-rooftop",
-              "motionKeys": []
-            },
             {
               "asset": {
                 "version": 1,
@@ -4355,8 +2081,8 @@
                 ]
               },
               "x": 65,
-              "y": 45,
-              "scale": 0.52,
+              "y": 48,
+              "scale": 0.23,
               "front": false,
               "producer": "story-author-v1",
               "eventKind": "school-sos",
@@ -4389,20 +2115,13 @@
             }
           ],
           "productionEvents": [
-            "school-rooftop",
             "school-sos"
           ],
           "productionPlacements": {
-            "school-rooftop": {
-              "x": 50,
-              "y": 80,
-              "scale": 1.45,
-              "front": false
-            },
             "school-sos": {
               "x": 65,
-              "y": 45,
-              "scale": 0.52,
+              "y": 48,
+              "scale": 0.23,
               "front": false
             }
           },
@@ -4420,7 +2139,17 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Roof beacon pulses visibly, Nont and Mind wave to the distant skyline. | SFX PLAN: ลมบนดาดฟ้า 0:00; ไฟเตือนดังติ๊ด 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio."
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Roof beacon pulses visibly, Nont and Mind wave to the distant skyline. | SFX PLAN: ลมบนดาดฟ้า 0:00; ไฟเตือนดังติ๊ด 0:02 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "schoolDoorKeys": [
+            {
+              "t": 0,
+              "open": 0
+            },
+            {
+              "t": 6,
+              "open": 0
+            }
+          ]
         },
         {
           "id": "tpz-s12",
@@ -4455,10 +2184,10 @@
           },
           "imagePrompt": "Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact.. Stylized fictional school, no real students depicted, no gore; preserve continuity and prop placement.",
           "camera": {
-            "type": "zoom-in",
+            "type": "static",
             "world": 1,
             "from": 1,
-            "to": 1.1,
+            "to": 1,
             "panX": 0,
             "panY": 0,
             "rotation": 0,
@@ -4469,7 +2198,7 @@
             "type": "cut",
             "duration": 0
           },
-          "atmosphere": "wind",
+          "atmosphere": "none",
           "lighting": {
             "exposure": 0.78,
             "glow": 0.2,
@@ -4484,384 +2213,55 @@
               "x": 27,
               "y": 89,
               "pose": "surprised",
-              "view": "threeQuarter",
+              "view": "front",
               "facing": "right",
-              "face": "surprised"
+              "face": "surprised",
+              "scale": 0.85
             },
             {
               "char": "zombie",
-              "x": 84,
-              "y": 89,
+              "x": 83,
+              "y": 88,
               "pose": "walk",
               "view": "threeQuarter",
               "facing": "left",
               "face": "angry",
-              "toX": 72,
-              "endPose": "stand"
+              "endPose": "stand",
+              "scale": 0.79,
+              "appearAt": 4.05,
+              "motionKeys": [
+                {
+                  "t": 0,
+                  "x": 83,
+                  "y": 88,
+                  "pose": "stand"
+                },
+                {
+                  "t": 4.05,
+                  "x": 83,
+                  "y": 88,
+                  "pose": "walk"
+                },
+                {
+                  "t": 5.85,
+                  "x": 69,
+                  "y": 88,
+                  "pose": "walk",
+                  "easing": "linear"
+                },
+                {
+                  "t": 6,
+                  "x": 69,
+                  "y": 88,
+                  "pose": "stand"
+                }
+              ]
             }
           ],
           "props": [],
-          "customAssets": [
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-rooftop-v1",
-                "name": "ดาดฟ้าอาคารเรียน",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 64,
-                    "w": 100,
-                    "h": 34,
-                    "fill": "#748b86",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 0,
-                    "y": 63,
-                    "w": 100,
-                    "h": 7,
-                    "fill": "#adc1b2",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 87,
-                    "y": 43,
-                    "w": 8,
-                    "h": 23,
-                    "fill": "#c0c8bd",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 12,
-                    "y": 43,
-                    "w": 75,
-                    "h": 4,
-                    "fill": "#829e98",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 23,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 59,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 77,
-                    "y": 47,
-                    "w": 3,
-                    "h": 17,
-                    "fill": "#708d87",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 91,
-                    "w": 90,
-                    "h": 7,
-                    "fill": "#536d6c",
-                    "rx": 0
-                  },
-                  {
-                    "type": "line",
-                    "x1": 14,
-                    "y1": 85,
-                    "x2": 87,
-                    "y2": 85,
-                    "stroke": "#b9c8b9",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 50,
-              "y": 80,
-              "scale": 1.45,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-rooftop",
-              "motionKeys": []
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-door-v1",
-                "name": "ประตูห้องเรียนและดาดฟ้า",
-                "category": "architecture",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "rect",
-                    "x": 5,
-                    "y": 3,
-                    "w": 90,
-                    "h": 94,
-                    "fill": "#567471",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 10,
-                    "y": 8,
-                    "w": 79,
-                    "h": 86,
-                    "fill": "#304e4d",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 20,
-                    "y": 17,
-                    "w": 53,
-                    "h": 48,
-                    "fill": "#547f77",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 76,
-                    "cy": 65,
-                    "r": 4,
-                    "fill": "#dbc176"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 12,
-                    "y1": 93,
-                    "x2": 87,
-                    "y2": 93,
-                    "stroke": "#a5b3a5",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 78,
-              "y": 69,
-              "scale": 0.63,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-door",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "rotate": 0
-                },
-                {
-                  "t": 3.7,
-                  "rotate": 0
-                },
-                {
-                  "t": 6,
-                  "rotate": -19
-                }
-              ]
-            },
-            {
-              "asset": {
-                "version": 1,
-                "id": "auto-school-zombie-v1",
-                "name": "เงาฝูงซอมบี้",
-                "category": "fx",
-                "description": "Fictional Thai school zombie survival. Locally embedded, no external image.",
-                "shapes": [
-                  {
-                    "type": "circle",
-                    "cx": 51,
-                    "cy": 25,
-                    "r": 16,
-                    "fill": "#759476"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 41,
-                    "y": 37,
-                    "w": 20,
-                    "h": 35,
-                    "fill": "#334d47",
-                    "rx": 5
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        39,
-                        45
-                      ],
-                      [
-                        17,
-                        55
-                      ],
-                      [
-                        10,
-                        69
-                      ],
-                      [
-                        20,
-                        74
-                      ],
-                      [
-                        44,
-                        56
-                      ]
-                    ],
-                    "fill": "#718b6f"
-                  },
-                  {
-                    "type": "polygon",
-                    "points": [
-                      [
-                        62,
-                        45
-                      ],
-                      [
-                        81,
-                        39
-                      ],
-                      [
-                        92,
-                        46
-                      ],
-                      [
-                        86,
-                        54
-                      ],
-                      [
-                        60,
-                        56
-                      ]
-                    ],
-                    "fill": "#718b6f"
-                  },
-                  {
-                    "type": "rect",
-                    "x": 39,
-                    "y": 68,
-                    "w": 9,
-                    "h": 30,
-                    "fill": "#2d3b41",
-                    "rx": 0
-                  },
-                  {
-                    "type": "rect",
-                    "x": 54,
-                    "y": 68,
-                    "w": 9,
-                    "h": 30,
-                    "fill": "#2d3b41",
-                    "rx": 0
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 45,
-                    "cy": 24,
-                    "r": 3,
-                    "fill": "#ddc68a"
-                  },
-                  {
-                    "type": "circle",
-                    "cx": 58,
-                    "cy": 24,
-                    "r": 3,
-                    "fill": "#ddc68a"
-                  },
-                  {
-                    "type": "line",
-                    "x1": 42,
-                    "y1": 34,
-                    "x2": 61,
-                    "y2": 35,
-                    "stroke": "#394638",
-                    "strokeWidth": 2
-                  }
-                ]
-              },
-              "x": 78,
-              "y": 86,
-              "scale": 0.42,
-              "front": false,
-              "producer": "story-author-v1",
-              "eventKind": "school-zombie",
-              "motionKeys": [
-                {
-                  "t": 0,
-                  "x": 82,
-                  "opacity": 0.5
-                },
-                {
-                  "t": 3,
-                  "x": 71,
-                  "opacity": 1
-                },
-                {
-                  "t": 6,
-                  "x": 63,
-                  "opacity": 1
-                }
-              ]
-            }
-          ],
-          "productionEvents": [
-            "school-rooftop",
-            "school-door",
-            "school-zombie"
-          ],
-          "productionPlacements": {
-            "school-rooftop": {
-              "x": 50,
-              "y": 80,
-              "scale": 1.45,
-              "front": false
-            },
-            "school-door": {
-              "x": 78,
-              "y": 69,
-              "scale": 0.63,
-              "front": false
-            },
-            "school-zombie": {
-              "x": 78,
-              "y": 86,
-              "scale": 0.42,
-              "front": false
-            }
-          },
+          "customAssets": [],
+          "productionEvents": [],
+          "productionPlacements": {},
           "productionSoundCues": [
             {
               "at": 0,
@@ -4876,23 +2276,26 @@
           "video": null,
           "art": "",
           "uiBox": null,
-          "notes": "BLOCKING: Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact. | SFX PLAN: เสียงครางจากด้านหลัง 0:02; ดนตรีหยุดฉับพลัน 0:05 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
-          "productionMotionOverrides": {
-            "school-door": [
-              {
-                "t": 0,
-                "rotate": 0
-              },
-              {
-                "t": 3.7,
-                "rotate": 0
-              },
-              {
-                "t": 6,
-                "rotate": -19
-              }
-            ]
-          }
+          "notes": "REFINED: built-in responsive school world; character rig depth, fast keyed movement, room-specific door choreography; no oversized floating background. BLOCKING: Slow ominous reveal of distant zombie shadow behind rooftop door; cut before contact. | SFX PLAN: เสียงครางจากด้านหลัง 0:02; ดนตรีหยุดฉับพลัน 0:05 | Fictional outbreak in real-named school. No event claim. All custom SVGs embedded. Voice/audio must be rendered in studio.",
+          "productionMotionOverrides": {},
+          "schoolDoorKeys": [
+            {
+              "t": 0,
+              "open": 0
+            },
+            {
+              "t": 3.3,
+              "open": 0
+            },
+            {
+              "t": 4.1,
+              "open": 0.75
+            },
+            {
+              "t": 6,
+              "open": 0.75
+            }
+          ]
         }
       ],
       "cliffhanger": "มีเสียงครางดังขึ้นบนดาดฟ้า"
