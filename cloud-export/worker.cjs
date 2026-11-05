@@ -7,6 +7,7 @@ const path = require('node:path');
 const {execFileSync,spawnSync} = require('node:child_process');
 const {chromium} = require('playwright');
 const renderQA = require('./render-qa.cjs');
+const {encodeMP4} = require('./transcode.cjs');
 const root = path.resolve(__dirname, '..');
 const scratch = '/tmp/story-cloud-export';
 const jobId = process.env.STUDIO_JOB_ID || '';
@@ -23,10 +24,7 @@ function audioExpected(E) {
 function remux(src,out,needAudio,qaOptions={}) {
  // Force a real encode instead of relabeling WebM as MP4. AAC audio is REQUIRED
  // when original episode has playable clips.
- run('ffmpeg',['-nostdin','-hide_banner','-loglevel','error','-y','-i',src,
-  '-map','0:v:0','-map','0:a:0?', '-c:v','libx264','-preset','veryfast',
-  '-crf','23','-pix_fmt','yuv420p','-r',String(qaOptions.expectedFps||24),'-c:a','aac','-b:a','128k',
-  '-movflags','+faststart',...(needAudio?['-af','apad','-shortest']:[]),out]);
+ encodeMP4(src,out,{expectedAudio:needAudio,...qaOptions});
  const streams=run('ffprobe',['-v','error','-show_entries','stream=codec_type',
   '-of','csv=p=0',out]).trim().split(/\r?\n/);
  const report=renderQA.inspect(out,{expectedAudio:needAudio,...qaOptions});
@@ -81,6 +79,8 @@ async function main(){
    await page.goto('http://127.0.0.1:'+server.address().port+'/?workspace=editor',{waitUntil:'load'});
    const outcome=await page.evaluate(async ({project,scope,index,resolution,fps,captions})=>{
     S=normalize(project);selEp=index;sel=0;T=0;playing=false;fix();render();
+    const timelines=(scope==='combined'?[buildExportCompilation(S.episodes).scenes]:scope==='separate'?S.episodes.map(E=>E.scenes):[S.episodes[index].scenes]).map(scenes=>scenes.map(s=>({id:s.id,duration:s.duration})));
+    const [aspectW,aspectH]=String(S.project.aspect||'16:9').split(':').map(Number);
     openVideoExport();
     document.querySelector('#videoScope').value=scope;
     document.querySelector('#videoResolution').value=String(resolution);
@@ -96,7 +96,7 @@ async function main(){
     try{await startVideoExport()}finally{window.dlBlob=original}
     const status=document.querySelector('#videoStatus').textContent||'';
     const completed=scope==='separate'?!!EXPORT_BATCH_ZIP:!!LAST_VIDEO&&EXPORT_JOB_OUTCOME;
-    return {completed,status,filename:scope==='separate'?EXPORT_BATCH_ZIP?.name:LAST_VIDEO?.filename};
+    return {completed,status,timelines,aspect:aspectW/aspectH,filename:scope==='separate'?EXPORT_BATCH_ZIP?.name:LAST_VIDEO?.filename};
    },{project:input.project,scope,index,resolution,fps,captions:settings.captions});
    if(!outcome.completed)fail('Browser export failed: '+outcome.status.slice(0,500));
    if(browserErrors.length)console.warn('Browser warnings:',browserErrors.slice(0,3));
@@ -117,13 +117,15 @@ async function main(){
      // ZIP is produced by the app in episode order, but enumeration order can vary.
      const matching=webms.find(x=>x.endsWith('-'+(i+1)+'.webm'));
      if(!matching)fail('Episode '+(i+1)+' missing');
-     remux(path.join(unpack,matching),path.join(converted,matching.replace(/\.webm$/i,'.mp4')),audioExpected(input.project.episodes[i]),{expectedFps:fps,scenes:input.project.episodes[i].scenes});
+     const scenes=outcome.timelines[i];
+     remux(path.join(unpack,matching),path.join(converted,matching.replace(/\.webm$/i,'.mp4')),audioExpected(input.project.episodes[i]),{expectedFps:fps,expectedAspect:outcome.aspect,expectedDuration:scenes.reduce((n,s)=>n+s.duration,0),scenes});
     }
     outputFile=path.join(scratch,'result.zip');
     run('zip',['-q','-j',outputFile,...fs.readdirSync(converted).map(x=>path.join(converted,x))]);
    } else {
     outputFile=path.join(scratch,'result.mp4');
-    remux(source,outputFile,expected,{expectedFps:fps,scenes:scope==='current'?input.project.episodes[index].scenes:[]});
+    const scenes=outcome.timelines[0];
+    remux(source,outputFile,expected,{expectedFps:fps,expectedAspect:outcome.aspect,expectedDuration:scenes.reduce((n,s)=>n+s.duration,0),scenes});
    }
   }finally{await new Promise(resolve=>server.close(resolve))}
  }finally{await browser.close()}

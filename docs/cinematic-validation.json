@@ -7,52 +7,37 @@
       "width": 540,
       "height": 960,
       "fps": 30,
-      "duration": 12,
+      "duration": 12.001667,
       "audio": {
         "present": true,
-        "maxVolumeDB": -22.1,
+        "maxVolumeDB": -22,
         "silenceStarts": []
       },
       "errors": [],
       "warnings": [],
-      "sha256": "f24851630f264e20bc20c0ce4e149469b37c7393ed3f5e78475723e58b441f61"
+      "sha256": "d8fa836b6b28d35f088e0beddb439f8827d918355a439b080075bd9140ece772"
     },
     {
       "scene": "book",
       "width": 540,
       "height": 960,
       "fps": 30,
-      "duration": 12.0845,
+      "duration": 12.006667,
       "audio": {
         "present": true,
-        "maxVolumeDB": -22.1,
+        "maxVolumeDB": -21.6,
         "silenceStarts": []
       },
       "errors": [],
       "warnings": [],
-      "sha256": "6697d4c0e67c4eb5bbb3eb7a5337af38fa381ff58ba06aaae881573a1bc78337"
+      "sha256": "72c7b5ca64c48d677de538ff8400ee563fd7b1a049d9f2b9ecf941b6c1b3b2d2"
     },
     {
       "scene": "run",
       "width": 540,
       "height": 960,
       "fps": 30,
-      "duration": 12.033333,
-      "audio": {
-        "present": true,
-        "maxVolumeDB": -22.1,
-        "silenceStarts": []
-      },
-      "errors": [],
-      "warnings": [],
-      "sha256": "3380d252273a45fe4469fa17c79dd7df1376094832f3182602adc45b0c7e43d8"
-    },
-    {
-      "scene": "forest",
-      "width": 540,
-      "height": 960,
-      "fps": 30,
-      "duration": 11.966667,
+      "duration": 12.004667,
       "audio": {
         "present": true,
         "maxVolumeDB": -22.2,
@@ -60,14 +45,14 @@
       },
       "errors": [],
       "warnings": [],
-      "sha256": "9600867da96d4297dd948f267e9d0cee16fdf8f806bed22f1fffc5e3b5cd2ca7"
+      "sha256": "b5c11176fc55200d21952df2135ab488a7782f1a9f7fddf149d8918ec50f96ea"
     },
     {
-      "scene": "school",
+      "scene": "forest",
       "width": 540,
       "height": 960,
       "fps": 30,
-      "duration": 12.012,
+      "duration": 12.013333,
       "audio": {
         "present": true,
         "maxVolumeDB": -22.1,
@@ -75,7 +60,34 @@
       },
       "errors": [],
       "warnings": [],
-      "sha256": "d1124d32abe062154c9b0e1304183b2989b4fa0797f8600ddbf5e61d2132491c"
+      "sha256": "84c2a843baa5ef6d18208f1a331577098b9cafeb649151c8e6f3239629799f4c"
+    },
+    {
+      "scene": "school",
+      "width": 540,
+      "height": 960,
+      "fps": 30,
+      "duration": 12.004,
+      "audio": {
+        "present": true,
+        "maxVolumeDB": -22.2,
+        "silenceStarts": []
+      },
+      "errors": [],
+      "warnings": [],
+      "sha256": "0fd7a3ee35f4eb3e236288397ddb2f1aa07af1b6e52b3c24e58fb97bb211b971"
+    }
+  ],
+  "referenceDecoderChecks": [
+    {
+      "playwright": "1.56.1",
+      "mp4": "actionable unsupported-codec error",
+      "webm": "decoded successfully"
+    },
+    {
+      "playwright": "1.62.1",
+      "mp4": "decoded successfully",
+      "webm": "decoded successfully"
     }
   ]
 }

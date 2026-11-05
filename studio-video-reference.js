@@ -16,7 +16,7 @@ async function analyze(file,{signal,onProgress=()=>{},step=.5,maxDuration=180}={
  const url=URL.createObjectURL(file),video=document.createElement('video');video.muted=true;video.preload='auto';video.playsInline=true;
  const wait=(event,act)=>new Promise((resolve,reject)=>{
   let timer;const cleanup=()=>{clearTimeout(timer);video.removeEventListener(event,done);video.removeEventListener('error',fail);signal?.removeEventListener('abort',abort);};
-  const done=()=>{cleanup();resolve();},fail=()=>{cleanup();reject(Error('เบราว์เซอร์อ่านวิดีโอนี้ไม่ได้'));},abort=()=>{cleanup();reject(new DOMException('ยกเลิกการวิเคราะห์','AbortError'));};
+  const done=()=>{cleanup();resolve();},fail=()=>{cleanup();reject(Error('เบราว์เซอร์อ่านวิดีโอนี้ไม่ได้ ลองใช้เบราว์เซอร์รุ่นล่าสุด หรือแปลงเป็น MP4 (H.264/AAC) หรือ WebM'));},abort=()=>{cleanup();reject(new DOMException('ยกเลิกการวิเคราะห์','AbortError'));};
   if(signal?.aborted){abort();return;}video.addEventListener(event,done,{once:true});video.addEventListener('error',fail,{once:true});signal?.addEventListener('abort',abort,{once:true});timer=setTimeout(fail,12000);act();
  });
  try{

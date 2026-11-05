@@ -1,6 +1,7 @@
 'use strict';
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {execFileSync}=require('node:child_process');const QA=require('../cloud-export/render-qa.cjs');
+const {encodeMP4}=require('../cloud-export/transcode.cjs');
 const output=process.env.CINEMATIC_OUTPUT_DIR||path.join(os.tmpdir(),'story-cinematic-qa');fs.mkdirSync(output,{recursive:true});
 (async()=>{
  const browser=await chromium.launch({args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
@@ -49,14 +50,29 @@ const output=process.env.CINEMATIC_OUTPUT_DIR||path.join(os.tmpdir(),'story-cine
     const out=new Uint8Array(await LAST_VIDEO.blob.arrayBuffer());let encoded='';for(let i=0;i<out.length;i+=16384)encoded+=String.fromCharCode(...out.subarray(i,i+16384));return {bytes:btoa(encoded),name:LAST_VIDEO.filename};
    });
    const file=path.join(output,name+'.mp4'),source=path.join(output,name+'.browser.'+result.name.split('.').pop());fs.writeFileSync(source,Buffer.from(result.bytes,'base64'));
-   execFileSync('ffmpeg',['-v','error','-y','-i',source,'-map','0:v:0','-map','0:a:0','-c:v','libx264','-preset','veryfast','-crf','23','-pix_fmt','yuv420p','-r','30','-c:a','aac','-af','apad','-shortest','-movflags','+faststart',file],{timeout:120000});
-   const qa=QA.inspect(file,{expectedAudio:true,expectedFps:30,expectedAspect:9/16,scenes:fixture.episodes[0].scenes});fs.writeFileSync(file+'.qa.json',JSON.stringify(qa,null,2));assert.deepEqual(qa.issues.filter(i=>i.severity==='error'),[],name+' output QA');assert.ok(Math.abs(qa.duration-12)<.3);console.log('PASS rendered',name,qa.width+'x'+qa.height,qa.fps+'fps',qa.duration+'s',qa.audio.maxVolumeDB+'dB');
+   encodeMP4(source,file,{expectedAudio:true,expectedFps:30,expectedDuration:12,timeout:120000});
+   const qa=QA.inspect(file,{expectedAudio:true,expectedFps:30,expectedAspect:9/16,expectedDuration:12,scenes:fixture.episodes[0].scenes});fs.writeFileSync(file+'.qa.json',JSON.stringify(qa,null,2));assert.deepEqual(qa.issues.filter(i=>i.severity==='error'),[],name+' output QA');assert.ok(Math.abs(qa.duration-12)<.1);console.log('PASS rendered',name,qa.width+'x'+qa.height,qa.fps+'fps',qa.duration+'s',qa.audio.maxVolumeDB+'dB');
   }
-  // Analysis of a real decoded clip and cancellation. No semantic data fabricated.
+  // H.264/AAC is absent in some Playwright Chromium builds. Verify that this
+  // produces a useful error, and always exercise decoded analysis with WebM.
+  // Both references come from the actual rendered video, not mocked pixels.
   await page.evaluate(()=>StoryCinematicStudio.open());
+  const supportsMP4=await page.evaluate(()=>{const v=document.createElement('video');return !!v.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');});
   await page.locator('input[aria-label="วิดีโออ้างอิง"]').setInputFiles(path.join(output,'run.mp4'));
-  await page.waitForFunction(()=>document.querySelector('#cinematicStudio pre')?.textContent.includes('รอตรวจรายละเอียดภาพ'),{timeout:30000});
+  await page.waitForFunction(()=>['ready','error'].includes(document.querySelector('#cineReferenceReport')?.dataset.state),null,{timeout:30000});
+  const mp4Report=await page.locator('#cineReferenceReport').evaluate(el=>({state:el.dataset.state,text:el.textContent}));
+  assert.equal(mp4Report.state,supportsMP4?'ready':'error',mp4Report.text);
+  if(!supportsMP4)assert.match(mp4Report.text,/WebM/,'unsupported codecs have an actionable message');
+  const reference=path.join(output,'reference.webm');
+  execFileSync('ffmpeg',['-v','error','-y','-i',path.join(output,'run.mp4'),'-an','-vf','scale=180:320','-c:v','libvpx-vp9','-b:v','0','-crf','35',reference],{timeout:120000});
+  await page.locator('input[aria-label="วิดีโออ้างอิง"]').setInputFiles(reference);
+  await page.waitForFunction(()=>['ready','error'].includes(document.querySelector('#cineReferenceReport')?.dataset.state),null,{timeout:30000});
+  const webmReport=await page.locator('#cineReferenceReport').evaluate(el=>({state:el.dataset.state,text:el.textContent}));
+  assert.equal(webmReport.state,'ready',webmReport.text);assert.match(webmReport.text,/รอตรวจรายละเอียดภาพ/);
+  await page.locator('input[aria-label="วิดีโออ้างอิง"]').setInputFiles({name:'invalid.webm',mimeType:'video/webm',buffer:Buffer.from('not a video')});
+  await page.waitForFunction(()=>document.querySelector('#cineReferenceReport')?.dataset.state==='error',null,{timeout:15000});
+  const aborted=await page.evaluate(async()=>{const c=new AbortController();c.abort();try{await StoryVideoReference.analyze(new File(['x'],'cancelled.webm',{type:'video/webm'}),{signal:c.signal});return false;}catch(e){return e.name==='AbortError';}});assert.ok(aborted,'cancelled reference loads release resources');
   const semantic=await page.evaluate(async()=>{const res=StoryVideoReference.blueprint([{time:0,delta:0},{time:1,delta:.8}],3);return res.shots.every(s=>s.actions===null&&s.camera===null);});assert.ok(semantic);
-  assert.deepEqual(errors,[]);console.log('PASS reviewed apply/undo, responsive UI, attachment continuity, replay, reference analysis');
+  assert.deepEqual(errors,[]);console.log('PASS reviewed apply/undo, responsive UI, attachment continuity, replay, WebM analysis, codec errors, cancellation; MP4 decoder:',supportsMP4);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

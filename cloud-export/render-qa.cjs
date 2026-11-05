@@ -1,7 +1,7 @@
 'use strict';
 // Post-render measurements, not semantic vision. Times refer to the decoded file.
 const {execFileSync,spawnSync}=require('node:child_process');
-function inspect(file,{expectedAudio=false,expectedFps,expectedAspect,scenes=[]}={}){
+function inspect(file,{expectedAudio=false,expectedFps,expectedAspect,expectedDuration,scenes=[]}={}){
  const meta=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-show_format','-of','json',file],{encoding:'utf8',timeout:30000}));
  const streams=meta.streams||[],video=streams.find(s=>s.codec_type==='video'),audio=streams.find(s=>s.codec_type==='audio'),issues=[];
  const sceneAt=t=>{let at=0;for(const s of scenes){if(t<at+s.duration)return {scene:s.id,sceneTime:+(t-at).toFixed(3)};at+=s.duration;}return {};};
@@ -12,6 +12,9 @@ function inspect(file,{expectedAudio=false,expectedFps,expectedAspect,scenes=[]}
  if(expectedFps&&Math.abs(fps-expectedFps)>.05)add('frame-rate','error',0,`Expected ${expectedFps} FPS; got ${fps}`);
  if(expectedAspect&&Math.abs(video.width/video.height-expectedAspect)>.01)add('aspect','error',0,'Output aspect ratio differs from project');
  if(!duration)add('duration','error',0,'Empty duration');
+ const tolerance=Math.max(.1,2/(expectedFps||fps||24));
+ if(expectedDuration&&Math.abs(duration-expectedDuration)>tolerance)add('timeline-duration','error',Math.min(duration,expectedDuration),`Expected ${expectedDuration}s timeline; got ${duration}s`);
+ if(expectedDuration&&Number.isFinite(Number(video?.duration))&&Math.abs(Number(video.duration)-expectedDuration)>tolerance)add('video-duration','error',Math.min(Number(video.duration),expectedDuration),'Video stream ends at a different time from the rendered timeline');
  // Scale before decoding to raw gray; capped by duration limit of existing exporter.
  const pixels=execFileSync('ffmpeg',['-v','error','-i',file,'-an','-vf','fps=2,scale=48:48,format=gray','-f','rawvideo','-'],{timeout:240000,maxBuffer:32*1024*1024});
  const size=48*48,samples=[];let freezeStart=null;
