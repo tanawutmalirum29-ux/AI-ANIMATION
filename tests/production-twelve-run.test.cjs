@@ -32,7 +32,7 @@ test('member and guest share the editor one-click producer without owner key or 
  assert.match(member,/fillProductionProgress\(progress\)/);
  assert.match(member,/getProductionSteps\?\.\(\)/);
  assert.match(member,/เปิด JSON สำหรับผลิต/);
- assert.match(member,/เริ่มประมวลผล 12 ขั้น/);
+ assert.match(member,/เริ่มประมวลผล 11 ขั้น/);
  assert.match(member,/โมเดลตรวจบทเดิม · 6 งานเฉพาะทาง/);
  assert.match(member,/\['member','guest'\]/);
  assert.doesNotMatch(member,/apiKey|connectionId|member\.keys\.|teacher\.configure/);
