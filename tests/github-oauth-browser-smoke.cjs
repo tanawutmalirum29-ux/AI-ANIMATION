@@ -67,12 +67,13 @@ const path=require('path'),assert=require('node:assert/strict');
    }
    await page.waitForFunction(()=>window.StoryStudioAccess?.isReady?.(),{timeout:20000});
    assert.equal(await page.evaluate(()=>StoryStudioAccess.user().role),role);
+   await page.getByRole('button',{name:'เปิดพื้นที่ตัดต่อ',exact:true}).click();
    if(role!=='admin'){
     // Ordinary accounts must retain the full video editor and preview; the
     // trained CPU child is a docked tool rather than a full-page takeover.
     assert.equal(await page.locator('#stageWrap').isVisible(),true);
     assert.equal(await page.locator('#tl').isVisible(),true);
-    await page.locator('#studioToolNav [data-tool="ai"]').click();
+    await page.getByRole('button',{name:'ผู้ช่วย AI',exact:true}).click();
     await page.locator('#storyMemberPortal').waitFor({state:'visible'});
     assert.equal(await page.locator('#storyMemberPortal .member-role').count(),6);
      assert.equal(await page.locator('#storyMemberPortal .member-production-step').count(),12,'all twelve positions visible to ordinary accounts');

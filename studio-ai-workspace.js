@@ -1153,7 +1153,10 @@ function mount(){
  if(state.tasks.some(t=>t.status==='running'))persist(s=>{for(const t of s.tasks)if(t.status==='running')t.status='interrupted'});
  render();
 }
-root.StoryAIWorkspace=Object.freeze({mount,render,open:()=>bridge?.openWorkspace(),
+root.StoryAIWorkspace=Object.freeze({mount,render,navigate:id=>{
+ if(!root.StoryStudioAccess?.isAdmin?.())return;
+ if(['teacher','batch','tasks'].includes(id))setView(id);
+},open:()=>bridge?.openWorkspace(),
  status,getBusy:()=>busy,
  runProduction12:()=>runCoordinatedProduction(),
  getProductionSteps:()=>{
