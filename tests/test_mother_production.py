@@ -87,7 +87,7 @@ class MotherProductionTest(unittest.TestCase):
             sound.setnchannels(1)
             sound.setsampwidth(2)
             sound.setframerate(24000)
-            sound.writeframes(b"\\x00\\x00" * 500)
+            sound.writeframes(b"\x00\x00" * 500)
         wav = buf.getvalue()
         payload = {"steps": [{"type": "model_output", "content": [
             {"type": "audio", "data": base64.b64encode(wav).decode("ascii"),
