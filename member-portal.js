@@ -116,7 +116,7 @@ function productionPanel(){
  const upload=button('เปิด JSON สำหรับผลิต',()=>root.document.querySelector('#file')?.click());
  upload.disabled=productionBusy||busy;
  actions.append(upload);
- const start=button(productionBusy?'กำลังทำ 12 ขั้น…':'เริ่มประมวลผล 12 ขั้น · ครั้งเดียว',runProduction,'member-production-primary');
+ const start=button(productionBusy?'กำลังทำ 11 ขั้น…':'เริ่มประมวลผล 11 ขั้น · ครั้งเดียว',runProduction,'member-production-primary');
  start.disabled=productionBusy||busy||!scenes;
  actions.append(start);
  p.append(actions,node('p','subtle','ไฟล์ JSON ในช่องตรวจบทด้านล่างใช้ตรวจข้อความเท่านั้น หากต้องการผลิตวิดีโอให้เปิด JSON ผ่านปุ่มด้านบนก่อน'));
@@ -127,7 +127,7 @@ function productionPanel(){
 }
 async function runProduction(){
  if(productionBusy||busy)return;
- if(!root.StoryAIWorkspace?.runProduction12){productionError='ระบบผลิต 12 ขั้นยังโหลดไม่ครบ กรุณารีเฟรช';render();return}
+ if(!root.StoryAIWorkspace?.runProduction12){productionError='ระบบผลิต 11 ขั้นยังโหลดไม่ครบ กรุณารีเฟรช';render();return}
  productionBusy=true;productionError='';render();
  const ticker=root.setInterval?.(()=>fillProductionProgress(host?.querySelector('.member-production-steps')),800);
  try{await root.StoryAIWorkspace.runProduction12();}
