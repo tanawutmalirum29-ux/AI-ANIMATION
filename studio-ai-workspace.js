@@ -13,6 +13,25 @@ let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 let motherMode='system',productionScope='episode',motherRole='story-analyst',motherInstruction='';
 let motherOptions=[],motherError='',voiceEngine='system',motherVoiceConnectionId='auto';
 let motherLoading=false,motherInitialSync=false,voiceTestStatus='',voiceTesting=false;
+let motherVisualAuto=true,visualReviewReport='';
+async function runMotherVisual(){
+ if(busy){status('มีงานก่อนหน้ากำลังทำอยู่',true);return;}
+ busy=true;render();
+ let backed=false;
+ try{
+  const outcome=await root.StoryMotherProduction.visualReview(bridge,{
+   instruction:motherInstruction,maxMothers:2,
+   ensureBackup:async()=>{if(!backed){await backupBeforeEdit();backed=true;}}});
+  const details=outcome.reviews.map(r=>r.name+': '+(r.summary||'ไม่พบจุดแก้')+
+   (r.issues?.length?' ('+r.issues.slice(0,2).join('; ')+')':''));
+  visualReviewReport='AI แม่ตรวจเฟรมจริง '+outcome.mothers+'/'+outcome.attempted+
+   ' ตัว · ปรับฉาก '+outcome.applied+' ชุด\n'+details.join('\n')+
+   (outcome.warnings.length?'\nคำเตือน: '+outcome.warnings.join('; '):'');
+  status(visualReviewReport,!!outcome.warnings.length);
+ }catch(err){visualReviewReport='วิเคราะห์เฟรมไม่สำเร็จ: '+String(err.message||err);
+  status(visualReviewReport,true);}
+ finally{busy=false;render();}
+}
 function autoRefreshMotherOptions(){
  if(motherInitialSync||motherLoading||!root.StoryStudioAccess?.isAdmin?.())return;
  motherInitialSync=true;void refreshMotherOptions();
@@ -527,6 +546,13 @@ await step('layout-director',async()=>{
     warnings:[...(result.split?.warnings||[]),...soundWarnings]};
   });
   await step('quality-inspector',async()=>{
+   let visualMother=null,visualWarnings=[];
+   if(motherMode==='hybrid'&&motherVisualAuto){
+    try{visualMother=await root.StoryMotherProduction.visualReview(bridge,{
+     instruction:motherInstruction,maxMothers:2,ensureBackup});
+     visualWarnings=visualMother.warnings||[];
+    }catch(err){visualWarnings.push('AI แม่วิเคราะห์เฟรมไม่สำเร็จ: '+String(err.message||err));}
+   }
    const state=bridge.get(),v=root.StoryVisualQA?.inspect(state,{scope:'all'}),
      timing=evaluate('all',1),voice=countVoiceCoverage(state);
    const diag=root.StudioAPI?.validate?.();
@@ -540,10 +566,11 @@ await step('layout-director',async()=>{
     }));
    }
    const needs=!!(errors.length||visual.length||voice.missing||over.length);
-   const info=['เสียง '+voice.voiced+'/'+voice.expected+' ฉาก',
+   const info=[...(visualMother?['AI แม่ตรวจภาพจริง '+visualMother.mothers+' ตัว · ปรับ '+visualMother.applied+' ชุด']:[]),
+    'เสียง '+voice.voiced+'/'+voice.expected+' ฉาก',
     'เสี่ยงภาพ '+visual.length+' จุด','ตอนเกิน 65 วิ '+over.length,'JSON error '+errors.length];
-   return {status:needs?'warning':'done',summary:info.join(' · '),
-    warnings:[...visual.slice(0,12).map(x=>'ตอน '+x.episode+' ฉาก '+x.scene+': '+x.title),
+   return {status:needs||visualWarnings.length?'warning':'done',summary:info.join(' · '),
+    warnings:[...visualWarnings,...visual.slice(0,12).map(x=>'ตอน '+x.episode+' ฉาก '+x.scene+': '+x.title),
      ...over.map(x=>'ตอน '+x.episode+' เกิน 65 วินาที'),
      ...errors.slice(0,4).map(x=>'JSON: '+x.msg)]};
   });
@@ -883,6 +910,18 @@ function renderChat(container){
      ...productionSteps().map(x=>e('option',{value:x.id,selected:x.id===motherRole},x.name)))),
    button('ให้ AI แม่ทำขั้นที่เลือก',runMotherSelectedRole,{disabled:busy}),
    button('โหลด AI แม่จากแอดมิน',refreshMotherOptions,{disabled:busy})),
+  e('div',{className:'ai-actions'},
+   button('AI แม่ 2 ตัว ดูเฟรมจริงและปรับฉากนี้',runMotherVisual,
+    {disabled:busy||!motherOptions.length,className:'ai-primary'}),
+   e('label',{className:'ai-auto-toggle'},
+    e('input',{type:'checkbox',checked:motherVisualAuto,
+      onchange:ev=>{motherVisualAuto=!!ev.target.checked}}),
+    ' เมื่อใช้โหมด AI แม่ 11 ขั้น ให้ตรวจภาพฉากปัจจุบันด้วย')),
+  e('small',{className:'ai-help'},
+   'กดแล้วจะส่งภาพพรีวิวจริงขนาดย่อให้ Gemini/OpenRouter ที่แอดมินเชื่อมไว้ · '+
+   'โมเดลช่วยคิดและปรับแสง กล้อง ระยะตัวละครได้ภายใต้กรอบปลอดภัย · ไม่แก้บทหรือคลิปเสียง'),
+  ...(visualReviewReport?[e('pre',{className:'ai-response',
+     style:'white-space:pre-wrap;overflow-wrap:anywhere'},visualReviewReport)]:[]),
   e('small',{},'AI แม่พร้อม: '+motherOptions.length+' ตัว · แบ่งฉากเป็นชุดตามจำนวน AI แม่'+
    (motherError?' · '+motherError:'')),
   ...(production?.lastSummary?[e('pre',{className:'ai-response',style:'white-space:pre-wrap;overflow-wrap:anywhere'},
