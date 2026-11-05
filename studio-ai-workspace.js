@@ -12,10 +12,38 @@ const EPISODE_TARGET_SECONDS=60,EPISODE_GRACE_SECONDS=5;
 let targetMinutes=1,splitEpisodes=true,lastAudit=null;
 let motherMode='system',productionScope='episode',motherRole='story-analyst',motherInstruction='';
 let motherOptions=[],motherError='',voiceEngine='system',motherVoiceConnectionId='auto';
+let motherLoading=false,motherInitialSync=false,voiceTestStatus='',voiceTesting=false;
+function autoRefreshMotherOptions(){
+ if(motherInitialSync||motherLoading||!root.StoryStudioAccess?.isAdmin?.())return;
+ motherInitialSync=true;void refreshMotherOptions();
+}
+async function testMotherSpeech(){
+ if(voiceTesting||busy)return;
+ voiceTesting=true;voiceTestStatus='กำลังทดสอบการสร้างเสียงจริง…';render();
+ try{
+  motherOptions=await root.StoryMotherProduction.refresh();
+  const choice=root.StoryMotherProduction.voiceChoice(motherVoiceConnectionId);
+  if(!choice)throw Error('ยังไม่มี Gemini AI แม่ · กรุณาเชื่อม Gemini API ใน AI ครู / API');
+  const result=await root.StoryStudioAccess.request({action:'teacher.production.speech',
+   provider:choice.provider,connectionId:choice.id,
+   text:'สวัสดีค่ะ นี่คือการทดสอบเสียงพากย์จากเอไอแม่',voice:'Kore'});
+  if(!result?.audio)throw Error(result?.error||'โมเดลไม่ส่งข้อมูลเสียง');
+  const binary=atob(result.audio),bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  if(bytes.length<100)throw Error('ไฟล์เสียงว่างหรือผิดรูปแบบ');
+  const blob=new Blob([bytes],{type:result.mimeType||'audio/wav'}),url=URL.createObjectURL(blob);
+  try{const audio=new Audio(url);await audio.play();audio.onended=()=>URL.revokeObjectURL(url);}
+  catch(err){URL.revokeObjectURL(url);throw Error('สร้างเสียงแล้วแต่เล่นไม่ได้: '+String(err.message||err))}
+  voiceTestStatus='สำเร็จ: '+(result.model||'Gemini TTS')+' · '+Math.round(blob.size/1024)+' KB';
+ }catch(err){voiceTestStatus='ทดสอบไม่ผ่าน: '+String(err.message||err).slice(0,250)}
+ finally{voiceTesting=false;render();}
+}
 async function refreshMotherOptions(){
+ if(motherLoading)return;
+ motherLoading=true;motherInitialSync=true;
  try{motherOptions=await root.StoryMotherProduction.refresh(true);motherError='';}
  catch(err){motherError=String(err.message||err);motherOptions=[];}
- render();
+ finally{motherLoading=false;render();}
 }
 async function runMotherSelectedRole(){
  if(busy){status('งานก่อนหน้ายังไม่เสร็จ',true);return;}
@@ -826,6 +854,7 @@ function commandDesk(){
  );
 }
 function renderChat(container){
+ autoRefreshMotherOptions();
  const pane=e('section',{className:'ai-chat-panel'});
  pane.append(e('h3',{},'12 ขั้นการผลิต · ทำตามความสามารถจริง'),
   e('p',{className:'ai-help'},'บท ฉาก ภาพ ตัวละคร และเหตุการณ์มาจาก JSON ที่นำเข้าแล้ว ผู้ช่วยตรวจงานจริง ไม่ให้วางบทใหม่ และไม่สร้างเนื้อเรื่องแทน'));
@@ -1015,7 +1044,7 @@ function renderChat(container){
   e('p',{},'พากย์ข้อความ voiceover / subtitle จาก JSON เดิม แบ่งข้อความที่ยาวเป็นคลิปสั้นเพื่อลดการเว้นวรรคนานเกินไป ใช้ความยาว MP3 จริงจัดจังหวะอีกครั้งหลังจบ'),
   e('div',{className:'ai-actions'},
    e('label',{},'แหล่งพากย์ ',
-    e('select',{'aria-label':'เลือกแหล่งพากย์',onchange:ev=>{voiceEngine=ev.target.value;render()}},
+    e('select',{'aria-label':'เลือกแหล่งพากย์',onchange:ev=>{voiceEngine=ev.target.value;voiceTestStatus='';if(voiceEngine==='mother')void refreshMotherOptions();render()}},
      e('option',{value:'system',selected:voiceEngine==='system'},'ระบบ · Edge TTS'),
      e('option',{value:'mother',selected:voiceEngine==='mother'},'AI แม่ · Gemini TTS'))),
    ...(voiceEngine==='mother'?[e('label',{},'เลือก AI แม่ ',
@@ -1023,8 +1052,17 @@ function renderChat(container){
      e('option',{value:'auto',selected:motherVoiceConnectionId==='auto'},'อัตโนมัติ · Gemini ตัวแรก'),
      ...motherOptions.filter(x=>x.provider==='gemini').map(x=>
       e('option',{value:x.id,selected:x.id===motherVoiceConnectionId},x.name||x.id))))]:[])),
+  ...(voiceEngine==='mother'?[e('div',{className:'ai-actions'},
+     button(motherLoading?'กำลังโหลด AI แม่…':'รีเฟรช AI แม่',refreshMotherOptions,{disabled:busy||motherLoading}),
+     button(voiceTesting?'กำลังทดสอบ…':'ทดสอบเสียง AI แม่จริง',testMotherSpeech,
+      {disabled:busy||voiceTesting||motherLoading})),
+    e('small',{className:'ai-help','data-voice-diagnostics':'true'},
+     voiceTestStatus||motherError||
+     (motherOptions.some(x=>x.provider==='gemini')
+      ?'เลือก Gemini แล้วกดทดสอบเสียงก่อนพากย์ทั้งตอน'
+      :'ไม่พบ AI แม่ Gemini ที่พร้อมใช้ · โมเดลแชต text-only ไม่ส่งเสียงจริง'))]:[]),
   button(busy?'กำลังพากย์…':'พากย์เฉพาะที่ยังไม่มีเสียง',()=>queueWork('voice'),
-   {disabled:busy||voiceEngine==='mother'&&!motherOptions.some(x=>x.provider==='gemini'),className:'ai-primary'}),
+   {disabled:busy||voiceTesting||motherLoading||voiceEngine==='mother'&&!motherOptions.some(x=>x.provider==='gemini'),className:'ai-primary'}),
   e('small',{},voiceEngine==='system'?
    'พากย์ผ่าน Edge TTS เดิม · ไม่ทับเสียงที่มีอยู่ · จัดจังหวะตามความยาวจริง':
    'ใช้โมเดล Gemini Native TTS กับคีย์ AI แม่ที่เลือก (ผู้ให้บริการอาจคิดโควตา/ค่าใช้จ่าย) · OpenRouter text-only ไม่สามารถพากย์จริงได้ · โหลดรายชื่อ AI แม่ก่อน'));
